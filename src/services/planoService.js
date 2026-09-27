@@ -1,6 +1,9 @@
 const db = require("../db/db");
 const assinaturaRepository =
     require("../repositories/assinaturaRepository");
+const {
+    reconciliarReativacaoAbandonada
+} = require("./assinaturaReativacaoService");
 const planoRepository = require(
     "../repositories/planoRepository"
 );
@@ -111,6 +114,12 @@ async function buscarUsoPlano(
     executor = db,
     dataReferencia = null
 ) {
+    if (executor === db) {
+        await reconciliarReativacaoAbandonada(
+            negocioId
+        );
+    }
+
     await expirarCancelamentoComReconciliacao(
         negocioId,
         executor
