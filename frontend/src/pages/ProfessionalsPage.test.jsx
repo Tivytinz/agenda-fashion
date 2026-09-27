@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
@@ -39,7 +40,7 @@ describe("equipe por convite", () => {
         }
       });
 
-    render(<ProfessionalsPage />);
+    render(<MemoryRouter><ProfessionalsPage /></MemoryRouter>);
     await screen.findByRole("heading", { name: "Profissionais" });
 
     fireEvent.change(
@@ -71,7 +72,7 @@ describe("equipe por convite", () => {
         "Profissional não encontrado. Ele precisa criar uma conta primeiro."
       ));
 
-    render(<ProfessionalsPage />);
+    render(<MemoryRouter><ProfessionalsPage /></MemoryRouter>);
     await screen.findByRole("heading", { name: "Profissionais" });
     fireEvent.change(
       screen.getByLabelText(/E-mail ou WhatsApp da profissional/i),
@@ -135,7 +136,7 @@ describe("equipe por convite", () => {
       return Promise.reject(new Error(`Rota inesperada: ${requestPath}`));
     });
 
-    render(<ProfessionalsPage />);
+    render(<MemoryRouter><ProfessionalsPage /></MemoryRouter>);
 
     expect(
       await screen.findByText(/aguardando vaga no plano/i)
@@ -197,7 +198,7 @@ describe("equipe por convite", () => {
       return Promise.reject(new Error(`Rota inesperada: ${requestPath}`));
     });
 
-    render(<ProfessionalsPage />);
+    render(<MemoryRouter><ProfessionalsPage /></MemoryRouter>);
 
     expect(
       await screen.findByText(/excedente do limite do plano/i)
@@ -220,7 +221,7 @@ describe("equipe por convite", () => {
         "Existe 1 agendamento futuro ativo para esta profissional."
       ));
 
-    render(<ProfessionalsPage />);
+    render(<MemoryRouter><ProfessionalsPage /></MemoryRouter>);
     await screen.findByRole("heading", { name: "Ana" });
     expect(screen.getAllByRole("button", { name: "Remover" })).toHaveLength(1);
 
@@ -276,7 +277,7 @@ describe("equipe por convite", () => {
       );
     });
 
-    render(<ProfessionalsPage />);
+    render(<MemoryRouter><ProfessionalsPage /></MemoryRouter>);
 
     const buttons = await screen.findAllByRole(
       "button",
