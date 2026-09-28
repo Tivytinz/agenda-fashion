@@ -8,6 +8,7 @@ import {
 import { getMarketingContext } from "../analytics/track";
 import {
   getAuthDestination,
+  getBusinessCreationPath,
   normalizePlanSlug,
   safeInternalPath
 } from "../auth/session";
@@ -47,17 +48,40 @@ export function AuthPage({ mode = "login" }) {
   }, [location.search]);
   const professionalIntent = isRegister && authIntent.professional;
 
+  const authRequestedPath = useMemo(
+    () =>
+      safeReturnPath(location.state?.from) ||
+      (
+        professionalIntent
+          ? getBusinessCreationPath(authIntent.planSlug)
+          : ""
+      ),
+    [
+      authIntent.planSlug,
+      location.state,
+      professionalIntent
+    ]
+  );
+
   const destination = useMemo(() => getAuthDestination(session, {
-    requestedPath: safeReturnPath(location.state?.from),
+    requestedPath: authRequestedPath,
     planSlug: authIntent.planSlug
-  }), [authIntent.planSlug, location.state, session]);
+  }), [
+    authIntent.planSlug,
+    authRequestedPath,
+    session
+  ]);
 
   const finish = useCallback((current) => {
     navigate(getAuthDestination(current, {
-      requestedPath: safeReturnPath(location.state?.from),
+      requestedPath: authRequestedPath,
       planSlug: authIntent.planSlug
     }), { replace: true });
-  }, [authIntent.planSlug, location.state, navigate]);
+  }, [
+    authIntent.planSlug,
+    authRequestedPath,
+    navigate
+  ]);
 
   const handleGoogle = useCallback(async (credential) => {
     setError("");

@@ -262,6 +262,25 @@ describe("confirmação do agendamento", () => {
     });
   });
 
+  it("mantém atualização de dados no contexto cliente durante o booking", async () => {
+    useSession.mockReturnValue({
+      authenticated: true,
+      usuario: {
+        nome: "Cliente sem telefone",
+        whatsapp: "",
+        aceita_notificacoes_whatsapp: false
+      }
+    });
+
+    renderConfirmation();
+    await waitPolicy();
+
+    expect(
+      screen.getByRole("link", { name: "Atualizar conta" })
+        .getAttribute("href")
+    ).toBe("/cliente/conta");
+  });
+
   it("bloqueia a confirmação autenticada quando a conta não possui WhatsApp válido", async () => {
     useSession.mockReturnValue({
       authenticated: true,

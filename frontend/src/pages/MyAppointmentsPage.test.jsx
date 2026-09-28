@@ -123,6 +123,26 @@ describe("agenda da cliente", () => {
     });
   });
 
+  it("simplifica a agenda visitante e prioriza o acesso seguro da reserva", async () => {
+    useSession.mockReturnValue({ authenticated: false, loading: false });
+    sessionStorage.setItem("af_recent_appointment", JSON.stringify({
+      ...APPOINTMENT,
+      acesso_visitante: "abcdefghijklmnopqrstuvwxyzABCDEFGH123456789"
+    }));
+
+    render(<MemoryRouter><MyAppointmentsPage /></MemoryRouter>);
+
+    expect(
+      await screen.findByRole("heading", { name: "Meu agendamento" })
+    ).not.toBeNull();
+    expect(screen.queryByRole("tab")).toBeNull();
+    expect(screen.getByText("Agendamento como visitante")).not.toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Abrir acesso seguro do agendamento" })
+        .getAttribute("href")
+    ).toContain("/agendamento-visitante/12#token=");
+  });
+
   it("volta ao modo visitante quando a sessão deixa de existir", async () => {
     let session = { authenticated: true, loading: false };
     useSession.mockImplementation(() => session);

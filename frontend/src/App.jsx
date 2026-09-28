@@ -333,6 +333,10 @@ export default function App() {
             element={<ProtectedRoute><AccountRoute /></ProtectedRoute>}
           />
           <Route
+            path={reactRoutes.clientAccount}
+            element={<ProtectedRoute><AccountPage /></ProtectedRoute>}
+          />
+          <Route
             path={reactRoutes.professionalInvites}
             element={<ProtectedRoute><ProfessionalInvitesRoute /></ProtectedRoute>}
           />

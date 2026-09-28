@@ -2,8 +2,13 @@
 
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useSession } from "../auth/SessionContext";
 import { SuccessPage } from "./SuccessPage";
+
+vi.mock("../auth/SessionContext", () => ({
+  useSession: vi.fn()
+}));
 
 const BOOKING = {
   slug: "studio-aurora",
@@ -46,6 +51,12 @@ function renderSuccess(result = null) {
   );
 }
 
+beforeEach(() => {
+  useSession.mockReturnValue({
+    authenticated: false
+  });
+});
+
 afterEach(cleanup);
 
 describe("confirmação concluída", () => {
@@ -64,11 +75,27 @@ describe("confirmação concluída", () => {
 
     expect(
       screen.getByRole("link", {
-        name: "Abrir link seguro do agendamento"
+        name: "Abrir meu agendamento"
       }).getAttribute("href")
     ).toBe(
       "/agendamento-visitante/91#token=capability"
     );
+  });
+
+  it("usa a agenda como ação principal para cliente autenticada", () => {
+    useSession.mockReturnValue({
+      authenticated: true
+    });
+
+    renderSuccess();
+
+    expect(
+      screen.getByRole("link", { name: "Ver meus agendamentos" })
+        .getAttribute("href")
+    ).toBe("/minha-agenda");
+    expect(
+      screen.queryByRole("link", { name: "Ver reserva desta sessão" })
+    ).toBeNull();
   });
 
   it("exibe contato formatado, endereço e ações úteis", () => {

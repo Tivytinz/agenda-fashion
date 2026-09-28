@@ -49,3 +49,49 @@ html.public-context-active body {
     scroll-behavior: auto !important;
   }
 }
+
+
+.client-mobile-navigation {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .public-shell.client-navigation-active > .app-shell {
+    padding-bottom: calc(74px + env(safe-area-inset-bottom));
+  }
+
+  .client-mobile-navigation {
+    position: fixed;
+    z-index: 1080;
+    right: 10px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: 10px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    border: 1px solid var(--public-line);
+    border-radius: 18px;
+    padding: 6px;
+    background: rgb(255 255 255 / 96%);
+    box-shadow: 0 14px 38px rgb(72 22 43 / 14%);
+    backdrop-filter: blur(16px);
+  }
+
+  .client-mobile-navigation a {
+    display: grid;
+    min-height: 48px;
+    place-items: center;
+    border-radius: 12px;
+    padding: 5px 4px;
+    color: var(--public-muted);
+    font-size: .7rem;
+    font-weight: 800;
+    text-align: center;
+    text-decoration: none;
+  }
+
+  .client-mobile-navigation a.active {
+    color: var(--public-brand-strong);
+    background: var(--public-brand-soft);
+  }
+}

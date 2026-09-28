@@ -1,4 +1,5 @@
 import { Link, Navigate, useLocation } from "react-router-dom";
+import { useSession } from "../auth/SessionContext";
 import { BrandProgressMark } from "../components/BrandProgressMark";
 import { formatDate, formatWhatsApp } from "../utils/format";
 
@@ -59,6 +60,7 @@ function businessWhatsAppUrl(business) {
 
 export function SuccessPage() {
   const { state } = useLocation();
+  const session = useSession();
 
   if (!state?.booking) {
     return <Navigate to="/" replace />;
@@ -96,14 +98,28 @@ export function SuccessPage() {
           </dl>
         )}
         <div className="success-actions">
+          {guestCancellationLink ? (
+            <a
+              className="button"
+              href={guestCancellationLink}
+            >
+              Abrir meu agendamento
+            </a>
+          ) : (
+            <Link className="button" to="/minha-agenda">
+              Ver meus agendamentos
+            </Link>
+          )}
+
           <a
-            className="button"
+            className="button button-secondary"
             href={calendarUrl(booking, address)}
             rel="noreferrer"
             target="_blank"
           >
             Adicionar ao calendário
           </a>
+
           {whatsappUrl && (
             <a
               className="button button-secondary"
@@ -114,16 +130,16 @@ export function SuccessPage() {
               Falar com o negócio
             </a>
           )}
-          {guestCancellationLink && (
-            <a
-              className="button button-secondary"
-              href={guestCancellationLink}
-            >
-              Abrir link seguro do agendamento
-            </a>
+
+          {guestCancellationLink && !session.authenticated && (
+            <Link className="button button-secondary" to="/minha-agenda">
+              Ver reserva desta sessão
+            </Link>
           )}
-          <Link className="button" to="/minha-agenda">Ver minha agenda</Link>
-          <Link className="button button-secondary" to="/">Ver mais serviços</Link>
+
+          <Link className="button button-secondary" to="/">
+            Ver mais serviços
+          </Link>
         </div>
       </section>
     </main>

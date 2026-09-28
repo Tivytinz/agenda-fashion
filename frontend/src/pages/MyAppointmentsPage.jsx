@@ -405,9 +405,13 @@ export function MyAppointmentsPage() {
     <main className="container page-content appointments-page">
       <header className="appointments-header">
         <div>
-          <p className="eyebrow">Seus horários</p>
-          <h1>Minha agenda</h1>
-          <p>Acompanhe seus próximos atendimentos e consulte seu histórico.</p>
+          <p className="eyebrow">{isAuthenticated ? "Seus horários" : "Reserva recente"}</p>
+          <h1>{isAuthenticated ? "Minha agenda" : "Meu agendamento"}</h1>
+          <p>
+            {isAuthenticated
+              ? "Acompanhe seus próximos atendimentos e consulte seu histórico."
+              : "Acompanhe a reserva salva nesta sessão e use o acesso seguro para consultar ou cancelar quando disponível."}
+          </p>
         </div>
         <Link className="button button-secondary" to="/">Agendar novo serviço</Link>
       </header>
@@ -417,11 +421,16 @@ export function MyAppointmentsPage() {
           <div>
             <strong>Agendamento como visitante</strong>
             <p>
-              Nesta sessão você pode acompanhar e cancelar o agendamento que acabou de criar.
-              Entre na sua conta para reunir e gerenciar agendamentos feitos com login.
+              Esta página mostra apenas a reserva salva neste navegador. Se você recebeu um link seguro, guarde-o para consultar ou cancelar este agendamento em outro dispositivo.
             </p>
           </div>
-          <Link className="button button-small" to="/entrar">Entrar</Link>
+          <Link
+            className="button button-small"
+            state={{ from: "/minha-agenda" }}
+            to="/entrar"
+          >
+            Entrar
+          </Link>
         </section>
       )}
 
@@ -433,7 +442,59 @@ export function MyAppointmentsPage() {
         />
       )}
 
-      {status === "ready" && (
+      {status === "ready" && !isAuthenticated && (
+        <>
+          {message && <p className="agenda-message" role="status">{message}</p>}
+          {appointments.length > 0 ? (
+            <>
+              <section className="appointments-list" aria-live="polite">
+                {appointments.map((appointment) => (
+                  <AppointmentCard
+                    appointment={appointment}
+                    canCancel={
+                      [
+                        APPOINTMENT_STATUS.scheduled,
+                        APPOINTMENT_STATUS.confirmed
+                      ].includes(appointment.status) &&
+                      appointment.source === "visitor" &&
+                      Boolean(appointment.acesso_visitante)
+                    }
+                    canEvaluate={false}
+                    canceling={cancelingId === appointment.id}
+                    evaluating={false}
+                    evaluationError=""
+                    key={appointment.id}
+                    onCancel={(item) => {
+                      setCancelError("");
+                      setPendingCancellation(item);
+                    }}
+                    onEvaluate={evaluateAppointment}
+                  />
+                ))}
+              </section>
+              {recentAppointment?.acesso_visitante && (
+                <a
+                  className="button button-secondary visitor-secure-access"
+                  href={`/agendamento-visitante/${recentAppointment.id}#token=${recentAppointment.acesso_visitante}`}
+                >
+                  Abrir acesso seguro do agendamento
+                </a>
+              )}
+            </>
+          ) : (
+            <section className="empty-agenda">
+              <span aria-hidden="true">♡</span>
+              <h2>Nenhum agendamento nesta sessão</h2>
+              <p>
+                Se você recebeu um link seguro de um agendamento anterior, abra esse link para consultar a reserva.
+              </p>
+              <Link className="button" to="/">Encontrar um serviço</Link>
+            </section>
+          )}
+        </>
+      )}
+
+      {status === "ready" && isAuthenticated && (
         <>
           {message && <p className="agenda-message" role="status">{message}</p>}
           <div className="agenda-tabs" role="tablist" aria-label="Status dos agendamentos">
@@ -471,21 +532,11 @@ export function MyAppointmentsPage() {
                   {grouped[tab.id].map((appointment) => (
                     <AppointmentCard
                       appointment={appointment}
-                      canCancel={
-                        [
-                          APPOINTMENT_STATUS.scheduled,
-                          APPOINTMENT_STATUS.confirmed
-                        ].includes(appointment.status) &&
-                        (
-                          isAuthenticated ||
-                          (
-                            appointment.source === "visitor" &&
-                            Boolean(appointment.acesso_visitante)
-                          )
-                        )
-                      }
+                      canCancel={[
+                        APPOINTMENT_STATUS.scheduled,
+                        APPOINTMENT_STATUS.confirmed
+                      ].includes(appointment.status)}
                       canEvaluate={
-                        isAuthenticated &&
                         appointment.status === APPOINTMENT_STATUS.completed &&
                         !appointment.avaliacao
                       }

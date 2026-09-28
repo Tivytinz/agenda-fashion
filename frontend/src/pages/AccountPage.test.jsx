@@ -137,6 +137,36 @@ describe("minha conta", () => {
     expect(backLink.getAttribute("href")).toBe("/");
   });
 
+  it("mantém a conta cliente fora do workspace mesmo quando a identidade também é dona", async () => {
+    useSession.mockReturnValue({
+      temNegocio: true,
+      ehAdministrador: false,
+      negocio: { id: 11, papel: "dono", nome: "Meu Studio" },
+      refresh: refreshSession,
+      logout: logoutSession
+    });
+    apiRequest.mockResolvedValueOnce({ usuario: baseUser() });
+
+    const { container } = render(
+      <MemoryRouter initialEntries={["/cliente/conta"]}>
+        <AccountPage />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Minha conta" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("link", { name: /Voltar à descoberta/ })
+        .getAttribute("href")
+    ).toBe("/");
+    expect(
+      container.querySelector("main")
+        ?.classList.contains("workspace-page")
+    ).toBe(false);
+    expect(screen.queryByText("Comunicação do negócio")).toBeNull();
+  });
+
   it("mantém convites como ação secundária dentro da conta profissional", async () => {
     useSession.mockReturnValue({
       temNegocio: true,

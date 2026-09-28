@@ -14,6 +14,13 @@ describe("destino da sessão", () => {
     expect(getWorkspacePath({ temNegocio: false })).toBe("/criar-negocio");
   });
 
+  it("leva login genérico de cliente sem negócio para a descoberta", () => {
+    expect(getAuthDestination({
+      temNegocio: false,
+      ehAdministrador: false
+    })).toBe("/");
+  });
+
   it("leva administradores para a administração mesmo quando também possuem negócio", () => {
     expect(getWorkspacePath({
       ehAdministrador: true,

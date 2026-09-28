@@ -159,5 +159,12 @@ export function getAuthDestination(session, {
     }
   }
 
-  return getWorkspacePath(session);
+  if (
+    session?.ehAdministrador ||
+    session?.temNegocio
+  ) {
+    return getWorkspacePath(session);
+  }
+
+  return "/";
 }

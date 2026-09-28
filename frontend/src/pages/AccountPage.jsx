@@ -43,6 +43,8 @@ export function AccountPage() {
   const navigate = useNavigate();
   const professionalContext =
     location.pathname === "/profissional/conta";
+  const clientContext =
+    location.pathname === "/cliente/conta";
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState({ nome: "", whatsapp: "" });
   const [savedProfile, setSavedProfile] = useState({ nome: "", whatsapp: "" });
@@ -59,11 +61,12 @@ export function AccountPage() {
   const [photoMessage, setPhotoMessage] = useState("");
   const [saving, setSaving] = useState("");
   const [closureResult, setClosureResult] = useState(null);
-  const insideNavigation = Boolean(
+  const insideNavigation = !clientContext && Boolean(
     session.temNegocio ||
     session.ehAdministrador
   );
   const isBusinessOwner =
+    !clientContext &&
     session.temNegocio &&
     session.negocio?.papel === "dono";
   const pageClassName = insideNavigation
@@ -306,18 +309,22 @@ export function AccountPage() {
   if (!user && !error) return <main className={pageClassName}><LoadingState>Carregando sua conta...</LoadingState></main>;
   if (!user && error) return <main className={pageClassName}><ErrorState message={error} onRetry={load} /></main>;
 
-  const backPath = session.ehAdministrador
-    ? "/admin/trafego-pago"
-    : session.temNegocio
-      ? session.negocio?.papel === "dono"
-        ? "/painel"
-        : "/profissional/agenda"
-      : "/";
-  const backLabel = session.ehAdministrador
-    ? "Voltar à administração"
-    : session.temNegocio
-      ? "Voltar à área de trabalho"
-      : "Voltar ao início";
+  const backPath = clientContext
+    ? "/"
+    : session.ehAdministrador
+      ? "/admin/trafego-pago"
+      : session.temNegocio
+        ? session.negocio?.papel === "dono"
+          ? "/painel"
+          : "/profissional/agenda"
+        : "/";
+  const backLabel = clientContext
+    ? "Voltar à descoberta"
+    : session.ehAdministrador
+      ? "Voltar à administração"
+      : session.temNegocio
+        ? "Voltar à área de trabalho"
+        : "Voltar ao início";
 
   function passwordField(label, key, autoComplete) {
     const visible = passwordVisibility[key];
@@ -466,7 +473,7 @@ export function AccountPage() {
           )}
         </form>
 
-        {session.temNegocio && (
+        {session.temNegocio && !clientContext && (
           <form className="account-preference-row" onSubmit={saveWhatsAppPreferences}>
             <div className="account-preference-copy">
               <strong>Comunicação do negócio</strong>

@@ -97,6 +97,66 @@ describe("cabeçalho por contexto", () => {
     })).not.toBeNull();
   });
 
+  it("mantém a rotina cliente separada de convites e criação de negócio", () => {
+    useSession.mockReturnValue({
+      authenticated: true,
+      ehAdministrador: false,
+      temNegocio: false,
+      negocio: null,
+      usuario: { nome: "Cliente" },
+      logout
+    });
+
+    renderHeader("/favoritos");
+
+    expect(screen.getByRole("link", { name: "Minha conta" })
+      .getAttribute("href")).toBe("/cliente/conta");
+    expect(
+      screen.getAllByRole("link", { name: "Meus agendamentos" })
+        .every((link) => link.getAttribute("href") === "/minha-agenda")
+    ).toBe(true);
+    expect(
+      screen.getAllByRole("link", { name: "Favoritos" })
+        .every((link) => link.getAttribute("href") === "/favoritos")
+    ).toBe(true);
+    expect(screen.queryByRole("link", { name: "Convites de equipe" }))
+      .toBeNull();
+    expect(screen.queryByRole("link", { name: "Criar negócio" }))
+      .toBeNull();
+  });
+
+  it("oferece troca explícita para gestão sem tirar a conta do contexto cliente", () => {
+    renderHeader("/minha-agenda");
+
+    expect(screen.getByRole("link", { name: "Minha conta" })
+      .getAttribute("href")).toBe("/cliente/conta");
+    expect(screen.getByRole("link", { name: "Ir para área de trabalho" })
+      .getAttribute("href")).toBe("/painel");
+    expect(screen.queryByRole("link", { name: "Convites de equipe" }))
+      .toBeNull();
+  });
+
+  it("remove navegação concorrente durante a confirmação do booking", () => {
+    useSession.mockReturnValue({
+      authenticated: false,
+      ehAdministrador: false,
+      temNegocio: false,
+      negocio: null,
+      usuario: null,
+      logout
+    });
+
+    renderHeader("/confirmar");
+
+    expect(screen.getByRole("link", { name: "Agenda Fashion, início" }))
+      .not.toBeNull();
+    expect(screen.queryByRole("navigation", { name: "Navegação principal" }))
+      .toBeNull();
+    expect(screen.queryByRole("searchbox")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Entrar na sua conta" }))
+      .toBeNull();
+  });
+
   it("remove saídas desnecessárias da landing profissional", () => {
     useSession.mockReturnValue({
       authenticated: false,
@@ -231,7 +291,7 @@ describe("cabeçalho por contexto", () => {
 
     expect(screen.getByRole("link", { name: "Início" })
       .getAttribute("href")).toBe("/");
-    expect(screen.getByRole("link", { name: "Área de trabalho" })
+    expect(screen.getByRole("link", { name: "Ir para área de trabalho" })
       .getAttribute("href")).toBe("/painel");
     expect(screen.queryByRole("link", { name: "Administração" }))
       .toBeNull();
