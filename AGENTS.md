@@ -186,7 +186,9 @@ após esse salvamento é uma sincronização auxiliar e não pode bloquear a tra
 `Serviço → Horários` por lentidão ou falha transitória. Respostas assíncronas de
 sessão também não podem restaurar uma sessão encerrada, sobrescrever uma nova
 autenticação nem substituir um estado mais recente quando refreshes concorrentes
-terminarem fora de ordem. Em `/minha-sessao`, inclusive o tratamento de
+terminarem fora de ordem. Assim que um refresh mais novo for iniciado na mesma
+geração da sessão, qualquer sucesso ou erro do refresh anterior se torna obsoleto
+e não pode alterar o `SessionContext`. Em `/minha-sessao`, inclusive o tratamento de
 `401/403` pertence ao `SessionContext`, que conhece a geração da requisição;
 o cliente HTTP não deve limpar globalmente uma sessão mais nova por causa de uma
 resposta obsoleta. Fotos continuam fora da primeira missão e podem ser
