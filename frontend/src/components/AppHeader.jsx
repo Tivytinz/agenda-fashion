@@ -102,10 +102,11 @@ export function AppHeader() {
     .charAt(0)
     .toLocaleUpperCase("pt-BR");
 
-  const workspaceLabel =
-    session.negocio?.papel === "profissional"
+  const workspaceLabel = clientContext
+    ? session.negocio?.papel === "profissional"
       ? "Área profissional"
-      : "Ir para gestão";
+      : "Ir para gestão"
+    : "Área de trabalho";
 
   const headerClassName = [
     "site-header",
