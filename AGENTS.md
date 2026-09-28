@@ -199,7 +199,10 @@ e toda sincronização pendente deve ser abortada antes de login, cadastro, logo
 ou outra transição que assuma uma nova geração da sessão. O cookie HttpOnly
 válido é a autoridade quando coexistir com um Bearer legado: o frontend deve
 validá-lo antes de tentar a migração e o backend de migração nunca pode
-sobrescrever um cookie de sessão já presente. Se o cookie estiver inválido, sua
+sobrescrever um cookie de sessão já presente. Se o endpoint de migração encontrar
+um cookie que surgiu concorrentemente, deve preservar esse cookie e responder de
+forma compatível com bundles anteriores; o frontend atual revalida a sessão
+canônica antes de concluir a migração local. Se o cookie estiver inválido, sua
 validação canônica o limpa antes de uma nova tentativa controlada do Bearer. Fotos continuam
 fora da primeira missão e podem ser
 adicionadas depois no editor normal de Serviços.
