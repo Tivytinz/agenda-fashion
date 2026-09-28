@@ -63,6 +63,10 @@ export function SessionProvider({ children }) {
       sessionGeneration === sessionGenerationRef.current
       && requestId > lastAppliedRefreshRef.current
     );
+    const canApplyDestructiveResult = () => (
+      canApply()
+      && requestId === refreshRequestRef.current
+    );
 
     if (!hasSession()) {
       sessionGenerationRef.current += 1;
@@ -84,6 +88,10 @@ export function SessionProvider({ children }) {
       }
 
       if (migration.invalid) {
+        if (!canApplyDestructiveResult()) {
+          return null;
+        }
+
         sessionGenerationRef.current += 1;
         lastAppliedRefreshRef.current = requestId;
         setState(SIGNED_OUT_STATE);
@@ -129,6 +137,10 @@ export function SessionProvider({ children }) {
       }
 
       if (error.status === 401 || error.status === 403) {
+        if (!canApplyDestructiveResult()) {
+          return null;
+        }
+
         sessionGenerationRef.current += 1;
         lastAppliedRefreshRef.current = requestId;
         clearSession();
@@ -220,6 +232,46 @@ export function SessionProvider({ children }) {
     };
   }, [refresh]);
 
+  const adoptCreatedBusiness = useCallback((business) => {
+    const businessId = Number(business?.id);
+
+    if (!Number.isInteger(businessId) || businessId <= 0) {
+      throw new Error("O negócio criado não possui um identificador válido.");
+    }
+
+    if (!hasSession()) {
+      return false;
+    }
+
+    const ownerBusiness = {
+      ...business,
+      id: businessId,
+      papel: "dono"
+    };
+
+    sessionGenerationRef.current += 1;
+
+    setState((current) => {
+      if (!current.authenticated) {
+        return current;
+      }
+
+      const remainingLinks = current.vinculos.filter(
+        (link) => Number(link?.id) !== businessId
+      );
+
+      return {
+        ...current,
+        loading: false,
+        negocioPrincipal: ownerBusiness,
+        vinculos: [ownerBusiness, ...remainingLinks],
+        temNegocio: true
+      };
+    });
+
+    return true;
+  }, []);
+
   const logout = useCallback(async () => {
     sessionGenerationRef.current += 1;
     clearSession();
@@ -251,8 +303,17 @@ export function SessionProvider({ children }) {
     login,
     register,
     loginWithGoogle,
+    adoptCreatedBusiness,
     logout
-  }), [routeSession, refresh, login, register, loginWithGoogle, logout]);
+  }), [
+    routeSession,
+    refresh,
+    login,
+    register,
+    loginWithGoogle,
+    adoptCreatedBusiness,
+    logout
+  ]);
 
   return (
     <SessionContext.Provider value={value}>
