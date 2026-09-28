@@ -48,6 +48,7 @@ backend.
 | `/agendamento-acesso/:id` | `InactiveBookingAccessPage` | pública | Público | acesso específico a booking em cenário de conta inativa |
 | `/agendamento-visitante/:id` | `GuestBookingAccessPage` | pública | Público | consulta/cancelamento por capability de visitante |
 | `/favoritos` | `FavoritesPage` | autenticada | Público | favoritos da cliente |
+| `/cliente/conta` | `AccountPage` | autenticada | Público/cliente | conta preservando explicitamente o contexto cliente |
 | `/planos` | `PlansPage` | pública | Público | catálogo de planos e entrada de intenção de upgrade |
 | `/privacidade` | `PrivacyPage` | pública | Público | política de privacidade |
 | `/termos` | `TermsPage` | pública | Público | termos de uso |
@@ -76,6 +77,7 @@ Fonte de domínio:
 | `/esqueci-senha` | `PasswordResetPage` | Público | solicitação de recuperação |
 | `/redefinir-senha` | `PasswordResetPage mode="reset"` | Público | definição da nova senha |
 | `/conta` | `AccountPage` | Dinâmico | perfil/conta conforme contexto da sessão |
+| `/cliente/conta` | `AccountPage` | Público/cliente | conta pessoal sem trocar para workspace operacional |
 
 ### Resolução especial de `/conta`
 
@@ -92,7 +94,7 @@ senão
   → AccountPage no contexto público
 ```
 
-Essa resolução visual não altera as permissões persistidas.
+Essa resolução visual não altera as permissões persistidas. Durante descoberta e booking, identidades multi-papel usam `/cliente/conta` para editar a conta sem cair implicitamente no `OwnerShell` ou `ProfessionalShell`.
 
 Fonte de domínio:
 [`session-security.md`](./session-security.md) e
