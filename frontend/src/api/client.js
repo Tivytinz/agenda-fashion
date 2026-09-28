@@ -1,8 +1,6 @@
 import { clearSession } from "../auth/session";
 import {
-  readBrowserStorage,
-  removeBrowserStorage,
-  writeBrowserStorage
+  readBrowserStorage
 } from "../utils/browserStorage";
 
 const API_URL = String(import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
@@ -17,7 +15,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function migrateLegacySession() {
+export async function migrateLegacySession({ signal } = {}) {
   const token =
     readBrowserStorage(
       "local",
@@ -41,21 +39,12 @@ export async function migrateLegacySession() {
           Authorization:
             `Bearer ${token}`
         },
-        credentials: "include"
+        credentials: "include",
+        signal
       }
     );
 
   if (response.ok) {
-    removeBrowserStorage(
-      "local",
-      "token"
-    );
-    writeBrowserStorage(
-      "local",
-      "session_active",
-      "1"
-    );
-
     return {
       attempted: true,
       migrated: true
@@ -75,31 +64,18 @@ export async function migrateLegacySession() {
               "application/json"
           },
           credentials:
-            "include"
+            "include",
+          signal
         }
       );
 
     if (cookieSession.ok) {
-      removeBrowserStorage(
-        "local",
-        "token"
-      );
-      writeBrowserStorage(
-        "local",
-        "session_active",
-        "1"
-      );
-
       return {
         attempted: true,
         migrated: false,
         alreadyCookie: true
       };
     }
-
-    clearSession({
-      notify: true
-    });
 
     return {
       attempted: true,
