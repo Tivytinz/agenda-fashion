@@ -1,6 +1,7 @@
 jest.mock("../src/repositories/agendaConfiguracaoRepository", () => ({
   buscarVinculoAtivoPorPapel: jest.fn(),
   buscarConfiguracao: jest.fn(),
+  buscarPoliticaCancelamentoNegocio: jest.fn(),
   garantirDisponibilidadePadrao: jest.fn(),
   listarHorarios: jest.fn(),
   executarTransacao: jest.fn(),
@@ -38,6 +39,11 @@ describe("disponibilidade contextual por negócio", () => {
 
     agendaConfiguracaoRepository.executarTransacao
       .mockImplementation((callback) => callback({ query: jest.fn() }));
+
+    agendaConfiguracaoRepository.buscarPoliticaCancelamentoNegocio
+      .mockResolvedValue({
+        antecedencia_cancelamento: 2,
+      });
 
     agendaConfiguracaoRepository.garantirDisponibilidadePadrao
       .mockResolvedValue({

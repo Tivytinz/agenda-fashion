@@ -339,6 +339,25 @@ async function salvarMinhaConfiguracao({
       maximo: 720,
     });
 
+  const contextoNormalizado =
+    normalizarContexto(
+      contexto
+    );
+
+  const antecedenciaCancelamentoSolicitada =
+    contextoNormalizado === "dono" &&
+    antecedenciaCancelamento !== undefined &&
+    antecedenciaCancelamento !== null
+      ? validarNumeroInteiro({
+          valor:
+            antecedenciaCancelamento,
+          campo:
+            "A antecedência para cancelamento",
+          minimo: 0,
+          maximo: 168,
+        })
+      : null;
+
   if (!Array.isArray(horarios) || horarios.length !== 7) {
     throw criarErro(
       "Envie a configuração dos sete dias da semana.",
@@ -396,15 +415,8 @@ async function salvarMinhaConfiguracao({
 
         if (vinculo.papel === "dono") {
           antecedenciaCancelamentoEfetiva =
-            validarNumeroInteiro({
-              valor:
-                antecedenciaCancelamento ??
-                antecedenciaCancelamentoAtual,
-              campo:
-                "A antecedência para cancelamento",
-              minimo: 0,
-              maximo: 168,
-            });
+            antecedenciaCancelamentoSolicitada ??
+            antecedenciaCancelamentoAtual;
 
           if (
             antecedenciaCancelamentoEfetiva !==

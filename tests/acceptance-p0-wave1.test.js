@@ -11,6 +11,8 @@ jest.mock("../src/utils/fusoHorario", () => ({
 jest.mock("../src/repositories/agendaConfiguracaoRepository", () => ({
   buscarVinculoAtivoPorPapel: jest.fn(),
   buscarConfiguracao: jest.fn(),
+  buscarPoliticaCancelamentoNegocio: jest.fn(),
+  atualizarPoliticaCancelamentoNegocio: jest.fn(),
   criarConfiguracao: jest.fn(),
   atualizarConfiguracao: jest.fn(),
   marcarConfigurada: jest.fn(),
@@ -48,6 +50,18 @@ function horariosValidos() {
 describe("P0 baseline v1.16 - cutoff e no-show", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    agendaConfiguracaoRepository
+      .buscarPoliticaCancelamentoNegocio
+      .mockResolvedValue({
+        antecedencia_cancelamento: 2,
+      });
+
+    agendaConfiguracaoRepository
+      .atualizarPoliticaCancelamentoNegocio
+      .mockResolvedValue({
+        antecedencia_cancelamento: 168,
+      });
   });
 
   test("CA-AG-13/14: falta é rejeitada em +14 min e aceita em +15 min", () => {
