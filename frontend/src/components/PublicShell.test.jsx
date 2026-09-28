@@ -56,6 +56,14 @@ describe("PublicShell", () => {
     expect(container.querySelector('[data-frontend-context="public"]')).not.toBeNull();
   });
 
+  it("mantém /cliente/conta no contexto público mesmo para conta ligada a negócio", () => {
+    sessionState.temNegocio = true;
+    const { container } = renderShell("/cliente/conta");
+
+    expect(container.querySelector('[data-frontend-context="public"]')).not.toBeNull();
+    expect(document.documentElement.classList.contains("public-context-active")).toBe(true);
+  });
+
   it("delega conta ligada a negócio ao workspace privado", () => {
     sessionState.temNegocio = true;
     const { container } = renderShell("/conta");
