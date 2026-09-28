@@ -12,6 +12,7 @@ import { FlowSteps } from "../components/FlowSteps";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatCep, formatWhatsApp } from "../utils/format";
+import { buildPublicLink, copyPublicLink } from "../utils/publicLinks";
 import {
   BUSINESS_SPECIALTIES,
   normalizeBusinessSpecialties
@@ -151,9 +152,9 @@ export function BusinessPage({ create = false }) {
 
   const hasChanges = !create
     && serializeBusinessForm(form) !== serializeBusinessForm(savedForm);
-  const publicUrl = form.slug
-    ? `https://app.agendafashion.com.br/negocio/${form.slug}`
-    : "";
+  const publicUrl = buildPublicLink({
+    businessSlug: form.slug
+  });
   const googleMapsValid = isValidGoogleMapsUrl(form.localizacao_url);
   const whatsappError = validateWhatsApp(form.whatsapp);
 
@@ -317,7 +318,7 @@ export function BusinessPage({ create = false }) {
     if (!publicUrl) return;
 
     try {
-      await navigator.clipboard.writeText(publicUrl);
+      await copyPublicLink(publicUrl);
       setMessage("Link público copiado.");
     } catch {
       setError("Não foi possível copiar o link automaticamente.");
@@ -751,7 +752,7 @@ export function BusinessPage({ create = false }) {
               <div className="field-wide public-address-card" data-testid="public-address-hint">
                 <div className="public-address-copy">
                   <span>Seu link público</span>
-                  <strong>app.agendafashion.com.br/negocio/{form.slug}</strong>
+                  <strong>{publicUrl}</strong>
                   <small>Alterar o nome também atualiza este endereço. Links antigos continuam funcionando.</small>
                 </div>
                 <button className="button button-secondary button-small" onClick={copyPublicUrl} type="button">
