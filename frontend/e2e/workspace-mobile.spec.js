@@ -370,5 +370,5 @@ test("sessão expirada sai do workspace sem manter conteúdo operacional obsolet
 
   await expect(page).toHaveURL(/\/entrar$/);
   await expect(page.locator('[data-frontend-context="owner"]')).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: /entrar/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Entre no Agenda Fashion" })).toBeVisible();
 });
