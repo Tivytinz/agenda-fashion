@@ -66,9 +66,13 @@ export function SuccessPage() {
 
   const { booking, customer, result } = state;
   const address = businessAddress(booking.business);
+  const rawGuestCancellationLink =
+    result?.agendamento?.link_cancelamento_visitante;
   const guestCancellationLink =
-    result?.agendamento?.link_cancelamento_visitante ||
-    "";
+    typeof rawGuestCancellationLink === "string" &&
+    rawGuestCancellationLink.startsWith("/agendamento-visitante/")
+      ? rawGuestCancellationLink
+      : "";
   const customerWhatsApp = formatWhatsApp(customer?.whatsapp);
   const whatsappUrl = businessWhatsAppUrl(booking.business);
 
