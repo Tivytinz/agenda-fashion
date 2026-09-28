@@ -7,13 +7,17 @@ import { apiRequest } from "../api/client";
 import { BusinessPage } from "./BusinessPage";
 
 const refreshSession = vi.fn();
+const adoptCreatedBusiness = vi.fn();
 
 vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
 }));
 
 vi.mock("../auth/SessionContext", () => ({
-  useSession: () => ({ refresh: refreshSession })
+  useSession: () => ({
+    refresh: refreshSession,
+    adoptCreatedBusiness
+  })
 }));
 
 const BUSINESS = {
@@ -60,6 +64,8 @@ beforeEach(() => {
   apiRequest.mockReset();
   refreshSession.mockReset();
   refreshSession.mockResolvedValue({});
+  adoptCreatedBusiness.mockReset();
+  adoptCreatedBusiness.mockReturnValue(true);
 });
 
 afterEach(() => {
@@ -150,6 +156,69 @@ describe("publicação do negócio", () => {
       .toBe("/painel/servicos/novo?onboarding=servico|servico");
     expect(screen.queryByRole("heading", { name: "Agenda pulada" }))
       .toBeNull();
+  });
+
+  it("continua no primeiro serviço mesmo se a reconciliação da sessão falhar depois da criação", async () => {
+    refreshSession.mockRejectedValueOnce(new Error("Rede indisponível"));
+
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/cep/74000123") {
+        return Promise.resolve({
+          cep: "74000123",
+          endereco: "Rua das Flores",
+          bairro: "Centro",
+          cidade: "Goiânia",
+          estado: "GO"
+        });
+      }
+
+      if (path === "/criar-negocio" && options.method === "POST") {
+        return Promise.resolve({
+          mensagem: "Negócio criado.",
+          negocio: BUSINESS
+        });
+      }
+
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/criar-negocio"]}>
+        <Routes>
+          <Route path="/criar-negocio" element={<BusinessPage create />} />
+          <Route path="/painel/servicos/novo" element={<ActivationDestination />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText("Nome do negócio"), {
+      target: { value: "Studio Victor" }
+    });
+    fireEvent.click(screen.getByLabelText("Unhas"));
+    fireEvent.change(screen.getByLabelText(/WhatsApp/), {
+      target: { value: "62 99999-9999" }
+    });
+    fireEvent.change(screen.getByLabelText(/Link do Google Maps/), {
+      target: { value: "https://maps.google.com/?q=goiania" }
+    });
+    fireEvent.change(screen.getByLabelText(/CEP/), {
+      target: { value: "74000-123" }
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Endereço").value).toBe("Rua das Flores");
+    });
+
+    fireEvent.change(screen.getByLabelText("Número"), {
+      target: { value: "10" }
+    });
+    fireEvent.submit(screen.getByRole("button", { name: "Criar negócio" }).closest("form"));
+
+    expect(await screen.findByRole("heading", { name: "Primeiro serviço" }))
+      .not.toBeNull();
+    expect(adoptCreatedBusiness).toHaveBeenCalledWith(BUSINESS);
+    expect(refreshSession).toHaveBeenCalledWith({ silent: true });
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("continua a ativação no primeiro serviço sem abrir checkout de um plano pago", async () => {
