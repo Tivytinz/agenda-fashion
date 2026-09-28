@@ -210,10 +210,10 @@ export function SubscriptionPage() {
   }
 
   if (!data && !error) {
-    return <div className="workspace-page"><LoadingState>Carregando assinatura...</LoadingState></div>;
+    return <main className="workspace-page"><LoadingState>Carregando assinatura...</LoadingState></main>;
   }
   if (!data && error) {
-    return <div className="workspace-page"><ErrorState message={error} onRetry={load} /></div>;
+    return <main className="workspace-page"><ErrorState message={error} onRetry={load} /></main>;
   }
 
   const plan = data.plano || {};
