@@ -169,6 +169,19 @@ describe("sincronização da sessão", () => {
     expect(screen.getByTestId("session-loading").textContent).toBe("Pronta");
   });
 
+  it("preserva a sessão atual quando uma sincronização silenciosa falha por rede", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    apiRequest.mockRejectedValueOnce(new Error("Rede indisponível"));
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
+
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("Ana")).not.toBeNull();
+    expect(screen.getByTestId("session-loading").textContent).toBe("Pronta");
+    expect(localStorage.getItem("session_active")).toBe("1");
+  });
+
   it("limpa a sessão local e encerra o cookie no servidor", async () => {
     renderSession();
     expect(await screen.findByText("Ana")).not.toBeNull();
