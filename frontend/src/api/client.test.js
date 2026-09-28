@@ -270,6 +270,26 @@ describe("cliente da API", () => {
     expect(listener).not.toHaveBeenCalled();
   });
 
+  it("propaga cancelamento externo para a requisição canônica de sessão", async () => {
+    vi.stubGlobal("fetch", vi.fn((_url, options) => new Promise((_resolve, reject) => {
+      options.signal.addEventListener("abort", () => {
+        reject(new DOMException("Abortada", "AbortError"));
+      });
+    })));
+
+    const controller = new AbortController();
+    const request = apiRequest("/minha-sessao", {
+      clearSessionOnUnauthorized: false,
+      signal: controller.signal
+    });
+
+    controller.abort();
+
+    await expect(request).rejects.toMatchObject({
+      name: "AbortError"
+    });
+  });
+
   it("interrompe requisições presas e explica o tempo limite", async () => {
     vi.useFakeTimers();
     vi.stubGlobal("fetch", vi.fn((_url, options) => new Promise((_resolve, reject) => {
