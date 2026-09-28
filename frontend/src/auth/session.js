@@ -13,6 +13,11 @@ export function clearStoredSessionMetadata() {
   removeBrowserStorage("local", "negocio");
 }
 
+export function completeLegacySessionMigration() {
+  removeBrowserStorage("local", "token");
+  writeBrowserStorage("local", SESSION_ACTIVE_KEY, "1");
+}
+
 export function saveSession(result) {
   removeBrowserStorage("local", "token");
   clearStoredSessionMetadata();
