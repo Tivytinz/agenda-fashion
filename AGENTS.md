@@ -88,7 +88,12 @@ global usa `usuarios_administradores`.
 
 Uma mesma conta pode atuar em mais de um contexto. O frontend muda navegação e
 apresentação conforme rota, sessão e vínculos, mas essas escolhas não substituem
-a autorização do backend.
+a autorização do backend. No contexto cliente, `/cliente/conta` preserva a
+experiência pública/cliente mesmo quando a identidade também possui vínculo
+operacional; entrar na conta durante um booking não deve trocar silenciosamente
+para o workspace da dona ou profissional. Booking visitante continua sendo
+acessado por capability própria e não é reconciliado automaticamente com uma
+conta criada depois apenas por coincidência de nome ou WhatsApp.
 
 O perfil profissional pertence à identidade única da conta e é marcado por
 `usuarios.perfil_profissional_ativado_em`. Cadastro com intenção profissional,
