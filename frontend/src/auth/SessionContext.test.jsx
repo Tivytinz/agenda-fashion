@@ -124,7 +124,10 @@ describe("sincronização da sessão", () => {
       apiRequest
     ).toHaveBeenCalledWith(
       "/minha-sessao",
-      { clearSessionOnUnauthorized: false }
+      expect.objectContaining({
+        clearSessionOnUnauthorized: false,
+        signal: expect.any(AbortSignal)
+      })
     );
 
     expect(
@@ -311,7 +314,9 @@ describe("sincronização da sessão", () => {
     expect(await screen.findByText("Ana")).not.toBeNull();
 
     let finishOldRefresh;
-    apiRequest.mockImplementationOnce(() => new Promise((resolve) => {
+    let oldSyncSignal;
+    apiRequest.mockImplementationOnce((_path, options = {}) => new Promise((resolve) => {
+      oldSyncSignal = options.signal;
       finishOldRefresh = resolve;
     }));
 
@@ -320,6 +325,7 @@ describe("sincronização da sessão", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Sair" }));
     expect(screen.getByText("Desconectada")).not.toBeNull();
+    expect(oldSyncSignal.aborted).toBe(true);
 
     finishOldRefresh({
       usuario: { id: 1, nome: "Ana Obsoleta" },
@@ -337,6 +343,7 @@ describe("sincronização da sessão", () => {
 
   it("não deixa refresh da conta anterior sobrescrever um novo login", async () => {
     let finishOldRefresh;
+    let oldSyncSignal;
     let sessionReads = 0;
 
     apiRequest.mockImplementation((path, options = {}) => {
@@ -350,6 +357,7 @@ describe("sincronização da sessão", () => {
           });
         }
         if (sessionReads === 2) {
+          oldSyncSignal = options.signal;
           return new Promise((resolve) => {
             finishOldRefresh = resolve;
           });
@@ -378,6 +386,7 @@ describe("sincronização da sessão", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Entrar como Bruna" }));
     expect(await screen.findByText("Bruna")).not.toBeNull();
+    expect(oldSyncSignal.aborted).toBe(true);
 
     finishOldRefresh({
       usuario: { id: 1, nome: "Ana Obsoleta" },
