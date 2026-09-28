@@ -25,6 +25,14 @@ Rotas `/admin/*`, `/painel/*` e `/profissional/*` são delegadas aos shells pró
 
 Telas de entrada, descoberta, perfil público, agendamento, autenticação, favoritos, agendamentos do cliente e páginas institucionais usam a fundação pública. Fluxos de transição que ainda não possuem shell operacional específico podem continuar nessa fundação até existir benefício real em migrá-los.
 
+Dentro dessa fundação existem três modos de uso, sem criar shells independentes:
+
+- público/visitante: descoberta, perfil e booking sem exigir cadastro;
+- cliente autenticada: favoritos, agenda e conta pessoal, com navegação mobile curta;
+- booking focado: `/confirmar` e `/sucesso` reduzem navegação concorrente para preservar a conclusão da reserva.
+
+A rota `/cliente/conta` reutiliza `AccountPage` e mantém explicitamente o contexto cliente mesmo quando a mesma identidade também possui vínculo de dona, profissional ou Admin. A rota histórica `/conta` continua dinâmica para os contextos operacionais.
+
 ## Design system
 
 Não existem quatro bibliotecas de UI independentes. O Agenda Fashion mantém uma fundação compartilhada e tokens contextuais.
@@ -74,6 +82,8 @@ resolvidos novamente no backend a partir da identidade autenticada; valores de
 nome/WhatsApp enviados pelo navegador não substituem a identidade persistida.
 
 Visitantes continuam informando nome e WhatsApp no fluxo público.
+
+Um booking visitante não é automaticamente incorporado a uma conta criada depois. A posse continua sendo demonstrada pela capability específica daquela reserva; nome e WhatsApp não são usados para reivindicar bookings. Por isso, a UX pós-booking deve priorizar o link seguro e não prometer que criar conta migrará a reserva existente.
 
 ## Segurança
 
