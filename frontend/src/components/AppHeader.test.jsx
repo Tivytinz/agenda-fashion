@@ -97,6 +97,39 @@ describe("cabeçalho por contexto", () => {
     })).not.toBeNull();
   });
 
+  it("mantém cliente multi-papel no menu pessoal e oferece gestão explicitamente", () => {
+    useSession.mockReturnValue({
+      authenticated: true,
+      ehAdministrador: false,
+      temNegocio: true,
+      negocio: { papel: "dono" },
+      usuario: { nome: "Victor" },
+      logout
+    });
+
+    renderHeader("/minha-agenda");
+
+    expect(screen.getByRole("link", { name: "Minha conta" })
+      .getAttribute("href")).toBe("/cliente/conta");
+    expect(screen.getByRole("link", { name: "Meus agendamentos" })
+      .getAttribute("href")).toBe("/minha-agenda");
+    expect(screen.getByRole("link", { name: "Favoritos" })
+      .getAttribute("href")).toBe("/favoritos");
+    expect(screen.getByRole("link", { name: "Ir para gestão" })
+      .getAttribute("href")).toBe("/painel");
+    expect(screen.queryByRole("link", { name: "Convites de equipe" })).toBeNull();
+  });
+
+  it("usa header focado durante a confirmação do booking", () => {
+    renderHeader("/confirmar");
+
+    expect(screen.getByRole("link", { name: "Agenda Fashion, início" }))
+      .not.toBeNull();
+    expect(screen.queryByRole("navigation", { name: "Navegação principal" }))
+      .toBeNull();
+    expect(screen.queryByRole("searchbox")).toBeNull();
+  });
+
   it("remove saídas desnecessárias da landing profissional", () => {
     useSession.mockReturnValue({
       authenticated: false,
