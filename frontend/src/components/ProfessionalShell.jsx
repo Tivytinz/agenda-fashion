@@ -3,6 +3,7 @@ import { Link, Outlet } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
 import afLogoTransparent from "../assets/brand/performance/af-logo-96.webp";
 import { AppIcon } from "./AppIcon";
+import { ShellContentBoundary } from "./ShellContentBoundary";
 import {
   MobileWorkspaceNavigation,
   WorkspaceLinks
@@ -85,7 +86,10 @@ export function ProfessionalShell({ children, links = [] }) {
         </header>
 
         <section className="professional-content" id="professional-content" tabIndex={-1}>
+          <ShellContentBoundary>
           {children || <Outlet />}
+        
+          </ShellContentBoundary>
         </section>
       </div>
 
