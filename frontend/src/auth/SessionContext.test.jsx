@@ -132,7 +132,8 @@ describe("sincronização da sessão", () => {
     expect(
       apiRequest
     ).toHaveBeenCalledWith(
-      "/minha-sessao"
+      "/minha-sessao",
+      { clearSessionOnUnauthorized: false }
     );
 
     expect(
@@ -284,6 +285,59 @@ describe("sincronização da sessão", () => {
     await waitFor(() => expect(sessionReads).toBe(3));
     expect(screen.getByText("Bruna")).not.toBeNull();
     expect(screen.queryByText("Ana Obsoleta")).toBeNull();
+  });
+
+  it("ignora 401 atrasado da conta anterior depois de um novo login", async () => {
+    let rejectOldRefresh;
+    let sessionReads = 0;
+
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/minha-sessao") {
+        sessionReads += 1;
+        if (sessionReads === 1) {
+          return Promise.resolve({
+            usuario: { id: 1, nome: "Ana" },
+            negocio: null,
+            temNegocio: false
+          });
+        }
+        if (sessionReads === 2) {
+          return new Promise((_resolve, reject) => {
+            rejectOldRefresh = reject;
+          });
+        }
+        return Promise.resolve({
+          usuario: { id: 2, nome: "Bruna" },
+          negocio: { id: 12, nome: "Studio Bruna", papel: "dono" },
+          temNegocio: true
+        });
+      }
+
+      if (path === "/login" && options.method === "POST") {
+        return Promise.resolve({
+          usuario: { id: 2, nome: "Bruna" }
+        });
+      }
+
+      return Promise.resolve({});
+    });
+
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
+    await waitFor(() => expect(sessionReads).toBe(2));
+
+    fireEvent.click(screen.getByRole("button", { name: "Entrar como Bruna" }));
+    expect(await screen.findByText("Bruna")).not.toBeNull();
+
+    const unauthorized = new Error("Sessão antiga expirada");
+    unauthorized.status = 401;
+    rejectOldRefresh(unauthorized);
+
+    await waitFor(() => expect(sessionReads).toBe(3));
+    expect(screen.getByText("Bruna")).not.toBeNull();
+    expect(localStorage.getItem("session_active")).toBe("1");
   });
 
   it("descarta resposta mais antiga quando refreshes da mesma sessão terminam fora de ordem", async () => {
