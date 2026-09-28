@@ -286,11 +286,12 @@ function migrarSessaoLegada(
   // ter sido criada por login/cadastro concorrente em outra identidade.
   if (tokenCookie) {
     return res
-      .status(409)
+      .status(200)
       .json({
         codigo:
           "COOKIE_SESSAO_PRESENTE",
-        erro:
+        migrado: false,
+        mensagem:
           "Uma sessão em cookie já existe e deve ser validada antes da migração.",
       });
   }
