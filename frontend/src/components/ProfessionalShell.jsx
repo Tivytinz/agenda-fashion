@@ -26,6 +26,7 @@ export function ProfessionalShell({ children, links = [] }) {
 
   return (
     <div className="professional-shell" data-frontend-context="professional">
+      <a className="professional-skip-link" href="#professional-content">Pular para o conteúdo</a>
       <aside className="professional-sidebar" aria-label="Área profissional">
         <Link
           aria-label="Agenda Fashion, minha agenda"
@@ -83,7 +84,7 @@ export function ProfessionalShell({ children, links = [] }) {
           )}
         </header>
 
-        <section className="professional-content">
+        <section className="professional-content" id="professional-content" tabIndex={-1}>
           {children || <Outlet />}
         </section>
       </div>
