@@ -170,10 +170,14 @@ inicial:
 - domingo: fechado;
 - antecedência inicial de cancelamento: 2 horas.
 
-A antecedência automática de 2 horas vale para configurações ainda identificadas
-como `padrao_af`. Uma personalização explícita preserva o valor escolhido pela
-profissional, e snapshots já gravados em agendamentos não são reescritos por
-mudança posterior da configuração.
+A antecedência de cancelamento é uma **política do negócio**, persistida em
+`negocios.antecedencia_cancelamento`, com faixa válida de 0 a 168 horas e
+fallback de 2 horas. Somente a proprietária pode alterá-la; profissionais podem
+editar a própria disponibilidade, mas não essa política. O campo homônimo em
+`agenda_configuracoes` permanece apenas por compatibilidade de rollout e não
+deve ser usado como fonte de verdade para novas reservas. Cada booking congela
+`antecedencia_cancelamento_horas` no momento da confirmação, e alterações
+posteriores da política do negócio não reescrevem snapshots existentes.
 
 Na criação inicial, o sucesso de `/criar-negocio` sempre continua em
 `/painel/servicos/novo?onboarding=servico`. Um `state.from` herdado de uma

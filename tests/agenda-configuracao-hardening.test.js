@@ -5,6 +5,10 @@ jest.mock(
       jest.fn(),
     buscarConfiguracao:
       jest.fn(),
+    buscarPoliticaCancelamentoNegocio:
+      jest.fn(),
+    atualizarPoliticaCancelamentoNegocio:
+      jest.fn(),
     criarConfiguracao:
       jest.fn(),
     atualizarConfiguracao:
@@ -110,6 +114,20 @@ describe(
         .mockResolvedValue({
           profissional_id: 7,
           configurado_em: null,
+        });
+
+      repository
+        .buscarPoliticaCancelamentoNegocio
+        .mockResolvedValue({
+          antecedencia_cancelamento:
+            24,
+        });
+
+      repository
+        .atualizarPoliticaCancelamentoNegocio
+        .mockResolvedValue({
+          antecedencia_cancelamento:
+            24,
         });
 
       repository
@@ -280,6 +298,136 @@ describe(
         expect(
           resultado.horarios
         ).toHaveLength(7);
+      }
+    );
+
+    test(
+      "somente a dona altera a política de cancelamento do negócio",
+      async () => {
+        repository
+          .buscarPoliticaCancelamentoNegocio
+          .mockResolvedValue({
+            antecedencia_cancelamento:
+              24,
+          });
+
+        repository
+          .atualizarPoliticaCancelamentoNegocio
+          .mockResolvedValue({
+            antecedencia_cancelamento:
+              12,
+          });
+
+        const resultado =
+          await service
+            .salvarMinhaConfiguracao({
+              usuarioId: 7,
+              contexto: "dono",
+              duracaoPadrao: 60,
+              intervaloMinutos: 10,
+              antecedenciaAgendamento: 2,
+              antecedenciaCancelamento: 12,
+              horarios,
+            });
+
+        expect(
+          repository
+            .atualizarPoliticaCancelamentoNegocio
+        ).toHaveBeenCalledWith(
+          11,
+          12,
+          client
+        );
+
+        expect(
+          resultado.configuracao
+            .antecedencia_cancelamento
+        ).toBe(12);
+      }
+    );
+
+    test(
+      "profissional não altera a política mesmo enviando outro valor",
+      async () => {
+        repository
+          .buscarVinculoAtivoPorPapel
+          .mockResolvedValue({
+            id: 8,
+            negocio_id: 11,
+            papel: "profissional",
+          });
+
+        repository
+          .buscarPoliticaCancelamentoNegocio
+          .mockResolvedValue({
+            antecedencia_cancelamento:
+              12,
+          });
+
+        repository
+          .buscarConfiguracao
+          .mockResolvedValue({
+            profissional_id: 8,
+            configurado_em:
+              "2026-09-27T22:00:00.000Z",
+            origem_horarios:
+              "personalizado",
+          });
+
+        repository
+          .atualizarConfiguracao
+          .mockResolvedValue({
+            profissional_id: 8,
+            duracao_padrao: 60,
+            configurado_em:
+              "2026-09-27T22:00:00.000Z",
+          });
+
+        repository
+          .marcarConfigurada
+          .mockResolvedValue({
+            profissional_id: 8,
+            duracao_padrao: 60,
+            configurado_em:
+              "2026-09-27T22:00:00.000Z",
+            origem_horarios:
+              "personalizado",
+          });
+
+        const resultado =
+          await service
+            .salvarMinhaConfiguracao({
+              usuarioId: 8,
+              contexto: "profissional",
+              duracaoPadrao: 60,
+              intervaloMinutos: 10,
+              antecedenciaAgendamento: 2,
+              antecedenciaCancelamento: 0,
+              horarios,
+            });
+
+        expect(
+          repository
+            .atualizarPoliticaCancelamentoNegocio
+        ).not.toHaveBeenCalled();
+
+        expect(
+          repository
+            .atualizarConfiguracao
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            profissionalId: 8,
+            negocioId: 11,
+            antecedenciaCancelamento:
+              12,
+          }),
+          client
+        );
+
+        expect(
+          resultado.configuracao
+            .antecedencia_cancelamento
+        ).toBe(12);
       }
     );
 

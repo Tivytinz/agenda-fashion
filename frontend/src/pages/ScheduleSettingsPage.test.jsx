@@ -233,17 +233,34 @@ describe("configuração de horários", () => {
       screen.queryByLabelText("Etapas iniciais do negócio")
     ).toBeNull();
 
+    expect(
+      screen.queryByLabelText("Antecedência para cancelar")
+    ).toBeNull();
+
     fireEvent.click(screen.getByRole("button", { name: "Salvar horários" }));
 
     expect(await screen.findByText("Horários salvos.")).not.toBeNull();
-    expect(apiRequest).toHaveBeenCalledWith(
-      "/agenda-configuracao",
+
+    const professionalSave =
+      apiRequest.mock.calls.find(
+        ([requestPath, options = {}]) =>
+          requestPath === "/agenda-configuracao"
+          && options.method === "PUT"
+      );
+
+    expect(professionalSave).toBeTruthy();
+    expect(professionalSave[1]).toEqual(
       expect.objectContaining({
         method: "PUT",
         headers: {
           "X-AF-Contexto": "profissional"
         }
       })
+    );
+    expect(
+      professionalSave[1].body
+    ).not.toHaveProperty(
+      "antecedenciaCancelamento"
     );
     expect(
       screen.queryByRole("heading", { name: "Agora divulgue seu perfil" })

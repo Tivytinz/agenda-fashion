@@ -1,4 +1,4 @@
-const ANTECEDENCIA_CANCELAMENTO_PADRAO = 24;
+const ANTECEDENCIA_CANCELAMENTO_PADRAO = 2;
 
 function criarErro(
   mensagem,

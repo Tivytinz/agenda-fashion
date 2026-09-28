@@ -93,6 +93,49 @@ async function buscarConfiguracao(
   return result.rows[0] || null;
 }
 
+async function buscarPoliticaCancelamentoNegocio(
+  negocioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    SELECT
+      antecedencia_cancelamento
+    FROM negocios
+    WHERE id = $1
+      AND ativo = TRUE
+    LIMIT 1
+    `,
+    [negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function atualizarPoliticaCancelamentoNegocio(
+  negocioId,
+  antecedenciaCancelamento,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    UPDATE negocios
+    SET
+      antecedencia_cancelamento = $1,
+      updated_at = NOW()
+    WHERE id = $2
+      AND ativo = TRUE
+    RETURNING antecedencia_cancelamento
+    `,
+    [
+      antecedenciaCancelamento,
+      negocioId,
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function criarConfiguracao({
   profissionalId,
   negocioId,
@@ -133,8 +176,7 @@ async function atualizarConfiguracao({
   negocioId,
   duracaoPadrao,
   intervaloMinutos,
-  antecedenciaAgendamento,
-  antecedenciaCancelamento
+  antecedenciaAgendamento
 }, executor = db) {
   const result = await executor.query(
     `
@@ -143,17 +185,15 @@ async function atualizarConfiguracao({
       duracao_padrao = $1,
       intervalo_minutos = $2,
       antecedencia_agendamento = $3,
-      antecedencia_cancelamento = $4,
       updated_at = NOW()
-    WHERE profissional_id = $5
-      AND negocio_id = $6
+    WHERE profissional_id = $4
+      AND negocio_id = $5
     RETURNING *
     `,
     [
       duracaoPadrao,
       intervaloMinutos,
       antecedenciaAgendamento,
-      antecedenciaCancelamento,
       profissionalId,
       negocioId
     ]
@@ -289,7 +329,20 @@ async function garantirDisponibilidadePadrao({
       configurado_em,
       origem_horarios
     )
-    VALUES ($1,$2,60,0,0,2,NOW(),'padrao_af')
+    SELECT
+      $1,
+      $2,
+      60,
+      0,
+      0,
+      COALESCE(
+        n.antecedencia_cancelamento,
+        2
+      ),
+      NOW(),
+      'padrao_af'
+    FROM negocios n
+    WHERE n.id = $2
     ON CONFLICT (profissional_id, negocio_id)
     DO NOTHING
     `,
@@ -374,6 +427,8 @@ module.exports = {
   buscarVinculoAtivoPorPapel,
   buscarProfissionalAtivo,
   buscarConfiguracao,
+  buscarPoliticaCancelamentoNegocio,
+  atualizarPoliticaCancelamentoNegocio,
   criarConfiguracao,
   atualizarConfiguracao,
   marcarConfigurada,

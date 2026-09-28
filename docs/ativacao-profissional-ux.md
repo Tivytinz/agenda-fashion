@@ -128,7 +128,7 @@ Ao criar um novo negócio, a mesma transação que cria o negócio e o vínculo 
 - segunda a sexta: 08:00–18:00, com pausa 12:00–13:00;
 - sábado: 08:00–13:00.
 
-A configuração automática também começa com antecedência de cancelamento de **2 horas**. Enquanto a origem permanecer `padrao_af`, esse valor representa o default do AF; uma personalização explícita preserva o valor escolhido pela profissional. Reservas já criadas mantêm o snapshot de antecedência que possuíam no momento do agendamento.
+A política de cancelamento do negócio começa em **2 horas**. Ela pertence ao negócio, aceita de 0 a 168 horas e somente a proprietária pode alterá-la; profissionais continuam livres para editar a própria disponibilidade, sem poder mudar essa política. Reservas já criadas mantêm o snapshot de antecedência que possuíam no momento do agendamento.
 
 A existência dessa sugestão permite que o AF apresente uma agenda utilizável sem obrigar a profissional a montar a semana do zero. Na primeira jornada, porém, a interface torna essa disponibilidade visível logo após o primeiro serviço e pede que a profissional confirme a sugestão ou ajuste manualmente. `Confirmar horários` envia a sugestão ao fluxo de salvamento; `Ajustar horários` permite personalizá-la antes do mesmo salvamento. Se o salvamento falhar, a interface não deve avançar.
 

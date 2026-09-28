@@ -251,8 +251,21 @@ async function buscarMinhaConfiguracao({
               negocioId: vinculo.negocio_id,
             }, client);
 
+        const politicaCancelamento =
+          await agendaConfiguracaoRepository
+            .buscarPoliticaCancelamentoNegocio(
+              vinculo.negocio_id,
+              client
+            );
+
         return {
-          configuracao: estado.configuracao,
+          configuracao: {
+            ...estado.configuracao,
+            antecedencia_cancelamento:
+              politicaCancelamento
+                ?.antecedencia_cancelamento ??
+              2,
+          },
           horarios: estado.horarios.map(
             formatarHorarioBanco
           ),
@@ -326,14 +339,6 @@ async function salvarMinhaConfiguracao({
       maximo: 720,
     });
 
-  const antecedenciaCancelamentoValidada =
-    validarNumeroInteiro({
-      valor: antecedenciaCancelamento ?? 2,
-      campo: "A antecedência para cancelamento",
-      minimo: 0,
-      maximo: 168,
-    });
-
   if (!Array.isArray(horarios) || horarios.length !== 7) {
     throw criarErro(
       "Envie a configuração dos sete dias da semana.",
@@ -366,6 +371,54 @@ async function salvarMinhaConfiguracao({
         );
         const negocioId = vinculo.negocio_id;
 
+        const politicaAtual =
+          await agendaConfiguracaoRepository
+            .buscarPoliticaCancelamentoNegocio(
+              negocioId,
+              client
+            );
+
+        const antecedenciaCancelamentoAtual =
+          Number.isInteger(
+            Number(
+              politicaAtual
+                ?.antecedencia_cancelamento
+            )
+          )
+            ? Number(
+                politicaAtual
+                  .antecedencia_cancelamento
+              )
+            : 2;
+
+        let antecedenciaCancelamentoEfetiva =
+          antecedenciaCancelamentoAtual;
+
+        if (vinculo.papel === "dono") {
+          antecedenciaCancelamentoEfetiva =
+            validarNumeroInteiro({
+              valor:
+                antecedenciaCancelamento ??
+                antecedenciaCancelamentoAtual,
+              campo:
+                "A antecedência para cancelamento",
+              minimo: 0,
+              maximo: 168,
+            });
+
+          if (
+            antecedenciaCancelamentoEfetiva !==
+            antecedenciaCancelamentoAtual
+          ) {
+            await agendaConfiguracaoRepository
+              .atualizarPoliticaCancelamentoNegocio(
+                negocioId,
+                antecedenciaCancelamentoEfetiva,
+                client
+              );
+          }
+        }
+
         const configuracaoExistente =
           await agendaConfiguracaoRepository
             .buscarConfiguracao(
@@ -389,7 +442,7 @@ async function salvarMinhaConfiguracao({
           antecedenciaAgendamento:
             antecedenciaAgendamentoValidada,
           antecedenciaCancelamento:
-            antecedenciaCancelamentoValidada,
+            antecedenciaCancelamentoEfetiva,
         };
 
         if (configuracaoExistente) {
@@ -439,7 +492,11 @@ async function salvarMinhaConfiguracao({
             primeiraPersonalizacao
               ? "Horários personalizados com sucesso."
               : "Horários atualizados com sucesso.",
-          configuracao,
+          configuracao: {
+            ...configuracao,
+            antecedencia_cancelamento:
+              antecedenciaCancelamentoEfetiva,
+          },
           horarios:
             horariosSalvos.map(
               formatarHorarioBanco

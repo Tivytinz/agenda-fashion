@@ -121,6 +121,8 @@ export function ScheduleSettingsPage() {
   const contextoAgenda = location.pathname.startsWith("/profissional/")
     ? "profissional"
     : "dono";
+  const professionalContext =
+    contextoAgenda === "profissional";
   const [config, setConfig] = useState(null);
   const [days, setDays] = useState([]);
   const [expandedPauses, setExpandedPauses] = useState(() => new Set());
@@ -425,12 +427,21 @@ export function ScheduleSettingsPage() {
 
     setSaving(true);
     try {
+      const body = {
+        ...config,
+        horarios: days
+      };
+
+      if (professionalContext) {
+        delete body.antecedenciaCancelamento;
+      }
+
       const result = await apiRequest("/agenda-configuracao", {
         method: "PUT",
         headers: {
           "X-AF-Contexto": contextoAgenda
         },
-        body: { ...config, horarios: days }
+        body
       });
       const savedConfig = result.configuracao || {};
       const configuradoEm = savedConfig.configurado_em
@@ -510,7 +521,6 @@ export function ScheduleSettingsPage() {
   if (!config && !error) return <main className="workspace-page"><LoadingState>Carregando horários...</LoadingState></main>;
   if (!config && error) return <main className="workspace-page"><ErrorState message={error} onRetry={load} /></main>;
 
-  const professionalContext = contextoAgenda === "profissional";
   const firstConfiguration =
     config.origemHorarios !== "personalizado" && !professionalContext;
   const firstProfessionalConfiguration =
@@ -826,12 +836,14 @@ export function ScheduleSettingsPage() {
                       {leadTimeBookingOptions.map((value) => <option key={value} value={value}>{formatLeadTime(value)}</option>)}
                     </select>
                   </label>
-                  <label>
-                    Antecedência para cancelar
-                    <select onChange={(e) => setConfig({ ...config, antecedenciaCancelamento: Number(e.target.value) })} value={config.antecedenciaCancelamento}>
-                      {leadTimeCancellationOptions.map((value) => <option key={value} value={value}>{formatLeadTime(value)}</option>)}
-                    </select>
-                  </label>
+                  {!professionalContext && (
+                    <label>
+                      Antecedência para cancelar
+                      <select onChange={(e) => setConfig({ ...config, antecedenciaCancelamento: Number(e.target.value) })} value={config.antecedenciaCancelamento}>
+                        {leadTimeCancellationOptions.map((value) => <option key={value} value={value}>{formatLeadTime(value)}</option>)}
+                      </select>
+                    </label>
+                  )}
                 </section>
               </details>
 
