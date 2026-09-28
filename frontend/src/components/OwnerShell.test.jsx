@@ -46,6 +46,8 @@ describe("OwnerShell", () => {
       screen.getByRole("heading", { name: "Visão da dona" })
     ).not.toBeNull();
     expect(document.documentElement.classList.contains("owner-context-active")).toBe(true);
+    expect(screen.getByRole("link", { name: "Pular para o conteúdo" }).getAttribute("href")).toBe("#owner-content");
+    expect(container.querySelector("#owner-content")?.getAttribute("tabindex")).toBe("-1");
   });
 
   it("mantém as rotas de gestão e conta na navegação da dona", () => {

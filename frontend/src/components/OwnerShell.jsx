@@ -3,6 +3,7 @@ import { Link, Outlet } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
 import afLogoTransparent from "../assets/brand/performance/af-logo-96.webp";
 import { AppIcon } from "./AppIcon";
+import { ShellContentBoundary } from "./ShellContentBoundary";
 import {
   MobileWorkspaceNavigation,
   WorkspaceLinks
@@ -29,6 +30,7 @@ export function OwnerShell({ children, links = [] }) {
 
   return (
     <div className="owner-shell" data-frontend-context="owner">
+      <a className="owner-skip-link" href="#owner-content">Pular para o conteúdo</a>
       <aside className="owner-sidebar" aria-label="Gestão do negócio">
         <Link
           aria-label="Agenda Fashion, visão geral do negócio"
@@ -94,8 +96,10 @@ export function OwnerShell({ children, links = [] }) {
           </div>
         </header>
 
-        <section className="owner-content">
-          {children || <Outlet />}
+        <section className="owner-content" id="owner-content" tabIndex={-1}>
+          <ShellContentBoundary>
+            {children || <Outlet />}
+          </ShellContentBoundary>
         </section>
       </div>
 

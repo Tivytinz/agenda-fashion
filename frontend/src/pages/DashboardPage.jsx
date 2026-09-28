@@ -247,8 +247,8 @@ export function DashboardPage() {
     setPeriod(value);
   }
 
-  if (!data && !error) return <div className="workspace-page"><LoadingState>Montando seu painel...</LoadingState></div>;
-  if (!data && error) return <div className="workspace-page"><ErrorState message={error} onRetry={() => setReloadKey((current) => current + 1)} /></div>;
+  if (!data && !error) return <main className="workspace-page"><LoadingState>Montando seu painel...</LoadingState></main>;
+  if (!data && error) return <main className="workspace-page"><ErrorState message={error} onRetry={() => setReloadKey((current) => current + 1)} /></main>;
 
   const summary = data.resumo || {};
   const performance = data.performance || {};

@@ -1,5 +1,33 @@
 @import "./owner-design-system.css";
 
+.owner-skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  transform: translateY(-160%);
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: #fff;
+  background: var(--owner-brand-strong);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.owner-skip-link:focus {
+  transform: translateY(0);
+}
+
+.owner-shell :where(a, button, input, textarea, select, summary):focus-visible {
+  outline: 3px solid var(--owner-brand-strong);
+  outline-offset: 3px;
+}
+
+.owner-content:focus {
+  outline: none;
+}
+
+
 html.owner-context-active .app-shell > .site-header,
 html.owner-context-active .app-shell > .legal-footer {
   display: none;

@@ -328,3 +328,47 @@ test("ProfessionalShell mantém rotina curta, foco visível e sem overflow no ce
   await expect(page.getByRole("heading", { name: "Minha conta" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Ver convites" })).toBeVisible();
 });
+
+
+test("sessão expirada sai do workspace sem manter conteúdo operacional obsoleto", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("session_active", "1");
+    localStorage.setItem("usuario", JSON.stringify({ id: 4, nome: "Ana" }));
+    localStorage.setItem("negocio", JSON.stringify({
+      id: 11,
+      nome: "Studio Aurora",
+      papel: "dono"
+    }));
+    localStorage.setItem("af_marketing_consent_v2", JSON.stringify({
+      version: 2,
+      status: "denied",
+      updatedAt: "2026-08-11T00:00:00.000Z"
+    }));
+  });
+
+  await page.route("**/minha-sessao", (route) => json(route, {
+    usuario: { id: 4, nome: "Ana", email: "ana@example.com" },
+    negocio: BUSINESS,
+    vinculos: [BUSINESS],
+    temNegocio: true,
+    administrador: null,
+    ehAdministrador: false
+  }));
+  await page.route("**/marketing/meta/config", (route) => json(route, {
+    enabled: false,
+    pixelId: null
+  }));
+  await page.route("**/marketing/google/config", (route) => json(route, {
+    enabled: false,
+    measurementId: null
+  }));
+  await page.route("**/configuracoes", (route) => json(route, {
+    erro: "Sessão expirada"
+  }, 401));
+
+  await page.goto("/painel/negocio");
+
+  await expect(page).toHaveURL(/\/entrar$/);
+  await expect(page.locator('[data-frontend-context="owner"]')).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Entre no Agenda Fashion" })).toBeVisible();
+});

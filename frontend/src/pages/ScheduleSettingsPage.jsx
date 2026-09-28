@@ -435,8 +435,8 @@ export function ScheduleSettingsPage() {
     }
   }
 
-  if (!config && !error) return <div className="workspace-page"><LoadingState>Carregando horários...</LoadingState></div>;
-  if (!config && error) return <div className="workspace-page"><ErrorState message={error} onRetry={load} /></div>;
+  if (!config && !error) return <main className="workspace-page"><LoadingState>Carregando horários...</LoadingState></main>;
+  if (!config && error) return <main className="workspace-page"><ErrorState message={error} onRetry={load} /></main>;
 
   const professionalContext = contextoAgenda === "profissional";
   const firstConfiguration =

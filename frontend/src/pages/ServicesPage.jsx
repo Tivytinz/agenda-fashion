@@ -568,7 +568,7 @@ export function ServiceEditorPage() {
     }
   }
 
-  if (loading) return <div className="workspace-page"><LoadingState>Carregando serviço...</LoadingState></div>;
+  if (loading) return <main className="workspace-page"><LoadingState>Carregando serviço...</LoadingState></main>;
 
   return (
     <main className="workspace-page service-editor-page">
