@@ -396,12 +396,13 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   expect(schedulePayload).toBeNull();
   await expect(page.getByRole("heading", { name: "Confirme quando você atende" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Confirmar horários" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Pular por agora" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pular por agora" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Ajustar horários" })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
   await page.getByRole("button", { name: "Confirmar horários" }).click();
-  await expect(page).toHaveURL(/\/painel$/);
+  await expect(page).toHaveURL(/\/painel\/horarios$/);
+  await expect(page.getByRole("heading", { name: "Agora divulgue seu perfil" })).toBeVisible();
 
   expect(schedulePayload?.horarios).toEqual(expect.arrayContaining([
     expect.objectContaining({
@@ -419,10 +420,6 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
       horaFim: "13:00"
     })
   ]));
-
-  await expect(page.getByText("Próximo passo")).toBeVisible();
-  await expect(page.getByText(/Copilot AF/i)).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Divulgue seu perfil" })).toBeVisible();
 
   const shareProfileButton = page.getByRole("button", {
     name: "Compartilhar perfil"
@@ -444,7 +441,10 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
 
   // Compartilhar é intenção/comportamento; a ativação só encerra quando o
   // backend passa a informar o primeiro agendamento válido.
+  await page.goto("/painel");
   await expect(page.getByText("Próximo passo")).toBeVisible();
+  await expect(page.getByText(/Copilot AF/i)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Divulgue seu perfil" })).toBeVisible();
 
   firstBookingReceived = true;
   await page.reload();

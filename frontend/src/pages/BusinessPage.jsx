@@ -413,22 +413,25 @@ export function BusinessPage({ create = false }) {
             SERVICE_PUBLICATION_PENDING
           );
 
+          const published = result.publicacao?.publicado === true;
+          const destination = servicePending
+            ? FIRST_SERVICE_ONBOARDING_PATH
+            : published
+              ? "/painel/horarios"
+              : "/painel";
+
           navigate(
-            getPlanIntentPath(servicePending
-              ? FIRST_SERVICE_ONBOARDING_PATH
-              : result.publicacao?.publicado && selectedPlan
-                ? "/checkout"
-                : "/painel", selectedPlan),
+            getPlanIntentPath(destination, selectedPlan),
             {
               replace: true,
               state: servicePending
                 ? { onboarding: true, onboardingStep: "servico" }
-                : {
-                    message: result.publicacao?.publicado
-                      ? "Dados essenciais concluídos. Seu negócio está publicado."
-                      : "Dados essenciais concluídos. Estamos atualizando sua publicação.",
-                    onboardingCompleted: result.publicacao?.publicado === true
-                  }
+                : published
+                  ? { onboarding: true, onboardingStep: "agenda" }
+                  : {
+                      message: "Dados essenciais concluídos. Estamos atualizando sua publicação.",
+                      onboardingCompleted: false
+                    }
             }
           );
         }

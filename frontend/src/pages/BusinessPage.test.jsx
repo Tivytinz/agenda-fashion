@@ -67,7 +67,7 @@ afterEach(() => {
 });
 
 describe("publicação do negócio", () => {
-  it("retoma o plano escolhido depois de corrigir o perfil e publicar", async () => {
+  it("retoma os horários depois de corrigir o perfil e publicar", async () => {
     const business = { ...BUSINESS, localizacao_url: "https://maps.google.com/?q=goiania" };
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/configuracoes") return Promise.resolve({ negocio: business, publicacao: { publicado: options.method === "PUT", pendencias: [] } });
@@ -79,7 +79,8 @@ describe("publicação do negócio", () => {
     await screen.findByDisplayValue("Studio Victor");
     fireEvent.change(screen.getByLabelText("Número"), { target: { value: "11" } });
     fireEvent.submit(screen.getByRole("button", { name: "Salvar alterações" }).closest("form"));
-    expect((await screen.findByTestId("activation-destination")).textContent).toBe("/checkout?plano=autonoma|");
+    expect((await screen.findByTestId("activation-destination")).textContent)
+      .toBe("/painel/horarios?plano=autonoma|agenda");
   });
 
   it("continua a ativação no primeiro serviço sem abrir checkout de um plano pago", async () => {

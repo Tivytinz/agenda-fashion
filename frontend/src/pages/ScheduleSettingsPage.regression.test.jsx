@@ -94,7 +94,7 @@ describe("regressões da configuração de horários", () => {
     expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
       .toBeNull();
     expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes"))
-      .toBe(false);
+      .toBe(true);
   });
 
   it("mantém a agenda salva mesmo se o contexto de compartilhamento falhar", async () => {
@@ -123,8 +123,12 @@ describe("regressões da configuração de horários", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Ajustar horários" }));
     fireEvent.click(screen.getByRole("button", { name: "Salvar horários e continuar" }));
 
-    expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
+    expect(await screen.findByRole("heading", { name: "Sua agenda foi atualizada" }))
       .not.toBeNull();
+    expect(screen.getByText(/não conseguimos carregar seu perfil agora/i))
+      .not.toBeNull();
+    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
+      .toBeNull();
     expect(await screen.findByRole("link", { name: "Ir para o painel" }))
       .not.toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();

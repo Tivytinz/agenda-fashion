@@ -442,17 +442,27 @@ export function ScheduleSettingsPage() {
           <div className="onboarding-complete-copy">
             <p className="eyebrow onboarding-complete-eyebrow">
               <ConfirmationIcon className="onboarding-complete-icon" />
-              <span>Negócio publicado <span aria-hidden="true">✨</span></span>
+              <span>
+                {businessContext
+                  ? <>Negócio publicado <span aria-hidden="true">✨</span></>
+                  : "Horários salvos"}
+              </span>
             </p>
-            <h2 id="schedule-next-step-title">Agora divulgue seu perfil</h2>
+            <h2 id="schedule-next-step-title">
+              {businessContext ? "Agora divulgue seu perfil" : "Sua agenda foi atualizada"}
+            </h2>
             <p className="schedule-publish-status">
               <ConfirmationIcon className="schedule-save-icon" />
-              <span>{message || "Horários confirmados. Seu negócio está publicado."}</span>
+              <span>
+                {businessContext
+                  ? message || "Horários confirmados. Seu negócio está publicado."
+                  : "Os horários foram salvos, mas não conseguimos carregar seu perfil agora."}
+              </span>
             </p>
             <p className="muted">
-              Sua próxima ação é levar este link para as clientes. Compartilhe no
-              WhatsApp ou copie para usar no Instagram e conduza as pessoas direto
-              aos seus serviços e horários disponíveis.
+              {businessContext
+                ? "Sua próxima ação é levar este link para as clientes. Compartilhe no WhatsApp ou copie para usar no Instagram e conduza as pessoas direto aos seus serviços e horários disponíveis."
+                : "Você pode seguir para o painel sem perder a configuração. A divulgação continua disponível quando o perfil puder ser carregado novamente."}
             </p>
           </div>
 

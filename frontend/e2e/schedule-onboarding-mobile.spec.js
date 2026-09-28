@@ -52,7 +52,7 @@ function json(route, body, status = 200) {
   });
 }
 
-test("onboarding de horários salva a sugestão ao pular e permanece utilizável no mobile", async ({ page }) => {
+test("onboarding de horários confirma a sugestão e segue para divulgação no mobile", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("session_active", "1");
     localStorage.setItem("usuario", JSON.stringify({ id: 4, nome: "Ana" }));
@@ -83,6 +83,14 @@ test("onboarding de horários salva a sugestão ao pular e permanece utilizável
     enabled: false,
     measurementId: null
   }));
+  await page.route("**/configuracoes", (route) => json(route, {
+    negocio: BUSINESS,
+    publicacao: {
+      publicado: true,
+      pode_publicar: true,
+      pendencias: []
+    }
+  }));
 
   let savedPayload = null;
   await page.route("**/agenda-configuracao", async (route) => {
@@ -91,7 +99,8 @@ test("onboarding de horários salva a sugestão ao pular e permanece utilizável
       return json(route, {
         mensagem: "Horários salvos.",
         configuracao: {
-          configurado_em: "2026-09-10T05:00:00.000Z"
+          configurado_em: "2026-09-10T05:00:00.000Z",
+          origem_horarios: "personalizado"
         },
         horarios: SUGGESTED_WEEK,
         publicacao: null
@@ -104,7 +113,8 @@ test("onboarding de horários salva a sugestão ao pular e permanece utilizável
         intervalo_minutos: 0,
         antecedencia_agendamento: 0,
         antecedencia_cancelamento: 24,
-        configurado_em: null
+        configurado_em: "2026-09-10T04:00:00.000Z",
+        origem_horarios: "padrao_af"
       },
       horarios: SUGGESTED_WEEK
     });
@@ -119,28 +129,21 @@ test("onboarding de horários salva a sugestão ao pular e permanece utilizável
   await expect(page.getByRole("heading", { name: "Confirme quando você atende" }))
     .toBeVisible();
   await expect(confirm).toBeVisible();
-  await expect(skip).toBeVisible();
+  await expect(skip).toHaveCount(0);
   await expect(adjust).toBeVisible();
-
-  const viewport = page.viewportSize();
-  if (viewport && viewport.width <= 680) {
-    const [confirmBox, skipBox] = await Promise.all([
-      confirm.boundingBox(),
-      skip.boundingBox()
-    ]);
-
-    expect(confirmBox).not.toBeNull();
-    expect(skipBox).not.toBeNull();
-    expect(skipBox.y).toBeGreaterThan(confirmBox.y + confirmBox.height - 1);
-    expect(Math.abs(skipBox.width - confirmBox.width)).toBeLessThanOrEqual(2);
-  }
 
   await expect.poll(() => page.evaluate(() => (
     document.documentElement.scrollWidth === document.documentElement.clientWidth
   ))).toBe(true);
 
-  await skip.click();
-  await page.waitForURL(/\/checkout\?plano=autonoma$/);
+  await confirm.click();
+  await expect(page).toHaveURL(/\/painel\/horarios\?plano=autonoma$/);
+  await expect(page.getByRole("heading", { name: "Agora divulgue seu perfil" }))
+    .toBeVisible();
+  await expect(page.getByRole("button", { name: "Compartilhar perfil" }))
+    .toBeVisible();
+  await expect(page.getByRole("link", { name: "Concluir plano escolhido" }))
+    .toHaveCount(0);
 
   expect(savedPayload?.horarios).toEqual(expect.arrayContaining([
     expect.objectContaining({
