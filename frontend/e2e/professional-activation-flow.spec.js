@@ -171,6 +171,8 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   let businessPayload = null;
   let servicePayload = null;
   let schedulePayload = null;
+  let postServiceSessionRefreshStarted = false;
+  let releasePostServiceSessionRefresh = null;
 
   await page.addInitScript(() => {
     localStorage.setItem("af_marketing_consent_v2", JSON.stringify({
@@ -203,13 +205,26 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
     await json(route, { token: "activation-e2e-token", usuario: USER, contaCriada: true }, 201);
   });
 
-  await page.route("**/minha-sessao", (route) => json(route, {
-    usuario: USER,
-    negocio: businessCreated ? { ...BUSINESS, publicado: serviceCreated } : null,
-    temNegocio: businessCreated,
-    administrador: null,
-    ehAdministrador: false
-  }));
+  await page.route("**/minha-sessao", async (route) => {
+    if (
+      serviceCreated
+      && !scheduleSaved
+      && !postServiceSessionRefreshStarted
+    ) {
+      postServiceSessionRefreshStarted = true;
+      await new Promise((resolve) => {
+        releasePostServiceSessionRefresh = resolve;
+      });
+    }
+
+    await json(route, {
+      usuario: USER,
+      negocio: businessCreated ? { ...BUSINESS, publicado: serviceCreated } : null,
+      temNegocio: businessCreated,
+      administrador: null,
+      ehAdministrador: false
+    });
+  });
 
   await page.route("**/cep/74000123", (route) => json(route, {
     cep: "74000123",
@@ -385,6 +400,11 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   await page.getByRole("button", { name: "Salvar serviço e publicar" }).click();
 
   await expect(page).toHaveURL(/\/painel\/horarios$/);
+  await expect.poll(() => postServiceSessionRefreshStarted).toBe(true);
+  await expect(page.getByRole("heading", { name: "Confirme quando você atende" })).toBeVisible();
+  expect(releasePostServiceSessionRefresh).not.toBeNull();
+  releasePostServiceSessionRefresh();
+
   expect(servicePayload).toEqual(expect.objectContaining({
     nome: "Design + Henna",
     categoria: "unha",
