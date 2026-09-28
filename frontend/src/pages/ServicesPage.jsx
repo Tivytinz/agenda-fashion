@@ -425,9 +425,15 @@ export function ServiceEditorPage() {
     setGalleryFiles(files);
   }
 
-  async function continueFirstServiceOnboarding(saveResult, mediaUploadWarning = "") {
+  function continueFirstServiceOnboarding(saveResult) {
     const published = saveResult.publicacao?.publicado === true;
-    if (published) await session.refresh();
+
+    if (published) {
+      // A sessão atual já contém o vínculo e o papel da dona. Atualizar o
+      // marcador de publicação é útil, mas não pode bloquear Serviço → Horários
+      // em uma falha ou lentidão transitória de /minha-sessao.
+      session.refresh().catch(() => {});
+    }
 
     const destination = !published
       ? getPlanIntentPath("/painel/negocio", selectedPlan)
@@ -439,14 +445,12 @@ export function ServiceEditorPage() {
         ? {
             message: "Serviço cadastrado. Revise os dados obrigatórios do negócio para concluir a publicação.",
             onboarding: true,
-            onboardingStep: "perfil",
-            ...(mediaUploadWarning ? { mediaUploadWarning } : {})
+            onboardingStep: "perfil"
           }
         : {
             message: "Serviço cadastrado e perfil publicado. Agora confirme ou ajuste os horários sugeridos.",
             onboarding: true,
-            onboardingStep: "agenda",
-            ...(mediaUploadWarning ? { mediaUploadWarning } : {})
+            onboardingStep: "agenda"
           }
     });
   }
@@ -481,6 +485,13 @@ export function ServiceEditorPage() {
       return;
     }
 
+    // A primeira missão não exibe mídia. Assim que o serviço principal é
+    // persistido, a jornada segue sem criar uma dependência artificial de upload.
+    if (firstServiceOnboarding) {
+      continueFirstServiceOnboarding(saveResult);
+      return;
+    }
+
     let mediaUploadError = null;
 
     try {
@@ -494,20 +505,6 @@ export function ServiceEditorPage() {
       }
     } catch (requestError) {
       mediaUploadError = requestError;
-    }
-
-    if (firstServiceOnboarding) {
-      const mediaUploadWarning = mediaUploadError
-        ? "O serviço foi criado e você pode continuar. Algumas fotos não foram enviadas; adicione-as depois em Serviços."
-        : "";
-
-      try {
-        await continueFirstServiceOnboarding(saveResult, mediaUploadWarning);
-      } catch (requestError) {
-        setError(`O serviço foi salvo, mas não foi possível continuar o onboarding. ${requestError.message}`);
-        setSaving(false);
-      }
-      return;
     }
 
     if (mediaUploadError) {
