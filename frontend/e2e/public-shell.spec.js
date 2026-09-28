@@ -117,7 +117,10 @@ test("cliente multi-papel mantém conta pessoal no PublicShell e navegação mob
   }));
 
   await page.route("**/conta", (route) => {
-    if (route.request().method() !== "GET") {
+    if (
+      route.request().resourceType() === "document" ||
+      route.request().method() !== "GET"
+    ) {
       return route.continue();
     }
 
