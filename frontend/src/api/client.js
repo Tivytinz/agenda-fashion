@@ -76,6 +76,51 @@ async function requestLegacyMigration(
   );
 }
 
+async function resolveLegacyCookieConflict(
+  response,
+  signal
+) {
+  let cookiePresent =
+    response.status === 409;
+
+  if (response.status === 200) {
+    const data =
+      await response
+        .json()
+        .catch(() => ({}));
+
+    cookiePresent =
+      data.codigo ===
+      "COOKIE_SESSAO_PRESENTE";
+  }
+
+  if (!cookiePresent) {
+    return {
+      handled: false
+    };
+  }
+
+  if (
+    await hasValidCookieSession(
+      signal
+    )
+  ) {
+    return {
+      handled: true,
+      result: {
+        attempted: true,
+        migrated: false,
+        alreadyCookie: true
+      }
+    };
+  }
+
+  return {
+    handled: true,
+    retry: true
+  };
+}
+
 export async function migrateLegacySession({ signal } = {}) {
   const token =
     readBrowserStorage(
@@ -110,54 +155,53 @@ export async function migrateLegacySession({ signal } = {}) {
       signal
     );
 
-  if (response.ok) {
-    return {
-      attempted: true,
-      migrated: true
-    };
+  let cookieConflict =
+    await resolveLegacyCookieConflict(
+      response,
+      signal
+    );
+
+  if (cookieConflict.result) {
+    return cookieConflict.result;
   }
 
-  if (response.status === 409) {
-    if (
-      await hasValidCookieSession(
-        signal
-      )
-    ) {
-      return {
-        attempted: true,
-        migrated: false,
-        alreadyCookie: true
-      };
-    }
-
-    // A checagem acima limpa um cookie inválido. Tente uma única vez
-    // novamente; o backend continuará recusando sobrescrever qualquer
-    // cookie que tenha surgido por uma autenticação concorrente.
+  if (cookieConflict.retry) {
+    // A validação acima limpa um cookie inválido. Tente uma única vez
+    // novamente; o backend continuará sem sobrescrever qualquer cookie
+    // que tenha surgido por uma autenticação concorrente.
     response =
       await requestLegacyMigration(
         token,
         signal
       );
 
-    if (response.ok) {
-      return {
-        attempted: true,
-        migrated: true
-      };
+    cookieConflict =
+      await resolveLegacyCookieConflict(
+        response,
+        signal
+      );
+
+    if (cookieConflict.result) {
+      return cookieConflict.result;
     }
 
-    if (
-      response.status === 409 &&
-      await hasValidCookieSession(
-        signal
-      )
-    ) {
-      return {
-        attempted: true,
-        migrated: false,
-        alreadyCookie: true
-      };
+    if (cookieConflict.retry) {
+      throw new ApiError(
+        "Não foi possível estabilizar a sessão atual antes da migração.",
+        409,
+        {
+          codigo:
+            "COOKIE_SESSAO_PRESENTE"
+        }
+      );
     }
+  }
+
+  if (response.ok) {
+    return {
+      attempted: true,
+      migrated: true
+    };
   }
 
   if (
