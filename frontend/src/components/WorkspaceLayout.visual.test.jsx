@@ -132,6 +132,8 @@ describe("contextos visuais do workspace", () => {
       within(sidebar).getByRole("navigation", { name: "Rotina profissional" })
     ).not.toBeNull();
     expect(screen.getAllByText("Studio Parceiro").length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: "Pular para o conteúdo" }).getAttribute("href")).toBe("#professional-content");
+    expect(professionalShell?.querySelector("#professional-content")?.getAttribute("tabindex")).toBe("-1");
     expect(
       screen.getByRole("link", { name: /Ir para gestão/ })
         .getAttribute("href")
