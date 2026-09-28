@@ -121,7 +121,12 @@ test("cliente multi-papel mantém conta no PublicShell e navegação mobile sem 
     administrador: null,
     ehAdministrador: false
   }));
-  await page.route("**/conta", (route) => json(route, {
+  await page.route("**/conta", (route) => {
+    if (route.request().resourceType() === "document") {
+      return route.continue();
+    }
+
+    return json(route, {
     usuario: {
       id: 31,
       nome: "Cliente Dona",
@@ -131,7 +136,8 @@ test("cliente multi-papel mantém conta no PublicShell e navegação mobile sem 
       aceita_notificacoes_whatsapp: false,
       aceita_alertas_operacionais_whatsapp: false
     }
-  }));
+  });
+  });
   await page.route("**/marketing/**", (route) => json(route, { enabled: false }));
   await page.route("**/eventos-produto", (route) => route.fulfill({ status: 204, body: "" }));
 
