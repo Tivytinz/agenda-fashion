@@ -58,14 +58,16 @@ describe("PublicShell", () => {
     expect(container.querySelector('[data-frontend-context="public"]')).not.toBeNull();
   });
 
-  it("mantém /cliente/conta no contexto cliente mesmo para identidade multi-papel", () => {
+  it("mantém /cliente/conta no contexto cliente mesmo para identidade multi-papel", async () => {
     sessionState.authenticated = true;
     sessionState.temNegocio = true;
 
     const { container } = renderShell("/cliente/conta");
 
     expect(container.querySelector('[data-frontend-context="public"]')).not.toBeNull();
-    expect(screen.getByRole("navigation", { name: "Área da cliente" })).not.toBeNull();
+    expect(
+      await screen.findByRole("navigation", { name: "Área da cliente" })
+    ).not.toBeNull();
   });
 
   it("remove a navegação pessoal durante a confirmação focada", () => {
