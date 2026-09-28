@@ -24,6 +24,11 @@ function OnboardingDestination() {
       <output data-testid="onboarding-destination">
         {location.pathname}{location.search}
       </output>
+      {location.state?.mediaUploadWarning && (
+        <output data-testid="media-upload-warning">
+          {location.state.mediaUploadWarning}
+        </output>
+      )}
     </>
   );
 }
@@ -104,6 +109,29 @@ describe("editor de serviços", () => {
     expect(screen.queryByTestId("onboarding-destination")).toBeNull();
     finishRefresh();
     expect((await screen.findByTestId("onboarding-destination")).textContent).toBe("/painel/horarios?plano=autonoma");
+  });
+
+  it("não bloqueia o onboarding quando uma foto opcional falha", async () => {
+    const cover = new File(["cover"], "capa.jpg", { type: "image/jpeg" });
+    apiRequest
+      .mockResolvedValueOnce({
+        servico: { id: 59 },
+        publicacao: { publicado: true, pode_publicar: true }
+      })
+      .mockRejectedValueOnce(new Error("Falha no upload"));
+
+    renderEditor("/painel/servicos/novo?onboarding=servico&plano=autonoma");
+    fillService();
+    fireEvent.change(screen.getByLabelText("Escolher capa"), {
+      target: { files: [cover] }
+    });
+    submit();
+
+    expect((await screen.findByTestId("onboarding-destination")).textContent)
+      .toBe("/painel/horarios?plano=autonoma");
+    expect((await screen.findByTestId("media-upload-warning")).textContent)
+      .toContain("Algumas fotos não foram enviadas");
+    expect(refreshSession).toHaveBeenCalledTimes(1);
   });
 
   it("oferece e envia a categoria Bronzeamento", async () => {
