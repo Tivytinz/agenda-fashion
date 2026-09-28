@@ -255,6 +255,12 @@ export function AppHeader() {
                     {session.ehAdministrador && !adminArea && (
                       <NavLink to="/admin">Administração</NavLink>
                     )}
+                    {!businessArea &&
+                      (!session.ehAdministrador || session.temNegocio) && (
+                        <NavLink to={getBusinessWorkspacePath(session)}>
+                          {workspaceLabel}
+                        </NavLink>
+                      )}
                   </>
                 )}
 
