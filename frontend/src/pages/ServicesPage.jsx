@@ -432,7 +432,7 @@ export function ServiceEditorPage() {
       // A sessão atual já contém o vínculo e o papel da dona. Atualizar o
       // marcador de publicação é útil, mas não pode bloquear Serviço → Horários
       // em uma falha ou lentidão transitória de /minha-sessao.
-      session.refresh().catch(() => {});
+      session.refresh({ silent: true }).catch(() => {});
     }
 
     const destination = !published
