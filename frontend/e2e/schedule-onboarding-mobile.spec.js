@@ -93,9 +93,11 @@ test("onboarding de horários confirma a sugestão e segue para divulgação no 
   }));
 
   let savedPayload = null;
+  let scheduleSaved = false;
   await page.route("**/agenda-configuracao", async (route) => {
     if (route.request().method() === "PUT") {
       savedPayload = route.request().postDataJSON();
+      scheduleSaved = true;
       return json(route, {
         mensagem: "Horários salvos.",
         configuracao: {
@@ -113,8 +115,10 @@ test("onboarding de horários confirma a sugestão e segue para divulgação no 
         intervalo_minutos: 0,
         antecedencia_agendamento: 0,
         antecedencia_cancelamento: 24,
-        configurado_em: "2026-09-10T04:00:00.000Z",
-        origem_horarios: "padrao_af"
+        configurado_em: scheduleSaved
+          ? "2026-09-10T05:00:00.000Z"
+          : "2026-09-10T04:00:00.000Z",
+        origem_horarios: scheduleSaved ? "personalizado" : "padrao_af"
       },
       horarios: SUGGESTED_WEEK
     });
