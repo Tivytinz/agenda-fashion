@@ -29,6 +29,11 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  /* O CTA final do booking é fixo no mobile e tem prioridade sobre a navegação pessoal. */
+  .public-shell:has(.booking-summary-ready) .client-mobile-nav {
+    display: none;
+  }
+
   .client-mobile-nav-link {
     display: grid;
     min-width: 0;
