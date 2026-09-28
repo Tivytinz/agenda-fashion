@@ -64,7 +64,7 @@ describe("confirmação concluída", () => {
 
     expect(
       screen.getByRole("link", {
-        name: "Abrir link seguro do agendamento"
+        name: "Ver meu agendamento"
       }).getAttribute("href")
     ).toBe(
       "/agendamento-visitante/91#token=capability"
