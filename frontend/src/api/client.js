@@ -15,6 +15,67 @@ export class ApiError extends Error {
   }
 }
 
+async function hasValidCookieSession(
+  signal
+) {
+  const response =
+    await fetch(
+      `${API_URL}/minha-sessao`,
+      {
+        headers: {
+          Accept:
+            "application/json"
+        },
+        credentials:
+          "include",
+        signal
+      }
+    );
+
+  if (response.ok) {
+    return true;
+  }
+
+  if (
+    response.status === 401 ||
+    response.status === 403
+  ) {
+    return false;
+  }
+
+  const data =
+    await response
+      .json()
+      .catch(() => ({}));
+
+  throw new ApiError(
+    data.erro ||
+      data.mensagem ||
+      "Não foi possível validar a sessão atual antes da migração.",
+    response.status,
+    data
+  );
+}
+
+async function requestLegacyMigration(
+  token,
+  signal
+) {
+  return fetch(
+    `${API_URL}/auth/migrar-sessao-legada`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization:
+          `Bearer ${token}`
+      },
+      credentials: "include",
+      signal
+    }
+  );
+}
+
 export async function migrateLegacySession({ signal } = {}) {
   const token =
     readBrowserStorage(
@@ -29,19 +90,24 @@ export async function migrateLegacySession({ signal } = {}) {
     };
   }
 
-  const response =
-    await fetch(
-      `${API_URL}/auth/migrar-sessao-legada`,
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          Authorization:
-            `Bearer ${token}`
-        },
-        credentials: "include",
-        signal
-      }
+  // Cookie HttpOnly é a sessão canônica. Um Bearer legado só pode ser
+  // migrado quando não existe uma sessão atual válida.
+  if (
+    await hasValidCookieSession(
+      signal
+    )
+  ) {
+    return {
+      attempted: true,
+      migrated: false,
+      alreadyCookie: true
+    };
+  }
+
+  let response =
+    await requestLegacyMigration(
+      token,
+      signal
     );
 
   if (response.ok) {
@@ -51,25 +117,58 @@ export async function migrateLegacySession({ signal } = {}) {
     };
   }
 
+  if (response.status === 409) {
+    if (
+      await hasValidCookieSession(
+        signal
+      )
+    ) {
+      return {
+        attempted: true,
+        migrated: false,
+        alreadyCookie: true
+      };
+    }
+
+    // A checagem acima limpa um cookie inválido. Tente uma única vez
+    // novamente; o backend continuará recusando sobrescrever qualquer
+    // cookie que tenha surgido por uma autenticação concorrente.
+    response =
+      await requestLegacyMigration(
+        token,
+        signal
+      );
+
+    if (response.ok) {
+      return {
+        attempted: true,
+        migrated: true
+      };
+    }
+
+    if (
+      response.status === 409 &&
+      await hasValidCookieSession(
+        signal
+      )
+    ) {
+      return {
+        attempted: true,
+        migrated: false,
+        alreadyCookie: true
+      };
+    }
+  }
+
   if (
     response.status === 401 ||
     response.status === 403
   ) {
-    const cookieSession =
-      await fetch(
-        `${API_URL}/minha-sessao`,
-        {
-          headers: {
-            Accept:
-              "application/json"
-          },
-          credentials:
-            "include",
-          signal
-        }
-      );
-
-    if (cookieSession.ok) {
+    if (
+      await hasValidCookieSession(
+        signal
+      )
+    ) {
       return {
         attempted: true,
         migrated: false,
