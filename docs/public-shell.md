@@ -21,7 +21,7 @@ O shell define composição e ownership visual. Ele não concede acesso, não al
 
 `PublicShell` envolve a raiz do React e marca `data-frontend-context="public"` apenas quando a rota não pertence aos contextos operacionais de Admin, dona ou profissional.
 
-Rotas `/admin/*`, `/painel/*` e `/profissional/*` são delegadas aos shells próprios. Em `/conta`, uma conta administrativa ou vinculada a negócio também é delegada ao contexto privado correspondente; uma conta somente de cliente permanece no contexto público.
+Rotas `/admin/*`, `/painel/*` e `/profissional/*` são delegadas aos shells próprios. Em `/conta`, uma conta administrativa ou vinculada a negócio também é delegada ao contexto privado correspondente; uma conta somente de cliente permanece no contexto público. A rota `/cliente/conta` é a entrada explícita da conta no contexto cliente e permanece no `PublicShell` mesmo quando a mesma identidade também possui vínculo de dona ou profissional.
 
 Telas de entrada, descoberta, perfil público, agendamento, autenticação, favoritos, agendamentos do cliente e páginas institucionais usam a fundação pública. Fluxos de transição que ainda não possuem shell operacional específico podem continuar nessa fundação até existir benefício real em migrá-los.
 
@@ -73,7 +73,9 @@ própria conta sem preencher os mesmos campos novamente. Esses dados são
 resolvidos novamente no backend a partir da identidade autenticada; valores de
 nome/WhatsApp enviados pelo navegador não substituem a identidade persistida.
 
-Visitantes continuam informando nome e WhatsApp no fluxo público.
+Visitantes continuam informando nome e WhatsApp no fluxo público. Depois da confirmação, a capability do booking é o acesso seguro canônico daquele agendamento visitante. Criar ou entrar em uma conta posteriormente não reconcilia automaticamente essa reserva com `/meus-agendamentos`; uma eventual vinculação futura deve provar posse da capability e não pode inferir identidade apenas por nome ou WhatsApp.
+
+No mobile, cliente autenticada pode receber navegação pessoal curta para Descobrir, Favoritos, Agenda e Conta. Visitante só recebe navegação pessoal depois de existir um contexto de agendamento recente, com Descobrir, Meu horário e Entrar. A rota `/confirmar` usa composição focada e não mostra a navegação pessoal/global concorrente.
 
 ## Segurança
 
