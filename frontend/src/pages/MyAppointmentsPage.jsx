@@ -418,7 +418,7 @@ export function MyAppointmentsPage() {
             <strong>Agendamento como visitante</strong>
             <p>
               Nesta sessão você pode acompanhar e cancelar o agendamento que acabou de criar.
-              Entre na sua conta para reunir e gerenciar agendamentos feitos com login.
+              Entre na sua conta para acompanhar os próximos agendamentos que fizer usando login.
             </p>
           </div>
           <Link className="button button-small" to="/entrar">Entrar</Link>
@@ -433,7 +433,48 @@ export function MyAppointmentsPage() {
         />
       )}
 
-      {status === "ready" && (
+      {status === "ready" && !isAuthenticated && (
+        <>
+          {message && <p className="agenda-message" role="status">{message}</p>}
+          {appointments.length > 0 ? (
+            <section className="guest-appointment-section" aria-labelledby="guest-appointment-title">
+              <div className="guest-appointment-heading">
+                <p className="eyebrow">Reserva recente</p>
+                <h2 id="guest-appointment-title">Seu agendamento</h2>
+              </div>
+              <AppointmentCard
+                appointment={appointments[0]}
+                canCancel={
+                  [
+                    APPOINTMENT_STATUS.scheduled,
+                    APPOINTMENT_STATUS.confirmed
+                  ].includes(appointments[0].status) &&
+                  appointments[0].source === "visitor" &&
+                  Boolean(appointments[0].acesso_visitante)
+                }
+                canEvaluate={false}
+                canceling={cancelingId === appointments[0].id}
+                evaluating={false}
+                evaluationError=""
+                onCancel={(item) => {
+                  setCancelError("");
+                  setPendingCancellation(item);
+                }}
+                onEvaluate={() => {}}
+              />
+            </section>
+          ) : (
+            <section className="empty-agenda">
+              <span aria-hidden="true">♡</span>
+              <h2>Nenhum agendamento recente</h2>
+              <p>Quando você marcar um horário como visitante, ele aparecerá aqui nesta sessão.</p>
+              <Link className="button" to="/">Encontrar um serviço</Link>
+            </section>
+          )}
+        </>
+      )}
+
+      {status === "ready" && isAuthenticated && (
         <>
           {message && <p className="agenda-message" role="status">{message}</p>}
           <div className="agenda-tabs" role="tablist" aria-label="Status dos agendamentos">
