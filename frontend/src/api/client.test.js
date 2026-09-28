@@ -73,12 +73,22 @@ describe("cliente da API", () => {
     );
 
     const fetchMock =
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 204,
-        json:
-          vi.fn()
-      });
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json:
+            vi.fn().mockResolvedValue({
+              erro:
+                "Sessão não encontrada."
+            })
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 204,
+          json:
+            vi.fn()
+        });
     vi.stubGlobal(
       "fetch",
       fetchMock
@@ -120,10 +130,66 @@ describe("cliente da API", () => {
     ).toBeNull();
   });
 
-  it("preserva cookie válido quando só o Bearer legado ficou obsoleto", async () => {
+  it("preserva cookie válido sem enviar o Bearer legado de outra identidade", async () => {
     localStorage.setItem(
       "token",
-      "jwt-legado-expirado"
+      "jwt-legado-conta-a"
+    );
+
+    const fetchMock =
+      vi.fn().mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json:
+          vi.fn().mockResolvedValue({
+            usuario: {
+              id: 2
+            }
+          })
+      });
+
+    vi.stubGlobal(
+      "fetch",
+      fetchMock
+    );
+
+    const resultado =
+      await migrateLegacySession();
+
+    expect(resultado)
+      .toMatchObject({
+        attempted: true,
+        migrated: false,
+        alreadyCookie: true
+      });
+
+    expect(fetchMock)
+      .toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0])
+      .toBe("/minha-sessao");
+    expect(
+      new Headers(
+        fetchMock.mock.calls[0][1].headers
+      ).has("Authorization")
+    ).toBe(false);
+
+    expect(
+      localStorage.getItem(
+        "token"
+      )
+    ).toBe("jwt-legado-conta-a");
+
+    expect(
+      localStorage.getItem(
+        "session_active"
+      )
+    ).toBeNull();
+  });
+
+  it("migra o Bearer válido depois que um cookie inválido é rejeitado", async () => {
+    localStorage.setItem(
+      "token",
+      "jwt-legado-valido"
     );
 
     const fetchMock =
@@ -134,7 +200,60 @@ describe("cliente da API", () => {
           json:
             vi.fn().mockResolvedValue({
               erro:
-                "Token expirado."
+                "Sessão inválida."
+            })
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 204,
+          json:
+            vi.fn()
+        });
+
+    vi.stubGlobal(
+      "fetch",
+      fetchMock
+    );
+
+    const resultado =
+      await migrateLegacySession();
+
+    expect(resultado)
+      .toMatchObject({
+        attempted: true,
+        migrated: true
+      });
+
+    expect(fetchMock.mock.calls[0][0])
+      .toBe("/minha-sessao");
+    expect(fetchMock.mock.calls[1][0])
+      .toBe("/auth/migrar-sessao-legada");
+  });
+
+  it("preserva cookie criado concorrentemente durante a migração", async () => {
+    localStorage.setItem(
+      "token",
+      "jwt-legado-conta-a"
+    );
+
+    const fetchMock =
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json:
+            vi.fn().mockResolvedValue({
+              erro:
+                "Sessão não encontrada."
+            })
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 409,
+          json:
+            vi.fn().mockResolvedValue({
+              codigo:
+                "COOKIE_SESSAO_PRESENTE"
             })
         })
         .mockResolvedValueOnce({
@@ -143,7 +262,7 @@ describe("cliente da API", () => {
           json:
             vi.fn().mockResolvedValue({
               usuario: {
-                id: 1
+                id: 2
               }
             })
         });
@@ -163,17 +282,10 @@ describe("cliente da API", () => {
         alreadyCookie: true
       });
 
-    expect(
-      localStorage.getItem(
-        "token"
-      )
-    ).toBe("jwt-legado-expirado");
-
-    expect(
-      localStorage.getItem(
-        "session_active"
-      )
-    ).toBeNull();
+    expect(fetchMock)
+      .toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[2][0])
+      .toBe("/minha-sessao");
   });
 
   it("não limpa o storage até o contexto confirmar que a migração é inválida", async () => {
@@ -182,17 +294,39 @@ describe("cliente da API", () => {
       "expirado"
     );
 
+    const fetchMock =
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json:
+            vi.fn().mockResolvedValue({
+              erro:
+                "Sessão não encontrada."
+            })
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json:
+            vi.fn().mockResolvedValue({
+              erro:
+                "Token expirado."
+            })
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json:
+            vi.fn().mockResolvedValue({
+              erro:
+                "Sessão não encontrada."
+            })
+        });
+
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 401,
-        json:
-          vi.fn().mockResolvedValue({
-            erro:
-              "Token expirado."
-          })
-      })
+      fetchMock
     );
 
     const resultado =
