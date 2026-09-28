@@ -52,13 +52,15 @@ export function SessionProvider({ children }) {
     };
   });
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async ({ silent = false } = {}) => {
     if (!hasSession()) {
       setState(SIGNED_OUT_STATE);
       return null;
     }
 
-    setState((current) => ({ ...current, loading: true }));
+    if (!silent) {
+      setState((current) => ({ ...current, loading: true }));
+    }
 
     try {
       const migration =
@@ -99,7 +101,7 @@ export function SessionProvider({ children }) {
       if (error.status === 401 || error.status === 403) {
         clearSession();
         setState(SIGNED_OUT_STATE);
-      } else {
+      } else if (!silent) {
         setState((current) => ({ ...current, loading: false }));
       }
       throw error;
