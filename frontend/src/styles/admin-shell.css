@@ -190,7 +190,7 @@ html.admin-context-active #root {
   top: 0;
   z-index: 25;
   display: flex;
-  min-height: 58px;
+  min-height: 60px;
   align-items: center;
   gap: 12px;
   border-bottom: 1px solid #e3e8ee;

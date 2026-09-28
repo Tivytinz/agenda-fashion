@@ -42,7 +42,7 @@ html.owner-context-active body {
 .owner-shell {
   display: grid;
   min-height: 100dvh;
-  grid-template-columns: 252px minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 1fr);
 }
 
 .owner-sidebar {
@@ -252,7 +252,7 @@ html.owner-context-active body {
   top: 0;
   z-index: 25;
   display: flex;
-  min-height: 62px;
+  min-height: 60px;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
@@ -337,16 +337,6 @@ html.owner-context-active body {
 
 .owner-shell > .workspace-mobile-nav {
   display: none;
-}
-
-@media (max-width: 1080px) {
-  .owner-shell {
-    grid-template-columns: 226px minmax(0, 1fr);
-  }
-
-  .owner-sidebar {
-    padding-inline: 12px;
-  }
 }
 
 @media (max-width: 900px) {
