@@ -123,6 +123,23 @@ describe("agenda da cliente", () => {
     });
   });
 
+  it("mostra uma reserva recente sem central de histórico para visitante", async () => {
+    useSession.mockReturnValue({ authenticated: false, loading: false });
+    sessionStorage.setItem("af_recent_appointment", JSON.stringify({
+      ...APPOINTMENT,
+      horario: "09:30",
+      source: "visitor",
+      acesso_visitante: "a".repeat(43)
+    }));
+
+    render(<MemoryRouter><MyAppointmentsPage /></MemoryRouter>);
+
+    expect(await screen.findByRole("heading", { name: "Seu agendamento" })).not.toBeNull();
+    expect(screen.getByText("Manicure")).not.toBeNull();
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.getByRole("button", { name: "Cancelar agendamento" })).not.toBeNull();
+  });
+
   it("volta ao modo visitante quando a sessão deixa de existir", async () => {
     let session = { authenticated: true, loading: false };
     useSession.mockImplementation(() => session);
