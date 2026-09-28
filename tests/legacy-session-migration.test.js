@@ -162,13 +162,14 @@ describe(
 
         expect(
           resposta.status
-        ).toBe(409);
+        ).toBe(200);
 
         expect(
           resposta.body
         ).toMatchObject({
           codigo:
             "COOKIE_SESSAO_PRESENTE",
+          migrado: false,
         });
 
         expect(
