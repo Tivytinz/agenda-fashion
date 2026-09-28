@@ -87,8 +87,7 @@ export function ProfessionalShell({ children, links = [] }) {
 
         <section className="professional-content" id="professional-content" tabIndex={-1}>
           <ShellContentBoundary>
-          {children || <Outlet />}
-        
+            {children || <Outlet />}
           </ShellContentBoundary>
         </section>
       </div>
