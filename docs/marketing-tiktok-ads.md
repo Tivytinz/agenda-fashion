@@ -27,7 +27,7 @@ O fluxo usa o OAuth de **Advertiser / Marketing API**, não o OAuth de TikTok Ac
 5. O backend consome o `state` uma única vez e troca o `auth_code` em `/open_api/v1.3/oauth2/access_token/`.
 6. O Advertiser ID configurado precisa constar em `advertiser_ids` retornado pelo TikTok.
 7. O access token de longo prazo é armazenado criptografado com AES-256-GCM.
-8. O navegador volta para `/admin/trafego-pago?tiktok_oauth=success|error`; `auth_code`, `state` e token não permanecem na URL administrativa.
+8. O navegador volta para `/admin/integracoes?tiktok_oauth=success|error`; `auth_code`, `state` e token não permanecem na URL administrativa.
 
 A Marketing API v1.3 usa access token de longo prazo. Não existe refresh token neste fluxo; se a autorização for revogada, o administrador autoriza novamente.
 

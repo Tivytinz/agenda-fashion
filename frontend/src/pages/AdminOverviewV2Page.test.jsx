@@ -79,16 +79,51 @@ describe("visão geral administrativa v2", () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
 
-    expect(screen.getByText("Usuários ativos")).not.toBeNull();
+    expect(screen.getByText("Contas que acessaram")).not.toBeNull();
     expect(screen.getAllByText("Cadastros profissionais").length).toBeGreaterThan(0);
     expect(screen.getByText("Coorte profissional: do cadastro à assinatura")).not.toBeNull();
     expect(screen.getByText("1º agendamento válido")).not.toBeNull();
+    expect(screen.getByText("Negócios com 1º serviço criado")).not.toBeNull();
     expect(screen.getByText("Cadastro → 1º agendamento").closest("div")?.textContent).toContain("40%");
     expect(screen.getByText("Cadastro → assinatura paga").closest("div")?.textContent).toContain("20%");
     expect(screen.getByText(/R\$\s*199,80/)).not.toBeNull();
     expect(screen.getByText("Pagamentos confirmados").closest("div")?.textContent).toContain("3");
+    expect(screen.queryByRole("heading", { name: "Uso observado no AF" })).toBeNull();
     expect(screen.queryByText("Agendas configuradas")).toBeNull();
     expect(screen.queryByText(/agenda confirmada/i)).toBeNull();
+  });
+
+  it("resume a coorte vazia sem taxas fictícias e mantém fatos do período", async () => {
+    apiRequest.mockResolvedValue({
+      ...OVERVIEW,
+      periodo: "today",
+      audiencia: { ...OVERVIEW.audiencia, sessoes: 10, visualizacoes: 43 },
+      aquisicao: { cadastrosProfissionais: 0 },
+      ativacao: {
+        negociosCriados: 0,
+        servicosCriados: 0,
+        negociosPublicados: 0,
+        primeirosAgendamentos: 0,
+        taxaNegocioSobreCadastro: null,
+        taxaServicoSobreCadastro: null,
+        taxaPublicacaoSobreCadastro: null,
+        taxaPrimeiroAgendamentoSobreCadastro: null
+      },
+      receita: {
+        ...OVERVIEW.receita,
+        assinaturasAtivadasCohorte: 0,
+        taxaAssinaturaSobreCadastro: null,
+        pagamentosConfirmados: 1
+      }
+    });
+    renderPage();
+
+    expect(await screen.findByText("Nenhum cadastro profissional neste período")).not.toBeNull();
+    expect(screen.queryByText("Cadastro → negócio")).toBeNull();
+    expect(screen.queryByText("0%")).toBeNull();
+    expect(screen.getByText("Sem cadastros para calcular a taxa")).not.toBeNull();
+    expect(screen.getByText("Agendamentos válidos").closest("div")?.textContent).toContain("9");
+    expect(screen.getByText("Pagamentos confirmados").closest("div")?.textContent).toContain("1");
   });
 
   it("persiste o período na URL e consulta novamente a visão geral", async () => {
@@ -116,7 +151,21 @@ describe("visão geral administrativa v2", () => {
     fireEvent.click(screen.getByRole("button", { name: "7 dias" }));
 
     expect((await screen.findByRole("alert")).textContent).toContain("últimos dados válidos");
+    expect(screen.getByRole("alert").textContent).toContain("30 dias");
     expect(screen.getByText("42")).not.toBeNull();
     expect(screen.getByLabelText("Recorte temporal").textContent).toContain("30 dias");
+  });
+
+  it("identifica o recorte exibido durante a troca de período", async () => {
+    renderPage();
+    await screen.findByText("42");
+
+    apiRequest.mockImplementation(() => new Promise(() => {}));
+    fireEvent.click(screen.getByRole("button", { name: "7 dias" }));
+
+    const status = await screen.findByText(/Mostrando os dados de 30 dias/);
+    expect(status.textContent).toContain("dados de 30 dias");
+    expect(status.textContent).toContain("atualizamos 7 dias");
+    expect(screen.getByText("42")).not.toBeNull();
   });
 });

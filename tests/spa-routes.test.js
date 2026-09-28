@@ -24,6 +24,7 @@ describe("rotas SPA servidas pelo Express", () => {
     "/termos",
     "/admin/trafego-pago",
     "/admin/trafego-pago/custos",
+    "/admin/integracoes",
     "/admin/trafego-pago/profissionais",
     "/admin/saude",
   ])("serve %s pelo fallback da SPA", (route) => {

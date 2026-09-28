@@ -59,6 +59,15 @@ describe("pinterestMarketingOAuthService", () => {
     global.fetch = fetchOriginal;
   });
 
+  test("retorna da autorização na página direta de Integrações", () => {
+    expect(service.urlResultado("success")).toBe(
+      "https://agendafashion.com.br/admin/integracoes?pinterest_oauth=success"
+    );
+    expect(service.urlResultado("error")).toBe(
+      "https://agendafashion.com.br/admin/integracoes?pinterest_oauth=error"
+    );
+  });
+
   test("gera OAuth oficial com escopo mínimo e persiste somente o hash do state", async () => {
     const resultado = await service.iniciarAutorizacao({ usuarioId: 9 });
     const url = new URL(resultado.authorizationUrl);

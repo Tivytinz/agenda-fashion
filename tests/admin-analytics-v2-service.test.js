@@ -97,6 +97,8 @@ describe("adminAnalyticsV2Service", () => {
     const resultado = await buscarOverview("30");
 
     expect(resultado.aquisicao.cadastrosProfissionais).toBe(10);
+    expect(resultado.audiencia.usuariosAtivos).toBe(12);
+    expect(resultado.metodologia.audiencia).toContain("contas autenticadas distintas");
     expect(resultado.entidades).toEqual({
       profissionaisNoFunil: 10,
       negociosCriados: 8,
@@ -180,11 +182,31 @@ describe("adminAnalyticsV2Service", () => {
       },
       {
         cadastros: 0,
+        taxaNegocio: 0,
+        taxaServico: 0,
+        taxaPublicacao: 0,
+        taxaPrimeiroAgendamento: 0,
+        taxaAssinatura: 0,
       }
     );
 
-    expect(resultado.ativacao.taxaNegocioSobreCadastro).toBeNull();
+    expect(resultado.ativacao).toMatchObject({
+      taxaNegocioSobreCadastro: null,
+      taxaServicoSobreCadastro: null,
+      taxaPublicacaoSobreCadastro: null,
+      taxaPrimeiroAgendamentoSobreCadastro: null,
+    });
     expect(resultado.receita.taxaAssinaturaSobreCadastro).toBeNull();
+  });
+
+  test("preserva zero calculado quando existe base e indisponibilidade explícita", () => {
+    const resultado = mapearVisaoGeral(
+      { periodo: "7", sessoes: 2 },
+      { cadastros: 2, taxaNegocio: 0, taxaServico: null }
+    );
+
+    expect(resultado.ativacao.taxaNegocioSobreCadastro).toBe(0);
+    expect(resultado.ativacao.taxaServicoSobreCadastro).toBeNull();
   });
 
   test("integra retorno financeiro sem substituir o funil do período", async () => {

@@ -63,10 +63,7 @@ async function buscarVisaoGeral(periodo = "30") {
     sessoes AS (
       SELECT
         COUNT(*)::INT AS sessoes,
-        COUNT(DISTINCT CASE
-          WHEN s.usuario_id IS NOT NULL THEN 'u:' || s.usuario_id::TEXT
-          ELSE 'v:' || s.visitante_id::TEXT
-        END)::INT AS usuarios_ativos,
+        COUNT(DISTINCT s.usuario_id)::INT AS usuarios_ativos,
         COALESCE(SUM(s.visualizacoes), 0)::BIGINT AS visualizacoes,
         COALESCE(SUM(s.tempo_engajado_ms), 0)::BIGINT AS tempo_engajado_ms
       FROM analytics_sessoes s

@@ -26,7 +26,7 @@ O fluxo usa Authorization Code Grant da API v5 do Pinterest.
 7. O backend valida o `PINTEREST_AD_ACCOUNT_ID` com o access token antes de persistir a autorização.
 8. Access token e refresh token são armazenados com AES-256-GCM.
 9. O refresh token contínuo renova o access token automaticamente antes da expiração.
-10. O navegador volta para `/admin/trafego-pago?pinterest_oauth=success|error`.
+10. O navegador volta para `/admin/integracoes?pinterest_oauth=success|error`.
 
 A integração solicita somente `ads:read`. Configurações que tentem ampliar o OAuth para scopes de escrita são rejeitadas pelo backend.
 

@@ -17,6 +17,7 @@ const sessionState = vi.hoisted(() => ({
 }));
 
 vi.mock("../auth/SessionContext", () => ({
+  useOptionalSession: () => ({ administrador: { papel: "admin" } }),
   useSession: () => ({
     negocio: sessionState.negocio,
     vinculos: sessionState.vinculos
@@ -60,9 +61,12 @@ describe("contextos visuais do workspace", () => {
     expect(sidebarQueries.getByText("Administração")).not.toBeNull();
     expect(sidebarQueries.getByText("Visão geral")).not.toBeNull();
     expect(sidebarQueries.getByText("Marketing")).not.toBeNull();
+    expect(sidebarQueries.getByText("Investimento e eficiência")).not.toBeNull();
+    expect(sidebarQueries.getByText("Integrações")).not.toBeNull();
     expect(sidebarQueries.getByText("Aquisição")).not.toBeNull();
     expect(sidebarQueries.getByText("Operação")).not.toBeNull();
     expect(sidebarQueries.getByText("Saúde do SaaS")).not.toBeNull();
+    expect(sidebarQueries.getByText("WhatsApp")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Visão administrativa" })).not.toBeNull();
   });
 

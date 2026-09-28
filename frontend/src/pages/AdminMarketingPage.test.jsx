@@ -170,13 +170,13 @@ describe("AdminMarketingPage", () => {
       await screen.findByRole("heading", { name: "Marketing e aquisição" })
     ).not.toBeNull();
 
-    expect(screen.getByText("Sessões no site")).not.toBeNull();
+    expect(screen.getByText("Sessões no GA4")).not.toBeNull();
     expect(screen.getByText("90")).not.toBeNull();
     expect(screen.getByText("Cadastros profissionais")).not.toBeNull();
     expect(screen.getAllByText("1º agendamento válido").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Assinaturas pagas").length).toBeGreaterThan(0);
     expect(screen.getByText("Comportamento + coorte + atribuição")).not.toBeNull();
-    expect(screen.getByText("GA4 conectado")).not.toBeNull();
+    expect(screen.getByText("GA4 com dados")).not.toBeNull();
     expect(screen.getByText("100% dos cadastros pagos atribuídos")).not.toBeNull();
     expect(
       screen.getByText(/Sessões pagas com campanha reconhecida: 80%/)
@@ -203,15 +203,18 @@ describe("AdminMarketingPage", () => {
     ).toBeNull();
 
     expect(screen.getByRole("button", { name: "7 dias" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("Resumo").getAttribute("aria-current")).toBe("page");
     expect(
       screen.getByRole("link", { name: "Custos e retorno" }).getAttribute("href")
     ).toBe("/admin/trafego-pago/custos?periodo=7");
     expect(
       screen.getByRole("link", { name: "Integrações" }).getAttribute("href")
-    ).toBe("/admin/trafego-pago/custos?periodo=7#integracoes-custos");
+    ).toBe("/admin/integracoes");
     expect(
       screen.getByRole("link", { name: "Gerenciar integrações" }).getAttribute("href")
-    ).toBe("/admin/trafego-pago/custos?periodo=7#integracoes-custos");
+    ).toBe("/admin/integracoes");
+    expect(screen.getByRole("link", { name: "Funil completo" }).getAttribute("href"))
+      .toBe("/admin/aquisicao?periodo=7");
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
@@ -245,5 +248,30 @@ describe("AdminMarketingPage", () => {
     expect(screen.getByText("Cadastros profissionais")).not.toBeNull();
     expect(screen.getByText("GA4 indisponível")).not.toBeNull();
     expect(screen.getByText("GA4: GA4 indisponível")).not.toBeNull();
+  });
+
+  it("distingue consulta vazia de falha e oculta taxas sem cadastros", async () => {
+    const originalImplementation = apiRequest.getMockImplementation();
+    apiRequest.mockImplementation((path, options) => {
+      if (path.startsWith("/admin/marketing/ga4")) {
+        return Promise.resolve({ habilitado: true, configurado: true, resumo: { sessoes: 0, usuarios: 0 } });
+      }
+      if (path.startsWith("/admin/marketing/funil-profissionais")) {
+        return Promise.resolve({
+          resumo: { cadastros: 0, primeirosAgendamentos: 0, assinaturasAtivadas: 0 },
+          qualidadeMensuracao: { cadastrosPagosDetectados: 0 },
+          campanhas: []
+        });
+      }
+      return originalImplementation(path, options);
+    });
+
+    render(<MemoryRouter><AdminMarketingPage /></MemoryRouter>);
+
+    expect(await screen.findByText("Nenhum cadastro profissional neste período")).not.toBeNull();
+    expect(screen.getByText("GA4 sem sessões no período")).not.toBeNull();
+    expect(screen.getByText("Sem cadastro pago detectado").className).not.toContain("is-success");
+    expect(screen.queryByText("0% dos cadastros")).toBeNull();
+    expect(screen.queryByText("GA4 com dados")).toBeNull();
   });
 });
