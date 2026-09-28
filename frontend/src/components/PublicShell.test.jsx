@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { PublicShell } from "./PublicShell";
 
 const sessionState = vi.hoisted(() => ({
+  authenticated: false,
   ehAdministrador: false,
   temNegocio: false
 }));
@@ -16,6 +17,7 @@ vi.mock("../auth/SessionContext", () => ({
 
 afterEach(() => {
   cleanup();
+  sessionState.authenticated = false;
   sessionState.ehAdministrador = false;
   sessionState.temNegocio = false;
   document.documentElement.classList.remove("public-context-active");
@@ -54,6 +56,27 @@ describe("PublicShell", () => {
     const { container } = renderShell("/conta");
 
     expect(container.querySelector('[data-frontend-context="public"]')).not.toBeNull();
+  });
+
+  it("mostra navegação mobile pessoal somente para cliente autenticada", () => {
+    sessionState.authenticated = true;
+    renderShell("/favoritos");
+
+    expect(
+      screen.getByRole("navigation", { name: "Navegação da cliente" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Conta" }).getAttribute("href")
+    ).toBe("/cliente/conta");
+  });
+
+  it("não mostra navegação pessoal durante a confirmação do booking", () => {
+    sessionState.authenticated = true;
+    renderShell("/confirmar");
+
+    expect(
+      screen.queryByRole("navigation", { name: "Navegação da cliente" })
+    ).toBeNull();
   });
 
   it("mantém /cliente/conta no contexto público mesmo para conta ligada a negócio", () => {
