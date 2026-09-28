@@ -71,6 +71,22 @@ describe("confirmação concluída", () => {
     );
   });
 
+  it("ignora destino de visitante fora da rota interna esperada", () => {
+    renderSuccess({
+      agendamento: {
+        id: 91,
+        link_cancelamento_visitante: "destino-nao-confiavel"
+      }
+    });
+
+    expect(screen.queryByRole("link", {
+      name: "Ver meu agendamento"
+    })).toBeNull();
+    expect(screen.getByRole("link", {
+      name: "Ver meus agendamentos"
+    }).getAttribute("href")).toBe("/minha-agenda");
+  });
+
   it("exibe contato formatado, endereço e ações úteis", () => {
     renderSuccess();
 
