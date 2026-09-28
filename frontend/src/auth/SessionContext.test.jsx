@@ -359,6 +359,7 @@ describe("sincronização da sessão", () => {
 
     const syncButton = screen.getByRole("button", { name: "Sincronizar silenciosamente" });
     fireEvent.click(syncButton);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
     fireEvent.click(syncButton);
     await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(3));
 
@@ -397,6 +398,7 @@ describe("sincronização da sessão", () => {
 
     const syncButton = screen.getByRole("button", { name: "Sincronizar silenciosamente" });
     fireEvent.click(syncButton);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
     fireEvent.click(syncButton);
     await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(3));
 
@@ -433,6 +435,7 @@ describe("sincronização da sessão", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Sincronizar" }));
     expect(screen.getByTestId("session-loading").textContent).toBe("Carregando");
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
 
     fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
 
@@ -469,6 +472,7 @@ describe("sincronização da sessão", () => {
 
     const syncButton = screen.getByRole("button", { name: "Sincronizar silenciosamente" });
     fireEvent.click(syncButton);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
     fireEvent.click(syncButton);
     await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(3));
 
