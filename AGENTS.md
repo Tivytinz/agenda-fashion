@@ -176,7 +176,9 @@ tentativa anterior de abrir o workspace não pode pular o primeiro serviço.
 Depois que o primeiro serviço é salvo e o backend confirma a publicação, a
 interface apresenta `Horários` como terceiro momento visível da primeira
 jornada. O objetivo é mostrar que o AF é uma agenda editável sem transformar a
-disponibilidade em requisito de publicação.
+disponibilidade em requisito de publicação. Como fotos do serviço são opcionais,
+falha no upload de capa ou galeria não bloqueia essa progressão: a interface
+informa a pendência e permite que a mídia seja adicionada depois em Serviços.
 
 Na confirmação rápida:
 
