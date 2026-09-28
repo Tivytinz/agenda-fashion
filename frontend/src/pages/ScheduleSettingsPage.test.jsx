@@ -170,6 +170,22 @@ describe("configuração de horários", () => {
     });
   });
 
+  it("informa falha de mídia opcional sem impedir a configuração dos horários", async () => {
+    mockFirstConfiguration();
+    renderPage({
+      pathname: "/painel/horarios",
+      state: {
+        onboarding: true,
+        onboardingStep: "agenda",
+        mediaUploadWarning: "O serviço foi criado e você pode continuar. Algumas fotos não foram enviadas; adicione-as depois em Serviços."
+      }
+    });
+
+    expect(await screen.findByText(/Algumas fotos não foram enviadas/)).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Confirmar horários" })).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Ajustar horários" })).not.toBeNull();
+  });
+
   it("mantém a primeira configuração profissional no editor operacional", async () => {
     apiRequest.mockImplementation((requestPath, options = {}) => {
       if (requestPath === "/agenda-configuracao" && !options.method) {
