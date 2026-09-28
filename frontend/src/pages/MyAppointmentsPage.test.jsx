@@ -126,7 +126,18 @@ describe("agenda da cliente", () => {
   it("simplifica a agenda visitante e prioriza o acesso seguro da reserva", async () => {
     useSession.mockReturnValue({ authenticated: false, loading: false });
     sessionStorage.setItem("af_recent_appointment", JSON.stringify({
-      ...APPOINTMENT,
+      id: 12,
+      negocio_id: 4,
+      servico_id: 9,
+      profissional_id: 3,
+      negocio: "Studio Aurora",
+      slug: "studio-aurora",
+      servico: "Manicure",
+      profissional: "Ana",
+      data: "2026-08-08",
+      horario: "09:30:00",
+      valor: 50,
+      status: "agendado",
       acesso_visitante: "abcdefghijklmnopqrstuvwxyzABCDEFGH123456789"
     }));
 
