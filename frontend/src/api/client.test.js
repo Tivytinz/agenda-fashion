@@ -66,7 +66,7 @@ describe("cliente da API", () => {
     ).toBe(false);
   });
 
-  it("faz uma migração única do Bearer legado para cookie e remove o token local", async () => {
+  it("valida a migração do Bearer legado sem alterar o storage antes do contexto", async () => {
     localStorage.setItem(
       "token",
       "jwt-legado"
@@ -111,13 +111,13 @@ describe("cliente da API", () => {
       localStorage.getItem(
         "token"
       )
-    ).toBeNull();
+    ).toBe("jwt-legado");
 
     expect(
       localStorage.getItem(
         "session_active"
       )
-    ).toBe("1");
+    ).toBeNull();
   });
 
   it("preserva cookie válido quando só o Bearer legado ficou obsoleto", async () => {
@@ -167,16 +167,16 @@ describe("cliente da API", () => {
       localStorage.getItem(
         "token"
       )
-    ).toBeNull();
+    ).toBe("jwt-legado-expirado");
 
     expect(
       localStorage.getItem(
         "session_active"
       )
-    ).toBe("1");
+    ).toBeNull();
   });
 
-  it("limpa sessão quando o Bearer legado não pode ser migrado", async () => {
+  it("não limpa o storage até o contexto confirmar que a migração é inválida", async () => {
     localStorage.setItem(
       "token",
       "expirado"
@@ -209,7 +209,29 @@ describe("cliente da API", () => {
       localStorage.getItem(
         "token"
       )
-    ).toBeNull();
+    ).toBe("expirado");
+  });
+
+  it("permite cancelar a migração legada antes que uma transição nova assuma a sessão", async () => {
+    localStorage.setItem("token", "jwt-legado");
+
+    vi.stubGlobal("fetch", vi.fn((_url, options) => new Promise((_resolve, reject) => {
+      options.signal.addEventListener("abort", () => {
+        reject(new DOMException("Abortada", "AbortError"));
+      });
+    })));
+
+    const controller = new AbortController();
+    const request = migrateLegacySession({
+      signal: controller.signal
+    });
+
+    controller.abort();
+
+    await expect(request).rejects.toMatchObject({
+      name: "AbortError"
+    });
+    expect(localStorage.getItem("token")).toBe("jwt-legado");
   });
 
   it("limpa e comunica a expiração da sessão ao receber 401", async () => {
