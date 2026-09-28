@@ -416,17 +416,17 @@ export function ScheduleSettingsPage() {
           }
         });
 
-        const params = new URLSearchParams(location.search);
-        params.set("onboarding", "divulgacao");
-        navigate(`${location.pathname}?${params.toString()}`, {
-          replace: true,
-          state: location.state
-        });
-
         const publicationState = await loadBusinessContext();
 
         if (publicationState !== false) {
           setActivationNextStep(true);
+
+          const params = new URLSearchParams(location.search);
+          params.set("onboarding", "divulgacao");
+          navigate(`${location.pathname}?${params.toString()}`, {
+            replace: true,
+            state: location.state
+          });
         }
       }
     } catch (requestError) {
