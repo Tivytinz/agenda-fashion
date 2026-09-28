@@ -137,6 +137,32 @@ describe("minha conta", () => {
     expect(backLink.getAttribute("href")).toBe("/");
   });
 
+  it("mantém conta multi-papel no contexto cliente e retorna ao booking", async () => {
+    useSession.mockReturnValue({
+      temNegocio: true,
+      ehAdministrador: false,
+      negocio: { papel: "dono" },
+      refresh: refreshSession,
+      logout: logoutSession
+    });
+    apiRequest.mockResolvedValueOnce({ usuario: baseUser() });
+
+    const { container } = render(
+      <MemoryRouter initialEntries={[{
+        pathname: "/cliente/conta",
+        state: { from: "/confirmar" }
+      }]}>
+        <AccountPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole("heading", { name: "Minha conta" })).not.toBeNull();
+    expect(screen.getByRole("link", { name: /Voltar ao agendamento/ })
+      .getAttribute("href")).toBe("/confirmar");
+    expect(container.querySelector("main")?.classList.contains("page-content")).toBe(true);
+    expect(screen.queryByText("Comunicação do negócio")).toBeNull();
+  });
+
   it("mantém convites como ação secundária dentro da conta profissional", async () => {
     useSession.mockReturnValue({
       temNegocio: true,
