@@ -82,6 +82,14 @@ describe("regressões da configuração de horários", () => {
           }
         });
       }
+      if (path === "/dashboard-dono?periodo=7dias") {
+        return Promise.resolve({
+          proxima_acao_ativacao: {
+            estado: "REVISAR_PUBLICACAO",
+            concluido: false
+          }
+        });
+      }
       return Promise.reject(new Error(`Rota inesperada: ${path}`));
     });
 
@@ -93,6 +101,8 @@ describe("regressões da configuração de horários", () => {
       .not.toBeNull();
     expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
       .toBeNull();
+    expect((await screen.findByTestId("destination")).textContent)
+      .toBe("/painel");
     expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes"))
       .toBe(true);
   });
@@ -115,6 +125,14 @@ describe("regressões da configuração de horários", () => {
       }
       if (path === "/configuracoes") {
         return Promise.reject(new Error("perfil indisponível"));
+      }
+      if (path === "/dashboard-dono?periodo=7dias") {
+        return Promise.resolve({
+          proxima_acao_ativacao: {
+            estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+            concluido: false
+          }
+        });
       }
       return Promise.reject(new Error(`Rota inesperada: ${path}`));
     });

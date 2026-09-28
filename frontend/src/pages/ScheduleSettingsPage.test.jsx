@@ -109,6 +109,15 @@ function mockFirstConfiguration() {
       });
     }
 
+    if (path === "/dashboard-dono?periodo=7dias") {
+      return Promise.resolve({
+        proxima_acao_ativacao: {
+          estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+          concluido: false
+        }
+      });
+    }
+
     return Promise.reject(new Error(`Rota inesperada: ${path}`));
   });
 }
@@ -405,6 +414,43 @@ describe("configuração de horários", () => {
     });
 
     renderPage("/painel/horarios?onboarding=divulgacao");
+
+    expect((await screen.findByTestId("destination")).textContent)
+      .toBe("/painel");
+    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
+      .toBeNull();
+  });
+
+  it("vai ao painel quando o primeiro agendamento já ativou o negócio antes da confirmação dos horários", async () => {
+    mockFirstConfiguration();
+    const originalImplementation = apiRequest.getMockImplementation();
+
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/configuracoes") {
+        return Promise.resolve({
+          negocio: {
+            id: 11,
+            nome: "Studio Aurora",
+            slug: "studio-aurora",
+            publicado: true
+          }
+        });
+      }
+
+      if (path === "/dashboard-dono?periodo=7dias") {
+        return Promise.resolve({
+          proxima_acao_ativacao: {
+            estado: "ATIVADO",
+            concluido: true
+          }
+        });
+      }
+
+      return originalImplementation(path, options);
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Confirmar horários" }));
 
     expect((await screen.findByTestId("destination")).textContent)
       .toBe("/painel");

@@ -310,6 +310,11 @@ export function ScheduleSettingsPage() {
     }
   }, []);
 
+  const loadCanonicalActivationState = useCallback(async () => {
+    const dashboard = await apiRequest("/dashboard-dono?periodo=7dias");
+    return dashboard?.proxima_acao_ativacao?.estado ?? null;
+  }, []);
+
   useEffect(() => {
     if (
       contextoAgenda !== "dono"
@@ -324,13 +329,10 @@ export function ScheduleSettingsPage() {
 
     Promise.all([
       loadBusinessContext(),
-      apiRequest("/dashboard-dono?periodo=7dias")
+      loadCanonicalActivationState()
     ])
-      .then(([publicationState, dashboard]) => {
+      .then(([publicationState, activationState]) => {
         if (!active) return;
-
-        const activationState =
-          dashboard?.proxima_acao_ativacao?.estado;
 
         if (
           publicationState !== false
@@ -355,6 +357,7 @@ export function ScheduleSettingsPage() {
     config?.origemHorarios,
     contextoAgenda,
     loadBusinessContext,
+    loadCanonicalActivationState,
     navigate,
     shareOnboardingRequested
   ]);
@@ -439,7 +442,23 @@ export function ScheduleSettingsPage() {
 
         const publicationState = await loadBusinessContext();
 
-        if (publicationState !== false) {
+        let activationState = null;
+        try {
+          activationState = await loadCanonicalActivationState();
+        } catch {
+          navigate("/painel", {
+            replace: true,
+            state: {
+              message: "Horários salvos. Não foi possível confirmar a próxima etapa agora."
+            }
+          });
+          return;
+        }
+
+        if (
+          publicationState !== false
+          && activationState === "CONQUISTAR_PRIMEIRO_AGENDAMENTO"
+        ) {
           setActivationNextStep(true);
 
           const params = new URLSearchParams(location.search);
@@ -448,7 +467,10 @@ export function ScheduleSettingsPage() {
             replace: true,
             state: location.state
           });
+          return;
         }
+
+        navigate("/painel", { replace: true });
       }
     } catch (requestError) {
       setError(requestError.message);

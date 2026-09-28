@@ -91,6 +91,12 @@ test("onboarding de horários confirma a sugestão e segue para divulgação no 
       pendencias: []
     }
   }));
+  await page.route("**/dashboard-dono?periodo=7dias", (route) => json(route, {
+    proxima_acao_ativacao: {
+      estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+      concluido: false
+    }
+  }));
 
   let savedPayload = null;
   let scheduleSaved = false;

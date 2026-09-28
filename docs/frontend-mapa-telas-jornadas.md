@@ -152,7 +152,7 @@ conta
 - não existe ação `Pular por agora` nessa etapa;
 - falha ao salvar horários impede avanço;
 - confirmação e ajuste manual convergem para divulgação do perfil;
-- a conclusão usa `?onboarding=divulgacao` como marcador navegável; em refresh/reabertura, a missão só é restaurada se a próxima ação canônica do backend ainda for `CONQUISTAR_PRIMEIRO_AGENDAMENTO`;
+- a conclusão usa `?onboarding=divulgacao` como marcador navegável; tanto após salvar quanto em refresh/reabertura, a divulgação só é apresentada se a próxima ação canônica do backend ainda for `CONQUISTAR_PRIMEIRO_AGENDAMENTO`; `ATIVADO` ou regressões canônicas voltam ao painel;
 - intenção de plano pode atravessar Negócio → Serviço → Horários, mas não provoca
   checkout automático ao concluir a agenda;
 - a missão pós-publicação prioriza divulgação e primeiro booking antes de
