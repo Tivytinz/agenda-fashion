@@ -71,6 +71,18 @@ Como referência:
 - fundos rosados leves e componentes arredondados podem reforçar a identidade quando não prejudicam densidade ou leitura;
 - mobile e Safari/WebKit merecem atenção especial.
 
+A fundação pública diferencia visitante, cliente autenticada e booking focado sem
+criar identidades ou shells separados. Cliente autenticada pode usar navegação
+mobile curta para Descobrir, Favoritos, Agenda e Conta. A conta pessoal canônica
+nesse contexto é `/cliente/conta`, evitando troca silenciosa para OwnerShell ou
+ProfessionalShell quando a mesma identidade possui outros papéis.
+
+Visitante não recebe navegação pessoal completa. Depois de um booking sem login,
+`/minha-agenda` pode mostrar apenas a reserva recente da sessão, enquanto a
+capability do link seguro continua sendo a fonte de posse para acesso em outro
+dispositivo. `/confirmar` e `/sucesso` podem reduzir navegação global para
+preservar foco de conversão.
+
 Não é necessário aplicar todos esses elementos em todas as telas. O contexto da tarefa e a clareza da interface têm prioridade sobre uniformidade estética absoluta.
 
 ## Profissional
