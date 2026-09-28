@@ -75,7 +75,7 @@ nome/WhatsApp enviados pelo navegador não substituem a identidade persistida.
 
 Visitantes continuam informando nome e WhatsApp no fluxo público. Depois da confirmação, a capability do booking é o acesso seguro canônico daquele agendamento visitante. Criar ou entrar em uma conta posteriormente não reconcilia automaticamente essa reserva com `/meus-agendamentos`; uma eventual vinculação futura deve provar posse da capability e não pode inferir identidade apenas por nome ou WhatsApp.
 
-No mobile, cliente autenticada pode receber navegação pessoal curta para Descobrir, Favoritos, Agenda e Conta. Visitante só recebe navegação pessoal depois de existir um contexto de agendamento recente, com Descobrir, Meu horário e Entrar. A rota `/confirmar` usa composição focada e não mostra a navegação pessoal/global concorrente.
+No mobile, cliente autenticada pode receber navegação pessoal curta para Descobrir, Favoritos, Agenda e Conta. Visitante só recebe navegação pessoal depois de existir um contexto de agendamento recente, com Descobrir, Meu horário e Entrar. Durante a seleção de um booking, quando o CTA fixo **Revisar e confirmar** está disponível, esse CTA tem prioridade e a navegação pessoal não pode interceptar ou encobrir a ação. A rota `/confirmar` usa composição focada e não mostra a navegação pessoal/global concorrente.
 
 ## Segurança
 
