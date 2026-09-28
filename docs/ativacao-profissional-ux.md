@@ -130,13 +130,13 @@ Ao criar um novo negócio, a mesma transação que cria o negócio e o vínculo 
 
 A existência dessa sugestão permite que o AF apresente uma agenda utilizável sem obrigar a profissional a montar a semana do zero. Na primeira jornada, porém, a interface torna essa disponibilidade visível logo após o primeiro serviço e pede que a profissional confirme a sugestão ou ajuste manualmente. `Confirmar horários` envia a sugestão ao fluxo de salvamento; `Ajustar horários` permite personalizá-la antes do mesmo salvamento. Se o salvamento falhar, a interface não deve avançar.
 
-`agenda_configuracoes.configurado_em` não deve ser usado como condição de elegibilidade para publicação. A configuração e os horários padrão podem existir antes de uma ação explícita na tela; o marcador passa a registrar a primeira configuração/salvamento reconhecida pelo fluxo de agenda. A origem dos horários continua separada desse gate:
+`agenda_configuracoes.configurado_em` não deve ser usado como condição de elegibilidade para publicação nem como prova de confirmação manual. Desde a migration 065, a configuração e os horários padrão já nascem com esse marcador preenchido. A origem dos horários é o sinal que distingue a sugestão automática do salvamento explícito:
 
 - `padrao_af`: sugestão automática ainda não personalizada;
 - `personalizado`: a profissional salvou sua disponibilidade;
 - `legado_desconhecido`: configuração histórica cuja origem não pode ser provada.
 
-Ao salvar a agenda pelo fluxo atual, o backend registra a configuração e a profissional pode editar dias, faixas, pausas, duração padrão, intervalos e antecedências quando quiser no painel.
+Ao salvar a agenda pelo fluxo atual, o backend marca `origem_horarios = personalizado` e a profissional pode editar dias, faixas, pausas, duração padrão, intervalos e antecedências quando quiser no painel. Na primeira jornada da dona, a conclusão usa o marcador navegável `?onboarding=divulgacao` em `/painel/horarios`; assim, refresh ou reabertura imediata preserva a missão de compartilhar o perfil sem depender apenas de estado transitório do React.
 
 A disponibilidade sugerida nunca deve sobrescrever silenciosamente uma agenda comprovadamente personalizada.
 

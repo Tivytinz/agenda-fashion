@@ -314,6 +314,48 @@ describe("configuração de horários", () => {
     );
   });
 
+  it("restaura a missão de divulgação ao recarregar a URL após salvar os horários", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/agenda-configuracao" && !options.method) {
+        return Promise.resolve({
+          configuracao: {
+            duracao_padrao: 60,
+            intervalo_minutos: 0,
+            antecedencia_agendamento: 0,
+            antecedencia_cancelamento: 24,
+            configurado_em: "2026-09-10T05:00:00.000Z",
+            origem_horarios: "personalizado"
+          },
+          horarios: defaultSuggestedWeek()
+        });
+      }
+
+      if (path === "/configuracoes") {
+        return Promise.resolve({
+          negocio: {
+            id: 11,
+            nome: "Studio Aurora",
+            slug: "studio-aurora",
+            publicado: true
+          }
+        });
+      }
+
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    renderPage("/painel/horarios?plano=autonoma&onboarding=divulgacao");
+
+    expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
+      .not.toBeNull();
+    expect(screen.getByRole("button", { name: "Compartilhar perfil" }))
+      .not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Salvar horários" }))
+      .toBeNull();
+    expect(screen.queryByRole("link", { name: "Concluir plano escolhido" }))
+      .toBeNull();
+  });
+
   it("não avança quando o salvamento da sugestão falha", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {

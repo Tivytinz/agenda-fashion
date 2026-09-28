@@ -151,6 +151,7 @@ conta
 - não existe ação `Pular por agora` nessa etapa;
 - falha ao salvar horários impede avanço;
 - confirmação e ajuste manual convergem para divulgação do perfil;
+- a conclusão usa `?onboarding=divulgacao` como marcador navegável, para que refresh/reabertura preserve a missão sem depender apenas de estado React;
 - intenção de plano pode atravessar Negócio → Serviço → Horários, mas não provoca
   checkout automático ao concluir a agenda;
 - a missão pós-publicação prioriza divulgação e primeiro booking antes de

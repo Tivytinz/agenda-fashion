@@ -185,10 +185,13 @@ não deve avançar.
 
 Depois do primeiro salvamento explícito da agenda, tanto a confirmação da
 sugestão quanto o ajuste manual convergem para a missão de **divulgar o perfil**
-e conquistar o primeiro agendamento. Uma intenção válida de plano pago pode ser
-preservada durante `Negócio → Serviço → Horários`, mas não deve redirecionar
-automaticamente ao checkout nessa conclusão nem competir com a ativação. Upgrade
-e checkout permanecem ações explícitas/contextuais posteriores.
+e conquistar o primeiro agendamento. Essa conclusão usa
+`/painel/horarios?onboarding=divulgacao` como marcador navegável para preservar
+a missão em refresh/reabertura, sem depender apenas de estado transitório do
+React. Uma intenção válida de plano pago pode ser preservada durante
+`Negócio → Serviço → Horários`, mas não deve redirecionar automaticamente ao
+checkout nessa conclusão nem competir com a ativação. Upgrade e checkout
+permanecem ações explícitas/contextuais posteriores.
 
 `agenda_configuracoes.configurado_em` é um marcador técnico legado de que a
 disponibilidade foi inicializada. Desde a migration 065 ele recebe valor já na

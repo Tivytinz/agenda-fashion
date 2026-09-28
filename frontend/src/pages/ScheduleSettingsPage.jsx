@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { track } from "../analytics/track";
 import { apiRequest } from "../api/client";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
@@ -117,6 +117,7 @@ export function validateSchedule(days, { requireActiveDay = false } = {}) {
 
 export function ScheduleSettingsPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const contextoAgenda = location.pathname.startsWith("/profissional/")
     ? "profissional"
     : "dono";
@@ -131,6 +132,10 @@ export function ScheduleSettingsPage() {
   const [activationNextStep, setActivationNextStep] = useState(false);
   const [businessContext, setBusinessContext] = useState(null);
   const [businessContextLoading, setBusinessContextLoading] = useState(false);
+  const shareOnboardingRequested = useMemo(
+    () => new URLSearchParams(location.search).get("onboarding") === "divulgacao",
+    [location.search]
+  );
 
   const load = useCallback(() => {
     setError("");
@@ -274,7 +279,7 @@ export function ScheduleSettingsPage() {
     });
   }
 
-  async function loadBusinessContext() {
+  const loadBusinessContext = useCallback(async () => {
     setBusinessContextLoading(true);
 
     try {
@@ -303,7 +308,35 @@ export function ScheduleSettingsPage() {
     } finally {
       setBusinessContextLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (
+      contextoAgenda !== "dono"
+      || !shareOnboardingRequested
+      || config?.origemHorarios !== "personalizado"
+      || activationNextStep
+    ) {
+      return undefined;
+    }
+
+    let active = true;
+    loadBusinessContext().then((publicationState) => {
+      if (active && publicationState !== false) {
+        setActivationNextStep(true);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    activationNextStep,
+    config?.origemHorarios,
+    contextoAgenda,
+    loadBusinessContext,
+    shareOnboardingRequested
+  ]);
 
   async function submit(event) {
     event.preventDefault();
@@ -381,6 +414,13 @@ export function ScheduleSettingsPage() {
             status: "sucesso",
             origem
           }
+        });
+
+        const params = new URLSearchParams(location.search);
+        params.set("onboarding", "divulgacao");
+        navigate(`${location.pathname}?${params.toString()}`, {
+          replace: true,
+          state: location.state
         });
 
         const publicationState = await loadBusinessContext();

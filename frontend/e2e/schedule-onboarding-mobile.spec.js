@@ -137,13 +137,21 @@ test("onboarding de horários confirma a sugestão e segue para divulgação no 
   ))).toBe(true);
 
   await confirm.click();
-  await expect(page).toHaveURL(/\/painel\/horarios\?plano=autonoma$/);
+  await expect(page).toHaveURL(
+    /\/painel\/horarios\?(?=.*plano=autonoma)(?=.*onboarding=divulgacao)/
+  );
   await expect(page.getByRole("heading", { name: "Agora divulgue seu perfil" }))
     .toBeVisible();
   await expect(page.getByRole("button", { name: "Compartilhar perfil" }))
     .toBeVisible();
   await expect(page.getByRole("link", { name: "Concluir plano escolhido" }))
     .toHaveCount(0);
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Agora divulgue seu perfil" }))
+    .toBeVisible();
+  await expect(page.getByRole("button", { name: "Compartilhar perfil" }))
+    .toBeVisible();
 
   expect(savedPayload?.horarios).toEqual(expect.arrayContaining([
     expect.objectContaining({

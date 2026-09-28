@@ -401,7 +401,7 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   await expectNoHorizontalOverflow(page);
 
   await page.getByRole("button", { name: "Confirmar horários" }).click();
-  await expect(page).toHaveURL(/\/painel\/horarios$/);
+  await expect(page).toHaveURL(/\/painel\/horarios\?onboarding=divulgacao$/);
   await expect(page.getByRole("heading", { name: "Agora divulgue seu perfil" })).toBeVisible();
 
   expect(schedulePayload?.horarios).toEqual(expect.arrayContaining([
