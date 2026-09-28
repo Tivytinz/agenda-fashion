@@ -7,7 +7,11 @@ import {
   waitFor
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import {
+  MemoryRouter,
+  Route,
+  Routes
+} from "react-router-dom";
 import {
   afterEach,
   beforeEach,
@@ -96,6 +100,38 @@ describe("validação de WhatsApp", () => {
   it("rejeita quantidades inválidas de dígitos", () => {
     expect(regex.test("629933213")).toBe(false);
     expect(regex.test("55629993322133")).toBe(false);
+  });
+});
+
+describe("destino por intenção da autenticação", () => {
+  it("mantém cadastro profissional no onboarding de negócio", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+        <Routes>
+          <Route
+            path="/cadastro"
+            element={<AuthPage mode="register" />}
+          />
+          <Route
+            path="/criar-negocio"
+            element={<h1>Criar negócio</h1>}
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await user.type(screen.getByLabelText("Nome completo"), "Ana Profissional");
+    await user.type(screen.getByLabelText("E-mail"), "ana.profissional@teste.com");
+    await user.type(screen.getByLabelText("WhatsApp com DDD"), "62999998888");
+    await user.type(screen.getByLabelText("Senha"), "senha123");
+    await user.type(screen.getByLabelText("Confirme a senha"), "senha123");
+    await user.click(screen.getByRole("button", { name: "Criar conta" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Criar negócio" })
+    ).not.toBeNull();
   });
 });
 
