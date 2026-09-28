@@ -206,6 +206,7 @@ export function SessionProvider({ children }) {
           : {})
       }
     });
+    sessionGenerationRef.current += 1;
     saveSession(result);
     const current = await refresh();
 
