@@ -553,8 +553,8 @@ export function BusinessPage({ create = false }) {
     }
   }
 
-  if (loading) return <div className="workspace-page"><LoadingState>Carregando negócio...</LoadingState></div>;
-  if (error && !form.nome && !create) return <div className="workspace-page"><ErrorState message={error} /></div>;
+  if (loading) return <main className="workspace-page"><LoadingState>Carregando negócio...</LoadingState></main>;
+  if (error && !form.nome && !create) return <main className="workspace-page"><ErrorState message={error} /></main>;
 
   const addressFields = (
     <div className="form-grid business-address-grid">
