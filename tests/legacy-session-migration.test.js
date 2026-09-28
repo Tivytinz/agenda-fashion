@@ -53,10 +53,12 @@ function criarApp() {
   return app;
 }
 
-function tokenValido() {
+function tokenValido(
+  usuarioId = 1
+) {
   return jwt.sign(
     {
-      id: 1,
+      id: usuarioId,
     },
     process.env.JWT_SECRET,
     {
@@ -131,6 +133,49 @@ describe(
             ),
           ])
         );
+      }
+    );
+
+    test(
+      "não sobrescreve cookie existente com Bearer válido de outra identidade",
+      async () => {
+        const bearerContaA =
+          tokenValido(1);
+        const cookieContaB =
+          tokenValido(2);
+
+        const resposta =
+          await request(
+            criarApp()
+          )
+            .post(
+              "/auth/migrar-sessao-legada"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${bearerContaA}`
+            )
+            .set(
+              "Cookie",
+              `af_session=${cookieContaB}`
+            );
+
+        expect(
+          resposta.status
+        ).toBe(409);
+
+        expect(
+          resposta.body
+        ).toMatchObject({
+          codigo:
+            "COOKIE_SESSAO_PRESENTE",
+        });
+
+        expect(
+          resposta.headers[
+            "set-cookie"
+          ]
+        ).toBeUndefined();
       }
     );
 
