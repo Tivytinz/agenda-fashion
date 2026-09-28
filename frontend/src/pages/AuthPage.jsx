@@ -48,29 +48,39 @@ export function AuthPage({ mode = "login" }) {
   }, [location.search]);
   const professionalIntent = isRegister && authIntent.professional;
 
-  const destination = useMemo(() => getAuthDestination(session, {
-    requestedPath: safeReturnPath(location.state?.from),
-    planSlug: authIntent.planSlug
-  }), [authIntent.planSlug, location.state, session]);
-
-  const finish = useCallback((current) => {
-    const requestedPath =
+  const authRequestedPath = useMemo(
+    () =>
       safeReturnPath(location.state?.from) ||
       (
         professionalIntent
           ? getBusinessCreationPath(authIntent.planSlug)
           : ""
-      );
+      ),
+    [
+      authIntent.planSlug,
+      location.state,
+      professionalIntent
+    ]
+  );
 
+  const destination = useMemo(() => getAuthDestination(session, {
+    requestedPath: authRequestedPath,
+    planSlug: authIntent.planSlug
+  }), [
+    authIntent.planSlug,
+    authRequestedPath,
+    session
+  ]);
+
+  const finish = useCallback((current) => {
     navigate(getAuthDestination(current, {
-      requestedPath,
+      requestedPath: authRequestedPath,
       planSlug: authIntent.planSlug
     }), { replace: true });
   }, [
     authIntent.planSlug,
-    location.state,
-    navigate,
-    professionalIntent
+    authRequestedPath,
+    navigate
   ]);
 
   const handleGoogle = useCallback(async (credential) => {
