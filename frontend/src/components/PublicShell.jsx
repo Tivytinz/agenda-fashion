@@ -1,9 +1,31 @@
-import { useLayoutEffect } from "react";
+import { lazy, Suspense, useLayoutEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
-import { readRecentAppointment } from "../utils/appointments";
-import { ClientMobileNavigation } from "./ClientMobileNavigation";
+import { readBrowserStorage } from "../utils/browserStorage";
 import "../styles/public-shell.css";
+
+const ClientMobileNavigation = lazy(() =>
+  import("./ClientMobileNavigation").then((module) => ({
+    default: module.ClientMobileNavigation
+  }))
+);
+
+function hasRecentGuestAppointment() {
+  try {
+    const raw = readBrowserStorage("session", "af_recent_appointment");
+    if (!raw) return false;
+
+    const appointment = JSON.parse(raw);
+
+    return Boolean(
+      appointment?.id &&
+      appointment?.data &&
+      appointment?.horario
+    );
+  } catch {
+    return false;
+  }
+}
 
 function isClientNavigationRoute(pathname) {
   return (
@@ -41,7 +63,7 @@ export function PublicShell({ children }) {
     (
       location.pathname === "/minha-agenda" ||
       location.pathname === "/sucesso" ||
-      Boolean(readRecentAppointment())
+      hasRecentGuestAppointment()
     );
   const showClientNavigation =
     publicContext &&
@@ -73,10 +95,12 @@ export function PublicShell({ children }) {
     >
       {children}
       {showClientNavigation && (
-        <ClientMobileNavigation
-          authenticated={session.authenticated === true}
-          guestAppointmentAvailable={guestAppointmentAvailable}
-        />
+        <Suspense fallback={null}>
+          <ClientMobileNavigation
+            authenticated={session.authenticated === true}
+            guestAppointmentAvailable={guestAppointmentAvailable}
+          />
+        </Suspense>
       )}
     </div>
   );
