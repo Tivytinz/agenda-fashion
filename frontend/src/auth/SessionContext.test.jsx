@@ -182,6 +182,20 @@ describe("sincronização da sessão", () => {
     expect(localStorage.getItem("session_active")).toBe("1");
   });
 
+  it("encerra a sessão se a sincronização silenciosa receber 401", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    const unauthorized = new Error("Sessão expirada");
+    unauthorized.status = 401;
+    apiRequest.mockRejectedValueOnce(unauthorized);
+
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
+
+    await waitFor(() => expect(screen.getByText("Desconectada")).not.toBeNull());
+    expect(localStorage.getItem("session_active")).toBeNull();
+  });
+
   it("limpa a sessão local e encerra o cookie no servidor", async () => {
     renderSession();
     expect(await screen.findByText("Ana")).not.toBeNull();
