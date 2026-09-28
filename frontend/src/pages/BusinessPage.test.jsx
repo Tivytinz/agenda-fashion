@@ -349,7 +349,7 @@ describe("publicação do negócio", () => {
 
     expect(whatsapp.value).toBe("(62) 99999-9999");
     expect(screen.getByTestId("public-address-hint").textContent)
-      .toContain("app.agendafashion.com.br/negocio/studio-victor");
+      .toContain("https://agendafashion.com.br/negocio/studio-victor");
     expect(screen.getByTestId("public-address-hint").textContent)
       .toContain("Alterar o nome também atualiza este endereço");
     expect(screen.getByRole("button", { name: "Copiar link" })).not.toBeNull();
