@@ -70,6 +70,15 @@ describe("PublicShell", () => {
     ).toBe("/cliente/conta");
   });
 
+  it("não sobrepõe o fluxo de escolha dentro do perfil público", () => {
+    sessionState.authenticated = true;
+    renderShell("/negocio/studio-aurora");
+
+    expect(
+      screen.queryByRole("navigation", { name: "Navegação da cliente" })
+    ).toBeNull();
+  });
+
   it("não mostra navegação pessoal durante a confirmação do booking", () => {
     sessionState.authenticated = true;
     renderShell("/confirmar");
