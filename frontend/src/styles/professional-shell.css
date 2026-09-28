@@ -42,7 +42,7 @@ html.professional-context-active body {
 .professional-shell {
   display: grid;
   min-height: 100dvh;
-  grid-template-columns: 232px minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 1fr);
 }
 
 .professional-sidebar {
