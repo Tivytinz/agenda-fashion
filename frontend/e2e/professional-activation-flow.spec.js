@@ -171,6 +171,8 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   let businessPayload = null;
   let servicePayload = null;
   let schedulePayload = null;
+  let postBusinessSessionRefreshStarted = false;
+  let releasePostBusinessSessionRefresh = null;
   let postServiceSessionRefreshStarted = false;
   let releasePostServiceSessionRefresh = null;
 
@@ -206,6 +208,17 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   });
 
   await page.route("**/minha-sessao", async (route) => {
+    if (
+      businessCreated
+      && !serviceCreated
+      && !postBusinessSessionRefreshStarted
+    ) {
+      postBusinessSessionRefreshStarted = true;
+      await new Promise((resolve) => {
+        releasePostBusinessSessionRefresh = resolve;
+      });
+    }
+
     if (
       serviceCreated
       && !scheduleSaved
@@ -384,6 +397,11 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   await page.getByRole("button", { name: "Criar negócio" }).click();
 
   await expect(page).toHaveURL(/\/painel\/servicos\/novo\?onboarding=servico$/);
+  await expect.poll(() => postBusinessSessionRefreshStarted).toBe(true);
+  await expect(page.getByRole("heading", { name: "Cadastre seu primeiro serviço" })).toBeVisible();
+  expect(releasePostBusinessSessionRefresh).not.toBeNull();
+  releasePostBusinessSessionRefresh();
+
   expect(businessPayload).toEqual(expect.objectContaining({
     nome: "Studio Aurora",
     descricao: "",
