@@ -1,5 +1,5 @@
 import { useLayoutEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
 import "../styles/public-shell.css";
 
@@ -13,10 +13,28 @@ function isOperationalContext(pathname, session) {
   return adminArea || ownerArea || professionalArea || contextualAccount;
 }
 
+function ClientMobileNavigation() {
+  return (
+    <nav aria-label="Navegação da cliente" className="client-mobile-navigation">
+      <NavLink end to="/">Descobrir</NavLink>
+      <NavLink to="/favoritos">Favoritos</NavLink>
+      <NavLink to="/minha-agenda">Agenda</NavLink>
+      <NavLink to="/cliente/conta">Conta</NavLink>
+    </nav>
+  );
+}
+
 export function PublicShell({ children }) {
   const location = useLocation();
   const session = useSession();
   const publicContext = !isOperationalContext(location.pathname, session);
+  const focusedBooking =
+    location.pathname === "/confirmar" ||
+    location.pathname === "/sucesso";
+  const showClientNavigation =
+    publicContext &&
+    session.authenticated === true &&
+    !focusedBooking;
 
   useLayoutEffect(() => {
     document.documentElement.classList.toggle("public-context-active", publicContext);
@@ -31,8 +49,14 @@ export function PublicShell({ children }) {
   }
 
   return (
-    <div className="public-shell" data-frontend-context="public">
+    <div
+      className={showClientNavigation
+        ? "public-shell client-navigation-active"
+        : "public-shell"}
+      data-frontend-context="public"
+    >
       {children}
+      {showClientNavigation && <ClientMobileNavigation />}
     </div>
   );
 }
