@@ -287,7 +287,9 @@ test("ProfessionalShell mantém rotina curta, foco visível e sem overflow no ce
   await expect(navigation.getByRole("link", { name: /Meus horários/ })).toBeVisible();
   await expect(navigation.getByRole("link", { name: /Minha conta/ })).toBeVisible();
   await expect(navigation.getByRole("link", { name: /Convites/ })).toHaveCount(0);
-  await expect(page.getByText("Studio Parceiro").first()).toBeVisible();
+  await expect(
+    page.locator(".professional-topbar-context").getByText("Studio Parceiro")
+  ).toBeVisible();
   await expect(page.getByRole("link", { name: /Ir para gestão/ })).toBeVisible();
   await expect(page.getByRole("link", { name: /Equipe/ })).toHaveCount(0);
   await expect(page.getByRole("link", { name: /Plano e assinatura/ })).toHaveCount(0);
