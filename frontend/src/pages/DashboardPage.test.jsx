@@ -210,6 +210,29 @@ describe("dashboard", () => {
     });
   });
 
+  it("exibe mensagem neutra recebida ao retornar de uma etapa do onboarding", async () => {
+    mockDashboardRequests();
+
+    render(
+      <MemoryRouter
+        initialEntries={[{
+          pathname: "/painel",
+          state: {
+            message: "Não foi possível confirmar a próxima etapa agora."
+          }
+        }]}
+      >
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole("status", {
+      name: ""
+    })).not.toBeNull();
+    expect(screen.getByText("Não foi possível confirmar a próxima etapa agora."))
+      .not.toBeNull();
+  });
+
   it("cancela as consultas anteriores e identifica o período selecionado", async () => {
     mockDashboardRequests();
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
