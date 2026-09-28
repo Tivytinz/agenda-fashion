@@ -229,9 +229,102 @@ async function resolverVinculoAgenda(
   return vinculo;
 }
 
+function normalizarProfissionalIdOpcional(
+  profissionalId
+) {
+  if (
+    profissionalId === undefined ||
+    profissionalId === null ||
+    profissionalId === ""
+  ) {
+    return null;
+  }
+
+  const id = Number(
+    profissionalId
+  );
+
+  if (
+    !Number.isInteger(id) ||
+    id <= 0
+  ) {
+    throw criarErro(
+      "Profissional inválido.",
+      400
+    );
+  }
+
+  return id;
+}
+
+async function resolverProfissionalAlvo({
+  usuarioId,
+  profissionalId,
+  vinculo,
+  executor,
+}) {
+  const solicitado =
+    normalizarProfissionalIdOpcional(
+      profissionalId
+    );
+
+  if (!solicitado) {
+    return {
+      id: Number(usuarioId),
+      negocio_id:
+        vinculo.negocio_id,
+      papel:
+        vinculo.papel,
+    };
+  }
+
+  if (
+    vinculo.papel ===
+      "profissional" &&
+    solicitado !==
+      Number(usuarioId)
+  ) {
+    throw criarErro(
+      "Você só pode configurar a própria disponibilidade.",
+      403
+    );
+  }
+
+  if (
+    solicitado ===
+    Number(usuarioId)
+  ) {
+    return {
+      id: Number(usuarioId),
+      negocio_id:
+        vinculo.negocio_id,
+      papel:
+        vinculo.papel,
+    };
+  }
+
+  const profissional =
+    await agendaConfiguracaoRepository
+      .buscarProfissionalAtivo(
+        solicitado,
+        vinculo.negocio_id,
+        executor
+      );
+
+  if (!profissional) {
+    throw criarErro(
+      "Profissional ativo não encontrado neste negócio.",
+      404
+    );
+  }
+
+  return profissional;
+}
+
 async function buscarMinhaConfiguracao({
   usuarioId,
   contexto,
+  profissionalId,
 }) {
   exigirUsuario(usuarioId);
 
@@ -244,11 +337,21 @@ async function buscarMinhaConfiguracao({
           client
         );
 
+        const profissional =
+          await resolverProfissionalAlvo({
+            usuarioId,
+            profissionalId,
+            vinculo,
+            executor: client,
+          });
+
         const estado =
           await agendaConfiguracaoRepository
             .garantirDisponibilidadePadrao({
-              profissionalId: usuarioId,
-              negocioId: vinculo.negocio_id,
+              profissionalId:
+                profissional.id,
+              negocioId:
+                vinculo.negocio_id,
             }, client);
 
         const politicaCancelamento =
@@ -269,6 +372,17 @@ async function buscarMinhaConfiguracao({
           horarios: estado.horarios.map(
             formatarHorarioBanco
           ),
+          profissional: {
+            id:
+              Number(
+                profissional.id
+              ),
+            papel:
+              profissional.papel,
+            nome:
+              profissional.nome ||
+              null,
+          },
         };
       }
     );
@@ -277,6 +391,7 @@ async function buscarMinhaConfiguracao({
 async function buscarStatusConfiguracao({
   usuarioId,
   contexto,
+  profissionalId,
 }) {
   exigirUsuario(usuarioId);
 
@@ -285,10 +400,17 @@ async function buscarStatusConfiguracao({
     contexto
   );
 
+  const profissional =
+    await resolverProfissionalAlvo({
+      usuarioId,
+      profissionalId,
+      vinculo,
+    });
+
   const configuracao =
     await agendaConfiguracaoRepository
       .buscarConfiguracao(
-        usuarioId,
+        profissional.id,
         vinculo.negocio_id
       );
 
@@ -309,6 +431,7 @@ async function buscarStatusConfiguracao({
 async function salvarMinhaConfiguracao({
   usuarioId,
   contexto,
+  profissionalId,
   duracaoPadrao,
   intervaloMinutos,
   antecedenciaAgendamento,
@@ -389,6 +512,17 @@ async function salvarMinhaConfiguracao({
           client
         );
         const negocioId = vinculo.negocio_id;
+        const profissional =
+          await resolverProfissionalAlvo({
+            usuarioId,
+            profissionalId,
+            vinculo,
+            executor: client,
+          });
+        const profissionalAlvoId =
+          Number(
+            profissional.id
+          );
 
         const politicaAtual =
           await agendaConfiguracaoRepository
@@ -434,7 +568,7 @@ async function salvarMinhaConfiguracao({
         const configuracaoExistente =
           await agendaConfiguracaoRepository
             .buscarConfiguracao(
-              usuarioId,
+              profissionalAlvoId,
               negocioId,
               client
             );
@@ -447,7 +581,8 @@ async function salvarMinhaConfiguracao({
         let configuracao;
 
         const dadosConfiguracao = {
-          profissionalId: usuarioId,
+          profissionalId:
+            profissionalAlvoId,
           negocioId,
           duracaoPadrao: duracao,
           intervaloMinutos: intervalo,
@@ -479,7 +614,8 @@ async function salvarMinhaConfiguracao({
           const horarioSalvo =
             await agendaConfiguracaoRepository
               .salvarHorario({
-                profissionalId: usuarioId,
+                profissionalId:
+                  profissionalAlvoId,
                 negocioId,
                 ...horario,
               }, client);
@@ -490,7 +626,7 @@ async function salvarMinhaConfiguracao({
         const configuracaoMarcada =
           await agendaConfiguracaoRepository
             .marcarConfigurada(
-              usuarioId,
+              profissionalAlvoId,
               negocioId,
               client
             );

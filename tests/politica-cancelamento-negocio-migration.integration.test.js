@@ -10,6 +10,9 @@ const crypto = require(
 const db = require(
   "../src/db/db"
 );
+const agendaConfiguracaoRepository = require(
+  "../src/repositories/agendaConfiguracaoRepository"
+);
 
 function migration(
   name
@@ -238,11 +241,43 @@ describe(
             FOR EACH ROW
             EXECUTE FUNCTION
               preencher_snapshots_agendamento();
+          `);
 
-            UPDATE negocios
-            SET antecedencia_cancelamento = 48
-            WHERE id = 11;
+          await agendaConfiguracaoRepository
+            .atualizarPoliticaCancelamentoNegocio(
+              11,
+              48,
+              client
+            );
 
+          const espelhoLegado =
+            await client.query(`
+              SELECT
+                profissional_id,
+                antecedencia_cancelamento
+              FROM agenda_configuracoes
+              WHERE negocio_id = 11
+              ORDER BY profissional_id
+            `);
+
+          expect(
+            espelhoLegado.rows
+          ).toEqual([
+            {
+              profissional_id:
+                "1",
+              antecedencia_cancelamento:
+                48,
+            },
+            {
+              profissional_id:
+                "2",
+              antecedencia_cancelamento:
+                48,
+            },
+          ]);
+
+          await client.query(`
             INSERT INTO agendamentos (
               negocio_id,
               profissional_id,

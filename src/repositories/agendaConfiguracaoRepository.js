@@ -44,6 +44,10 @@ async function buscarProfissionalAtivo(
     `
     SELECT
       u.id,
+      COALESCE(
+        NULLIF(BTRIM(un.nome_exibicao), ''),
+        u.nome
+      ) AS nome,
       un.negocio_id,
       un.papel
     FROM usuarios u
@@ -133,7 +137,33 @@ async function atualizarPoliticaCancelamentoNegocio(
     ]
   );
 
-  return result.rows[0] || null;
+  const politica = result.rows[0] || null;
+
+  if (!politica) {
+    return null;
+  }
+
+  /*
+   * Espelho temporário para rollback/convivência com versões anteriores.
+   * negocios.antecedencia_cancelamento continua sendo a fonte canônica.
+   */
+  await executor.query(
+    `
+    UPDATE agenda_configuracoes
+    SET
+      antecedencia_cancelamento = $1,
+      updated_at = NOW()
+    WHERE negocio_id = $2
+      AND antecedencia_cancelamento
+        IS DISTINCT FROM $1
+    `,
+    [
+      antecedenciaCancelamento,
+      negocioId,
+    ]
+  );
+
+  return politica;
 }
 
 async function criarConfiguracao({

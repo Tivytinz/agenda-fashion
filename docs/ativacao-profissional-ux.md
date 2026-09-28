@@ -128,7 +128,7 @@ Ao criar um novo negócio, a mesma transação que cria o negócio e o vínculo 
 - segunda a sexta: 08:00–18:00, com pausa 12:00–13:00;
 - sábado: 08:00–13:00.
 
-A política de cancelamento do negócio começa em **2 horas**. Ela pertence ao negócio, aceita de 0 a 168 horas e somente a proprietária pode alterá-la; profissionais continuam livres para editar a própria disponibilidade, sem poder mudar essa política. Reservas já criadas mantêm o snapshot de antecedência que possuíam no momento do agendamento.
+A política de cancelamento do negócio começa em **2 horas**. Ela pertence ao negócio, aceita qualquer hora inteira de 0 a 168 horas e somente a proprietária pode alterá-la; profissionais continuam livres para editar a própria disponibilidade, sem poder mudar essa política. Enquanto o campo legado em `agenda_configuracoes` existir para compatibilidade de rollback, a gravação autorizada da proprietária espelha o mesmo valor nele de forma transacional, sem mudar a fonte canônica em `negocios`. Reservas já criadas mantêm o snapshot de antecedência que possuíam no momento do agendamento.
 
 A existência dessa sugestão permite que o AF apresente uma agenda utilizável sem obrigar a profissional a montar a semana do zero. Na primeira jornada, porém, a interface torna essa disponibilidade visível logo após o primeiro serviço e pede que a profissional confirme a sugestão ou ajuste manualmente. `Confirmar horários` envia a sugestão ao fluxo de salvamento; `Ajustar horários` permite personalizá-la antes do mesmo salvamento. Se o salvamento falhar, a interface não deve avançar.
 
@@ -137,6 +137,8 @@ A existência dessa sugestão permite que o AF apresente uma agenda utilizável 
 - `padrao_af`: sugestão automática ainda não personalizada;
 - `personalizado`: a profissional salvou sua disponibilidade;
 - `legado_desconhecido`: configuração histórica cuja origem não pode ser provada.
+
+A proprietária também pode abrir a disponibilidade de uma profissional ativa da equipe por `/painel/horarios?profissional=<id>`. O backend valida o vínculo no mesmo negócio, e essa edição não reabre o onboarding nem concede à profissional alvo poder sobre a política global de cancelamento. Todos os dias podem permanecer fechados; nesse caso não existem novos slots elegíveis.
 
 Ao salvar a agenda pelo fluxo atual, o backend marca `origem_horarios = personalizado` e a profissional pode editar dias, faixas, pausas, duração padrão, intervalos e antecedências quando quiser no painel. Na primeira jornada da dona, a confirmação da missão seguinte usa a projeção leve `GET /dashboard-dono/ativacao`, que deriva o mesmo estado canônico de ativação sem carregar métricas e rankings do dashboard. A conclusão usa o marcador navegável `?onboarding=divulgacao` em `/painel/horarios`; assim, refresh ou reabertura imediata pode preservar a missão sem depender apenas de estado transitório do React. Tanto imediatamente após o primeiro salvamento explícito quanto na restauração, o frontend confirma a próxima ação canônica no backend e só apresenta a divulgação quando ela ainda for `CONQUISTAR_PRIMEIRO_AGENDAMENTO`. Se o primeiro agendamento já tiver colocado o negócio em `ATIVADO`, se houver regressão canônica para serviço/publicação ou se uma falha transitória impedir a confirmação da próxima ação durante a restauração, o fluxo volta ao painel sem afirmar uma missão não confirmada. Uma URL antiga não deve reapresentar onboarding concluído.
 

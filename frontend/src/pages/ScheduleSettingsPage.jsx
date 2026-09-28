@@ -123,6 +123,25 @@ export function ScheduleSettingsPage() {
     : "dono";
   const professionalContext =
     contextoAgenda === "profissional";
+  const targetProfessionalId = useMemo(() => {
+    if (professionalContext) return null;
+
+    const value =
+      new URLSearchParams(
+        location.search
+      ).get("profissional");
+    const id = Number(value);
+
+    return Number.isInteger(id) && id > 0
+      ? id
+      : null;
+  }, [
+    location.search,
+    professionalContext
+  ]);
+  const ownerTeamSchedule =
+    !professionalContext &&
+    Boolean(targetProfessionalId);
   const [config, setConfig] = useState(null);
   const [days, setDays] = useState([]);
   const [expandedPauses, setExpandedPauses] = useState(() => new Set());
@@ -134,6 +153,7 @@ export function ScheduleSettingsPage() {
   const [activationNextStep, setActivationNextStep] = useState(false);
   const [businessContext, setBusinessContext] = useState(null);
   const [businessContextLoading, setBusinessContextLoading] = useState(false);
+  const [scheduleProfessional, setScheduleProfessional] = useState(null);
   const shareOnboardingRequested = useMemo(
     () => new URLSearchParams(location.search).get("onboarding") === "divulgacao",
     [location.search]
@@ -150,7 +170,11 @@ export function ScheduleSettingsPage() {
   const load = useCallback(() => {
     setError("");
 
-    apiRequest("/agenda-configuracao", {
+    const path = ownerTeamSchedule
+      ? `/agenda-configuracao?profissionalId=${encodeURIComponent(targetProfessionalId)}`
+      : "/agenda-configuracao";
+
+    apiRequest(path, {
       headers: {
         "X-AF-Contexto": contextoAgenda
       }
@@ -164,6 +188,9 @@ export function ScheduleSettingsPage() {
         const scheduleOrigin = current.origem_horarios ?? current.origemHorarios ?? "padrao_af";
         const personalized = scheduleOrigin === "personalizado";
 
+        setScheduleProfessional(
+          result.profissional || null
+        );
         setConfig({
           duracaoPadrao: current.duracao_padrao ?? current.duracaoPadrao ?? 60,
           intervaloMinutos: current.intervalo_minutos ?? current.intervaloMinutos ?? 0,
@@ -195,7 +222,11 @@ export function ScheduleSettingsPage() {
         });
       })
       .catch((requestError) => setError(requestError.message));
-  }, [contextoAgenda]);
+  }, [
+    contextoAgenda,
+    ownerTeamSchedule,
+    targetProfessionalId
+  ]);
 
   useEffect(load, [load]);
 
@@ -208,10 +239,6 @@ export function ScheduleSettingsPage() {
   const leadTimeBookingOptions = useMemo(
     () => withCurrentOption(LEAD_TIME_OPTIONS, config?.antecedenciaAgendamento),
     [config?.antecedenciaAgendamento]
-  );
-  const leadTimeCancellationOptions = useMemo(
-    () => withCurrentOption(LEAD_TIME_OPTIONS, config?.antecedenciaCancelamento),
-    [config?.antecedenciaCancelamento]
   );
   const quickSummary = useMemo(() => summarizeSchedule(days), [days]);
 
@@ -289,45 +316,51 @@ export function ScheduleSettingsPage() {
     });
   }
 
-  const loadBusinessContext = useCallback(async () => {
+  const loadCanonicalActivationContext = useCallback(async () => {
     setBusinessContextLoading(true);
 
     try {
-      const result = await apiRequest("/configuracoes");
-      const business = result.negocio || result.configuracoes || {};
+      const dashboard =
+        await apiRequest(
+          "/dashboard-dono/ativacao"
+        );
+      const activationState =
+        dashboard
+          ?.proxima_acao_ativacao
+          ?.estado ??
+        null;
+      const business =
+        dashboard?.negocio || {};
 
-      if (business.publicado === false) {
+      if (
+        activationState ===
+          "CONQUISTAR_PRIMEIRO_AGENDAMENTO" &&
+        business.slug
+      ) {
+        setBusinessContext({
+          id:
+            business.negocio_id ??
+            business.id,
+          name:
+            business.nome ||
+            "Seu negócio",
+          slug:
+            business.slug
+        });
+      } else {
         setBusinessContext(null);
-        return false;
       }
 
-      if (!business.slug) {
-        setBusinessContext(null);
-        return null;
-      }
-
-      setBusinessContext({
-        id: business.id ?? business.negocio_id,
-        name: business.nome ?? business.nome_negocio ?? "Seu negócio",
-        slug: business.slug
-      });
-      return true;
-    } catch {
-      setBusinessContext(null);
-      return null;
+      return activationState;
     } finally {
       setBusinessContextLoading(false);
     }
   }, []);
 
-  const loadCanonicalActivationState = useCallback(async () => {
-    const dashboard = await apiRequest("/dashboard-dono/ativacao");
-    return dashboard?.proxima_acao_ativacao?.estado ?? null;
-  }, []);
-
   useEffect(() => {
     if (
       contextoAgenda !== "dono"
+      || ownerTeamSchedule
       || !shareOnboardingRequested
       || config?.origemHorarios !== "personalizado"
       || activationNextStep
@@ -337,16 +370,13 @@ export function ScheduleSettingsPage() {
 
     let active = true;
 
-    Promise.all([
-      loadBusinessContext(),
-      loadCanonicalActivationState()
-    ])
-      .then(([publicationState, activationState]) => {
+    loadCanonicalActivationContext()
+      .then((activationState) => {
         if (!active) return;
 
         if (
-          publicationState !== false
-          && activationState === "CONQUISTAR_PRIMEIRO_AGENDAMENTO"
+          activationState ===
+          "CONQUISTAR_PRIMEIRO_AGENDAMENTO"
         ) {
           setActivationNextStep(true);
           return;
@@ -376,9 +406,9 @@ export function ScheduleSettingsPage() {
     activationNextStep,
     config?.origemHorarios,
     contextoAgenda,
-    loadBusinessContext,
-    loadCanonicalActivationState,
+    loadCanonicalActivationContext,
     navigate,
+    ownerTeamSchedule,
     shareOnboardingRequested
   ]);
 
@@ -390,7 +420,9 @@ export function ScheduleSettingsPage() {
     const primeiraConfiguracao =
       config?.origemHorarios !== "personalizado";
     const onboardingDona =
-      primeiraConfiguracao && contextoAgenda === "dono";
+      primeiraConfiguracao &&
+      contextoAgenda === "dono" &&
+      !ownerTeamSchedule;
     const submitSource = event.nativeEvent?.submitter?.dataset?.source;
     const origem = primeiraConfiguracao
       ? submitSource === "confirmacao_rapida"
@@ -409,9 +441,8 @@ export function ScheduleSettingsPage() {
       }
     });
 
-    const validationError = validateSchedule(days, {
-      requireActiveDay: primeiraConfiguracao
-    });
+    const validationError =
+      validateSchedule(days);
     if (validationError) {
       setError(validationError);
       track("agenda_configuracao_erro", {
@@ -425,6 +456,29 @@ export function ScheduleSettingsPage() {
       return;
     }
 
+    if (
+      !professionalContext &&
+      !ownerTeamSchedule &&
+      (
+        !Number.isInteger(
+          Number(
+            config?.antecedenciaCancelamento
+          )
+        ) ||
+        Number(
+          config?.antecedenciaCancelamento
+        ) < 0 ||
+        Number(
+          config?.antecedenciaCancelamento
+        ) > 168
+      )
+    ) {
+      setError(
+        "A antecedência para cancelamento deve estar entre 0 e 168 horas."
+      );
+      return;
+    }
+
     setSaving(true);
     try {
       const body = {
@@ -432,8 +486,16 @@ export function ScheduleSettingsPage() {
         horarios: days
       };
 
-      if (professionalContext) {
+      if (
+        professionalContext ||
+        ownerTeamSchedule
+      ) {
         delete body.antecedenciaCancelamento;
+      }
+
+      if (ownerTeamSchedule) {
+        body.profissionalId =
+          targetProfessionalId;
       }
 
       const result = await apiRequest("/agenda-configuracao", {
@@ -469,13 +531,10 @@ export function ScheduleSettingsPage() {
           }
         });
 
-        let publicationState = null;
         let activationState = null;
         try {
-          [publicationState, activationState] = await Promise.all([
-            loadBusinessContext(),
-            loadCanonicalActivationState()
-          ]);
+          activationState =
+            await loadCanonicalActivationContext();
         } catch {
           navigate("/painel", {
             replace: true,
@@ -487,8 +546,8 @@ export function ScheduleSettingsPage() {
         }
 
         if (
-          publicationState !== false
-          && activationState === "CONQUISTAR_PRIMEIRO_AGENDAMENTO"
+          activationState ===
+          "CONQUISTAR_PRIMEIRO_AGENDAMENTO"
         ) {
           setActivationNextStep(true);
 
@@ -522,9 +581,15 @@ export function ScheduleSettingsPage() {
   if (!config && error) return <main className="workspace-page"><ErrorState message={error} onRetry={load} /></main>;
 
   const firstConfiguration =
-    config.origemHorarios !== "personalizado" && !professionalContext;
+    config.origemHorarios !== "personalizado" &&
+    !professionalContext &&
+    !ownerTeamSchedule;
   const firstProfessionalConfiguration =
-    config.origemHorarios !== "personalizado" && professionalContext;
+    config.origemHorarios !== "personalizado" &&
+    (
+      professionalContext ||
+      ownerTeamSchedule
+    );
   const quickConfirmation =
     firstConfiguration && firstScheduleMode === "quick";
 
@@ -535,6 +600,15 @@ export function ScheduleSettingsPage() {
           <p className="eyebrow">Disponibilidade</p>
           <h1>Horários de atendimento</h1>
           <p>A cliente verá apenas horários que realmente podem ser agendados.</p>
+          {ownerTeamSchedule && (
+            <p className="muted">
+              Configurando a disponibilidade de{" "}
+              <strong>
+                {scheduleProfessional?.nome ||
+                  "uma profissional da equipe"}
+              </strong>.
+            </p>
+          )}
         </div>
       </header>
 
@@ -696,7 +770,9 @@ export function ScheduleSettingsPage() {
                   <p className="muted">
                     {professionalContext
                       ? "Ative os dias em que você atende neste negócio e ajuste início, fim e pausas. Você poderá voltar e editar estes horários quando quiser."
-                      : "Ative os dias em que atende e ajuste início, fim e pausas. Ao salvar pela primeira vez, o AF confirma sua agenda. Você poderá voltar e editar estes horários quando quiser."}
+                      : ownerTeamSchedule
+                        ? "Ajuste os dias, horários e pausas desta profissional. A política de cancelamento continua pertencendo ao negócio."
+                        : "Ative os dias em que atende e ajuste início, fim e pausas. Ao salvar pela primeira vez, o AF confirma sua agenda. Você poderá voltar e editar estes horários quando quiser."}
                   </p>
                 </section>
               )}
@@ -836,12 +912,28 @@ export function ScheduleSettingsPage() {
                       {leadTimeBookingOptions.map((value) => <option key={value} value={value}>{formatLeadTime(value)}</option>)}
                     </select>
                   </label>
-                  {!professionalContext && (
+                  {!professionalContext && !ownerTeamSchedule && (
                     <label>
                       Antecedência para cancelar
-                      <select onChange={(e) => setConfig({ ...config, antecedenciaCancelamento: Number(e.target.value) })} value={config.antecedenciaCancelamento}>
-                        {leadTimeCancellationOptions.map((value) => <option key={value} value={value}>{formatLeadTime(value)}</option>)}
-                      </select>
+                      <input
+                        aria-label="Antecedência para cancelar"
+                        inputMode="numeric"
+                        max="168"
+                        min="0"
+                        onChange={(e) => setConfig({
+                          ...config,
+                          antecedenciaCancelamento:
+                            e.target.value === ""
+                              ? ""
+                              : Number(e.target.value)
+                        })}
+                        step="1"
+                        type="number"
+                        value={config.antecedenciaCancelamento}
+                      />
+                      <small className="muted">
+                        De 0 a 168 horas. O padrão do AF é 2 horas.
+                      </small>
                     </label>
                   )}
                 </section>

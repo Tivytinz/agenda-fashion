@@ -54,6 +54,15 @@ function defaultSuggestedWeek() {
   ];
 }
 
+function activationBusiness() {
+  return {
+    negocio_id: 11,
+    papel: "dono",
+    nome: "Studio Aurora",
+    slug: "studio-aurora"
+  };
+}
+
 function Destination() {
   const location = useLocation();
   return (
@@ -127,6 +136,7 @@ function mockFirstConfiguration() {
 
     if (path === "/dashboard-dono/ativacao") {
       return Promise.resolve({
+        negocio: activationBusiness(),
         proxima_acao_ativacao: {
           estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
           concluido: false
@@ -184,6 +194,116 @@ describe("configuração de horários", () => {
         })
       );
     });
+  });
+
+  it("a dona edita a disponibilidade de uma profissional da equipe sem alterar a política do negócio", async () => {
+    apiRequest.mockImplementation((requestPath, options = {}) => {
+      if (
+        requestPath ===
+          "/agenda-configuracao?profissionalId=9" &&
+        !options.method
+      ) {
+        return Promise.resolve({
+          configuracao: {
+            duracao_padrao: 60,
+            intervalo_minutos: 0,
+            antecedencia_agendamento: 0,
+            antecedencia_cancelamento: 12,
+            configurado_em:
+              "2026-09-28T20:00:00.000Z",
+            origem_horarios:
+              "personalizado"
+          },
+          profissional: {
+            id: 9,
+            nome: "Ana",
+            papel: "profissional"
+          },
+          horarios: defaultSuggestedWeek()
+        });
+      }
+
+      if (
+        requestPath === "/agenda-configuracao" &&
+        options.method === "PUT"
+      ) {
+        return Promise.resolve({
+          mensagem: "Horários atualizados com sucesso.",
+          configuracao: {
+            configurado_em:
+              "2026-09-28T20:00:00.000Z",
+            origem_horarios:
+              "personalizado"
+          },
+          horarios: defaultSuggestedWeek()
+        });
+      }
+
+      return Promise.reject(
+        new Error(
+          `Rota inesperada: ${requestPath}`
+        )
+      );
+    });
+
+    renderPage(
+      "/painel/horarios?profissional=9"
+    );
+
+    expect(
+      await screen.findByText(
+        /Configurando a disponibilidade de/
+      )
+    ).not.toBeNull();
+    expect(
+      screen.getByText("Ana")
+    ).not.toBeNull();
+    expect(
+      screen.queryByLabelText(
+        "Antecedência para cancelar"
+      )
+    ).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole(
+        "button",
+        { name: "Salvar horários" }
+      )
+    );
+
+    await waitFor(() => {
+      expect(
+        apiRequest
+      ).toHaveBeenCalledWith(
+        "/agenda-configuracao",
+        expect.objectContaining({
+          method: "PUT",
+          body: expect.objectContaining({
+            profissionalId: 9
+          })
+        })
+      );
+    });
+
+    const saveCall =
+      apiRequest.mock.calls.find(
+        ([requestPath, options = {}]) =>
+          requestPath ===
+            "/agenda-configuracao" &&
+          options.method === "PUT"
+      );
+
+    expect(
+      saveCall[1].body
+    ).not.toHaveProperty(
+      "antecedenciaCancelamento"
+    );
+    expect(
+      screen.queryByRole(
+        "heading",
+        { name: "Agora divulgue seu perfil" }
+      )
+    ).toBeNull();
   });
 
   it("mantém a primeira configuração profissional no editor operacional", async () => {
@@ -385,6 +505,7 @@ describe("configuração de horários", () => {
 
       if (path === "/dashboard-dono/ativacao") {
         return Promise.resolve({
+        negocio: activationBusiness(),
           proxima_acao_ativacao: {
             estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
             concluido: false
@@ -436,6 +557,7 @@ describe("configuração de horários", () => {
 
       if (path === "/dashboard-dono/ativacao") {
         return Promise.resolve({
+        negocio: activationBusiness(),
           proxima_acao_ativacao: {
             estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
             concluido: false
@@ -534,6 +656,7 @@ describe("configuração de horários", () => {
 
       if (path === "/dashboard-dono/ativacao") {
         return Promise.resolve({
+        negocio: activationBusiness(),
           proxima_acao_ativacao: {
             estado: "ATIVADO",
             concluido: true
@@ -570,6 +693,7 @@ describe("configuração de horários", () => {
 
       if (path === "/dashboard-dono/ativacao") {
         return Promise.resolve({
+        negocio: activationBusiness(),
           proxima_acao_ativacao: {
             estado: "ATIVADO",
             concluido: true
@@ -698,7 +822,7 @@ describe("configuração de horários", () => {
     }])).toContain("preencha o início e o fim da pausa");
   });
 
-  it("exige pelo menos um dia ativo somente na primeira configuração", () => {
+  it("permite uma semana inteira fechada sem criar gate de publicação", () => {
     const closedWeek = Array.from({ length: 7 }, (_, diaSemana) => ({
       diaSemana,
       trabalha: false,
@@ -708,9 +832,9 @@ describe("configuração de horários", () => {
       intervaloFim: ""
     }));
 
-    expect(validateSchedule(closedWeek)).toBe("");
-    expect(validateSchedule(closedWeek, { requireActiveDay: true }))
-      .toContain("pelo menos um dia de atendimento");
+    expect(
+      validateSchedule(closedWeek)
+    ).toBe("");
   });
 
   it("não envia um período cujo fim antecede o início", async () => {
@@ -746,11 +870,62 @@ describe("configuração de horários", () => {
 
     const interval = await screen.findByRole("combobox", { name: "Intervalo entre clientes" });
     const bookingLead = screen.getByRole("combobox", { name: "Antecedência para agendar" });
-    const cancellationLead = screen.getByRole("combobox", { name: "Antecedência para cancelar" });
+    const cancellationLead = screen.getByRole("spinbutton", { name: "Antecedência para cancelar" });
 
     expect(interval.selectedOptions[0].textContent).toBe("Sem intervalo");
     expect(bookingLead.selectedOptions[0].textContent).toBe("Sem antecedência");
-    expect(cancellationLead.selectedOptions[0].textContent).toBe("1 dia");
+    expect(cancellationLead.value).toBe("24");
+    expect(cancellationLead.min).toBe("0");
+    expect(cancellationLead.max).toBe("168");
+  });
+
+  it("rejeita na interface antecedência de cancelamento fora de 0 a 168 horas", async () => {
+    apiRequest.mockResolvedValueOnce({
+      configuracao: {
+        duracao_padrao: 60,
+        intervalo_minutos: 0,
+        antecedencia_agendamento: 0,
+        antecedencia_cancelamento: 2,
+        configurado_em:
+          "2026-09-28T20:00:00.000Z",
+        origem_horarios:
+          "personalizado"
+      },
+      horarios: validWeek()
+    });
+
+    renderPage();
+
+    const cancellationLead =
+      await screen.findByRole(
+        "spinbutton",
+        { name: "Antecedência para cancelar" }
+      );
+
+    fireEvent.change(
+      cancellationLead,
+      { target: { value: "169" } }
+    );
+
+    fireEvent.submit(
+      cancellationLead.closest("form")
+    );
+
+    expect(
+      await screen.findByRole("alert")
+    ).toHaveProperty(
+      "textContent",
+      "A antecedência para cancelamento deve estar entre 0 e 168 horas."
+    );
+
+    expect(
+      apiRequest.mock.calls.filter(
+        ([requestPath, options = {}]) =>
+          requestPath ===
+            "/agenda-configuracao" &&
+          options.method === "PUT"
+      )
+    ).toHaveLength(0);
   });
 
   it("mostra a pausa apenas quando a profissional decide configurá-la", async () => {
@@ -845,6 +1020,7 @@ describe("configuração de horários", () => {
       }
       if (path === "/dashboard-dono/ativacao") {
         return Promise.resolve({
+        negocio: activationBusiness(),
           proxima_acao_ativacao: {
             estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO"
           }

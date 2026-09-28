@@ -138,8 +138,9 @@ disponibilidade antes de seguir a jornada.
 diferentes. Não usar uma etapa como proxy automático de outra.
 
 O primeiro agendamento válido é o primeiro agendamento não cancelado do
-negócio. Ele mede primeira reserva válida; não confirma comparecimento nem
-receita.
+negócio. O estado legado `cancelamento_solicitado`, enquanto permanecer em
+revisão sem desfecho confiável, não conta como evidência de ativação. O marco
+mede primeira reserva válida; não confirma comparecimento nem receita.
 
 ## Onboarding, publicação e disponibilidade
 
@@ -173,9 +174,12 @@ inicial:
 A antecedência de cancelamento é uma **política do negócio**, persistida em
 `negocios.antecedencia_cancelamento`, com faixa válida de 0 a 168 horas e
 fallback de 2 horas. Somente a proprietária pode alterá-la; profissionais podem
-editar a própria disponibilidade, mas não essa política. O campo homônimo em
+editar a própria disponibilidade, mas não essa política. A interface da
+proprietária aceita qualquer hora inteira entre 0 e 168. O campo homônimo em
 `agenda_configuracoes` permanece apenas por compatibilidade de rollout e não
-deve ser usado como fonte de verdade para novas reservas. Cada booking congela
+deve ser usado como fonte de verdade para novas reservas; enquanto esse campo
+legado existir para rollback, alterações autorizadas da política devem espelhá-lo
+transacionalmente em todas as agendas do negócio. Cada booking congela
 `antecedencia_cancelamento_horas` no momento da confirmação, e alterações
 posteriores da política do negócio não reescrevem snapshots existentes.
 
@@ -222,6 +226,15 @@ Na confirmação rápida:
 - `Confirmar horários` salva a sugestão exibida e continua;
 - `Ajustar horários` abre o editor antes do salvamento.
 
+A profissional ativa pode editar a própria disponibilidade. A proprietária pode
+editar a disponibilidade semanal de qualquer profissional ativa do negócio a
+partir da equipe, usando o contexto explícito
+`/painel/horarios?profissional=<id>`; o backend valida que o alvo pertence ao
+mesmo negócio. Esse contexto de equipe não altera a política global de
+cancelamento e não reabre o onboarding da dona. Uma disponibilidade com todos os
+dias fechados é válida: mantém negócio e serviços visíveis quando publicados,
+mas não gera slots para novas reservas.
+
 Não existe ação `Pular por agora` nessa etapa: a dona confirma a sugestão ou
 personaliza a disponibilidade. Se o salvamento dos horários falhar, a interface
 não deve avançar.
@@ -230,7 +243,10 @@ Depois do primeiro salvamento explícito da agenda, tanto a confirmação da
 sugestão quanto o ajuste manual convergem para a missão de **divulgar o perfil**
 e conquistar o primeiro agendamento. A revalidação dessa missão usa uma leitura
 leve e canônica de ativação no backend, sem depender das consultas de métricas,
-rankings ou retenção do dashboard completo. Essa conclusão usa
+rankings ou retenção do dashboard completo. `GET /dashboard-dono/ativacao`
+também fornece o contexto mínimo do negócio (id, nome e slug) necessário para a
+missão de divulgação; a tela de horários não deve depender de
+`GET /configuracoes` para montar o link público. Essa conclusão usa
 `/painel/horarios?onboarding=divulgacao` como marcador navegável para preservar
 a missão em refresh/reabertura, sem depender apenas de estado transitório do
 React. Ao restaurar esse marcador, a interface deve confirmar a próxima ação
@@ -249,8 +265,11 @@ permanecem ações explícitas/contextuais posteriores.
 disponibilidade foi inicializada. Desde a migration 065 ele recebe valor já na
 inicialização automática e **não representa confirmação ou salvamento manual**.
 Para distinguir personalização explícita, usar `origem_horarios`,
-`primeira_personalizacao_em` e `ultima_personalizacao_em`. Nenhum desses campos
-deve ser usado para bloquear publicação.
+`primeira_personalizacao_em` e `ultima_personalizacao_em`. O diagnóstico
+`agenda_configurada` deve ser calculado no mesmo `negocio_id` e somente para
+`origem_horarios = 'personalizado'`; inicialização automática `padrao_af` não
+conta como confirmação. Nenhum desses campos deve ser usado para bloquear
+publicação.
 
 `agenda_configuracoes.origem_horarios` continua separando a origem da
 disponibilidade. O runtime atual cria a configuração com `padrao_af` e, no

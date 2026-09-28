@@ -92,6 +92,12 @@ test("onboarding de horários confirma a sugestão e segue para divulgação no 
     }
   }));
   await page.route("**/dashboard-dono/ativacao", (route) => json(route, {
+    negocio: {
+      negocio_id: BUSINESS.id,
+      papel: "dono",
+      nome: BUSINESS.nome,
+      slug: BUSINESS.slug
+    },
     proxima_acao_ativacao: {
       estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
       concluido: false

@@ -37,7 +37,9 @@ Esses estados são mecanismo interno do produto. No dashboard, a profissional re
 
 Para revalidar a missão durante a primeira jornada sem acoplar a navegação a
 consultas de período, retenção, performance ou rankings, o backend também expõe
-`GET /dashboard-dono/ativacao`. Essa projeção autenticada retorna somente o
+`GET /dashboard-dono/ativacao`. A projeção inclui o contexto mínimo do negócio
+(`negocio_id`, nome e slug), portanto a missão de divulgação não precisa consultar
+`/configuracoes` em paralelo. Essa projeção autenticada retorna somente o
 contexto mínimo do negócio, `ativacao` e `proxima_acao_ativacao`, usando a
 mesma máquina determinística. Ela não cria um segundo estado nem substitui o
 dashboard completo.

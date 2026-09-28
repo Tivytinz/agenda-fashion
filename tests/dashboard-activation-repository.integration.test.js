@@ -36,6 +36,20 @@ describe(
     test(
       "usa serviço ativo, publicação e agenda confirmada como estado canônico",
       async () => {
+        await db.query(
+          `
+            UPDATE agenda_configuracoes
+            SET origem_horarios =
+              'personalizado'
+            WHERE profissional_id = $1
+              AND negocio_id = $2
+          `,
+          [
+            cenario.profissional.id,
+            cenario.negocioId,
+          ]
+        );
+
         const estado =
           await dashboardActivationRepository
             .buscarEstadoAtivacao(
@@ -71,10 +85,15 @@ describe(
         await db.query(
           `
             UPDATE agenda_configuracoes
-            SET configurado_em = NULL
+            SET origem_horarios =
+              'padrao_af'
             WHERE profissional_id = $1
+              AND negocio_id = $2
           `,
-          [cenario.profissional.id]
+          [
+            cenario.profissional.id,
+            cenario.negocioId,
+          ]
         );
 
         const atualizado =

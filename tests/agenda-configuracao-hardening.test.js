@@ -3,6 +3,8 @@ jest.mock(
   () => ({
     buscarVinculoAtivoPorPapel:
       jest.fn(),
+    buscarProfissionalAtivo:
+      jest.fn(),
     buscarConfiguracao:
       jest.fn(),
     buscarPoliticaCancelamentoNegocio:
@@ -298,6 +300,145 @@ describe(
         expect(
           resultado.horarios
         ).toHaveLength(7);
+      }
+    );
+
+    test(
+      "a dona configura a disponibilidade semanal de uma profissional ativa da equipe",
+      async () => {
+        repository
+          .buscarProfissionalAtivo
+          .mockResolvedValue({
+            id: 8,
+            nome: "Ana",
+            negocio_id: 11,
+            papel: "profissional",
+          });
+
+        repository
+          .buscarConfiguracao
+          .mockResolvedValue({
+            profissional_id: 8,
+            configurado_em: null,
+            origem_horarios:
+              "padrao_af",
+          });
+
+        repository
+          .atualizarConfiguracao
+          .mockResolvedValue({
+            profissional_id: 8,
+            duracao_padrao: 60,
+            configurado_em: null,
+          });
+
+        repository
+          .marcarConfigurada
+          .mockResolvedValue({
+            profissional_id: 8,
+            duracao_padrao: 60,
+            configurado_em:
+              "2026-09-28T20:00:00.000Z",
+            origem_horarios:
+              "personalizado",
+          });
+
+        await service
+          .salvarMinhaConfiguracao({
+            usuarioId: 7,
+            contexto: "dono",
+            profissionalId: 8,
+            duracaoPadrao: 60,
+            intervaloMinutos: 10,
+            antecedenciaAgendamento: 2,
+            horarios,
+          });
+
+        expect(
+          repository
+            .buscarProfissionalAtivo
+        ).toHaveBeenCalledWith(
+          8,
+          11,
+          client
+        );
+
+        expect(
+          repository
+            .buscarConfiguracao
+        ).toHaveBeenCalledWith(
+          8,
+          11,
+          client
+        );
+
+        expect(
+          repository
+            .salvarHorario
+        ).toHaveBeenCalledTimes(7);
+
+        for (
+          const chamada
+          of repository
+            .salvarHorario
+            .mock.calls
+        ) {
+          expect(
+            chamada[0]
+              .profissionalId
+          ).toBe(8);
+        }
+
+        expect(
+          repository
+            .marcarConfigurada
+        ).toHaveBeenCalledWith(
+          8,
+          11,
+          client
+        );
+
+        expect(
+          repository
+            .atualizarPoliticaCancelamentoNegocio
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "profissional não pode selecionar a agenda de outra pessoa",
+      async () => {
+        repository
+          .buscarVinculoAtivoPorPapel
+          .mockResolvedValue({
+            id: 8,
+            negocio_id: 11,
+            papel: "profissional",
+          });
+
+        await expect(
+          service
+            .salvarMinhaConfiguracao({
+              usuarioId: 8,
+              contexto: "profissional",
+              profissionalId: 9,
+              duracaoPadrao: 60,
+              intervaloMinutos: 10,
+              antecedenciaAgendamento: 2,
+              horarios,
+            })
+        ).rejects.toMatchObject({
+          statusCode: 403,
+        });
+
+        expect(
+          repository
+            .buscarProfissionalAtivo
+        ).not.toHaveBeenCalled();
+        expect(
+          repository
+            .salvarHorario
+        ).not.toHaveBeenCalled();
       }
     );
 

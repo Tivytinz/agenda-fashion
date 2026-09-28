@@ -105,10 +105,10 @@ describe("regressões da configuração de horários", () => {
       expect(apiRequest).toHaveBeenCalledWith("/dashboard-dono/ativacao");
     });
     expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes"))
-      .toBe(true);
+      .toBe(false);
   });
 
-  it("mantém a agenda salva mesmo se o contexto de compartilhamento falhar", async () => {
+  it("usa a projeção canônica de ativação para divulgar mesmo se /configuracoes estiver indisponível", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {
         return Promise.resolve({
@@ -129,6 +129,12 @@ describe("regressões da configuração de horários", () => {
       }
       if (path === "/dashboard-dono/ativacao") {
         return Promise.resolve({
+          negocio: {
+            negocio_id: 11,
+            papel: "dono",
+            nome: "Studio Aurora",
+            slug: "studio-aurora"
+          },
           proxima_acao_ativacao: {
             estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
             concluido: false
@@ -142,15 +148,17 @@ describe("regressões da configuração de horários", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Ajustar horários" }));
     fireEvent.click(screen.getByRole("button", { name: "Salvar horários e continuar" }));
 
-    expect(await screen.findByRole("heading", { name: "Sua agenda foi atualizada" }))
+    expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
       .not.toBeNull();
-    expect(screen.getByText(/não conseguimos carregar seu perfil agora/i))
+    expect(screen.getByRole("button", { name: "Compartilhar perfil" }))
       .not.toBeNull();
-    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
-      .toBeNull();
-    expect(await screen.findByRole("link", { name: "Ir para o painel" }))
+    expect(screen.getByRole("button", { name: "Copiar link" }))
+      .not.toBeNull();
+    expect(screen.getByRole("link", { name: "Ver perfil público ↗" }))
       .not.toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
+    expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes"))
+      .toBe(false);
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(

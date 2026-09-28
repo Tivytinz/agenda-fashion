@@ -30,6 +30,8 @@ async function buscarEstadoAtivacao(
           INNER JOIN agenda_configuracoes ac
             ON ac.profissional_id =
               un.usuario_id
+            AND ac.negocio_id =
+              n.id
           WHERE un.negocio_id = n.id
             AND un.ativo = TRUE
             AND u.ativo = TRUE
@@ -37,15 +39,18 @@ async function buscarEstadoAtivacao(
               'dono',
               'profissional'
             )
-            AND ac.configurado_em
-              IS NOT NULL
+            AND ac.origem_horarios =
+              'personalizado'
         ) AS agenda_configurada,
 
         EXISTS (
           SELECT 1
           FROM agendamentos a
           WHERE a.negocio_id = n.id
-            AND a.status <> 'cancelado'
+            AND a.status NOT IN (
+              'cancelado',
+              'cancelamento_solicitado'
+            )
         ) AS primeiro_agendamento_recebido
 
       FROM negocios n
