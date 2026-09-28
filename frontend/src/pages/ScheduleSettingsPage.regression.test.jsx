@@ -101,8 +101,9 @@ describe("regressões da configuração de horários", () => {
       .not.toBeNull();
     expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
       .toBeNull();
-    expect((await screen.findByTestId("destination")).textContent)
-      .toBe("/painel");
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith("/dashboard-dono?periodo=7dias");
+    });
     expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes"))
       .toBe(true);
   });

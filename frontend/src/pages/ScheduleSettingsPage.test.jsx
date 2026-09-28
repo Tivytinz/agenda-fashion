@@ -458,6 +458,38 @@ describe("configuração de horários", () => {
       .toBeNull();
   });
 
+  it("não afirma divulgação quando a próxima ação canônica fica indisponível após salvar", async () => {
+    mockFirstConfiguration();
+    const originalImplementation = apiRequest.getMockImplementation();
+
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/configuracoes") {
+        return Promise.resolve({
+          negocio: {
+            id: 11,
+            nome: "Studio Aurora",
+            slug: "studio-aurora",
+            publicado: true
+          }
+        });
+      }
+
+      if (path === "/dashboard-dono?periodo=7dias") {
+        return Promise.reject(new Error("dashboard indisponível"));
+      }
+
+      return originalImplementation(path, options);
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Confirmar horários" }));
+
+    expect((await screen.findByTestId("destination")).textContent)
+      .toBe("/painel");
+    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
+      .toBeNull();
+  });
+
   it("não avança quando o salvamento da sugestão falha", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {
