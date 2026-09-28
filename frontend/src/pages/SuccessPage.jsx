@@ -96,8 +96,20 @@ export function SuccessPage() {
           </dl>
         )}
         <div className="success-actions">
+          {guestCancellationLink ? (
+            <a
+              className="button"
+              href={guestCancellationLink}
+            >
+              Ver meu agendamento
+            </a>
+          ) : (
+            <Link className="button" to="/minha-agenda">
+              Ver meus agendamentos
+            </Link>
+          )}
           <a
-            className="button"
+            className="button button-secondary"
             href={calendarUrl(booking, address)}
             rel="noreferrer"
             target="_blank"
@@ -114,15 +126,6 @@ export function SuccessPage() {
               Falar com o negócio
             </a>
           )}
-          {guestCancellationLink && (
-            <a
-              className="button button-secondary"
-              href={guestCancellationLink}
-            >
-              Abrir link seguro do agendamento
-            </a>
-          )}
-          <Link className="button" to="/minha-agenda">Ver minha agenda</Link>
           <Link className="button button-secondary" to="/">Ver mais serviços</Link>
         </div>
       </section>
