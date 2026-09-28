@@ -48,6 +48,7 @@ backend.
 | `/agendamento-acesso/:id` | `InactiveBookingAccessPage` | pública | Público | acesso específico a booking em cenário de conta inativa |
 | `/agendamento-visitante/:id` | `GuestBookingAccessPage` | pública | Público | consulta/cancelamento por capability de visitante |
 | `/favoritos` | `FavoritesPage` | autenticada | Público | favoritos da cliente |
+| `/cliente/conta` | `AccountPage` | autenticada | Público | conta pessoal preservando explicitamente o contexto cliente |
 | `/planos` | `PlansPage` | pública | Público | catálogo de planos e entrada de intenção de upgrade |
 | `/privacidade` | `PrivacyPage` | pública | Público | política de privacidade |
 | `/termos` | `TermsPage` | pública | Público | termos de uso |
@@ -77,9 +78,13 @@ Fonte de domínio:
 | `/redefinir-senha` | `PasswordResetPage mode="reset"` | Público | definição da nova senha |
 | `/conta` | `AccountPage` | Dinâmico | perfil/conta conforme contexto da sessão |
 
-### Resolução especial de `/conta`
+### Resolução especial de Conta
 
-`AccountRoute` resolve a composição desta forma:
+`/cliente/conta` sempre representa a conta pessoal no contexto cliente e usa a
+fundação pública, inclusive quando a identidade também possui negócio ou acesso
+administrativo.
+
+A rota histórica `/conta` continua dinâmica. `AccountRoute` resolve a composição desta forma:
 
 ```text
 ehAdministrador
