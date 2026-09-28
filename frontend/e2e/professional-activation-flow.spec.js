@@ -398,7 +398,7 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
 
   await expect(page).toHaveURL(/\/painel\/servicos\/novo\?onboarding=servico$/);
   await expect.poll(() => postBusinessSessionRefreshStarted).toBe(true);
-  await expect(page.getByRole("heading", { name: "Cadastre seu primeiro serviço" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Novo serviço" })).toBeVisible();
   expect(releasePostBusinessSessionRefresh).not.toBeNull();
   releasePostBusinessSessionRefresh();
 
