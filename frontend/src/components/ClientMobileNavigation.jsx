@@ -1,3 +1,4 @@
+import "../styles/client-mobile-navigation.css";
 import { NavLink } from "react-router-dom";
 import { AppIcon } from "./AppIcon";
 
