@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import afLogoTransparent from "../assets/brand/performance/af-logo-96.webp";
 import { adminNavigationPath } from "../utils/adminPeriods";
 import { AppIcon } from "./AppIcon";
+import { ShellContentBoundary } from "./ShellContentBoundary";
 
 function isAdminSectionActive(pathname, path) {
   if (path === "/admin/aquisicao" && pathname === "/admin/trafego-pago/profissionais") return true;
@@ -181,7 +182,9 @@ export function AdminShell({ children, groups = [] }) {
         </header>
 
         <div className="admin-content" id="admin-main" tabIndex={-1}>
-          {children || <Outlet />}
+          <ShellContentBoundary>
+            {children || <Outlet />}
+          </ShellContentBoundary>
         </div>
       </div>
     </div>
