@@ -90,7 +90,11 @@ export function SessionProvider({ children }) {
         return null;
       }
 
-      const result = await apiRequest("/minha-sessao");
+      const result = await apiRequest("/minha-sessao", {
+        // O contexto conhece a geração/requestId deste refresh. Deixe que ele
+        // decida se um 401 ainda pertence à sessão atual antes de limpá-la.
+        clearSessionOnUnauthorized: false
+      });
 
       if (!canApply()) {
         return null;
