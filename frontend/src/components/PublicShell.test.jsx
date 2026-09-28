@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { PublicShell } from "./PublicShell";
 
 const sessionState = vi.hoisted(() => ({
+  authenticated: false,
   ehAdministrador: false,
   temNegocio: false
 }));
@@ -16,6 +17,7 @@ vi.mock("../auth/SessionContext", () => ({
 
 afterEach(() => {
   cleanup();
+  sessionState.authenticated = false;
   sessionState.ehAdministrador = false;
   sessionState.temNegocio = false;
   document.documentElement.classList.remove("public-context-active");
@@ -54,6 +56,23 @@ describe("PublicShell", () => {
     const { container } = renderShell("/conta");
 
     expect(container.querySelector('[data-frontend-context="public"]')).not.toBeNull();
+  });
+
+  it("mantém /cliente/conta no contexto cliente mesmo para identidade multi-papel", () => {
+    sessionState.authenticated = true;
+    sessionState.temNegocio = true;
+
+    const { container } = renderShell("/cliente/conta");
+
+    expect(container.querySelector('[data-frontend-context="public"]')).not.toBeNull();
+    expect(screen.getByRole("navigation", { name: "Área da cliente" })).not.toBeNull();
+  });
+
+  it("remove a navegação pessoal durante a confirmação focada", () => {
+    sessionState.authenticated = true;
+    renderShell("/confirmar");
+
+    expect(screen.queryByRole("navigation", { name: "Área da cliente" })).toBeNull();
   });
 
   it("delega conta ligada a negócio ao workspace privado", () => {
