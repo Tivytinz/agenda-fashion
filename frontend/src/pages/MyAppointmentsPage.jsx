@@ -424,7 +424,13 @@ export function MyAppointmentsPage() {
               Esta página mostra apenas a reserva salva neste navegador. Se você recebeu um link seguro, guarde-o para consultar ou cancelar este agendamento em outro dispositivo.
             </p>
           </div>
-          <Link className="button button-small" to="/entrar">Entrar</Link>
+          <Link
+            className="button button-small"
+            state={{ from: "/minha-agenda" }}
+            to="/entrar"
+          >
+            Entrar
+          </Link>
         </section>
       )}
 
