@@ -230,6 +230,24 @@ describe("cliente da API", () => {
     expect(listener).toHaveBeenCalledOnce();
   });
 
+  it("permite que o contexto de sessão trate 401 sem limpar uma sessão mais nova", async () => {
+    localStorage.setItem("session_active", "1");
+    const listener = vi.fn();
+    window.addEventListener(SESSION_CLEARED_EVENT, listener, { once: true });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: vi.fn().mockResolvedValue({ erro: "Sessão expirada." })
+    }));
+
+    await expect(apiRequest("/minha-sessao", {
+      clearSessionOnUnauthorized: false
+    })).rejects.toMatchObject({ status: 401 });
+
+    expect(localStorage.getItem("session_active")).toBe("1");
+    expect(listener).not.toHaveBeenCalled();
+  });
+
   it("interrompe requisições presas e explica o tempo limite", async () => {
     vi.useFakeTimers();
     vi.stubGlobal("fetch", vi.fn((_url, options) => new Promise((_resolve, reject) => {
