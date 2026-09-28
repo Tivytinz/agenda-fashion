@@ -288,6 +288,67 @@ describe("cliente da API", () => {
       .toBe("/minha-sessao");
   });
 
+  it("aceita resposta compatível quando o backend preserva um cookie concorrente", async () => {
+    localStorage.setItem(
+      "token",
+      "jwt-legado-conta-a"
+    );
+
+    const fetchMock =
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json:
+            vi.fn().mockResolvedValue({
+              erro:
+                "Sessão não encontrada."
+            })
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json:
+            vi.fn().mockResolvedValue({
+              codigo:
+                "COOKIE_SESSAO_PRESENTE",
+              migrado: false
+            })
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json:
+            vi.fn().mockResolvedValue({
+              usuario: {
+                id: 2
+              }
+            })
+        });
+
+    vi.stubGlobal(
+      "fetch",
+      fetchMock
+    );
+
+    const resultado =
+      await migrateLegacySession();
+
+    expect(resultado)
+      .toMatchObject({
+        attempted: true,
+        migrated: false,
+        alreadyCookie: true
+      });
+
+    expect(fetchMock)
+      .toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[1][0])
+      .toBe("/auth/migrar-sessao-legada");
+    expect(fetchMock.mock.calls[2][0])
+      .toBe("/minha-sessao");
+  });
+
   it("não limpa o storage até o contexto confirmar que a migração é inválida", async () => {
     localStorage.setItem(
       "token",
