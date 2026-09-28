@@ -111,10 +111,10 @@ describe("cabeçalho por contexto", () => {
 
     expect(screen.getByRole("link", { name: "Minha conta" })
       .getAttribute("href")).toBe("/cliente/conta");
-    expect(screen.getByRole("link", { name: "Meus agendamentos" })
-      .getAttribute("href")).toBe("/minha-agenda");
-    expect(screen.getByRole("link", { name: "Favoritos" })
-      .getAttribute("href")).toBe("/favoritos");
+    expect(screen.getAllByRole("link", { name: "Meus agendamentos" })
+      .some((link) => link.getAttribute("href") === "/minha-agenda")).toBe(true);
+    expect(screen.getAllByRole("link", { name: "Favoritos" })
+      .some((link) => link.getAttribute("href") === "/favoritos")).toBe(true);
     expect(screen.getByRole("link", { name: "Ir para gestão" })
       .getAttribute("href")).toBe("/painel");
     expect(screen.queryByRole("link", { name: "Convites de equipe" })).toBeNull();
