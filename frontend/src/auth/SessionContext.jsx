@@ -39,7 +39,7 @@ export function SessionProvider({ children }) {
   const sessionGenerationRef = useRef(0);
   const refreshRequestRef = useRef(0);
   const lastAppliedRefreshRef = useRef(0);
-  const legacyMigrationAbortRef = useRef(null);
+  const sessionSyncAbortRef = useRef(null);
   const [state, setState] = useState(() => {
     const sessionPresent =
       hasSession();
@@ -58,20 +58,20 @@ export function SessionProvider({ children }) {
     };
   });
 
-  const abortLegacyMigration = useCallback(() => {
-    legacyMigrationAbortRef.current?.abort();
-    legacyMigrationAbortRef.current = null;
+  const abortSessionSync = useCallback(() => {
+    sessionSyncAbortRef.current?.abort();
+    sessionSyncAbortRef.current = null;
   }, []);
 
   const beginSessionTransition = useCallback(() => {
     sessionGenerationRef.current += 1;
-    abortLegacyMigration();
-  }, [abortLegacyMigration]);
+    abortSessionSync();
+  }, [abortSessionSync]);
 
   const refresh = useCallback(async ({ silent = false } = {}) => {
     const requestId = ++refreshRequestRef.current;
     const sessionGeneration = sessionGenerationRef.current;
-    abortLegacyMigration();
+    abortSessionSync();
     const canApply = () => (
       sessionGeneration === sessionGenerationRef.current
       && requestId === refreshRequestRef.current
@@ -89,18 +89,18 @@ export function SessionProvider({ children }) {
       setState((current) => ({ ...current, loading: true }));
     }
 
-    const migrationController = new AbortController();
-    legacyMigrationAbortRef.current = migrationController;
+    const syncController = new AbortController();
+    sessionSyncAbortRef.current = syncController;
 
     try {
       let migration;
       try {
         migration = await migrateLegacySession({
-          signal: migrationController.signal
+          signal: syncController.signal
         });
       } finally {
-        if (legacyMigrationAbortRef.current === migrationController) {
-          legacyMigrationAbortRef.current = null;
+        if (sessionSyncAbortRef.current === syncController) {
+          sessionSyncAbortRef.current = null;
         }
       }
 
@@ -121,9 +121,10 @@ export function SessionProvider({ children }) {
       }
 
       const result = await apiRequest("/minha-sessao", {
-        // O contexto conhece a geração/requestId deste refresh. Deixe que ele
-        // decida se um 401 ainda pertence à sessão atual antes de limpá-la.
-        clearSessionOnUnauthorized: false
+        // A sincronização inteira é cancelável: além do estado React, uma
+        // resposta 401 obsoleta do backend poderia limpar o cookie HttpOnly.
+        clearSessionOnUnauthorized: false,
+        signal: syncController.signal
       });
 
       if (!canApply()) {
@@ -170,15 +171,15 @@ export function SessionProvider({ children }) {
       }
       throw error;
     }
-  }, [abortLegacyMigration]);
+  }, [abortSessionSync]);
 
   useEffect(() => {
     refresh().catch(() => {});
   }, [refresh]);
 
   useEffect(() => () => {
-    abortLegacyMigration();
-  }, [abortLegacyMigration]);
+    abortSessionSync();
+  }, [abortSessionSync]);
 
   useEffect(() => {
     function handleSessionCleared() {
