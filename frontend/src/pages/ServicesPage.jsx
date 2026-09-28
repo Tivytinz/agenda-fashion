@@ -425,6 +425,32 @@ export function ServiceEditorPage() {
     setGalleryFiles(files);
   }
 
+  async function continueFirstServiceOnboarding(saveResult, mediaUploadWarning = "") {
+    const published = saveResult.publicacao?.publicado === true;
+    if (published) await session.refresh();
+
+    const destination = !published
+      ? getPlanIntentPath("/painel/negocio", selectedPlan)
+      : getPlanIntentPath("/painel/horarios", selectedPlan);
+
+    navigate(destination, {
+      replace: true,
+      state: !published
+        ? {
+            message: "Serviço cadastrado. Revise os dados obrigatórios do negócio para concluir a publicação.",
+            onboarding: true,
+            onboardingStep: "perfil",
+            ...(mediaUploadWarning ? { mediaUploadWarning } : {})
+          }
+        : {
+            message: "Serviço cadastrado e perfil publicado. Agora confirme ou ajuste os horários sugeridos.",
+            onboarding: true,
+            onboardingStep: "agenda",
+            ...(mediaUploadWarning ? { mediaUploadWarning } : {})
+          }
+    });
+  }
+
   async function submit(event) {
     event.preventDefault();
     setSaving(true);
@@ -455,6 +481,8 @@ export function ServiceEditorPage() {
       return;
     }
 
+    let mediaUploadError = null;
+
     try {
       if (cover) {
         await uploadImage(`/servicos/${savedId}/foto`, cover);
@@ -464,44 +492,39 @@ export function ServiceEditorPage() {
         await uploadImage(`/servicos/${savedId}/fotos`, file);
         setGalleryFiles((current) => current.filter((item) => item !== file));
       }
-
-      if (firstServiceOnboarding) {
-        const published = saveResult.publicacao?.publicado === true;
-        if (published) await session.refresh();
-        const destination = !published
-          ? getPlanIntentPath("/painel/negocio", selectedPlan)
-          : getPlanIntentPath("/painel/horarios", selectedPlan);
-
-        navigate(destination, {
-          replace: true,
-          state: !published
-            ? {
-                message: "Serviço cadastrado. Revise os dados obrigatórios do negócio para concluir a publicação.",
-                onboarding: true,
-                onboardingStep: "perfil"
-              }
-            : {
-                message: "Serviço cadastrado e perfil publicado. Agora confirme ou ajuste os horários sugeridos.",
-                onboarding: true,
-                onboardingStep: "agenda"
-              }
-        });
-        return;
-      }
-
-      navigate("/painel/servicos", {
-        replace: true,
-        state: {
-          message: editing
-            ? "Serviço atualizado."
-            : "Serviço criado."
-        }
-      });
     } catch (requestError) {
-      setError(`O serviço foi salvo, mas algumas fotos não foram enviadas. ${requestError.message} Tente novamente para enviar apenas as fotos pendentes.`);
-    } finally {
-      setSaving(false);
+      mediaUploadError = requestError;
     }
+
+    if (firstServiceOnboarding) {
+      const mediaUploadWarning = mediaUploadError
+        ? "O serviço foi criado e você pode continuar. Algumas fotos não foram enviadas; adicione-as depois em Serviços."
+        : "";
+
+      try {
+        await continueFirstServiceOnboarding(saveResult, mediaUploadWarning);
+      } catch (requestError) {
+        setError(`O serviço foi salvo, mas não foi possível continuar o onboarding. ${requestError.message}`);
+        setSaving(false);
+      }
+      return;
+    }
+
+    if (mediaUploadError) {
+      setError(`O serviço foi salvo, mas algumas fotos não foram enviadas. ${mediaUploadError.message} Tente novamente para enviar apenas as fotos pendentes.`);
+      setSaving(false);
+      return;
+    }
+
+    navigate("/painel/servicos", {
+      replace: true,
+      state: {
+        message: editing
+          ? "Serviço atualizado."
+          : "Serviço criado."
+      }
+    });
+    setSaving(false);
   }
 
   async function chooseGalleryCover(photo) {
