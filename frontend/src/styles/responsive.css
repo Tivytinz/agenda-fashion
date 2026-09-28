@@ -209,6 +209,15 @@
     background: var(--pink-50);
   }
 
+  .site-header:not(.home-site-header):not(.admin-site-header) .header-main-link:not(.mobile-home-link),
+  .site-header:not(.home-site-header):not(.admin-site-header) .header-search {
+    display: none;
+  }
+
+  .booking-focus-header .header-content {
+    justify-content: center;
+  }
+
   .account-label {
     display: none;
   }
@@ -896,19 +905,20 @@
   }
 
   .agenda-tabs {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 2px;
-    overflow: visible;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
   }
 
   .agenda-tabs button {
-    width: 100%;
-    min-width: 0;
+    min-width: max-content;
+    flex: 0 0 auto;
     justify-content: center;
     gap: 5px;
-    padding-inline: 3px;
+    padding-inline: 11px;
     font-size: 0.76rem;
+    scroll-snap-align: start;
   }
 
   .agenda-tabs span {
