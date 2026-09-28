@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -400,13 +400,15 @@ describe("sincronização da sessão", () => {
     fireEvent.click(syncButton);
     await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(3));
 
-    finishOlder({
-      usuario: { id: 1, nome: "Ana Antiga" },
-      negocio: null,
-      temNegocio: false
+    await act(async () => {
+      finishOlder({
+        usuario: { id: 1, nome: "Ana Antiga" },
+        negocio: null,
+        temNegocio: false
+      });
     });
 
-    await waitFor(() => expect(screen.queryByText("Ana Antiga")).toBeNull());
+    expect(screen.queryByText("Ana Antiga")).toBeNull();
     expect(screen.getByText("Ana")).not.toBeNull();
 
     finishNewer({
@@ -439,13 +441,15 @@ describe("sincronização da sessão", () => {
       expect(screen.getByTestId("session-loading").textContent).toBe("Pronta");
     });
 
-    finishOlder({
-      usuario: { id: 1, nome: "Ana Antiga" },
-      negocio: null,
-      temNegocio: false
+    await act(async () => {
+      finishOlder({
+        usuario: { id: 1, nome: "Ana Antiga" },
+        negocio: null,
+        temNegocio: false
+      });
     });
 
-    await waitFor(() => expect(screen.queryByText("Ana Antiga")).toBeNull());
+    expect(screen.queryByText("Ana Antiga")).toBeNull();
     expect(screen.getByText("Ana")).not.toBeNull();
   });
 
