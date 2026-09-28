@@ -9,6 +9,7 @@ import { DashboardPage } from "./DashboardPage";
 import { ServiceEditorPage } from "./ServicesPage";
 
 const refreshSession = vi.fn(() => Promise.resolve());
+const adoptCreatedBusiness = vi.fn(() => true);
 
 vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
@@ -21,7 +22,8 @@ vi.mock("../auth/SessionContext", () => ({
       nome: "Ana",
       whatsapp: "62999999999"
     },
-    refresh: refreshSession
+    refresh: refreshSession,
+    adoptCreatedBusiness
   })
 }));
 
@@ -60,6 +62,8 @@ function preencherPrimeiroServico() {
 beforeEach(() => {
   apiRequest.mockReset();
   refreshSession.mockClear();
+  adoptCreatedBusiness.mockClear();
+  adoptCreatedBusiness.mockReturnValue(true);
 });
 
 afterEach(cleanup);
@@ -235,7 +239,13 @@ describe("jornada de ativação profissional", () => {
 
     expect((await screen.findByTestId("destination")).textContent)
       .toBe(expectedDestination);
-    expect(refreshSession).toHaveBeenCalledTimes(1);
+    expect(adoptCreatedBusiness).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 99,
+        nome: "Studio Aurora"
+      })
+    );
+    expect(refreshSession).toHaveBeenCalledWith({ silent: true });
   });
 
   it.each([
