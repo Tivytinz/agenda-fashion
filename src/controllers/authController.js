@@ -19,6 +19,7 @@ const {
   definirCookieSessao,
   limparCookieSessao,
   obterTokenBearer,
+  obterTokenCookie,
 } = require(
   "../config/sessionCookie"
 );
@@ -270,6 +271,30 @@ function migrarSessaoLegada(
   req,
   res
 ) {
+  const tokenCookie =
+    obterTokenCookie(
+      req.headers.cookie
+    );
+
+  res.set(
+    "Cache-Control",
+    "no-store"
+  );
+
+  // A migração existe apenas para transportar uma sessão legada quando
+  // ainda não há cookie. Nunca substitua uma sessão HttpOnly que possa
+  // ter sido criada por login/cadastro concorrente em outra identidade.
+  if (tokenCookie) {
+    return res
+      .status(409)
+      .json({
+        codigo:
+          "COOKIE_SESSAO_PRESENTE",
+        erro:
+          "Uma sessão em cookie já existe e deve ser validada antes da migração.",
+      });
+  }
+
   const tokenLegado =
     obterTokenBearer(
       req.headers.authorization
@@ -281,11 +306,6 @@ function migrarSessaoLegada(
       tokenLegado
     );
   }
-
-  res.set(
-    "Cache-Control",
-    "no-store"
-  );
 
   return res
     .status(204)
