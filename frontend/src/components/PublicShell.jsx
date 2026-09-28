@@ -31,8 +31,16 @@ export function PublicShell({ children }) {
   const focusedBooking =
     location.pathname === "/confirmar" ||
     location.pathname === "/sucesso";
+  const clientNavigationArea = [
+    "/",
+    "/favoritos",
+    "/minha-agenda",
+    "/cliente/conta"
+  ].includes(location.pathname);
+
   const showClientNavigation =
     publicContext &&
+    clientNavigationArea &&
     session.authenticated === true &&
     !focusedBooking;
 
