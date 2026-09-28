@@ -225,7 +225,7 @@ html.professional-context-active body {
   white-space: nowrap;
 }
 
-.professional-account-link {
+.professional-context-switch {
   display: inline-flex;
   min-height: 38px;
   align-items: center;
@@ -241,12 +241,12 @@ html.professional-context-active body {
   text-decoration: none;
 }
 
-.professional-account-link:hover {
+.professional-context-switch:hover {
   border-color: rgb(217 47 127 / 26%);
   background: #ffe5ef;
 }
 
-.professional-account-link svg {
+.professional-context-switch svg {
   width: 17px;
   height: 17px;
 }
@@ -277,13 +277,9 @@ html.professional-context-active body {
     padding-inline: 14px;
   }
 
-  .professional-account-link {
-    width: 38px;
-    padding: 0;
-  }
-
-  .professional-account-link span {
-    display: none;
+  .professional-context-switch {
+    min-width: 38px;
+    padding-inline: 10px;
   }
 
   .professional-shell > .workspace-mobile-nav {
@@ -319,7 +315,7 @@ html.professional-context-active body {
   .professional-shell .workspace-mobile-link small {
     overflow: hidden;
     max-width: 100%;
-    font-size: .59rem;
+    font-size: .69rem;
     font-weight: 760;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -332,6 +328,15 @@ html.professional-context-active body {
 }
 
 @media (max-width: 520px) {
+  .professional-context-switch {
+    width: 38px;
+    padding: 0;
+  }
+
+  .professional-context-switch span {
+    display: none;
+  }
+
   .professional-topbar-context strong {
     max-width: 68vw;
     font-size: .89rem;

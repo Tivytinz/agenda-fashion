@@ -234,19 +234,20 @@ As rotas `/profissional/*` passam por `WorkspaceLayout` e devem resolver
 | --- | --- | --- |
 | `/profissional/agenda` | `AgendaWorkspacePage` | agenda individual |
 | `/profissional/horarios` | `ScheduleSettingsPage` | horários do vínculo profissional |
-| `/conta` | `AccountPage` | conta da pessoa no contexto do workspace |
+| `/profissional/conta` | `AccountPage` | conta da pessoa preservando o vínculo profissional |
+| `/profissional/convites` | `ProfessionalInvitesPage` | convites como ação secundária dentro do workspace |
 
-A rota `/convites` continua fora do grupo `/profissional/*` porque precisa
-funcionar para uma conta autenticada que ainda não possui negócio.
+A rota legada `/convites` continua fora do grupo `/profissional/*` porque
+precisa funcionar para uma conta autenticada que ainda não possui negócio ou
+vínculo profissional ativo. Depois que o workspace profissional existe, Conta e
+Convites usam rotas explícitas `/profissional/*` para não cair silenciosamente
+no vínculo principal da sessão.
 
-Desde a Wave D, a composição é adaptativa:
-
-- profissional com vínculo ativo como contexto atual → `ProfessionalShell`;
-- conta sem negócio → tela autenticada de transição;
-- outros contextos → tela autenticada sem forçar um workspace incompatível.
-
-Assim o item "Convites" da navegação profissional não derruba mais a pessoa para
-fora do shell, sem bloquear o aceite inicial de quem ainda não possui vínculo.
+A navegação diária do `ProfessionalShell` permanece curta: Minha agenda, Meus
+horários e Minha conta. Convites não ocupa a barra principal; a entrada fica na
+Conta profissional. Quando a mesma identidade também possui vínculo ativo de
+dona, o shell pode oferecer uma troca explícita para `/painel`, sem alterar
+papéis ou permissões persistidas.
 
 ## 9. Convites e equipe
 

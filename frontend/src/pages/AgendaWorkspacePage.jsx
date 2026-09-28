@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
@@ -420,15 +421,28 @@ export function AgendaWorkspacePage({ owner = false }) {
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">{owner ? "Seu negócio em movimento" : "Seu dia de trabalho"}</p>
-          <h1>{owner ? "Agenda geral" : "Minha agenda profissional"}</h1>
+          <h1>{owner ? "Agenda geral" : "Minha agenda"}</h1>
           <p>Bloqueie horários livres, registre cancelamentos operacionais e finalize atendimentos com o estado correto.</p>
         </div>
       </header>
 
       {dates.length === 0 ? (
-        <EmptyState title="Nenhum profissional na agenda">
-          Vincule profissionais e configure os horários para começar.
-        </EmptyState>
+        owner ? (
+          <EmptyState title="Nenhum profissional na agenda">
+            Vincule profissionais e configure os horários para começar.
+          </EmptyState>
+        ) : (
+          <EmptyState
+            action={(
+              <Link className="button button-small" to="/profissional/horarios">
+                Ajustar meus horários
+              </Link>
+            )}
+            title="Sua agenda ainda está vazia"
+          >
+            Confira seus horários de atendimento para começar a receber agendamentos.
+          </EmptyState>
+        )
       ) : (
         <>
           <section className={owner && professionals.length > 1 ? "agenda-toolbar panel has-professional-filter" : "agenda-toolbar panel"}>
@@ -535,58 +549,145 @@ export function AgendaWorkspacePage({ owner = false }) {
 
                     {isAppointment && ["agendado", "confirmado"].includes(slot.status) && (
                       <div className="slot-lifecycle-actions" aria-label="Gerenciar agendamento">
-                        {slot.pode_reagendar && (
-                          <button
-                            className="button button-secondary button-small"
-                            disabled={slotUpdating}
-                            onClick={() => openReschedule(slot)}
-                            type="button"
-                          >
-                            {slotRescheduleUpdating ? "Reagendando..." : "Reagendar"}
-                          </button>
+                        {owner ? (
+                          <>
+                            {slot.pode_reagendar && (
+                              <button
+                                className="button button-secondary button-small"
+                                disabled={slotUpdating}
+                                onClick={() => openReschedule(slot)}
+                                type="button"
+                              >
+                                {slotRescheduleUpdating ? "Reagendando..." : "Reagendar"}
+                              </button>
+                            )}
+                            {slot.pode_cancelar && (
+                              <button
+                                className="button button-secondary button-small slot-cancel-button"
+                                disabled={slotUpdating}
+                                onClick={() => openCancellation(slot)}
+                                type="button"
+                              >
+                                Cancelar agendamento
+                              </button>
+                            )}
+                            {slot.pode_iniciar_atendimento && (
+                              <button
+                                className="button button-small"
+                                disabled={slotUpdating}
+                                onClick={() => updateAttendance(slot, "iniciado")}
+                                type="button"
+                              >
+                                {updating === `atendimento-${slot.agendamento_id}-iniciado`
+                                  ? "Iniciando..."
+                                  : "Iniciar atendimento"}
+                              </button>
+                            )}
+                            <button
+                              className="button button-small"
+                              disabled={slotUpdating || !slot.pode_marcar_realizado}
+                              onClick={() => updateAttendance(slot, "realizado")}
+                              type="button"
+                            >
+                              {updating === `atendimento-${slot.agendamento_id}-realizado`
+                                ? "Salvando..."
+                                : "Concluir"}
+                            </button>
+                            <button
+                              className="button button-secondary button-small"
+                              disabled={slotUpdating || !slot.pode_marcar_falta}
+                              onClick={() => updateAttendance(slot, "falta")}
+                              type="button"
+                            >
+                              {updating === `atendimento-${slot.agendamento_id}-falta`
+                                ? "Salvando..."
+                                : "Marcar falta"}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {slot.pode_iniciar_atendimento ? (
+                              <button
+                                className="button button-small slot-primary-action"
+                                disabled={slotUpdating}
+                                onClick={() => updateAttendance(slot, "iniciado")}
+                                type="button"
+                              >
+                                {updating === `atendimento-${slot.agendamento_id}-iniciado`
+                                  ? "Iniciando..."
+                                  : "Iniciar atendimento"}
+                              </button>
+                            ) : slot.pode_marcar_realizado ? (
+                              <button
+                                className="button button-small slot-primary-action"
+                                disabled={slotUpdating}
+                                onClick={() => updateAttendance(slot, "realizado")}
+                                type="button"
+                              >
+                                {updating === `atendimento-${slot.agendamento_id}-realizado`
+                                  ? "Salvando..."
+                                  : "Concluir atendimento"}
+                              </button>
+                            ) : null}
+
+                            {(slot.pode_reagendar ||
+                              slot.pode_cancelar ||
+                              slot.pode_marcar_falta ||
+                              (slot.pode_iniciar_atendimento &&
+                                slot.pode_marcar_realizado)) && (
+                              <details className="slot-secondary-actions">
+                                <summary>Mais</summary>
+                                <div className="slot-secondary-actions-menu">
+                                  {slot.pode_reagendar && (
+                                    <button
+                                      className="button button-secondary button-small"
+                                      disabled={slotUpdating}
+                                      onClick={() => openReschedule(slot)}
+                                      type="button"
+                                    >
+                                      {slotRescheduleUpdating ? "Reagendando..." : "Reagendar"}
+                                    </button>
+                                  )}
+                                  {slot.pode_cancelar && (
+                                    <button
+                                      className="button button-secondary button-small slot-cancel-button"
+                                      disabled={slotUpdating}
+                                      onClick={() => openCancellation(slot)}
+                                      type="button"
+                                    >
+                                      Cancelar agendamento
+                                    </button>
+                                  )}
+                                  {slot.pode_iniciar_atendimento &&
+                                    slot.pode_marcar_realizado && (
+                                      <button
+                                        className="button button-secondary button-small"
+                                        disabled={slotUpdating}
+                                        onClick={() => updateAttendance(slot, "realizado")}
+                                        type="button"
+                                      >
+                                        {updating === `atendimento-${slot.agendamento_id}-realizado`
+                                          ? "Salvando..."
+                                          : "Concluir"}
+                                      </button>
+                                    )}
+                                                                    {slot.pode_marcar_falta && (
+                                    <button
+                                      className="button button-secondary button-small"
+                                      disabled={slotUpdating}
+                                      onClick={() => updateAttendance(slot, "falta")}
+                                      type="button"
+                                    >
+                                      {updating === `atendimento-${slot.agendamento_id}-falta`
+                                        ? "Salvando..."
+                                        : "Marcar falta"}
+                                    </button>
+                                  )}
+                                </div>
+                              </details>
+                            )}
+                          </>
                         )}
-                        {slot.pode_cancelar && (
-                          <button
-                            className="button button-secondary button-small slot-cancel-button"
-                            disabled={slotUpdating}
-                            onClick={() => openCancellation(slot)}
-                            type="button"
-                          >
-                            Cancelar agendamento
-                          </button>
-                        )}
-                        {slot.pode_iniciar_atendimento && (
-                          <button
-                            className="button button-small"
-                            disabled={slotUpdating}
-                            onClick={() => updateAttendance(slot, "iniciado")}
-                            type="button"
-                          >
-                            {updating === `atendimento-${slot.agendamento_id}-iniciado`
-                              ? "Iniciando..."
-                              : "Iniciar atendimento"}
-                          </button>
-                        )}
-                        <button
-                          className="button button-small"
-                          disabled={slotUpdating || !slot.pode_marcar_realizado}
-                          onClick={() => updateAttendance(slot, "realizado")}
-                          type="button"
-                        >
-                          {updating === `atendimento-${slot.agendamento_id}-realizado`
-                            ? "Salvando..."
-                            : "Concluir"}
-                        </button>
-                        <button
-                          className="button button-secondary button-small"
-                          disabled={slotUpdating || !slot.pode_marcar_falta}
-                          onClick={() => updateAttendance(slot, "falta")}
-                          type="button"
-                        >
-                          {updating === `atendimento-${slot.agendamento_id}-falta`
-                            ? "Salvando..."
-                            : "Marcar falta"}
-                        </button>
                       </div>
                     )}
                   </article>

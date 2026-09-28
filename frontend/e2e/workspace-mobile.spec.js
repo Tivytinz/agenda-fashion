@@ -17,6 +17,14 @@ const BUSINESS = {
   publicado: true
 };
 
+const PROFESSIONAL_BUSINESS = {
+  ...BUSINESS,
+  id: 22,
+  slug: "studio-parceiro",
+  nome: "Studio Parceiro",
+  papel: "profissional"
+};
+
 function json(route, body, status = 200) {
   return route.fulfill({
     status,
@@ -234,7 +242,11 @@ test("ProfessionalShell mantém rotina curta, foco visível e sem overflow no ce
 
   await page.route("**/minha-sessao", (route) => json(route, {
     usuario: { id: 8, nome: "Bia", email: "bia@example.com" },
-    negocio: { ...BUSINESS, papel: "profissional" },
+    negocio: BUSINESS,
+    vinculos: [
+      BUSINESS,
+      PROFESSIONAL_BUSINESS
+    ],
     temNegocio: true,
     administrador: null,
     ehAdministrador: false
@@ -250,12 +262,23 @@ test("ProfessionalShell mantém rotina curta, foco visível e sem overflow no ce
   await page.route("**/agenda-profissional", (route) => json(route, {
     agenda: []
   }));
+  await page.route("**/conta", (route) => json(route, {
+    usuario: {
+      id: 8,
+      nome: "Bia",
+      email: "bia@example.com",
+      whatsapp: "62999998888",
+      aceita_lembretes_whatsapp: false,
+      aceita_notificacoes_whatsapp: true,
+      aceita_alertas_operacionais_whatsapp: true
+    }
+  }));
 
   await page.goto("/profissional/agenda");
 
   await expect(page.locator('[data-frontend-context="professional"]')).toBeVisible();
   await expect(page.getByRole("heading", {
-    name: "Minha agenda profissional"
+    name: "Minha agenda"
   })).toBeVisible();
 
   const navigation = page.getByRole("navigation", { name: "Rotina profissional" });
@@ -263,6 +286,11 @@ test("ProfessionalShell mantém rotina curta, foco visível e sem overflow no ce
   await expect(navigation.getByRole("link", { name: /Minha agenda/ })).toBeVisible();
   await expect(navigation.getByRole("link", { name: /Meus horários/ })).toBeVisible();
   await expect(navigation.getByRole("link", { name: /Minha conta/ })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: /Convites/ })).toHaveCount(0);
+  await expect(
+    page.locator(".professional-topbar-context").getByText("Studio Parceiro")
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: /Ir para gestão/ })).toBeVisible();
   await expect(page.getByRole("link", { name: /Equipe/ })).toHaveCount(0);
   await expect(page.getByRole("link", { name: /Plano e assinatura/ })).toHaveCount(0);
 
@@ -272,6 +300,31 @@ test("ProfessionalShell mantém rotina curta, foco visível e sem overflow no ce
     getComputedStyle(element).outlineStyle
   ))).not.toBe("none");
 
+  const emptyAction = page.getByRole("link", { name: "Ajustar meus horários" });
+  const mobileNavigation = page.locator(".professional-shell > .workspace-mobile-nav");
+  await expect(emptyAction).toBeVisible();
+  await expect(mobileNavigation).toBeVisible();
+
+  await emptyAction.scrollIntoViewIfNeeded();
+  await expect.poll(async () => {
+    const [actionBox, navigationBox] = await Promise.all([
+      emptyAction.boundingBox(),
+      mobileNavigation.boundingBox()
+    ]);
+
+    return Boolean(
+      actionBox &&
+      navigationBox &&
+      actionBox.y + actionBox.height <= navigationBox.y
+    );
+  }).toBe(true);
+
   const diagnostics = await horizontalOverflowDiagnostics(page);
   expect(diagnostics.scrollWidth).toBe(diagnostics.clientWidth);
+
+  await navigation.getByRole("link", { name: /Minha conta/ }).click();
+  await expect(page).toHaveURL(/\/profissional\/conta$/);
+  await expect(page.locator('[data-frontend-context="professional"]')).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Minha conta" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Ver convites" })).toBeVisible();
 });

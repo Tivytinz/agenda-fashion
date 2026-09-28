@@ -568,8 +568,12 @@ sem contagem do ledger de produção, ADM-043 continua Não coberto (41/43).
 Ver `docs/admin-wave-6-rf41-qa-operacional.md`.
 O contexto da dona possui workspace de gestão próprio. O contexto profissional
 possui shell de rotina própria, com navegação curta focada em agenda, horários e
-conta. Essas diferenças visuais não alteram os contratos de autorização do
-backend.
+conta. Dentro do workspace profissional, Conta e Convites usam rotas explícitas
+`/profissional/*` para preservar o vínculo profissional mesmo em identidades que
+também são donas. Convites permanecem ação secundária, fora da navegação diária;
+a rota genérica `/convites` continua válida para aceite inicial sem vínculo. A
+troca profissional → dona, quando os dois papéis existem, deve ser explícita.
+Essas diferenças visuais não alteram os contratos de autorização do backend.
 
 Ao alterar uma interface, considerar:
 

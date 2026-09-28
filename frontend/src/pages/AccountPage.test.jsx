@@ -137,6 +137,31 @@ describe("minha conta", () => {
     expect(backLink.getAttribute("href")).toBe("/");
   });
 
+  it("mantém convites como ação secundária dentro da conta profissional", async () => {
+    useSession.mockReturnValue({
+      temNegocio: true,
+      ehAdministrador: false,
+      negocio: { id: 11, papel: "profissional", nome: "Studio Aurora" },
+      refresh: refreshSession,
+      logout: logoutSession
+    });
+    apiRequest.mockResolvedValueOnce({ usuario: baseUser() });
+
+    render(
+      <MemoryRouter initialEntries={["/profissional/conta"]}>
+        <AccountPage />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Minha conta" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Ver convites" })
+        .getAttribute("href")
+    ).toBe("/profissional/convites");
+  });
+
   it("valida a nova senha e usa ícones acessíveis para mostrar ou ocultar", async () => {
     apiRequest
       .mockResolvedValueOnce({ usuario: baseUser() })

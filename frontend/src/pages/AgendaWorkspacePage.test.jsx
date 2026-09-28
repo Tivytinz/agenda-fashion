@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { AgendaWorkspacePage } from "./AgendaWorkspacePage";
@@ -144,6 +145,120 @@ describe("agenda do negócio", () => {
 
     expect(await screen.findByRole("button", { name: /06 ago/ })).not.toBeNull();
     Object.defineProperty(window, "innerWidth", { configurable: true, value: originalWidth });
+  });
+
+  it("orienta a profissional para os próprios horários quando a agenda está vazia", async () => {
+    apiRequest.mockResolvedValue({ agenda: [] });
+
+    render(
+      <MemoryRouter>
+        <AgendaWorkspacePage />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Minha agenda" })
+    ).not.toBeNull();
+    expect(
+      screen.getByText("Sua agenda ainda está vazia")
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Ajustar meus horários" })
+        .getAttribute("href")
+    ).toBe("/profissional/horarios");
+    expect(
+      screen.queryByText(/Vincule profissionais/i)
+    ).toBeNull();
+  });
+
+  it("mantém uma ação principal e agrupa operações secundárias para a profissional", async () => {
+    apiRequest.mockResolvedValue({
+      agenda: [{
+        data: "2026-08-03",
+        trabalha: true,
+        horarios: [{
+          hora: "09:30",
+          status: "confirmado",
+          agendamento_id: 91,
+          cliente: "Ana",
+          servico: "Corte",
+          pode_reagendar: true,
+          pode_cancelar: true,
+          pode_iniciar_atendimento: true,
+          pode_marcar_realizado: false,
+          pode_marcar_falta: true
+        }]
+      }]
+    });
+
+    render(
+      <MemoryRouter>
+        <AgendaWorkspacePage />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "Iniciar atendimento" })
+    ).not.toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Concluir" })
+    ).toBeNull();
+
+    const more = screen.getByText("Mais");
+    fireEvent.click(more);
+
+    expect(
+      screen.getByRole("button", { name: "Reagendar" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Cancelar agendamento" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Marcar falta" })
+    ).not.toBeNull();
+  });
+
+  it("preserva as ações completas da agenda da dona", async () => {
+    apiRequest.mockResolvedValue({
+      agenda: [{
+        data: "2026-08-03",
+        profissionais: [{
+          id: 1,
+          nome: "Ana",
+          horarios: [{
+            hora: "09:30",
+            status: "confirmado",
+            agendamento_id: 91,
+            cliente: "Cliente",
+            servico: "Corte",
+            pode_reagendar: true,
+            pode_cancelar: true,
+            pode_iniciar_atendimento: true,
+            pode_marcar_realizado: true,
+            pode_marcar_falta: true
+          }]
+        }]
+      }]
+    });
+
+    render(<AgendaWorkspacePage owner />);
+
+    expect(
+      await screen.findByRole("button", { name: "Reagendar" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Cancelar agendamento" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Iniciar atendimento" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Concluir" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Marcar falta" })
+    ).not.toBeNull();
+    expect(screen.queryByText("Mais")).toBeNull();
   });
 
   it("exibe compromisso persistido mesmo quando o dia atual está marcado como folga", async () => {

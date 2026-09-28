@@ -326,6 +326,8 @@ export function ScheduleSettingsPage() {
     setMessage("");
 
     const primeiraConfiguracao = !config?.configuradoEm;
+    const onboardingDona =
+      primeiraConfiguracao && contextoAgenda === "dono";
     const submitSource = event.nativeEvent?.submitter?.dataset?.source;
     const origem = primeiraConfiguracao
       ? submitSource === "confirmacao_rapida"
@@ -383,7 +385,7 @@ export function ScheduleSettingsPage() {
       }));
       setMessage(result.mensagem || "Horários atualizados.");
 
-      if (primeiraConfiguracao && configuradoEm) {
+      if (onboardingDona && configuradoEm) {
         track("agenda_configurada", {
           page: "configuracao_agenda",
           mission: "disponibilizar_horarios",
@@ -436,8 +438,13 @@ export function ScheduleSettingsPage() {
   if (!config && !error) return <div className="workspace-page"><LoadingState>Carregando horários...</LoadingState></div>;
   if (!config && error) return <div className="workspace-page"><ErrorState message={error} onRetry={load} /></div>;
 
-  const firstConfiguration = !config.configuradoEm;
-  const quickConfirmation = firstConfiguration && firstScheduleMode === "quick";
+  const professionalContext = contextoAgenda === "profissional";
+  const firstConfiguration =
+    !config.configuradoEm && !professionalContext;
+  const firstProfessionalConfiguration =
+    !config.configuradoEm && professionalContext;
+  const quickConfirmation =
+    firstConfiguration && firstScheduleMode === "quick";
 
   return (
     <main className="workspace-page schedule-settings-page">
@@ -598,7 +605,7 @@ export function ScheduleSettingsPage() {
             </section>
           ) : (
             <>
-              {firstConfiguration && (
+              {(firstConfiguration || firstProfessionalConfiguration) && (
                 <section className="schedule-editor-intro" aria-labelledby="schedule-editor-title">
                   <p className="eyebrow">
                     <span aria-hidden="true">📅</span>{" "}
@@ -606,9 +613,9 @@ export function ScheduleSettingsPage() {
                   </p>
                   <h2 id="schedule-editor-title">Quando você recebe clientes</h2>
                   <p className="muted">
-                    Ative os dias em que atende e ajuste início, fim e pausas. Ao
-                    salvar pela primeira vez, o AF confirma sua agenda. Você poderá
-                    voltar e editar estes horários quando quiser.
+                    {professionalContext
+                      ? "Ative os dias em que você atende neste negócio e ajuste início, fim e pausas. Você poderá voltar e editar estes horários quando quiser."
+                      : "Ative os dias em que atende e ajuste início, fim e pausas. Ao salvar pela primeira vez, o AF confirma sua agenda. Você poderá voltar e editar estes horários quando quiser."}
                   </p>
                 </section>
               )}

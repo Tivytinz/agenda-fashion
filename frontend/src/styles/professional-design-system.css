@@ -17,6 +17,7 @@
   --professional-shadow-md: 0 16px 38px rgb(88 39 62 / 10%);
   --professional-focus: 0 0 0 3px rgb(217 47 127 / 18%);
   --professional-focus-outline: #922054;
+  --workspace-mobile-nav-height: calc(76px + env(safe-area-inset-bottom));
 
   color: var(--professional-ink);
   background: var(--professional-bg);
@@ -71,6 +72,6 @@
 @media (max-width: 900px) {
   .professional-shell .workspace-page {
     width: min(100% - 28px, 1180px);
-    padding-block: 18px 94px;
+    padding-block: 18px calc(var(--workspace-mobile-nav-height) + 24px);
   }
 }

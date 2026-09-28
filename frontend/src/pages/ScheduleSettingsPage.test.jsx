@@ -69,6 +69,8 @@ function renderPage(entry = "/painel/horarios") {
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/painel/horarios" element={<ScheduleSettingsPage />} />
+        <Route path="/profissional/horarios" element={<ScheduleSettingsPage />} />
+        <Route path="/profissional/agenda" element={<Destination />} />
         <Route path="/painel" element={<Destination />} />
         <Route path="/checkout" element={<Destination />} />
       </Routes>
@@ -156,6 +158,70 @@ describe("configuração de horários", () => {
         })
       );
     });
+  });
+
+  it("mantém a primeira configuração profissional no editor operacional", async () => {
+    apiRequest.mockImplementation((requestPath, options = {}) => {
+      if (requestPath === "/agenda-configuracao" && !options.method) {
+        return Promise.resolve({
+          configuracao: {
+            duracao_padrao: 60,
+            intervalo_minutos: 0,
+            antecedencia_agendamento: 0,
+            antecedencia_cancelamento: 24,
+            configurado_em: null
+          },
+          horarios: defaultSuggestedWeek()
+        });
+      }
+
+      if (requestPath === "/agenda-configuracao" && options.method === "PUT") {
+        return Promise.resolve({
+          mensagem: "Horários salvos.",
+          configuracao: {
+            configurado_em: "2026-09-27T22:00:00.000Z"
+          },
+          horarios: defaultSuggestedWeek(),
+          publicacao: {
+            publicado: true,
+            pode_publicar: true
+          }
+        });
+      }
+
+      return Promise.reject(new Error(`Rota inesperada: ${requestPath}`));
+    });
+
+    renderPage("/profissional/horarios");
+
+    expect(
+      (await screen.findAllByRole("heading", {
+        name: "Quando você recebe clientes"
+      })).length
+    ).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole("heading", { name: "Confirme quando você atende" })
+    ).toBeNull();
+    expect(
+      screen.queryByLabelText("Etapas iniciais do negócio")
+    ).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Salvar horários" }));
+
+    expect(await screen.findByText("Horários salvos.")).not.toBeNull();
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/agenda-configuracao",
+      expect.objectContaining({
+        method: "PUT",
+        headers: {
+          "X-AF-Contexto": "profissional"
+        }
+      })
+    );
+    expect(
+      screen.queryByRole("heading", { name: "Agora divulgue seu perfil" })
+    ).toBeNull();
+    expect(screen.queryByTestId("destination")).toBeNull();
   });
 
   it("agrupa horários iguais e separa o sábado na confirmação rápida", () => {

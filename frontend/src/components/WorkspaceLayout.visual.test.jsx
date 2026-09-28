@@ -12,11 +12,15 @@ const sessionState = vi.hoisted(() => ({
     nome: "Studio Aurora",
     papel: "dono",
     slug: "studio-aurora"
-  }
+  },
+  vinculos: []
 }));
 
 vi.mock("../auth/SessionContext", () => ({
-  useSession: () => ({ negocio: sessionState.negocio })
+  useSession: () => ({
+    negocio: sessionState.negocio,
+    vinculos: sessionState.vinculos
+  })
 }));
 
 afterEach(() => {
@@ -26,6 +30,7 @@ afterEach(() => {
     papel: "dono",
     slug: "studio-aurora"
   };
+  sessionState.vinculos = [];
   document.documentElement.classList.remove("owner-context-active");
   document.documentElement.classList.remove("professional-context-active");
 });
@@ -84,10 +89,19 @@ describe("contextos visuais do workspace", () => {
 
   it("renderiza a profissional no ProfessionalShell próprio", async () => {
     sessionState.negocio = {
-      nome: "Studio Aurora",
+      nome: "Studio Parceiro",
       papel: "profissional",
-      slug: "studio-aurora"
+      slug: "studio-parceiro"
     };
+    sessionState.vinculos = [
+      {
+        nome: "Meu Studio",
+        papel: "dono",
+        slug: "meu-studio",
+        ativo: true
+      },
+      sessionState.negocio
+    ];
 
     const { container } = render(
       <MemoryRouter initialEntries={["/profissional/agenda"]}>
@@ -113,7 +127,12 @@ describe("contextos visuais do workspace", () => {
     expect(
       within(sidebar).getByRole("navigation", { name: "Rotina profissional" })
     ).not.toBeNull();
-    expect(screen.getAllByText("Studio Aurora").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Studio Parceiro").length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("link", { name: /Ir para gestão/ })
+        .getAttribute("href")
+    ).toBe("/painel");
+    expect(screen.queryByRole("link", { name: /Convites/ })).toBeNull();
     expect(screen.getAllByRole("link", { name: /Minha agenda/ }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: /Equipe/ })).toBeNull();
     expect(screen.queryByRole("link", { name: /Plano e assinatura/ })).toBeNull();
