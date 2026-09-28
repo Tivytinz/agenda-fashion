@@ -6,22 +6,28 @@
   box-shadow: none;
 }
 
+.public-shell .client-site-header .header-content,
 .home-site-header .header-content,
 .home-page .container {
   width: min(1576px, calc(100% - 96px));
 }
 
+.public-shell .client-site-header .header-content,
 .home-site-header .header-content {
   min-height: 112px;
   gap: clamp(24px, 2.7vw, 46px);
 }
 
+.public-shell .client-site-header .brand,
 .home-site-header .brand {
   flex: 0 0 auto;
   gap: 14px;
 }
 
+.public-shell .client-site-header .brand-mark,
+.public-shell .client-site-header .brand-mark .header-brand-logo,
 .home-site-header .brand-mark,
+.public-shell .client-site-header .brand-mark .header-brand-logo,
 .home-site-header .brand-mark .header-brand-logo {
   width: 72px;
   height: 72px;
@@ -31,6 +37,7 @@
   filter: drop-shadow(0 8px 14px rgb(217 47 127 / 18%));
 }
 
+.public-shell .client-site-header .brand strong,
 .home-site-header .brand strong {
   color: #382f34;
   font-family: Georgia, "Times New Roman", serif;
@@ -40,10 +47,12 @@
   white-space: nowrap;
 }
 
+.public-shell .client-site-header .brand small,
 .home-site-header .brand small {
   display: none;
 }
 
+.public-shell .client-site-header .public-navigation,
 .home-site-header .public-navigation {
   min-width: 0;
   flex: 1 1 auto;
@@ -51,6 +60,7 @@
   gap: clamp(15px, 1.6vw, 28px);
 }
 
+.public-shell .client-site-header .header-main-link,
 .home-site-header .header-main-link {
   min-height: 44px;
   display: inline-flex;
@@ -64,10 +74,12 @@
   white-space: nowrap;
 }
 
+.public-shell .client-site-header .header-main-link:hover,
 .home-site-header .header-main-link:hover {
   color: var(--pink-600);
 }
 
+.public-shell .client-site-header .header-main-link.active,
 .home-site-header .header-main-link.active {
   min-height: 48px;
   padding-inline: 23px;
