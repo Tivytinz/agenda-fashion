@@ -374,13 +374,13 @@ export function ConfirmPage() {
                     {accountAllowsNotifications
                       ? "Usaremos os dados e a preferência de WhatsApp salvos na sua conta."
                       : "Usaremos os dados salvos na sua conta. As mensagens automáticas pelo WhatsApp estão desativadas."}{" "}
-                    <Link to="/conta#notificacoes-whatsapp">Atualizar na conta</Link>
+                    <Link to="/cliente/conta#notificacoes-whatsapp">Atualizar na conta</Link>
                   </p>
                 </>
               ) : (
                 <p className="form-error" role="alert">
                   Para agendar, complete seu nome e WhatsApp na conta.{" "}
-                  <Link to="/conta">Atualizar conta</Link>
+                  <Link to="/cliente/conta">Atualizar conta</Link>
                 </p>
               )
             ) : (
