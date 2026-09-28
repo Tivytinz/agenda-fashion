@@ -136,9 +136,6 @@ export function ScheduleSettingsPage() {
     () => new URLSearchParams(location.search).get("onboarding") === "divulgacao",
     [location.search]
   );
-  const mediaUploadWarning = typeof location.state?.mediaUploadWarning === "string"
-    ? location.state.mediaUploadWarning
-    : "";
 
   const load = useCallback(() => {
     setError("");
@@ -517,12 +514,6 @@ export function ScheduleSettingsPage() {
           current={3}
           steps={ACTIVATION_STEPS}
         />
-      )}
-
-      {mediaUploadWarning && (
-        <p className="muted" role="status">
-          {mediaUploadWarning}
-        </p>
       )}
 
       {activationNextStep ? (
