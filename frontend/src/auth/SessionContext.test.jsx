@@ -20,7 +20,11 @@ function SessionProbe() {
   return (
     <>
       <span>{session.authenticated ? session.usuario?.nome : "Desconectada"}</span>
+      <span data-testid="session-loading">{session.loading ? "Carregando" : "Pronta"}</span>
       <button type="button" onClick={session.logout}>Sair</button>
+      <button type="button" onClick={() => session.refresh({ silent: true }).catch(() => {})}>
+        Sincronizar silenciosamente
+      </button>
     </>
   );
 }
@@ -132,6 +136,37 @@ describe("sincronização da sessão", () => {
       apiRequest
         .mock.invocationCallOrder[0]
     );
+  });
+
+  it("mantém a sessão utilizável enquanto uma sincronização silenciosa está pendente", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+    expect(screen.getByTestId("session-loading").textContent).toBe("Pronta");
+
+    let finishRefresh;
+    apiRequest.mockImplementationOnce(() => new Promise((resolve) => {
+      finishRefresh = resolve;
+    }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
+
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("Ana")).not.toBeNull();
+    expect(screen.getByTestId("session-loading").textContent).toBe("Pronta");
+
+    finishRefresh({
+      usuario: { id: 1, nome: "Ana Atualizada" },
+      negocio: {
+        id: 9,
+        nome: "Studio Ana",
+        papel: "dono",
+        publicado: true
+      },
+      temNegocio: true
+    });
+
+    expect(await screen.findByText("Ana Atualizada")).not.toBeNull();
+    expect(screen.getByTestId("session-loading").textContent).toBe("Pronta");
   });
 
   it("limpa a sessão local e encerra o cookie no servidor", async () => {
