@@ -33,6 +33,8 @@ Dentro dessa fundação existem três modos de uso, sem criar shells independent
 
 A rota `/cliente/conta` reutiliza `AccountPage` e mantém explicitamente o contexto cliente mesmo quando a mesma identidade também possui vínculo de dona, profissional ou Admin. A rota histórica `/conta` continua dinâmica para os contextos operacionais.
 
+No login sem rota protegida de retorno, uma conta cliente sem negócio volta para a descoberta pública. Intenção profissional explícita (`tipo=profissional` ou plano pago) continua conduzindo ao onboarding do negócio. Entrar a partir de `/minha-agenda` preserva essa rota de retorno.
+
 ## Design system
 
 Não existem quatro bibliotecas de UI independentes. O Agenda Fashion mantém uma fundação compartilhada e tokens contextuais.
