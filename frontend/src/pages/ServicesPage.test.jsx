@@ -105,7 +105,7 @@ describe("editor de serviços", () => {
 
     expect((await screen.findByTestId("onboarding-destination")).textContent)
       .toBe("/painel/horarios?plano=autonoma");
-    expect(refreshSession).toHaveBeenCalledTimes(1);
+    expect(refreshSession).toHaveBeenCalledWith({ silent: true });
   });
 
   it("não bloqueia os horários quando o refresh da sessão falha após a publicação", async () => {
@@ -120,7 +120,7 @@ describe("editor de serviços", () => {
 
     expect((await screen.findByTestId("onboarding-destination")).textContent)
       .toBe("/painel/horarios");
-    expect(refreshSession).toHaveBeenCalledTimes(1);
+    expect(refreshSession).toHaveBeenCalledWith({ silent: true });
   });
 
   it("oferece e envia a categoria Bronzeamento", async () => {
