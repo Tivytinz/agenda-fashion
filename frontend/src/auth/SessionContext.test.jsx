@@ -22,6 +22,9 @@ function SessionProbe() {
       <span>{session.authenticated ? session.usuario?.nome : "Desconectada"}</span>
       <span data-testid="session-loading">{session.loading ? "Carregando" : "Pronta"}</span>
       <button type="button" onClick={session.logout}>Sair</button>
+      <button type="button" onClick={() => session.refresh().catch(() => {})}>
+        Sincronizar
+      </button>
       <button type="button" onClick={() => session.refresh({ silent: true }).catch(() => {})}>
         Sincronizar silenciosamente
       </button>
@@ -376,6 +379,74 @@ describe("sincronização da sessão", () => {
 
     expect(await screen.findByText("Ana Nova")).not.toBeNull();
     expect(localStorage.getItem("session_active")).toBe("1");
+  });
+
+  it("não aplica sucesso antigo depois que um refresh mais novo já começou", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    let finishOlder;
+    let finishNewer;
+    apiRequest
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        finishOlder = resolve;
+      }))
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        finishNewer = resolve;
+      }));
+
+    const syncButton = screen.getByRole("button", { name: "Sincronizar silenciosamente" });
+    fireEvent.click(syncButton);
+    fireEvent.click(syncButton);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(3));
+
+    finishOlder({
+      usuario: { id: 1, nome: "Ana Antiga" },
+      negocio: null,
+      temNegocio: false
+    });
+
+    await waitFor(() => expect(screen.queryByText("Ana Antiga")).toBeNull());
+    expect(screen.getByText("Ana")).not.toBeNull();
+
+    finishNewer({
+      usuario: { id: 1, nome: "Ana Nova" },
+      negocio: null,
+      temNegocio: false
+    });
+
+    expect(await screen.findByText("Ana Nova")).not.toBeNull();
+  });
+
+  it("libera loading se refresh silencioso mais novo falhar após tornar outro refresh obsoleto", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    let finishOlder;
+    apiRequest
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        finishOlder = resolve;
+      }))
+      .mockRejectedValueOnce(new Error("Rede indisponível"));
+
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar" }));
+    expect(screen.getByTestId("session-loading").textContent).toBe("Carregando");
+
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledTimes(3);
+      expect(screen.getByTestId("session-loading").textContent).toBe("Pronta");
+    });
+
+    finishOlder({
+      usuario: { id: 1, nome: "Ana Antiga" },
+      negocio: null,
+      temNegocio: false
+    });
+
+    await waitFor(() => expect(screen.queryByText("Ana Antiga")).toBeNull());
+    expect(screen.getByText("Ana")).not.toBeNull();
   });
 
   it("descarta resposta mais antiga quando refreshes da mesma sessão terminam fora de ordem", async () => {
