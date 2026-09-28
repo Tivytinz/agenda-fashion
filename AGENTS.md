@@ -178,8 +178,11 @@ interface apresenta `Horários` como terceiro momento visível da primeira
 jornada. O objetivo é mostrar que o AF é uma agenda editável sem transformar a
 disponibilidade em requisito de publicação. A atualização de `/minha-sessao`
 após esse salvamento é uma sincronização auxiliar e não pode bloquear a transição
-`Serviço → Horários` por lentidão ou falha transitória. Fotos continuam fora da
-primeira missão e podem ser adicionadas depois no editor normal de Serviços.
+`Serviço → Horários` por lentidão ou falha transitória. Respostas assíncronas de
+sessão também não podem restaurar uma sessão encerrada, sobrescrever uma nova
+autenticação nem substituir um estado mais recente quando refreshes concorrentes
+terminarem fora de ordem. Fotos continuam fora da primeira missão e podem ser
+adicionadas depois no editor normal de Serviços.
 
 Na confirmação rápida:
 
