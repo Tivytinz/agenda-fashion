@@ -632,7 +632,9 @@ export function AgendaWorkspacePage({ owner = false }) {
 
                             {(slot.pode_reagendar ||
                               slot.pode_cancelar ||
-                              slot.pode_marcar_falta) && (
+                              slot.pode_marcar_falta ||
+                              (slot.pode_iniciar_atendimento &&
+                                slot.pode_marcar_realizado)) && (
                               <details className="slot-secondary-actions">
                                 <summary>Mais</summary>
                                 <div className="slot-secondary-actions-menu">
@@ -656,7 +658,20 @@ export function AgendaWorkspacePage({ owner = false }) {
                                       Cancelar agendamento
                                     </button>
                                   )}
-                                  {slot.pode_marcar_falta && (
+                                  {slot.pode_iniciar_atendimento &&
+                                    slot.pode_marcar_realizado && (
+                                      <button
+                                        className="button button-secondary button-small"
+                                        disabled={slotUpdating}
+                                        onClick={() => updateAttendance(slot, "realizado")}
+                                        type="button"
+                                      >
+                                        {updating === `atendimento-${slot.agendamento_id}-realizado`
+                                          ? "Salvando..."
+                                          : "Concluir"}
+                                      </button>
+                                    )}
+                                                                    {slot.pode_marcar_falta && (
                                     <button
                                       className="button button-secondary button-small"
                                       disabled={slotUpdating}
