@@ -15,6 +15,7 @@ import {
 import {
   clearSession,
   clearStoredSessionMetadata,
+  completeLegacySessionMigration,
   getBusinessContextForPath,
   hasSession,
   saveSession,
@@ -38,6 +39,7 @@ export function SessionProvider({ children }) {
   const sessionGenerationRef = useRef(0);
   const refreshRequestRef = useRef(0);
   const lastAppliedRefreshRef = useRef(0);
+  const legacyMigrationAbortRef = useRef(null);
   const [state, setState] = useState(() => {
     const sessionPresent =
       hasSession();
@@ -56,9 +58,22 @@ export function SessionProvider({ children }) {
     };
   });
 
+  const abortLegacyMigration = useCallback(() => {
+    legacyMigrationAbortRef.current?.abort();
+    legacyMigrationAbortRef.current = null;
+  }, []);
+
+  const beginSessionTransition = useCallback(() => {
+    sessionGenerationRef.current += 1;
+    abortLegacyMigration();
+  }, [abortLegacyMigration]);
+
   const refresh = useCallback(async ({ silent = false } = {}) => {
     const requestId = ++refreshRequestRef.current;
     const sessionGeneration = sessionGenerationRef.current;
+    abortLegacyMigration();
+    const migrationController = new AbortController();
+    legacyMigrationAbortRef.current = migrationController;
     const canApply = () => (
       sessionGeneration === sessionGenerationRef.current
       && requestId === refreshRequestRef.current
@@ -77,8 +92,16 @@ export function SessionProvider({ children }) {
     }
 
     try {
-      const migration =
-        await migrateLegacySession();
+      let migration;
+      try {
+        migration = await migrateLegacySession({
+          signal: migrationController.signal
+        });
+      } finally {
+        if (legacyMigrationAbortRef.current === migrationController) {
+          legacyMigrationAbortRef.current = null;
+        }
+      }
 
       if (!canApply()) {
         return null;
@@ -87,8 +110,13 @@ export function SessionProvider({ children }) {
       if (migration.invalid) {
         sessionGenerationRef.current += 1;
         lastAppliedRefreshRef.current = requestId;
+        clearSession();
         setState(SIGNED_OUT_STATE);
         return null;
+      }
+
+      if (migration.migrated || migration.alreadyCookie) {
+        completeLegacySessionMigration();
       }
 
       const result = await apiRequest("/minha-sessao", {
@@ -141,7 +169,7 @@ export function SessionProvider({ children }) {
       }
       throw error;
     }
-  }, []);
+  }, [abortLegacyMigration]);
 
   useEffect(() => {
     refresh().catch(() => {});
@@ -149,7 +177,7 @@ export function SessionProvider({ children }) {
 
   useEffect(() => {
     function handleSessionCleared() {
-      sessionGenerationRef.current += 1;
+      beginSessionTransition();
       setState(SIGNED_OUT_STATE);
     }
 
@@ -165,24 +193,24 @@ export function SessionProvider({ children }) {
       window.removeEventListener(SESSION_CLEARED_EVENT, handleSessionCleared);
       window.removeEventListener("storage", handleStorage);
     };
-  }, []);
+  }, [beginSessionTransition]);
 
   const login = useCallback(async (payload) => {
+    beginSessionTransition();
     const result = await apiRequest("/login", {
       method: "POST",
       body: payload
     });
-    sessionGenerationRef.current += 1;
     saveSession(result);
     return refresh();
-  }, [refresh]);
+  }, [beginSessionTransition, refresh]);
 
   const register = useCallback(async (payload) => {
+    beginSessionTransition();
     const result = await apiRequest("/cadastro", {
       method: "POST",
       body: payload
     });
-    sessionGenerationRef.current += 1;
     saveSession(result);
     const current = await refresh();
 
@@ -190,7 +218,7 @@ export function SessionProvider({ children }) {
       ...current,
       contaCriada: Boolean(result.contaCriada)
     };
-  }, [refresh]);
+  }, [beginSessionTransition, refresh]);
 
   const loginWithGoogle = useCallback(async (
     credential,
@@ -199,6 +227,7 @@ export function SessionProvider({ children }) {
     aceitaNotificacoesWhatsapp,
     perfilProfissional
   ) => {
+    beginSessionTransition();
     const result = await apiRequest("/auth/google", {
       method: "POST",
       body: {
@@ -213,7 +242,6 @@ export function SessionProvider({ children }) {
           : {})
       }
     });
-    sessionGenerationRef.current += 1;
     saveSession(result);
     const current = await refresh();
 
@@ -221,7 +249,7 @@ export function SessionProvider({ children }) {
       ...current,
       contaCriada: Boolean(result.contaCriada)
     };
-  }, [refresh]);
+  }, [beginSessionTransition, refresh]);
 
   const adoptCreatedBusiness = useCallback((business) => {
     const businessId = Number(business?.id);
@@ -240,7 +268,7 @@ export function SessionProvider({ children }) {
       papel: "dono"
     };
 
-    sessionGenerationRef.current += 1;
+    beginSessionTransition();
 
     setState((current) => {
       if (!current.authenticated) {
@@ -261,10 +289,10 @@ export function SessionProvider({ children }) {
     });
 
     return true;
-  }, []);
+  }, [beginSessionTransition]);
 
   const logout = useCallback(async () => {
-    sessionGenerationRef.current += 1;
+    beginSessionTransition();
     clearSession();
     setState(SIGNED_OUT_STATE);
 
@@ -275,7 +303,7 @@ export function SessionProvider({ children }) {
     } catch {
       // A saída local precisa funcionar mesmo durante uma falha de rede.
     }
-  }, []);
+  }, [beginSessionTransition]);
 
   const routeSession = useMemo(() => ({
     ...state,
