@@ -136,7 +136,7 @@ A existência dessa sugestão permite que o AF apresente uma agenda utilizável 
 - `personalizado`: a profissional salvou sua disponibilidade;
 - `legado_desconhecido`: configuração histórica cuja origem não pode ser provada.
 
-Ao salvar a agenda pelo fluxo atual, o backend marca `origem_horarios = personalizado` e a profissional pode editar dias, faixas, pausas, duração padrão, intervalos e antecedências quando quiser no painel. Na primeira jornada da dona, a conclusão usa o marcador navegável `?onboarding=divulgacao` em `/painel/horarios`; assim, refresh ou reabertura imediata preserva a missão de compartilhar o perfil sem depender apenas de estado transitório do React.
+Ao salvar a agenda pelo fluxo atual, o backend marca `origem_horarios = personalizado` e a profissional pode editar dias, faixas, pausas, duração padrão, intervalos e antecedências quando quiser no painel. Na primeira jornada da dona, a conclusão usa o marcador navegável `?onboarding=divulgacao` em `/painel/horarios`; assim, refresh ou reabertura imediata pode preservar a missão sem depender apenas de estado transitório do React. Na restauração, porém, o frontend confirma a próxima ação canônica no backend e só reabre a divulgação quando ela ainda for `CONQUISTAR_PRIMEIRO_AGENDAMENTO`. Uma URL antiga não deve reapresentar onboarding depois de `ATIVADO` nem sobrepor uma regressão canônica para serviço/publicação.
 
 A disponibilidade sugerida nunca deve sobrescrever silenciosamente uma agenda comprovadamente personalizada.
 

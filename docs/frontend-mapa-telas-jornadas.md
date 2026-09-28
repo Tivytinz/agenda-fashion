@@ -144,6 +144,7 @@ conta
 
 ### Invariantes de UX
 
+- após criar um negócio novo, a navegação sempre continua no primeiro serviço; um `state.from` anterior não pode pular essa etapa;
 - apenas `Negócio` e `Serviço` preparam a publicação;
 - `Horários` aparece depois que o backend já confirmou a publicação;
 - horário não volta a ser gate de publicação;
@@ -151,7 +152,7 @@ conta
 - não existe ação `Pular por agora` nessa etapa;
 - falha ao salvar horários impede avanço;
 - confirmação e ajuste manual convergem para divulgação do perfil;
-- a conclusão usa `?onboarding=divulgacao` como marcador navegável, para que refresh/reabertura preserve a missão sem depender apenas de estado React;
+- a conclusão usa `?onboarding=divulgacao` como marcador navegável; em refresh/reabertura, a missão só é restaurada se a próxima ação canônica do backend ainda for `CONQUISTAR_PRIMEIRO_AGENDAMENTO`;
 - intenção de plano pode atravessar Negócio → Serviço → Horários, mas não provoca
   checkout automático ao concluir a agenda;
 - a missão pós-publicação prioriza divulgação e primeiro booking antes de

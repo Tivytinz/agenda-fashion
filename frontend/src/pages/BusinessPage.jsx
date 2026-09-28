@@ -4,8 +4,7 @@ import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
 import {
   getPlanIntentPath,
-  normalizePlanSlug,
-  safeInternalPath
+  normalizePlanSlug
 } from "../auth/session";
 import { BackLink } from "../components/BackLink";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
@@ -381,22 +380,16 @@ export function BusinessPage({ create = false }) {
       if (result.publicacao) setPublication(result.publicacao);
       await session.refresh();
       if (create) {
-        const requestedPath = safeInternalPath(location.state?.from);
-
-        if (!selectedPlan && requestedPath) {
-          navigate(requestedPath, { replace: true });
-        } else {
-          navigate(getPlanIntentPath(
-            FIRST_SERVICE_ONBOARDING_PATH,
-            selectedPlan
-          ), {
-            replace: true,
-            state: {
-              onboarding: true,
-              onboardingStep: "servico"
-            }
-          });
-        }
+        navigate(getPlanIntentPath(
+          FIRST_SERVICE_ONBOARDING_PATH,
+          selectedPlan
+        ), {
+          replace: true,
+          state: {
+            onboarding: true,
+            onboardingStep: "servico"
+          }
+        });
       } else if (
         location.state?.onboarding === true
         && location.state?.onboardingStep === "perfil"

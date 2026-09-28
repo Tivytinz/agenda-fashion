@@ -169,6 +169,10 @@ inicial:
 - sábado: 08:00–13:00;
 - domingo: fechado.
 
+Na criação inicial, o sucesso de `/criar-negocio` sempre continua em
+`/painel/servicos/novo?onboarding=servico`. Um `state.from` herdado de uma
+tentativa anterior de abrir o workspace não pode pular o primeiro serviço.
+
 Depois que o primeiro serviço é salvo e o backend confirma a publicação, a
 interface apresenta `Horários` como terceiro momento visível da primeira
 jornada. O objetivo é mostrar que o AF é uma agenda editável sem transformar a
@@ -188,8 +192,12 @@ sugestão quanto o ajuste manual convergem para a missão de **divulgar o perfil
 e conquistar o primeiro agendamento. Essa conclusão usa
 `/painel/horarios?onboarding=divulgacao` como marcador navegável para preservar
 a missão em refresh/reabertura, sem depender apenas de estado transitório do
-React. Uma intenção válida de plano pago pode ser preservada durante
-`Negócio → Serviço → Horários`, mas não deve redirecionar automaticamente ao
+React. Ao restaurar esse marcador, a interface deve confirmar a próxima ação
+canônica no backend e só reabrir a divulgação enquanto o estado for
+`CONQUISTAR_PRIMEIRO_AGENDAMENTO`; URLs antigas não podem ressuscitar a missão
+depois de `ATIVADO` ou de uma regressão canônica. Uma intenção válida de plano
+pago pode ser preservada durante `Negócio → Serviço → Horários`, mas não deve
+redirecionar automaticamente ao
 checkout nessa conclusão nem competir com a ativação. Upgrade e checkout
 permanecem ações explícitas/contextuais posteriores.
 

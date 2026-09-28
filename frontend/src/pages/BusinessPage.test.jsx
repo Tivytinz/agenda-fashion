@@ -83,6 +83,75 @@ describe("publicação do negócio", () => {
       .toBe("/painel/horarios?plano=autonoma|agenda");
   });
 
+  it("não deixa state.from pular o primeiro serviço depois de criar o negócio", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/cep/74000123") {
+        return Promise.resolve({
+          cep: "74000123",
+          endereco: "Rua das Flores",
+          bairro: "Centro",
+          cidade: "Goiânia",
+          estado: "GO"
+        });
+      }
+
+      if (path === "/criar-negocio" && options.method === "POST") {
+        return Promise.resolve({
+          mensagem: "Negócio criado.",
+          negocio: BUSINESS
+        });
+      }
+
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(
+      <MemoryRouter initialEntries={[{
+        pathname: "/criar-negocio",
+        state: { from: "/painel/agenda" }
+      }]}>
+        <Routes>
+          <Route path="/criar-negocio" element={<BusinessPage create />} />
+          <Route path="/painel/servicos/novo" element={<ActivationDestination />} />
+          <Route path="/painel/agenda" element={<h1>Agenda pulada</h1>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText("Nome do negócio"), {
+      target: { value: "Studio Victor" }
+    });
+    fireEvent.click(screen.getByLabelText("Unhas"));
+    fireEvent.change(screen.getByLabelText(/WhatsApp/), {
+      target: { value: "62 99999-9999" }
+    });
+    fireEvent.change(screen.getByLabelText(/Link do Google Maps/), {
+      target: { value: "https://maps.google.com/?q=goiania" }
+    });
+    fireEvent.change(screen.getByLabelText(/CEP/), {
+      target: { value: "74000-123" }
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Endereço").value).toBe("Rua das Flores");
+      expect(screen.getByLabelText("Bairro").value).toBe("Centro");
+      expect(screen.getByLabelText("Cidade").value).toBe("Goiânia");
+      expect(screen.getByRole("combobox", { name: "Estado" }).value).toBe("GO");
+    });
+
+    fireEvent.change(screen.getByLabelText("Número"), {
+      target: { value: "10" }
+    });
+    fireEvent.submit(screen.getByRole("button", { name: "Criar negócio" }).closest("form"));
+
+    expect(await screen.findByRole("heading", { name: "Primeiro serviço" }))
+      .not.toBeNull();
+    expect(screen.getByTestId("activation-destination").textContent)
+      .toBe("/painel/servicos/novo?onboarding=servico|servico");
+    expect(screen.queryByRole("heading", { name: "Agenda pulada" }))
+      .toBeNull();
+  });
+
   it("continua a ativação no primeiro serviço sem abrir checkout de um plano pago", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/cep/74000123") {

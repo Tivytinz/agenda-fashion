@@ -321,11 +321,31 @@ export function ScheduleSettingsPage() {
     }
 
     let active = true;
-    loadBusinessContext().then((publicationState) => {
-      if (active && publicationState !== false) {
-        setActivationNextStep(true);
-      }
-    });
+
+    Promise.all([
+      loadBusinessContext(),
+      apiRequest("/dashboard-dono?periodo=7dias")
+    ])
+      .then(([publicationState, dashboard]) => {
+        if (!active) return;
+
+        const activationState =
+          dashboard?.proxima_acao_ativacao?.estado;
+
+        if (
+          publicationState !== false
+          && activationState === "CONQUISTAR_PRIMEIRO_AGENDAMENTO"
+        ) {
+          setActivationNextStep(true);
+          return;
+        }
+
+        navigate("/painel", { replace: true });
+      })
+      .catch(() => {
+        // A URL de onboarding não deve afirmar uma missão sem confirmar
+        // o estado canônico da ativação no backend.
+      });
 
     return () => {
       active = false;
@@ -335,6 +355,7 @@ export function ScheduleSettingsPage() {
     config?.origemHorarios,
     contextoAgenda,
     loadBusinessContext,
+    navigate,
     shareOnboardingRequested
   ]);
 
