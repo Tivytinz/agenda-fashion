@@ -61,11 +61,8 @@ export function SessionProvider({ children }) {
     const sessionGeneration = sessionGenerationRef.current;
     const canApply = () => (
       sessionGeneration === sessionGenerationRef.current
-      && requestId > lastAppliedRefreshRef.current
-    );
-    const canApplyDestructiveResult = () => (
-      canApply()
       && requestId === refreshRequestRef.current
+      && requestId > lastAppliedRefreshRef.current
     );
 
     if (!hasSession()) {
@@ -88,10 +85,6 @@ export function SessionProvider({ children }) {
       }
 
       if (migration.invalid) {
-        if (!canApplyDestructiveResult()) {
-          return null;
-        }
-
         sessionGenerationRef.current += 1;
         lastAppliedRefreshRef.current = requestId;
         setState(SIGNED_OUT_STATE);
@@ -137,15 +130,13 @@ export function SessionProvider({ children }) {
       }
 
       if (error.status === 401 || error.status === 403) {
-        if (!canApplyDestructiveResult()) {
-          return null;
-        }
-
         sessionGenerationRef.current += 1;
         lastAppliedRefreshRef.current = requestId;
         clearSession();
         setState(SIGNED_OUT_STATE);
-      } else if (!silent) {
+      } else {
+        // Se este refresh silencioso tornou um refresh bloqueante anterior
+        // obsoleto, a falha transitória também precisa liberar o loading.
         setState((current) => ({ ...current, loading: false }));
       }
       throw error;
