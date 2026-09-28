@@ -340,6 +340,44 @@ describe("sincronização da sessão", () => {
     expect(localStorage.getItem("session_active")).toBe("1");
   });
 
+  it("ignora 401 de refresh antigo assim que um refresh mais novo já começou", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    let rejectOlder;
+    let finishNewer;
+    apiRequest
+      .mockImplementationOnce(() => new Promise((_resolve, reject) => {
+        rejectOlder = reject;
+      }))
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        finishNewer = resolve;
+      }));
+
+    const syncButton = screen.getByRole("button", { name: "Sincronizar silenciosamente" });
+    fireEvent.click(syncButton);
+    fireEvent.click(syncButton);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(3));
+
+    const unauthorized = new Error("Refresh antigo expirou");
+    unauthorized.status = 401;
+    rejectOlder(unauthorized);
+
+    await waitFor(() => {
+      expect(screen.getByText("Ana")).not.toBeNull();
+      expect(localStorage.getItem("session_active")).toBe("1");
+    });
+
+    finishNewer({
+      usuario: { id: 1, nome: "Ana Nova" },
+      negocio: null,
+      temNegocio: false
+    });
+
+    expect(await screen.findByText("Ana Nova")).not.toBeNull();
+    expect(localStorage.getItem("session_active")).toBe("1");
+  });
+
   it("descarta resposta mais antiga quando refreshes da mesma sessão terminam fora de ordem", async () => {
     renderSession();
     expect(await screen.findByText("Ana")).not.toBeNull();
