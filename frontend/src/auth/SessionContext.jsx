@@ -72,8 +72,6 @@ export function SessionProvider({ children }) {
     const requestId = ++refreshRequestRef.current;
     const sessionGeneration = sessionGenerationRef.current;
     abortLegacyMigration();
-    const migrationController = new AbortController();
-    legacyMigrationAbortRef.current = migrationController;
     const canApply = () => (
       sessionGeneration === sessionGenerationRef.current
       && requestId === refreshRequestRef.current
@@ -90,6 +88,9 @@ export function SessionProvider({ children }) {
     if (!silent) {
       setState((current) => ({ ...current, loading: true }));
     }
+
+    const migrationController = new AbortController();
+    legacyMigrationAbortRef.current = migrationController;
 
     try {
       let migration;
@@ -174,6 +175,10 @@ export function SessionProvider({ children }) {
   useEffect(() => {
     refresh().catch(() => {});
   }, [refresh]);
+
+  useEffect(() => () => {
+    abortLegacyMigration();
+  }, [abortLegacyMigration]);
 
   useEffect(() => {
     function handleSessionCleared() {
