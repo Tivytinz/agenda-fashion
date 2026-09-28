@@ -87,7 +87,7 @@ O primeiro serviço deve priorizar somente os dados necessários para colocar a 
 - valor;
 - duração.
 
-Descrição e fotos do serviço podem ser aprimoradas depois. Durante a primeira missão, o serviço nasce ativo para não criar uma pendência contraditória antes da publicação. Se o serviço principal for salvo, uma falha posterior no upload opcional de capa ou galeria não interrompe a progressão para Horários: a interface informa a pendência e a mídia pode ser adicionada depois em Serviços.
+Descrição e fotos do serviço podem ser aprimoradas depois e não aparecem na primeira missão. Durante essa missão, o serviço nasce ativo para não criar uma pendência contraditória antes da publicação. Depois que o backend salva o serviço e confirma a publicação, uma atualização auxiliar da sessão pode ocorrer em segundo plano, mas lentidão ou falha transitória nessa sincronização não deve impedir a progressão para Horários.
 
 Depois de salvar o primeiro serviço ativo, o backend recalcula a elegibilidade do negócio. A publicação automática exige simultaneamente:
 
