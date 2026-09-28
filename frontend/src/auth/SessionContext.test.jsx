@@ -25,6 +25,12 @@ function SessionProbe() {
       <button type="button" onClick={() => session.refresh({ silent: true }).catch(() => {})}>
         Sincronizar silenciosamente
       </button>
+      <button
+        type="button"
+        onClick={() => session.login({ email: "bruna@example.com", senha: "senha" }).catch(() => {})}
+      >
+        Entrar como Bruna
+      </button>
     </>
   );
 }
@@ -194,6 +200,126 @@ describe("sincronização da sessão", () => {
 
     await waitFor(() => expect(screen.getByText("Desconectada")).not.toBeNull());
     expect(localStorage.getItem("session_active")).toBeNull();
+  });
+
+  it("não restaura a sessão quando um refresh antigo termina depois do logout", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    let finishOldRefresh;
+    apiRequest.mockImplementationOnce(() => new Promise((resolve) => {
+      finishOldRefresh = resolve;
+    }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
+
+    fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+    expect(screen.getByText("Desconectada")).not.toBeNull();
+
+    finishOldRefresh({
+      usuario: { id: 1, nome: "Ana Obsoleta" },
+      negocio: { id: 9, nome: "Studio Ana", papel: "dono" },
+      temNegocio: true
+    });
+
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith("/logout", {
+      method: "POST"
+    }));
+    expect(screen.getByText("Desconectada")).not.toBeNull();
+    expect(screen.queryByText("Ana Obsoleta")).toBeNull();
+    expect(localStorage.getItem("session_active")).toBeNull();
+  });
+
+  it("não deixa refresh da conta anterior sobrescrever um novo login", async () => {
+    let finishOldRefresh;
+    let sessionReads = 0;
+
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/minha-sessao") {
+        sessionReads += 1;
+        if (sessionReads === 1) {
+          return Promise.resolve({
+            usuario: { id: 1, nome: "Ana" },
+            negocio: null,
+            temNegocio: false
+          });
+        }
+        if (sessionReads === 2) {
+          return new Promise((resolve) => {
+            finishOldRefresh = resolve;
+          });
+        }
+        return Promise.resolve({
+          usuario: { id: 2, nome: "Bruna" },
+          negocio: { id: 12, nome: "Studio Bruna", papel: "dono" },
+          temNegocio: true
+        });
+      }
+
+      if (path === "/login" && options.method === "POST") {
+        return Promise.resolve({
+          usuario: { id: 2, nome: "Bruna" }
+        });
+      }
+
+      return Promise.resolve({});
+    });
+
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
+    await waitFor(() => expect(sessionReads).toBe(2));
+
+    fireEvent.click(screen.getByRole("button", { name: "Entrar como Bruna" }));
+    expect(await screen.findByText("Bruna")).not.toBeNull();
+
+    finishOldRefresh({
+      usuario: { id: 1, nome: "Ana Obsoleta" },
+      negocio: { id: 9, nome: "Studio Ana", papel: "dono" },
+      temNegocio: true
+    });
+
+    await waitFor(() => expect(sessionReads).toBe(3));
+    expect(screen.getByText("Bruna")).not.toBeNull();
+    expect(screen.queryByText("Ana Obsoleta")).toBeNull();
+  });
+
+  it("descarta resposta mais antiga quando refreshes da mesma sessão terminam fora de ordem", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    let finishOlder;
+    let finishNewer;
+    apiRequest
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        finishOlder = resolve;
+      }))
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        finishNewer = resolve;
+      }));
+
+    const syncButton = screen.getByRole("button", { name: "Sincronizar silenciosamente" });
+    fireEvent.click(syncButton);
+    fireEvent.click(syncButton);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(3));
+
+    finishNewer({
+      usuario: { id: 1, nome: "Ana Nova" },
+      negocio: null,
+      temNegocio: false
+    });
+    expect(await screen.findByText("Ana Nova")).not.toBeNull();
+
+    finishOlder({
+      usuario: { id: 1, nome: "Ana Antiga" },
+      negocio: null,
+      temNegocio: false
+    });
+
+    await waitFor(() => expect(screen.getByText("Ana Nova")).not.toBeNull());
+    expect(screen.queryByText("Ana Antiga")).toBeNull();
   });
 
   it("limpa a sessão local e encerra o cookie no servidor", async () => {
