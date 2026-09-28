@@ -1,5 +1,33 @@
 @import "./professional-design-system.css";
 
+.professional-skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  transform: translateY(-160%);
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: #fff;
+  background: var(--professional-brand-strong);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.professional-skip-link:focus {
+  transform: translateY(0);
+}
+
+.professional-shell :where(a, button, input, textarea, select, summary):focus-visible {
+  outline: 3px solid var(--professional-brand-strong);
+  outline-offset: 3px;
+}
+
+.professional-content:focus {
+  outline: none;
+}
+
+
 html.professional-context-active .app-shell > .site-header,
 html.professional-context-active .app-shell > .legal-footer {
   display: none;
