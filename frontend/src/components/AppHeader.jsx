@@ -29,6 +29,15 @@ export function AppHeader() {
     location.pathname === "/para-profissionais" &&
     !session.authenticated;
 
+  const focusedBooking =
+    location.pathname === "/confirmar" ||
+    location.pathname === "/sucesso";
+
+  const clientArea =
+    location.pathname === "/cliente/conta" ||
+    location.pathname === "/favoritos" ||
+    location.pathname === "/minha-agenda";
+
   const homePage = location.pathname === "/";
 
   const adminArea =
@@ -59,6 +68,7 @@ export function AppHeader() {
 
   const showDiscoveryNavigation =
     !focusedProfessionalLanding &&
+    !focusedBooking &&
     !operationalArea;
 
   useEffect(() => {
@@ -95,14 +105,17 @@ export function AppHeader() {
     .charAt(0)
     .toLocaleUpperCase("pt-BR");
 
-  const workspaceLabel = session.temNegocio
-    ? "Área de trabalho"
-    : "Criar negócio";
+  const workspaceLabel = "Ir para área de trabalho";
+  const accountPath = operationalArea
+    ? "/conta"
+    : "/cliente/conta";
 
   const headerClassName = [
     "site-header",
     homePage ? "home-site-header" : "",
-    adminArea ? "admin-site-header" : ""
+    adminArea ? "admin-site-header" : "",
+    focusedBooking ? "booking-focus-header" : "",
+    clientArea ? "client-site-header" : ""
   ]
     .filter(Boolean)
     .join(" ");
@@ -138,6 +151,7 @@ export function AppHeader() {
           </span>
         </Link>
 
+        {!focusedBooking && (
         <nav
           aria-label="Navegação principal"
           className="public-navigation"
@@ -225,13 +239,26 @@ export function AppHeader() {
               </summary>
 
               <div className="header-account-popover">
-                <NavLink to="/conta">
+                <NavLink to={accountPath}>
                   Minha conta
                 </NavLink>
 
-                <NavLink to="/convites">
-                  Convites de equipe
-                </NavLink>
+                {!operationalArea && (
+                  <>
+                    <NavLink to="/minha-agenda">
+                      Meus agendamentos
+                    </NavLink>
+                    <NavLink to="/favoritos">
+                      Favoritos
+                    </NavLink>
+                  </>
+                )}
+
+                {operationalArea && (
+                  <NavLink to="/convites">
+                    Convites de equipe
+                  </NavLink>
+                )}
 
                 {session.ehAdministrador && !adminArea && (
                   <NavLink to="/admin">
@@ -239,8 +266,7 @@ export function AppHeader() {
                   </NavLink>
                 )}
 
-                {!businessArea &&
-                  (!session.ehAdministrador || session.temNegocio) && (
+                {!businessArea && session.temNegocio && (
                   <NavLink to={getBusinessWorkspacePath(session)}>
                     {workspaceLabel}
                   </NavLink>
@@ -284,6 +310,7 @@ export function AppHeader() {
             </NavLink>
           )}
         </nav>
+        )}
       </div>
     </header>
   );
