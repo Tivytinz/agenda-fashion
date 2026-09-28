@@ -1,6 +1,8 @@
 import { useLayoutEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
+import { readRecentAppointment } from "../utils/appointments";
+import { ClientMobileNavigation } from "./ClientMobileNavigation";
 import "../styles/public-shell.css";
 
 function isOperationalContext(pathname, session) {
@@ -17,6 +19,21 @@ export function PublicShell({ children }) {
   const location = useLocation();
   const session = useSession();
   const publicContext = !isOperationalContext(location.pathname, session);
+  const focusedBooking = location.pathname === "/confirmar";
+  const guestAppointmentAvailable =
+    !session.authenticated &&
+    (
+      location.pathname === "/minha-agenda" ||
+      location.pathname === "/sucesso" ||
+      Boolean(readRecentAppointment())
+    );
+  const showClientNavigation =
+    publicContext &&
+    !focusedBooking &&
+    (
+      session.authenticated ||
+      guestAppointmentAvailable
+    );
 
   useLayoutEffect(() => {
     document.documentElement.classList.toggle("public-context-active", publicContext);
@@ -31,8 +48,19 @@ export function PublicShell({ children }) {
   }
 
   return (
-    <div className="public-shell" data-frontend-context="public">
+    <div
+      className={showClientNavigation
+        ? "public-shell client-navigation-active"
+        : "public-shell"}
+      data-frontend-context="public"
+    >
       {children}
+      {showClientNavigation && (
+        <ClientMobileNavigation
+          authenticated={session.authenticated === true}
+          guestAppointmentAvailable={guestAppointmentAvailable}
+        />
+      )}
     </div>
   );
 }
