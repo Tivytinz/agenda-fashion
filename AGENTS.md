@@ -191,10 +191,12 @@ geração da sessão, qualquer sucesso ou erro do refresh anterior se torna obso
 e não pode alterar o `SessionContext`. Em `/minha-sessao`, inclusive o tratamento de
 `401/403` pertence ao `SessionContext`, que conhece a geração da requisição;
 o cliente HTTP não deve limpar globalmente uma sessão mais nova por causa de uma
-resposta obsoleta. A migração do Bearer legado para cookie segue a mesma regra:
-a operação de rede deve ser cancelável, não pode alterar o storage antes de a
-geração atual confirmar o resultado e deve ser abortada antes de login, cadastro,
-logout ou outra transição que assuma uma nova geração da sessão. Fotos continuam
+resposta obsoleta. A sincronização canônica de sessão deve ser cancelável até
+o fim de `/minha-sessao`, porque uma resposta HTTP obsoleta também pode alterar o
+cookie HttpOnly no backend. A migração do Bearer legado para cookie segue a mesma
+regra: não pode alterar o storage antes de a geração atual confirmar o resultado
+e toda sincronização pendente deve ser abortada antes de login, cadastro, logout
+ou outra transição que assuma uma nova geração da sessão. Fotos continuam
 fora da primeira missão e podem ser
 adicionadas depois no editor normal de Serviços.
 
