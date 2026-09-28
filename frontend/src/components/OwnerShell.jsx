@@ -98,8 +98,7 @@ export function OwnerShell({ children, links = [] }) {
 
         <section className="owner-content" id="owner-content" tabIndex={-1}>
           <ShellContentBoundary>
-          {children || <Outlet />}
-        
+            {children || <Outlet />}
           </ShellContentBoundary>
         </section>
       </div>
