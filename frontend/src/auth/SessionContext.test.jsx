@@ -103,22 +103,10 @@ describe("sincronização da sessão", () => {
     );
 
     migrateLegacySession
-      .mockImplementation(
-        async () => {
-          localStorage.removeItem(
-            "token"
-          );
-          localStorage.setItem(
-            "session_active",
-            "1"
-          );
-
-          return {
-            attempted: true,
-            migrated: true
-          };
-        }
-      );
+      .mockResolvedValue({
+        attempted: true,
+        migrated: true
+      });
 
     renderSession();
 
@@ -145,6 +133,118 @@ describe("sincronização da sessão", () => {
     ).toBeLessThan(
       apiRequest
         .mock.invocationCallOrder[0]
+    );
+    expect(
+      migrateLegacySession
+    ).toHaveBeenCalledWith({
+      signal: expect.any(AbortSignal)
+    });
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(localStorage.getItem("session_active")).toBe("1");
+  });
+
+  it("cancela migração legada pendente antes de autenticar outra conta", async () => {
+    localStorage.removeItem("session_active");
+    localStorage.setItem("token", "jwt-legado");
+
+    let migrationSignal;
+    migrateLegacySession
+      .mockImplementationOnce(({ signal }) => new Promise((_resolve, reject) => {
+        migrationSignal = signal;
+        signal.addEventListener("abort", () => {
+          reject(new DOMException("Abortada", "AbortError"));
+        });
+      }))
+      .mockResolvedValueOnce({
+        attempted: false,
+        migrated: false
+      });
+
+    apiRequest.mockImplementation((path) => {
+      if (path === "/login") {
+        return Promise.resolve({
+          usuario: { id: 2, nome: "Bruna" }
+        });
+      }
+
+      if (path === "/minha-sessao") {
+        return Promise.resolve({
+          usuario: { id: 2, nome: "Bruna" },
+          negocio: { id: 12, nome: "Studio Bruna", papel: "dono" },
+          temNegocio: true
+        });
+      }
+
+      return Promise.resolve({});
+    });
+
+    renderSession();
+    await waitFor(() => expect(migrateLegacySession).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("button", { name: "Entrar como Bruna" }));
+
+    expect(await screen.findByText("Bruna")).not.toBeNull();
+    expect(migrationSignal.aborted).toBe(true);
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(localStorage.getItem("session_active")).toBe("1");
+  });
+
+  it("cancela migração legada pendente antes do logout", async () => {
+    localStorage.removeItem("session_active");
+    localStorage.setItem("token", "jwt-legado");
+
+    let migrationSignal;
+    migrateLegacySession
+      .mockImplementationOnce(({ signal }) => new Promise((_resolve, reject) => {
+        migrationSignal = signal;
+        signal.addEventListener("abort", () => {
+          reject(new DOMException("Abortada", "AbortError"));
+        });
+      }));
+
+    apiRequest.mockImplementation((path) => {
+      if (path === "/logout") {
+        return Promise.resolve({});
+      }
+
+      return Promise.resolve({
+        usuario: { id: 1, nome: "Ana" },
+        negocio: null,
+        temNegocio: false
+      });
+    });
+
+    renderSession();
+    await waitFor(() => expect(migrateLegacySession).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+
+    expect(screen.getByText("Desconectada")).not.toBeNull();
+    expect(migrationSignal.aborted).toBe(true);
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(localStorage.getItem("session_active")).toBeNull();
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith("/logout", {
+      method: "POST"
+    }));
+  });
+
+  it("limpa a sessão somente quando a migração inválida ainda pertence à geração atual", async () => {
+    localStorage.removeItem("session_active");
+    localStorage.setItem("token", "jwt-expirado");
+    migrateLegacySession.mockResolvedValueOnce({
+      attempted: true,
+      migrated: false,
+      invalid: true
+    });
+
+    renderSession();
+
+    await waitFor(() => expect(screen.getByText("Desconectada")).not.toBeNull());
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(localStorage.getItem("session_active")).toBeNull();
+    expect(apiRequest).not.toHaveBeenCalledWith(
+      "/minha-sessao",
+      expect.anything()
     );
   });
 
