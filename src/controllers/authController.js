@@ -15,19 +15,8 @@ const passwordResetService = require(
   "../services/passwordResetService"
 );
 
-const authSessionRepository = require(
-  "../repositories/authSessionRepository"
-);
-const {
-  hashToken,
-  verificarToken,
-} = require(
-  "../utils/sessionToken"
-);
-const {
-  tokenAnteriorATrocaDeSenha,
-} = require(
-  "../middlewares/auth"
+const authSessionValidationService = require(
+  "../services/authSessionValidationService"
 );
 
 const {
@@ -282,59 +271,6 @@ async function redefinirSenha(
   }
 }
 
-async function cookieSessaoEstaValido(
-  token
-) {
-  let decoded;
-
-  try {
-    decoded =
-      verificarToken(token);
-  } catch (erro) {
-    if (
-      [
-        "TokenExpiredError",
-        "JsonWebTokenError",
-        "NotBeforeError",
-      ].includes(
-        erro.name
-      )
-    ) {
-      return false;
-    }
-
-    throw erro;
-  }
-
-  if (!decoded?.id) {
-    return false;
-  }
-
-  const estadoDaSessao =
-    await authSessionRepository
-      .buscarEstadoDaSessao(
-        decoded.id,
-        hashToken(token)
-      );
-
-  return Boolean(
-    estadoDaSessao
-    && Number(
-      estadoDaSessao.id
-    ) === Number(
-      decoded.id
-    )
-    && estadoDaSessao.ativo === true
-    && estadoDaSessao
-      .token_revogado !== true
-    && !tokenAnteriorATrocaDeSenha(
-      decoded,
-      estadoDaSessao
-        .senha_alterada_em
-    )
-  );
-}
-
 async function migrarSessaoLegada(
   req,
   res,
@@ -355,9 +291,10 @@ async function migrarSessaoLegada(
     // impedir que um Bearer legado já autenticado conclua a migração.
     if (tokenCookie) {
       if (
-        await cookieSessaoEstaValido(
-          tokenCookie
-        )
+        await authSessionValidationService
+          .cookieSessaoEstaValido(
+            tokenCookie
+          )
       ) {
         return res
           .status(200)
