@@ -1230,3 +1230,12 @@ summary:focus-visible {
 .plan-upgrade-opportunity .quick-actions {
   align-items: center;
 }
+
+
+.visitor-secure-access {
+  margin-top: 16px;
+}
+
+.booking-focus-header .brand {
+  margin-inline: auto;
+}
