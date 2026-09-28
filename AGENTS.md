@@ -90,6 +90,12 @@ Uma mesma conta pode atuar em mais de um contexto. O frontend muda navegação e
 apresentação conforme rota, sessão e vínculos, mas essas escolhas não substituem
 a autorização do backend.
 
+O contexto cliente pode ser expresso por `/cliente/conta` mesmo quando a mesma
+identidade também é dona, profissional ou administradora. Essa rota preserva a
+experiência pública/cliente e não deve trocar silenciosamente para um workspace
+operacional. `/conta` permanece rota dinâmica de compatibilidade para os demais
+contextos.
+
 O perfil profissional pertence à identidade única da conta e é marcado por
 `usuarios.perfil_profissional_ativado_em`. Cadastro com intenção profissional,
 criação do próprio negócio e aceite válido de convite ativam esse perfil sem criar
@@ -264,7 +270,10 @@ Regras duráveis:
 O `client_id` interno de `agendamentos` aponta para `clientes`; o
 `cliente_id` legado continua sendo apenas o vínculo opcional com uma conta
 autenticada em `usuarios`. Visitantes também possuem Client interno sem ganhar
-credencial de login.
+credencial de login. Um booking visitante não é automaticamente reivindicado
+por uma conta criada depois apenas por coincidência de nome ou WhatsApp; a posse
+continua vinculada à capability específica da reserva. Qualquer reconciliação
+futura exige mecanismo explícito e seguro de verificação de posse.
 
 ## Planos e monetização
 
