@@ -1,6 +1,6 @@
 # Ativação profissional: UX da primeira jornada
 
-> **Papel documental:** fonte canônica para a UX da primeira jornada profissional até publicação, horários e encaminhamento para primeiro agendamento/checkout.
+> **Papel documental:** fonte canônica para a UX da primeira jornada profissional até publicação, horários e encaminhamento para divulgação e primeiro agendamento.
 
 Este documento registra decisões duráveis da primeira jornada da profissional no Agenda Fashion.
 
@@ -8,7 +8,7 @@ Este documento registra decisões duráveis da primeira jornada da profissional 
 
 A primeira experiência deve levar a profissional ao valor com uma jornada curta, clara e com dados estruturais suficientes para publicar um perfil utilizável:
 
-`conta → negócio completo → primeiro serviço → publicação automática → confirmação rápida da agenda → compartilhar perfil/checkout → primeiro agendamento`
+`conta → negócio completo → primeiro serviço → publicação automática → confirmação rápida da agenda → compartilhar perfil → primeiro agendamento`
 
 A preparação necessária para publicar possui duas etapas:
 
@@ -17,13 +17,12 @@ A preparação necessária para publicar possui duas etapas:
 
 Depois que o primeiro serviço torna o negócio elegível e a publicação é confirmada pelo backend, a interface apresenta um terceiro momento visível, `Horários`, para mostrar que o Agenda Fashion também é uma agenda editável. Essa etapa não participa do gate de publicação: o perfil já está publicado antes dela.
 
-Na primeira passagem pelos horários, o AF mostra a disponibilidade sugerida e oferece três caminhos:
+Na primeira passagem pelos horários, o AF mostra a disponibilidade sugerida e oferece dois caminhos:
 
 - `Confirmar horários`: grava a sugestão exibida e continua;
-- `Pular por agora`: pula somente a edição manual, grava a mesma sugestão exibida e continua;
 - `Ajustar horários`: abre o editor para a profissional personalizar a disponibilidade antes de salvar.
 
-Assim, “pular” nunca significa deixar a agenda sem persistência conhecida. A profissional pode editar a disponibilidade novamente quando quiser.
+Os dois caminhos convergem, depois do salvamento bem-sucedido, para a missão de divulgar o perfil. A profissional pode editar a disponibilidade novamente quando quiser.
 
 A interface deve evitar decisões que não pertencem ao momento atual, sem sacrificar a qualidade dos dados estruturais do negócio.
 
@@ -73,7 +72,7 @@ Descrição, foto e complemento são opcionais. O upload de foto continua aconte
 
 O backend é a fonte de verdade desses requisitos. Não basta o frontend apresentar seletores ou máscaras: WhatsApp, CEP, UF, URL e demais campos obrigatórios continuam validados no servidor.
 
-Na criação padrão, a interface deve continuar diretamente para o cadastro do primeiro serviço. Isso também vale quando a profissional chega com um plano pago pré-selecionado: a escolha pode ser carregada como intenção durante `Negócio → Serviço → Horários`, mas o checkout não deve abrir antes de o primeiro serviço ser salvo e o perfil estar publicado. Depois da publicação, o fluxo apresenta primeiro os horários sugeridos. Ao confirmar ou pular a edição dos horários, uma intenção de plano pago segue para o checkout; sem intenção de plano pago, segue para o painel e para a próxima missão do produto.
+Na criação padrão, a interface deve continuar diretamente para o cadastro do primeiro serviço. Isso também vale quando a profissional chega com um plano pago pré-selecionado: a escolha pode ser carregada como intenção durante `Negócio → Serviço → Horários`, mas o checkout não deve abrir antes de o primeiro serviço ser salvo e o perfil estar publicado. Depois da publicação, o fluxo apresenta primeiro os horários sugeridos. Confirmar a sugestão ou ajustar manualmente os horários leva à divulgação do perfil; uma intenção de plano pago pode ser preservada, mas não provoca checkout automático nessa conclusão.
 
 `Negócio` e `Serviço` devem aparecer como progresso compacto durante a preparação da publicação. Depois da publicação, `Horários` aparece como configuração rápida da agenda, sem comunicar que ainda falta algo para o perfil ser publicado. A entrada do primeiro serviço usa `?onboarding=servico` como marcador navegável, em vez de depender apenas de estado transitório do React Router; assim, atualizar a página ou reabrir o link não transforma acidentalmente a primeira missão no editor completo. Quando a ativação ainda não possui nenhum serviço, a próxima ação do dashboard deve abrir diretamente esse cadastro. Se já houver apenas serviços inativos, deve abrir a gestão para permitir reativação em vez de chamar o próximo cadastro de primeiro serviço.
 
@@ -129,9 +128,7 @@ Ao criar um novo negócio, a mesma transação que cria o negócio e o vínculo 
 - segunda a sexta: 08:00–18:00, com pausa 12:00–13:00;
 - sábado: 08:00–13:00.
 
-A existência dessa sugestão permite que o AF apresente uma agenda utilizável sem obrigar a profissional a montar a semana do zero. Na primeira jornada, porém, a interface torna essa disponibilidade visível logo após o primeiro serviço e pede que a profissional confirme, pule a edição ou ajuste. `Confirmar horários` e `Pular por agora` enviam a sugestão ao mesmo fluxo de salvamento; se o salvamento falhar, a interface não deve avançar.
-
-`Pular por agora` significa aceitar a sugestão atual sem entrar no editor. Não significa ignorar a agenda, deixar dados sem salvar ou tornar a configuração requisito de publicação.
+A existência dessa sugestão permite que o AF apresente uma agenda utilizável sem obrigar a profissional a montar a semana do zero. Na primeira jornada, porém, a interface torna essa disponibilidade visível logo após o primeiro serviço e pede que a profissional confirme a sugestão ou ajuste manualmente. `Confirmar horários` envia a sugestão ao fluxo de salvamento; `Ajustar horários` permite personalizá-la antes do mesmo salvamento. Se o salvamento falhar, a interface não deve avançar.
 
 `agenda_configuracoes.configurado_em` não deve ser usado como condição de elegibilidade para publicação. A configuração e os horários padrão podem existir antes de uma ação explícita na tela; o marcador passa a registrar a primeira configuração/salvamento reconhecida pelo fluxo de agenda. A origem dos horários continua separada desse gate:
 
@@ -161,7 +158,7 @@ O backfill não pode publicar perfis com UF inexistente, WhatsApp/CEP inválidos
 
 Depois da publicação confirmada pelo backend e da passagem pela configuração rápida de horários, a próxima missão é compartilhar o perfil rastreável do AF e conquistar o primeiro agendamento. Se ainda houver alguma pendência obrigatória, a interface não deve oferecer compartilhamento como se o perfil estivesse no ar.
 
-Quando existir uma intenção válida de plano pago trazida desde a aquisição/cadastro, ela deve ser preservada durante `Negócio → Serviço → Horários` e pode seguir para o checkout depois que os horários sugeridos forem salvos ou ajustados. O backend de checkout revalida que o negócio da proprietária está ativo e publicado antes de criar qualquer tentativa ou cobrança; uma URL direta não contorna essa condição. A agenda continua sendo ordenação de UX da primeira jornada, não gate financeiro persistido. Checkout iniciado continua sendo uma etapa de monetização e não equivale a pagamento confirmado.
+Quando existir uma intenção válida de plano pago trazida desde a aquisição/cadastro, ela pode ser preservada durante `Negócio → Serviço → Horários`, mas a conclusão da agenda não redireciona automaticamente para checkout. Depois que a sugestão é confirmada ou os horários são ajustados e salvos, a missão é divulgar o perfil e conquistar o primeiro agendamento. Upgrade e checkout aparecem depois por ação explícita ou oportunidade contextual. O backend de checkout continua revalidando que o negócio da proprietária está ativo e publicado antes de criar qualquer tentativa ou cobrança; uma URL direta não contorna essa condição. Checkout iniciado continua sendo uma etapa de monetização e não equivale a pagamento confirmado.
 
 No dashboard, a missão de conquistar o primeiro agendamento deve aparecer antes de métricas e relatórios. Enquanto o perfil tiver menos de 20 visitas e ainda não tiver recebido o primeiro agendamento, a interface continua incentivando divulgação em vez de diagnosticar baixa conversão com uma amostra pequena. A partir desse volume, o AF pode sugerir revisão de serviços, preços e horários como orientação, sem tratar o número isolado como prova estatística de problema.
 

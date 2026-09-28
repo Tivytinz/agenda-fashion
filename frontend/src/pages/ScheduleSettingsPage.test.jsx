@@ -91,7 +91,8 @@ function mockFirstConfiguration() {
           intervalo_minutos: 0,
           antecedencia_agendamento: 0,
           antecedencia_cancelamento: 24,
-          configurado_em: null
+          configurado_em: "2026-09-10T04:00:00.000Z",
+          origem_horarios: "padrao_af"
         },
         horarios: defaultSuggestedWeek()
       });
@@ -129,7 +130,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("configuração de horários", () => {
-  it("mostra a sugestão antes do editor com confirmar, pular e ajustar", async () => {
+  it("mostra a sugestão antes do editor com confirmar e ajustar", async () => {
     mockFirstConfiguration();
     renderPage();
 
@@ -140,9 +141,9 @@ describe("configuração de horários", () => {
     expect(screen.getByText("Seg, Ter, Qua, Qui, Sex")).not.toBeNull();
     expect(screen.getByText("Sáb")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Confirmar horários" })).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Pular por agora" })).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Pular por agora" })).toBeNull();
     expect(screen.getByRole("button", { name: "Ajustar horários" })).not.toBeNull();
-    expect(screen.getByText(/Ao confirmar ou pular, estes horários sugeridos serão salvos/i)).not.toBeNull();
+    expect(screen.getByText(/Ao confirmar, estes horários sugeridos serão salvos/i)).not.toBeNull();
     expect(screen.queryByText("Ajustes avançados")).toBeNull();
 
     await waitFor(() => {
@@ -169,7 +170,8 @@ describe("configuração de horários", () => {
             intervalo_minutos: 0,
             antecedencia_agendamento: 0,
             antecedencia_cancelamento: 24,
-            configurado_em: null
+            configurado_em: "2026-09-10T04:00:00.000Z",
+          origem_horarios: "padrao_af"
           },
           horarios: defaultSuggestedWeek()
         });
@@ -250,13 +252,33 @@ describe("configuração de horários", () => {
     ]);
   });
 
-  it("salva os horários sugeridos ao confirmar e segue para o painel", async () => {
+  it("salva a sugestão e segue para divulgação sem redirecionar ao checkout", async () => {
     mockFirstConfiguration();
-    renderPage();
+    const originalImplementation = apiRequest.getMockImplementation();
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/configuracoes") {
+        return Promise.resolve({
+          negocio: {
+            id: 11,
+            nome: "Studio Aurora",
+            slug: "studio-aurora",
+            publicado: true
+          }
+        });
+      }
+      return originalImplementation(path, options);
+    });
 
+    renderPage("/painel/horarios?plano=autonoma");
     fireEvent.click(await screen.findByRole("button", { name: "Confirmar horários" }));
 
-    expect((await screen.findByTestId("destination")).textContent).toBe("/painel");
+    expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
+      .not.toBeNull();
+    expect(screen.getByRole("button", { name: "Compartilhar perfil" }))
+      .not.toBeNull();
+    expect(screen.queryByTestId("destination")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Concluir plano escolhido" }))
+      .toBeNull();
     expect(apiRequest).toHaveBeenCalledWith(
       "/agenda-configuracao",
       expect.objectContaining({
@@ -292,48 +314,12 @@ describe("configuração de horários", () => {
     );
   });
 
-  it("pular por agora salva a mesma sugestão e preserva o plano no checkout", async () => {
-    mockFirstConfiguration();
-    renderPage("/painel/horarios?plano=autonoma");
-
-    fireEvent.click(await screen.findByRole("button", { name: "Pular por agora" }));
-
-    expect((await screen.findByTestId("destination")).textContent)
-      .toBe("/checkout?plano=autonoma");
-    expect(apiRequest).toHaveBeenCalledWith(
-      "/agenda-configuracao",
-      expect.objectContaining({
-        method: "PUT",
-        body: expect.objectContaining({
-          horarios: expect.arrayContaining([
-            expect.objectContaining({
-              diaSemana: 1,
-              trabalha: true,
-              horaInicio: "08:00",
-              horaFim: "18:00",
-              intervaloInicio: "12:00",
-              intervaloFim: "13:00"
-            })
-          ])
-        })
-      })
-    );
-    expect(track).toHaveBeenCalledWith(
-      "agenda_configurada",
-      expect.objectContaining({
-        properties: {
-          status: "sucesso",
-          origem: "sugestao_aceita_ao_pular"
-        }
-      })
-    );
-  });
-
   it("não avança quando o salvamento da sugestão falha", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {
         return Promise.resolve({
-          configuracao: { configurado_em: null },
+          configuracao: { configurado_em: "2026-09-10T04:00:00.000Z",
+          origem_horarios: "padrao_af" },
           horarios: defaultSuggestedWeek()
         });
       }
@@ -344,7 +330,7 @@ describe("configuração de horários", () => {
     });
 
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Pular por agora" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Confirmar horários" }));
 
     expect(await screen.findByRole("alert")).not.toBeNull();
     expect(screen.getByRole("alert").textContent).toContain("Não foi possível salvar os horários");
@@ -379,7 +365,8 @@ describe("configuração de horários", () => {
         intervalo_minutos: 0,
         antecedencia_agendamento: 0,
         antecedencia_cancelamento: 24,
-        configurado_em: "2026-08-29T01:00:00.000Z"
+        configurado_em: "2026-08-29T01:00:00.000Z",
+        origem_horarios: "personalizado"
       },
       horarios: validWeek()
     });
@@ -435,7 +422,8 @@ describe("configuração de horários", () => {
         intervalo_minutos: 0,
         antecedencia_agendamento: 0,
         antecedencia_cancelamento: 24,
-        configurado_em: "2026-08-29T01:00:00.000Z"
+        configurado_em: "2026-08-29T01:00:00.000Z",
+        origem_horarios: "personalizado"
       },
       horarios: [{
         dia_semana: 1,
@@ -530,14 +518,15 @@ describe("configuração de horários", () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {
         return Promise.resolve({
-          configuracao: { configurado_em: null },
+          configuracao: { configurado_em: "2026-09-10T04:00:00.000Z",
+          origem_horarios: "padrao_af" },
           horarios: validWeek()
         });
       }
       if (path === "/agenda-configuracao" && options.method === "PUT") {
         return Promise.resolve({
           mensagem: "Horários salvos.",
-          configuracao: { configurado_em: "2026-09-10T05:00:00.000Z" },
+          configuracao: { configurado_em: "2026-09-10T05:00:00.000Z", origem_horarios: "personalizado" },
           horarios: validWeek(),
           publicacao: { publicado: true, pode_publicar: true }
         });
@@ -569,7 +558,8 @@ describe("configuração de horários", () => {
             intervalo_minutos: 0,
             antecedencia_agendamento: 0,
             antecedencia_cancelamento: 24,
-            configurado_em: "2026-08-28T22:00:00.000Z"
+            configurado_em: "2026-08-28T22:00:00.000Z",
+        origem_horarios: "personalizado"
           },
           horarios: validWeek()
         });
@@ -577,7 +567,8 @@ describe("configuração de horários", () => {
       if (path === "/agenda-configuracao" && options.method === "PUT") {
         return Promise.resolve({
           mensagem: "Horários de atendimento atualizados com sucesso.",
-          configuracao: { configurado_em: "2026-08-28T22:00:00.000Z" },
+          configuracao: { configurado_em: "2026-08-28T22:00:00.000Z",
+        origem_horarios: "personalizado" },
           horarios: validWeek()
         });
       }

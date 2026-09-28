@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { track } from "../analytics/track";
 import { apiRequest } from "../api/client";
-import { getPlanIntentPath, normalizePlanSlug } from "../auth/session";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { FlowSteps } from "../components/FlowSteps";
 import { PublicShareButton } from "../components/PublicShareButton";
@@ -21,27 +20,6 @@ function CopyIcon({ className = "" }) {
       <rect fill="none" height="12" rx="2" stroke="currentColor" strokeWidth="1.8" width="12" x="8" y="8" />
       <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
     </svg>
-  );
-}
-
-function SelectedPlanCheckoutLink() {
-  const [searchParams] = useSearchParams();
-  const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
-
-  if (!selectedPlan) {
-    return null;
-  }
-
-  return (
-    <p className="muted">
-      Se quiser, você também pode concluir agora o plano que escolheu.{" "}
-      <Link
-        className="text-button"
-        to={getPlanIntentPath("/checkout", selectedPlan)}
-      >
-        Concluir plano escolhido
-      </Link>
-    </p>
   );
 }
 
@@ -138,13 +116,10 @@ export function validateSchedule(days, { requireActiveDay = false } = {}) {
 }
 
 export function ScheduleSettingsPage() {
-  const navigate = useNavigate();
   const location = useLocation();
   const contextoAgenda = location.pathname.startsWith("/profissional/")
     ? "profissional"
     : "dono";
-  const [searchParams] = useSearchParams();
-  const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
   const [config, setConfig] = useState(null);
   const [days, setDays] = useState([]);
   const [expandedPauses, setExpandedPauses] = useState(() => new Set());
@@ -171,16 +146,19 @@ export function ScheduleSettingsPage() {
           .map(normalizeDay)
           .sort((a, b) => a.diaSemana - b.diaSemana);
         const configuredAt = current.configurado_em ?? current.configuradoEm ?? null;
+        const scheduleOrigin = current.origem_horarios ?? current.origemHorarios ?? "padrao_af";
+        const personalized = scheduleOrigin === "personalizado";
 
         setConfig({
           duracaoPadrao: current.duracao_padrao ?? current.duracaoPadrao ?? 60,
           intervaloMinutos: current.intervalo_minutos ?? current.intervaloMinutos ?? 0,
           antecedenciaAgendamento: current.antecedencia_agendamento ?? current.antecedenciaAgendamento ?? 0,
           antecedenciaCancelamento: current.antecedencia_cancelamento ?? current.antecedenciaCancelamento ?? 24,
-          configuradoEm: configuredAt
+          configuradoEm: configuredAt,
+          origemHorarios: scheduleOrigin
         });
-        setAdvancedOpen(Boolean(configuredAt));
-        setFirstScheduleMode(configuredAt ? "editor" : "quick");
+        setAdvancedOpen(personalized);
+        setFirstScheduleMode(personalized ? "editor" : "quick");
         setDays(normalizedDays);
         setExpandedPauses(new Set(
           normalizedDays
@@ -192,10 +170,10 @@ export function ScheduleSettingsPage() {
           page: "configuracao_agenda",
           mission: "disponibilizar_horarios",
           properties: {
-            status: configuredAt
+            status: personalized
               ? "configurada"
               : "pendente",
-            origem: configuredAt
+            origem: personalized
               ? "editor"
               : "confirmacao_rapida"
           }
@@ -303,9 +281,14 @@ export function ScheduleSettingsPage() {
       const result = await apiRequest("/configuracoes");
       const business = result.negocio || result.configuracoes || {};
 
+      if (business.publicado === false) {
+        setBusinessContext(null);
+        return false;
+      }
+
       if (!business.slug) {
         setBusinessContext(null);
-        return;
+        return null;
       }
 
       setBusinessContext({
@@ -313,8 +296,10 @@ export function ScheduleSettingsPage() {
         name: business.nome ?? business.nome_negocio ?? "Seu negócio",
         slug: business.slug
       });
+      return true;
     } catch {
       setBusinessContext(null);
+      return null;
     } finally {
       setBusinessContextLoading(false);
     }
@@ -325,16 +310,15 @@ export function ScheduleSettingsPage() {
     setError("");
     setMessage("");
 
-    const primeiraConfiguracao = !config?.configuradoEm;
+    const primeiraConfiguracao =
+      config?.origemHorarios !== "personalizado";
     const onboardingDona =
       primeiraConfiguracao && contextoAgenda === "dono";
     const submitSource = event.nativeEvent?.submitter?.dataset?.source;
     const origem = primeiraConfiguracao
       ? submitSource === "confirmacao_rapida"
         ? "confirmacao_rapida"
-        : submitSource === "pular_sugestao"
-          ? "sugestao_aceita_ao_pular"
-          : "ajuste_manual"
+        : "ajuste_manual"
       : "editor";
 
     track("agenda_configuracao_salvamento_tentado", {
@@ -378,14 +362,18 @@ export function ScheduleSettingsPage() {
         ?? savedConfig.configuradoEm
         ?? config.configuradoEm
         ?? null;
+      const origemHorarios = savedConfig.origem_horarios
+        ?? savedConfig.origemHorarios
+        ?? "personalizado";
 
       setConfig((current) => ({
         ...current,
-        configuradoEm
+        configuradoEm,
+        origemHorarios
       }));
       setMessage(result.mensagem || "Horários atualizados.");
 
-      if (onboardingDona && configuradoEm) {
+      if (onboardingDona && origemHorarios === "personalizado") {
         track("agenda_configurada", {
           page: "configuracao_agenda",
           mission: "disponibilizar_horarios",
@@ -395,29 +383,10 @@ export function ScheduleSettingsPage() {
           }
         });
 
-        const quickAction = submitSource === "confirmacao_rapida"
-          || submitSource === "pular_sugestao";
+        const publicationState = await loadBusinessContext();
 
-        if (quickAction) {
-          const destination = selectedPlan
-            ? getPlanIntentPath("/checkout", selectedPlan)
-            : "/painel";
-          navigate(destination, {
-            replace: true,
-            state: {
-              message: submitSource === "pular_sugestao"
-                ? "Horários sugeridos salvos. Você pode ajustá-los quando quiser."
-                : "Horários confirmados. Você pode ajustá-los quando quiser."
-            }
-          });
-          return;
-        }
-
-        const publicadoAgora = result.publicacao?.publicado === true;
-
-        setActivationNextStep(publicadoAgora);
-        if (publicadoAgora) {
-          void loadBusinessContext();
+        if (publicationState !== false) {
+          setActivationNextStep(true);
         }
       }
     } catch (requestError) {
@@ -440,9 +409,9 @@ export function ScheduleSettingsPage() {
 
   const professionalContext = contextoAgenda === "profissional";
   const firstConfiguration =
-    !config.configuradoEm && !professionalContext;
+    config.origemHorarios !== "personalizado" && !professionalContext;
   const firstProfessionalConfiguration =
-    !config.configuradoEm && professionalContext;
+    config.origemHorarios !== "personalizado" && professionalContext;
   const quickConfirmation =
     firstConfiguration && firstScheduleMode === "quick";
 
@@ -528,7 +497,6 @@ export function ScheduleSettingsPage() {
               </Link>
             )}
           </div>
-          <SelectedPlanCheckoutLink />
         </section>
       ) : (
         <form className="panel stack-form schedule-settings-form" onSubmit={submit}>
@@ -545,7 +513,7 @@ export function ScheduleSettingsPage() {
                 <h2 id="schedule-activation-title">Confirme quando você atende</h2>
                 <p className="muted">
                   O Agenda Fashion preparou horários sugeridos para você começar.
-                  Confirme, pule a edição por agora ou ajuste sua disponibilidade antes de continuar.
+                  Confirme a sugestão ou ajuste sua disponibilidade antes de continuar.
                 </p>
               </div>
 
@@ -567,31 +535,21 @@ export function ScheduleSettingsPage() {
 
               <p className="schedule-quick-assurance">
                 <span aria-hidden="true">✓</span>{" "}
-                Ao confirmar ou pular, estes horários sugeridos serão salvos. Você poderá editá-los depois.
+                Ao confirmar, estes horários sugeridos serão salvos. Você poderá editá-los depois.
               </p>
 
               {error && <p className="form-error schedule-settings-error" role="alert">{error}</p>}
 
               <div className="schedule-quick-actions">
                 {quickSummary.length > 0 && (
-                  <>
-                    <button
-                      className="button"
-                      data-source="confirmacao_rapida"
-                      disabled={saving}
-                      type="submit"
-                    >
-                      {saving ? "Salvando..." : "Confirmar horários"}
-                    </button>
-                    <button
-                      className="button button-secondary"
-                      data-source="pular_sugestao"
-                      disabled={saving}
-                      type="submit"
-                    >
-                      {saving ? "Salvando..." : "Pular por agora"}
-                    </button>
-                  </>
+                  <button
+                    className="button"
+                    data-source="confirmacao_rapida"
+                    disabled={saving}
+                    type="submit"
+                  >
+                    {saving ? "Salvando..." : "Confirmar horários"}
+                  </button>
                 )}
                 <button
                   className="text-button"

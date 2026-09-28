@@ -37,7 +37,7 @@ afterEach(cleanup);
 describe("regressões da configuração de horários", () => {
   it("mantém a estrutura responsiva do editor sem repetir cabeçalhos por linha", async () => {
     apiRequest.mockResolvedValueOnce({
-      configuracao: { configurado_em: null },
+      configuracao: { configurado_em: "2026-09-10T04:00:00.000Z", origem_horarios: "padrao_af" },
       horarios: [{
         dia_semana: 1,
         trabalha: true,
@@ -60,16 +60,26 @@ describe("regressões da configuração de horários", () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {
         return Promise.resolve({
-          configuracao: { configurado_em: null },
+          configuracao: { configurado_em: "2026-09-10T04:00:00.000Z", origem_horarios: "padrao_af" },
           horarios: validWeek()
         });
       }
       if (path === "/agenda-configuracao" && options.method === "PUT") {
         return Promise.resolve({
           mensagem: "Horários de atendimento confirmados com sucesso.",
-          configuracao: { configurado_em: "2026-09-10T05:00:00.000Z" },
+          configuracao: { configurado_em: "2026-09-10T05:00:00.000Z", origem_horarios: "personalizado" },
           horarios: validWeek(),
-          publicacao: { publicado: false, pode_publicar: false }
+          publicacao: null
+        });
+      }
+      if (path === "/configuracoes") {
+        return Promise.resolve({
+          negocio: {
+            id: 11,
+            nome: "Studio Aurora",
+            slug: "studio-aurora",
+            publicado: false
+          }
         });
       }
       return Promise.reject(new Error(`Rota inesperada: ${path}`));
@@ -91,14 +101,14 @@ describe("regressões da configuração de horários", () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {
         return Promise.resolve({
-          configuracao: { configurado_em: null },
+          configuracao: { configurado_em: "2026-09-10T04:00:00.000Z", origem_horarios: "padrao_af" },
           horarios: validWeek()
         });
       }
       if (path === "/agenda-configuracao" && options.method === "PUT") {
         return Promise.resolve({
           mensagem: "Horários salvos.",
-          configuracao: { configurado_em: "2026-09-10T05:00:00.000Z" },
+          configuracao: { configurado_em: "2026-09-10T05:00:00.000Z", origem_horarios: "personalizado" },
           horarios: validWeek(),
           publicacao: { publicado: true, pode_publicar: true }
         });

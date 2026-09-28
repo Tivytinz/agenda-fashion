@@ -114,9 +114,8 @@ Fonte de domínio:
   → /painel/servicos/novo?onboarding=servico
   → publicação automática confirmada pelo backend
   → /painel/horarios
-  → /painel
-      ou
-    /checkout quando existe intenção válida de plano pago
+  → divulgar perfil
+  → primeiro agendamento válido
 ```
 
 O contrato canônico é:
@@ -126,8 +125,8 @@ conta
   → negócio completo
   → primeiro serviço
   → publicação automática
-  → confirmação rápida de horários
-  → compartilhar perfil / checkout
+  → confirmação rápida ou ajuste manual de horários
+  → compartilhar perfil
   → primeiro agendamento válido
 ```
 
@@ -148,10 +147,12 @@ conta
 - apenas `Negócio` e `Serviço` preparam a publicação;
 - `Horários` aparece depois que o backend já confirmou a publicação;
 - horário não volta a ser gate de publicação;
-- `Confirmar horários` e `Pular por agora` persistem a sugestão atual;
+- `Confirmar horários` persiste a sugestão atual e `Ajustar horários` permite personalizá-la antes de salvar;
+- não existe ação `Pular por agora` nessa etapa;
 - falha ao salvar horários impede avanço;
-- intenção de plano pode atravessar Negócio → Serviço → Horários, mas checkout só
-  entra depois da passagem pela agenda e continua revalidado pelo backend;
+- confirmação e ajuste manual convergem para divulgação do perfil;
+- intenção de plano pode atravessar Negócio → Serviço → Horários, mas não provoca
+  checkout automático ao concluir a agenda;
 - a missão pós-publicação prioriza divulgação e primeiro booking antes de
   métricas sem amostra suficiente.
 

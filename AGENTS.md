@@ -177,14 +177,18 @@ disponibilidade em requisito de publicação.
 Na confirmação rápida:
 
 - `Confirmar horários` salva a sugestão exibida e continua;
-- `Pular por agora` pula apenas a edição manual, salva a mesma sugestão e
-  continua;
 - `Ajustar horários` abre o editor antes do salvamento.
 
-Se o salvamento dos horários falhar, a interface não deve avançar. Quando houver
-uma intenção válida de plano pago, ela deve ser preservada durante
-`Negócio → Serviço → Horários` e seguir para o checkout somente depois do
-salvamento da agenda; sem intenção de plano, o fluxo segue para o painel.
+Não existe ação `Pular por agora` nessa etapa: a dona confirma a sugestão ou
+personaliza a disponibilidade. Se o salvamento dos horários falhar, a interface
+não deve avançar.
+
+Depois do primeiro salvamento explícito da agenda, tanto a confirmação da
+sugestão quanto o ajuste manual convergem para a missão de **divulgar o perfil**
+e conquistar o primeiro agendamento. Uma intenção válida de plano pago pode ser
+preservada durante `Negócio → Serviço → Horários`, mas não deve redirecionar
+automaticamente ao checkout nessa conclusão nem competir com a ativação. Upgrade
+e checkout permanecem ações explícitas/contextuais posteriores.
 
 `agenda_configuracoes.configurado_em` é um marcador técnico legado de que a
 disponibilidade foi inicializada. Desde a migration 065 ele recebe valor já na
@@ -202,9 +206,9 @@ timestamps de personalização.
 dados/migrations legados; o runtime atual não deve reintroduzir esse gate.
 
 Depois da passagem pela agenda, a missão principal é divulgar o perfil e
-conquistar o primeiro agendamento, exceto quando uma intenção de plano pago
-válida conduzir ao checkout. Compartilhamento deve reutilizar os links públicos
-rastreáveis existentes do AF.
+conquistar o primeiro agendamento. Uma intenção de plano pago não substitui essa
+missão nem provoca checkout automático. Compartilhamento deve reutilizar os links
+públicos rastreáveis existentes do AF.
 
 A disponibilidade continua crítica para gerar slots corretos e pode ser
 acompanhada como diagnóstico operacional separado.
