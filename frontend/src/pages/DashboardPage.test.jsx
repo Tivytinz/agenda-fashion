@@ -226,11 +226,10 @@ describe("dashboard", () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole("status", {
-      name: ""
-    })).not.toBeNull();
-    expect(screen.getByText("Não foi possível confirmar a próxima etapa agora."))
-      .not.toBeNull();
+    const notice = await screen.findByText(
+      "Não foi possível confirmar a próxima etapa agora."
+    );
+    expect(notice.getAttribute("role")).toBe("status");
   });
 
   it("cancela as consultas anteriores e identifica o período selecionado", async () => {
