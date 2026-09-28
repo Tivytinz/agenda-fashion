@@ -154,7 +154,7 @@ describe("regressões da configuração de horários", () => {
       .not.toBeNull();
     expect(screen.getByRole("button", { name: "Copiar link" }))
       .not.toBeNull();
-    expect(screen.getByRole("link", { name: "Ver perfil público ↗" }))
+    expect(screen.getByRole("link", { name: "Ver perfil público" }))
       .not.toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
     expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes"))
