@@ -260,12 +260,12 @@ function AdminSectionFrame({
 
       {refreshing && data && (
         <p className="data-refresh-status" role="status">
-          Atualizando o recorte sem ocultar os últimos dados válidos…
+          Mostrando os dados de {adminPeriodLabel(data.periodo)} enquanto atualizamos {adminPeriodLabel(period)}…
         </p>
       )}
       {error && data && (
         <p className="form-error" role="alert">
-          {error} Os últimos dados válidos continuam visíveis.
+          {error} Os últimos dados válidos de {adminPeriodLabel(data.periodo)} continuam visíveis.
         </p>
       )}
 
@@ -284,8 +284,9 @@ export function AdminOverviewV2Page() {
 
   return (
     <AdminSectionFrame
-      description="O que entrou no AF, quanto valor foi entregue e quanto virou receita — sem misturar intenção com resultado."
-      eyebrow="Administração"
+      className="admin-overview-page"
+      description="Aquisição, primeiro agendamento e receita no período selecionado."
+      eyebrow="Resultados"
       state={state}
       title="Visão geral"
     >
@@ -295,11 +296,12 @@ export function AdminOverviewV2Page() {
         const activation = data.ativacao || {};
         const demand = data.demanda || {};
         const revenue = data.receita || {};
+        const hasProfessionalCohort = number(acquisition.cadastrosProfissionais) > 0;
 
         const activationSteps = [
           ["Cadastros profissionais", acquisition.cadastrosProfissionais],
           ["Negócios criados", activation.negociosCriados],
-          ["Serviços criados", activation.servicosCriados],
+          ["Negócios com 1º serviço criado", activation.servicosCriados],
           ["Negócios publicados", activation.negociosPublicados],
           ["1º agendamento válido", activation.primeirosAgendamentos],
           ["Assinaturas pagas", revenue.assinaturasAtivadasCohorte]
@@ -307,25 +309,27 @@ export function AdminOverviewV2Page() {
 
         return (
           <>
-            <section className="admin-command-summary-grid is-period-summary">
+            <section aria-label="Indicadores do período" className="admin-command-summary-grid is-period-summary">
               <MetricCard
-                hint="identidades first-party com atividade no período"
-                label="Usuários ativos"
+                hint="Com login nas visitas do período"
+                label="Contas que acessaram"
                 value={formatNumber(audience.usuariosAtivos)}
               />
               <MetricCard
-                hint="coorte de profissionais cadastrados no período"
+                hint="Profissionais cadastrados no período"
                 label="Cadastros profissionais"
                 value={formatNumber(acquisition.cadastrosProfissionais)}
               />
               <MetricCard
-                hint={`${formatPercent(activation.taxaPrimeiroAgendamentoSobreCadastro)} dos cadastros da coorte`}
+                hint={hasProfessionalCohort
+                  ? `${formatPercent(activation.taxaPrimeiroAgendamentoSobreCadastro)} dos cadastros da coorte`
+                  : "Sem cadastros para calcular a taxa"}
                 label="1º agendamento"
                 tone={number(activation.primeirosAgendamentos) > 0 ? "success" : "neutral"}
                 value={formatNumber(activation.primeirosAgendamentos)}
               />
               <MetricCard
-                hint="somente pagamentos confirmados/recebidos de planos pagos no período"
+                hint="Pagamentos recebidos de planos pagos"
                 label="Receita confirmada"
                 tone={number(revenue.receitaConfirmada) > 0 ? "success" : "neutral"}
                 value={formatCurrency(revenue.receitaConfirmada)}
@@ -338,71 +342,64 @@ export function AdminOverviewV2Page() {
                   <p className="eyebrow">Ativação e monetização</p>
                   <h2>Coorte profissional: do cadastro à assinatura</h2>
                   <p className="muted">
-                    Todos os marcos deste funil acompanham os profissionais cadastrados no período selecionado. Receita confirmada e pagamentos do período ficam separados porque são fatos financeiros, não etapas desta coorte.
+                    Marcos dos profissionais cadastrados no período. A receita acima reúne pagamentos recebidos no período, fora desta coorte.
                   </p>
                 </div>
               </div>
-              <div className="admin-command-funnel is-milestones">
-                {activationSteps.map(([label, value]) => (
-                  <article key={label}>
-                    <small>{label}</small>
-                    <strong>{formatNumber(value)}</strong>
-                  </article>
-                ))}
-              </div>
-              <dl className="admin-command-data-list">
-                <div>
-                  <dt>Cadastro → negócio</dt>
-                  <dd>{formatPercent(activation.taxaNegocioSobreCadastro)}</dd>
+              {hasProfessionalCohort ? (
+                <>
+                  <div className="admin-command-funnel is-milestones">
+                    {activationSteps.map(([label, value]) => (
+                      <article key={label}>
+                        <small>{label}</small>
+                        <strong>{formatNumber(value)}</strong>
+                      </article>
+                    ))}
+                  </div>
+                  <dl className="admin-command-data-list">
+                    <div>
+                      <dt>Cadastro → negócio</dt>
+                      <dd>{formatPercent(activation.taxaNegocioSobreCadastro)}</dd>
+                    </div>
+                    <div>
+                      <dt>Cadastro → serviço</dt>
+                      <dd>{formatPercent(activation.taxaServicoSobreCadastro)}</dd>
+                    </div>
+                    <div>
+                      <dt>Cadastro → publicação</dt>
+                      <dd>{formatPercent(activation.taxaPublicacaoSobreCadastro)}</dd>
+                    </div>
+                    <div>
+                      <dt>Cadastro → 1º agendamento</dt>
+                      <dd>{formatPercent(activation.taxaPrimeiroAgendamentoSobreCadastro)}</dd>
+                    </div>
+                    <div>
+                      <dt>Cadastro → assinatura paga</dt>
+                      <dd>{formatPercent(revenue.taxaAssinaturaSobreCadastro)}</dd>
+                    </div>
+                  </dl>
+                </>
+              ) : (
+                <div className="admin-overview-empty">
+                  <strong>Nenhum cadastro profissional neste período</strong>
+                  <p>Sem cadastros, não há taxas da coorte para calcular. Agendamentos e pagamentos do período aparecem abaixo.</p>
                 </div>
-                <div>
-                  <dt>Cadastro → serviço</dt>
-                  <dd>{formatPercent(activation.taxaServicoSobreCadastro)}</dd>
-                </div>
-                <div>
-                  <dt>Cadastro → publicação</dt>
-                  <dd>{formatPercent(activation.taxaPublicacaoSobreCadastro)}</dd>
-                </div>
-                <div>
-                  <dt>Cadastro → 1º agendamento</dt>
-                  <dd>{formatPercent(activation.taxaPrimeiroAgendamentoSobreCadastro)}</dd>
-                </div>
-                <div>
-                  <dt>Cadastro → assinatura paga</dt>
-                  <dd>{formatPercent(revenue.taxaAssinaturaSobreCadastro)}</dd>
-                </div>
-              </dl>
+              )}
             </section>
 
-            <div className="admin-command-two-column">
-              <section className="panel">
-                <div className="panel-heading">
-                  <div>
-                    <p className="eyebrow">Uso do produto</p>
-                    <h2>Engajamento first-party</h2>
-                  </div>
+            <section className="panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Demanda e receita</p>
+                  <h2>Fatos ocorridos no período</h2>
                 </div>
-                <dl className="admin-command-data-list">
-                  <div><dt>Sessões</dt><dd>{formatNumber(audience.sessoes)}</dd></div>
-                  <div><dt>Visualizações</dt><dd>{formatNumber(audience.visualizacoes)}</dd></div>
-                  <div><dt>Tempo médio por sessão</dt><dd>{formatSeconds(audience.tempoMedioSessaoSegundos)}</dd></div>
-                </dl>
-              </section>
-
-              <section className="panel">
-                <div className="panel-heading">
-                  <div>
-                    <p className="eyebrow">Demanda e receita</p>
-                    <h2>Fatos ocorridos no período</h2>
-                  </div>
-                </div>
-                <dl className="admin-command-data-list">
-                  <div><dt>Agendamentos válidos</dt><dd>{formatNumber(demand.agendamentosValidos)}</dd></div>
-                  <div><dt>Pagamentos confirmados</dt><dd>{formatNumber(revenue.pagamentosConfirmados)}</dd></div>
-                  <div><dt>Negócios com pagamento no período</dt><dd>{formatNumber(revenue.negociosComPagamento)}</dd></div>
-                </dl>
-              </section>
-            </div>
+              </div>
+              <dl className="admin-command-data-list">
+                <div><dt>Agendamentos válidos</dt><dd>{formatNumber(demand.agendamentosValidos)}</dd></div>
+                <div><dt>Pagamentos confirmados</dt><dd>{formatNumber(revenue.pagamentosConfirmados)}</dd></div>
+                <div><dt>Negócios com pagamento no período</dt><dd>{formatNumber(revenue.negociosComPagamento)}</dd></div>
+              </dl>
+            </section>
 
             <details className="admin-metric-definition">
               <summary>Fontes e critérios desta visão</summary>
@@ -441,9 +438,8 @@ export function AdminAcquisitionV2Page() {
         const hasProfessionalCohort = campaigns.length > 0;
         const trafficTotals = origins.reduce((acc, origin) => ({
           sessoes: acc.sessoes + number(origin.sessoes),
-          usuarios: acc.usuarios + number(origin.usuarios),
           tempoEngajadoMs: acc.tempoEngajadoMs + number(origin.tempo_engajado_ms)
-        }), { sessoes: 0, usuarios: 0, tempoEngajadoMs: 0 });
+        }), { sessoes: 0, tempoEngajadoMs: 0 });
         const maxOriginSessions = Math.max(
           1,
           ...origins.map((origin) => number(origin.sessoes))
@@ -507,7 +503,6 @@ export function AdminAcquisitionV2Page() {
               {origins.length > 0 && (
                 <section className="admin-traffic-summary" aria-label="Resumo do tráfego">
                   <MetricCard label="Sessões" hint="visitas registradas no período" value={formatNumber(trafficTotals.sessoes)} />
-                  <MetricCard label="Usuários" hint="identidades first-party observadas" value={formatNumber(trafficTotals.usuarios)} />
                   <MetricCard label="Origem identificada" hint="sessões fora de direto/não identificado" value={formatPercent(identifiedShare)} />
                   <MetricCard label="Tempo médio" hint="engajamento médio por sessão" value={trafficTotals.sessoes > 0 ? formatSeconds(trafficTotals.tempoEngajadoMs / trafficTotals.sessoes / 1000) : "—"} />
                 </section>
@@ -519,7 +514,7 @@ export function AdminAcquisitionV2Page() {
               ) : (
                 <div className="table-wrapper">
                   <table className="data-table">
-                    <thead><tr><th>Canal</th><th>Origem / mídia</th><th>Campanha</th><th>Sessões</th><th>Usuários</th><th>Tempo médio</th></tr></thead>
+                    <thead><tr><th>Canal</th><th>Origem / mídia</th><th>Campanha</th><th>Sessões</th><th>Tempo médio</th></tr></thead>
                     <tbody>
                       {origins.map((row, index) => (
                         <tr key={`${row.canal}-${row.source}-${row.medium}-${row.campanha_oficial_id || index}`}>
@@ -532,7 +527,6 @@ export function AdminAcquisitionV2Page() {
                               <span aria-hidden="true"><i style={{ width: `${Math.max(4, (number(row.sessoes) / maxOriginSessions) * 100)}%` }} /></span>
                             </div>
                           </td>
-                          <td>{formatNumber(row.usuarios)}</td>
                           <td>{number(row.sessoes) > 0 ? formatSeconds(number(row.tempo_engajado_ms) / number(row.sessoes) / 1000) : "—"}</td>
                         </tr>
                       ))}

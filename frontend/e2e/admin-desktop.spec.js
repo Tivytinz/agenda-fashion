@@ -98,7 +98,7 @@ async function expectMarketingControlsInsideWorkspace(page) {
     page.getByRole("heading", { name: "Marketing e aquisição" })
   ).toBeVisible();
   await expect(
-    navigation.getByText("Visão geral", { exact: true })
+    navigation.getByText("Resumo", { exact: true })
   ).toBeVisible();
   await expect(
     navigation.getByRole("link", { name: "Funil completo" })
@@ -111,15 +111,21 @@ async function expectMarketingControlsInsideWorkspace(page) {
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  const [workspaceBox, navigationBox, periodBox] = await Promise.all([
+  const [workspaceBox, navigationBox, periodBox, integrationBox] = await Promise.all([
     workspace.boundingBox(),
     navigation.boundingBox(),
-    period.boundingBox()
+    period.boundingBox(),
+    navigation.getByRole("link", { name: "Integrações" }).boundingBox()
   ]);
 
   expect(workspaceBox).not.toBeNull();
   expect(navigationBox).not.toBeNull();
   expect(periodBox).not.toBeNull();
+  expect(integrationBox).not.toBeNull();
+  expect(integrationBox.y).toBeCloseTo(navigationBox.y, 0);
+  expect(periodBox.y).toBeGreaterThanOrEqual(navigationBox.y + navigationBox.height);
+  expect(await workspace.evaluate((element) => getComputedStyle(element).containerType))
+    .toBe("inline-size");
   expect(navigationBox.x).toBeGreaterThanOrEqual(workspaceBox.x);
   expect(periodBox.x).toBeGreaterThanOrEqual(workspaceBox.x);
   expect(navigationBox.x + navigationBox.width)
@@ -169,7 +175,7 @@ test("shell do admin mantém navegação durante rolagem e privacidade fora dos 
 
   const sidebar = page.locator(".admin-sidebar");
   const topbar = page.locator(".admin-topbar");
-  await expect(sidebar.locator(".admin-nav-link")).toHaveCount(8);
+  await expect(sidebar.locator(".admin-nav-link")).toHaveCount(11);
   await expect(sidebar.getByRole("link", { name: "Marketing" })).toBeVisible();
   await expect(sidebar.getByRole("link", { name: "Saúde do SaaS" })).toBeVisible();
   await expect(sidebar).toBeInViewport();

@@ -412,6 +412,7 @@ ProtectedRoute adminOnly
 | `/admin/auditoria` | `AdminAuditPage` |
 | `/admin/trafego-pago` | `AdminMarketingPage` |
 | `/admin/trafego-pago/custos` | `AdminMarketingCostsPage` |
+| `/admin/integracoes` | `AdminMarketingIntegrationsPage` |
 | `/admin/trafego-pago/profissionais` | `AdminAcquisitionV2Page` por compatibilidade |
 | `/admin/saude` | `AdminSaasHealthPage` |
 | `/admin/whatsapp` | `AdminWhatsAppPage` |

@@ -36,30 +36,36 @@ describe("AdminShell", () => {
       .toBe(false);
   });
 
-  it("mostra oito links agrupados no sidebar e seleciona subáreas", () => {
+  it("mostra todas as páginas no sidebar e seleciona a página exata", () => {
     renderAdmin("/admin/trafego-pago/custos?periodo=7");
     const navigation = screen.getByRole("navigation", {
       name: "Módulos administrativos"
     });
 
-    expect(navigation.querySelectorAll(".admin-nav-link")).toHaveLength(8);
+    expect(navigation.querySelectorAll(".admin-nav-link")).toHaveLength(11);
     expect(screen.getByRole("heading", { name: "Crescimento" })).not.toBeNull();
-    expect(navigation.querySelector("a[href='/admin/trafego-pago?periodo=7']")
+    expect(navigation.querySelector("a[href='/admin/trafego-pago/custos?periodo=7']")
       .classList.contains("active")).toBe(true);
+    expect(navigation.querySelector("a[href='/admin/trafego-pago/custos?periodo=7']")
+      .getAttribute("aria-current")).toBe("page");
+    expect(navigation.querySelector("a[href='/admin/trafego-pago?periodo=7']")
+      .classList.contains("active")).toBe(false);
+    expect(navigation.querySelector("a[href='/admin/integracoes']")?.textContent)
+      .toBe("Integrações");
     expect(navigation.querySelector("a[href='/admin/saude']")?.textContent)
       .toBe("Saúde do SaaS");
     expect(navigation.querySelector("a[href='/admin/operacao']"))
       .not.toBeNull();
   });
 
-  it("mantém Saúde e Operação selecionadas nas rotas especializadas", () => {
+  it("seleciona WhatsApp e Integrações pelos links próprios", () => {
     const view = renderAdmin("/admin/whatsapp");
-    expect(document.querySelector(".admin-sidebar a[href='/admin/saude']")
+    expect(document.querySelector(".admin-sidebar a[href='/admin/whatsapp']")
       .classList.contains("active")).toBe(true);
     view.unmount();
 
-    renderAdmin("/admin/auditoria");
-    expect(document.querySelector(".admin-sidebar a[href='/admin/operacao']")
+    renderAdmin("/admin/integracoes");
+    expect(document.querySelector(".admin-sidebar a[href='/admin/integracoes']")
       .classList.contains("active")).toBe(true);
   });
 
@@ -71,7 +77,7 @@ describe("AdminShell", () => {
     const navigation = screen.getByRole("navigation", {
       name: "Navegação mobile da administração"
     });
-    expect(navigation.querySelectorAll(".admin-nav-link")).toHaveLength(8);
+    expect(navigation.querySelectorAll(".admin-nav-link")).toHaveLength(11);
     expect(screen.getByRole("button", { name: "Menu" })
       .getAttribute("aria-expanded")).toBe("true");
     expect(navigation.querySelector("a[href='/admin/saude']"))
@@ -92,6 +98,8 @@ describe("AdminShell", () => {
     expect(desktop.querySelector("a[href='/admin/retencao?periodo=7']"))
       .not.toBeNull();
     expect(desktop.querySelector("a[href='/admin/trafego-pago?periodo=7']"))
+      .not.toBeNull();
+    expect(desktop.querySelector("a[href='/admin/trafego-pago/custos?periodo=7']"))
       .not.toBeNull();
     expect(desktop.querySelector("a[href='/admin/operacao']"))
       .not.toBeNull();

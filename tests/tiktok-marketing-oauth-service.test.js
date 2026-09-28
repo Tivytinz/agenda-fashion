@@ -47,6 +47,15 @@ describe("tiktokMarketingOAuthService", () => {
     global.fetch = fetchOriginal;
   });
 
+  test("retorna da autorização na página direta de Integrações", () => {
+    expect(service.urlResultado("success")).toBe(
+      "https://agendafashion.com.br/admin/integracoes?tiktok_oauth=success"
+    );
+    expect(service.urlResultado("error")).toBe(
+      "https://agendafashion.com.br/admin/integracoes?tiktok_oauth=error"
+    );
+  });
+
   test("gera autorização oficial e persiste somente o hash do state", async () => {
     const resultado = await service.iniciarAutorizacao({ usuarioId: 9 });
     const url = new URL(resultado.authorizationUrl);

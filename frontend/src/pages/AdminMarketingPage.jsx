@@ -257,9 +257,9 @@ export function AdminMarketingPage() {
   const periodPending = loadedPeriod !== period;
   const loadedPeriodLabel = adminPeriodLabel(loadedPeriod);
   const requestedPeriodLabel = adminPeriodLabel(period);
-  const funnelPath = adminPathWithPeriod("/admin/trafego-pago/profissionais", period);
+  const funnelPath = adminPathWithPeriod("/admin/aquisicao", period);
   const costsPath = adminPathWithPeriod("/admin/trafego-pago/custos", period);
-  const integrationsPath = `${costsPath}#integracoes-custos`;
+  const integrationsPath = "/admin/integracoes";
   const measurementQuality = data?.funnel?.qualidadeMensuracao || {};
   const paidSignupCoverage = measurementQuality.coberturaAtribuicaoPagaPercentual;
   const paidSignupsDetected = toFiniteNumber(measurementQuality.cadastrosPagosDetectados);
@@ -270,13 +270,17 @@ export function AdminMarketingPage() {
     Number(paidSignupCoverage) < minimumCoverage;
   const ga4Configured = data?.ga4?.configurado === true;
   const ga4Summary = data?.ga4?.resumo || {};
+  const ga4HasSessions = ga4Configured && toFiniteNumber(ga4Summary.sessoes) > 0;
+  const hasProfessionalCohort = toFiniteNumber(professionalSummary.cadastros) > 0;
 
   const journeyCards = [
     {
-      label: "Sessões no site",
+      label: "Sessões no GA4",
       value: ga4Configured ? toFiniteNumber(ga4Summary.sessoes) : "—",
       hint: ga4Configured
-        ? `${toFiniteNumber(ga4Summary.usuarios)} usuários no GA4`
+        ? ga4HasSessions
+          ? `${toFiniteNumber(ga4Summary.usuarios)} usuários no GA4`
+          : "Nenhuma sessão retornada no período"
         : "GA4 indisponível para este período",
       source: "GA4"
     },
@@ -289,13 +293,17 @@ export function AdminMarketingPage() {
     {
       label: "1º agendamento válido",
       value: toFiniteNumber(professionalSummary.primeirosAgendamentos),
-      hint: `${formatMetricPercent(professionalSummary.taxaPrimeiroAgendamento)} dos cadastros`,
+      hint: hasProfessionalCohort
+        ? `${formatMetricPercent(professionalSummary.taxaPrimeiroAgendamento)} dos cadastros`
+        : "Sem cadastros para calcular a taxa",
       source: "Banco AF"
     },
     {
       label: "Assinaturas pagas",
       value: toFiniteNumber(professionalSummary.assinaturasAtivadas),
-      hint: `${formatMetricPercent(professionalSummary.taxaAssinatura)} dos cadastros`,
+      hint: hasProfessionalCohort
+        ? `${formatMetricPercent(professionalSummary.taxaAssinatura)} dos cadastros`
+        : "Sem cadastros para calcular a taxa",
       source: "Banco AF"
     }
   ];
@@ -324,7 +332,7 @@ export function AdminMarketingPage() {
 
         <div className="marketing-command-actions">
           <nav className="marketing-command-nav" aria-label="Áreas do marketing">
-            <span aria-current="page">Visão geral</span>
+            <span aria-current="page">Resumo</span>
             <Link to={funnelPath}>Funil completo</Link>
             <Link to={costsPath}>Custos e retorno</Link>
             <Link to={integrationsPath}>Integrações</Link>
@@ -365,18 +373,18 @@ export function AdminMarketingPage() {
 
       <section className="marketing-trust-bar" aria-label="Confiabilidade dos dados">
         <div className="marketing-trust-copy">
-          <span>Dados conectados</span>
+          <span>Fontes da análise</span>
           <strong>Comportamento + coorte + atribuição</strong>
           <small>
-            GA4 explica navegação. O banco do AF continua sendo a fonte para cadastro, primeiro agendamento, assinatura e receita.
+            O GA4 mostra sessões quando há dados no período. O banco do AF é a fonte para cadastro, primeiro agendamento, assinatura e receita.
           </small>
         </div>
 
         <div className="marketing-trust-signals">
-          <span className={`marketing-trust-chip ${ga4Configured ? "is-success" : "is-warning"}`}>
-            {ga4Configured ? "GA4 conectado" : "GA4 indisponível"}
+          <span className={`marketing-trust-chip ${ga4HasSessions ? "is-success" : ga4Configured ? "" : "is-warning"}`}>
+            {ga4HasSessions ? "GA4 com dados" : ga4Configured ? "GA4 sem sessões no período" : "GA4 indisponível"}
           </span>
-          <span className={`marketing-trust-chip ${paidSignupCoverageWarning ? "is-warning" : "is-success"}`}>
+          <span className={`marketing-trust-chip ${paidSignupsDetected === 0 ? "" : paidSignupCoverageWarning ? "is-warning" : "is-success"}`}>
             {paidSignupsDetected === 0
               ? "Sem cadastro pago detectado"
               : `${formatMetricPercent(paidSignupCoverage)} dos cadastros pagos atribuídos`}
@@ -408,9 +416,11 @@ export function AdminMarketingPage() {
           <div>
             <p className="eyebrow">Coorte profissional</p>
             <h2>Marcos da coorte profissional</h2>
-            <p className="muted">
-              Todos os percentuais usam os cadastros da coorte como base. Os marcos são fatos de domínio da jornada profissional; horários continuam como diagnóstico operacional e não entram como etapa canônica de ativação.
-            </p>
+            {hasProfessionalCohort && (
+              <p className="muted">
+                Todos os percentuais usam os cadastros da coorte como base. Os marcos são fatos de domínio da jornada profissional; horários continuam como diagnóstico operacional e não entram como etapa canônica de ativação.
+              </p>
+            )}
           </div>
           <Link
             className="button button-secondary button-small"
@@ -420,17 +430,24 @@ export function AdminMarketingPage() {
           </Link>
         </div>
 
-        <div className="marketing-funnel-rail">
-          {stages.map(([label, value, rate]) => (
-            <article className="marketing-funnel-stage" key={label}>
-              <div>
-                <small>{label}</small>
-                <strong>{value}</strong>
-                <span>{formatMetricPercent(rate)} dos cadastros</span>
-              </div>
-            </article>
-          ))}
-        </div>
+        {hasProfessionalCohort ? (
+          <div className="marketing-funnel-rail">
+            {stages.map(([label, value, rate]) => (
+              <article className="marketing-funnel-stage" key={label}>
+                <div>
+                  <small>{label}</small>
+                  <strong>{value}</strong>
+                  <span>{formatMetricPercent(rate)} dos cadastros</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="marketing-cohort-empty">
+            <strong>Nenhum cadastro profissional neste período</strong>
+            <p>Sem cadastros, não há taxas da coorte para calcular.</p>
+          </div>
+        )}
       </section>
 
       <section className="panel marketing-analysis-panel marketing-analysis-panel-v3">
@@ -540,7 +557,7 @@ export function AdminMarketingPage() {
         <div>
           <strong>Integrações e sincronização</strong>
           <p className="muted">
-            Saúde, OAuth, vínculos e sincronização das plataformas são estado operacional atual e ficam no painel canônico de custos.
+            Saúde, OAuth, vínculos e sincronização das plataformas ficam na página de Integrações.
           </p>
         </div>
         <Link className="button button-secondary button-small" to={integrationsPath}>

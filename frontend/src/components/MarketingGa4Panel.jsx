@@ -28,6 +28,7 @@ export function MarketingGa4Panel({ data }) {
   const configured = data?.configurado === true;
   const enabled = data?.habilitado === true;
   const summary = data?.resumo || {};
+  const hasSessions = configured && toFiniteNumber(summary.sessoes) > 0;
   const channels = data?.canais || [];
   const campaigns = data?.campanhas || [];
   const landingPages = data?.landingPages || [];
@@ -50,11 +51,11 @@ export function MarketingGa4Panel({ data }) {
         </div>
         <span
           className={`admin-status-badge ${
-            configured ? "is-success" : enabled ? "is-warning" : "is-muted"
+            hasSessions ? "is-success" : configured ? "is-muted" : enabled ? "is-warning" : "is-muted"
           }`}
         >
           {configured
-            ? "GA4 conectado"
+            ? hasSessions ? "GA4 com dados" : "GA4 sem sessões no período"
             : enabled
               ? "Configuração incompleta"
               : "Leitura desativada"}
@@ -77,6 +78,12 @@ export function MarketingGa4Panel({ data }) {
         </div>
       ) : (
         <>
+          {!hasSessions && (
+            <div className="marketing-ga4-notice" role="status">
+              <strong>Nenhuma sessão retornada pelo GA4 neste período</strong>
+              <p>A consulta funcionou. Confira a coleta e a propriedade do GA4 antes de concluir que não houve visitas.</p>
+            </div>
+          )}
           {(data.amostrado || data.dadosLimitados) && (
             <div className="marketing-ga4-notice is-warning" role="status">
               <strong>O GA4 aplicou limites ao relatório</strong>

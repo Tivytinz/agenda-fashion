@@ -6,7 +6,6 @@ import {
 import { Link, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { MarketingBarChart } from "../components/MarketingBarChart";
-import { MarketingCostIntegrationsPanel } from "../components/MarketingCostIntegrationsPanel";
 import { MarketingCoveragePanel } from "../components/MarketingCoveragePanel";
 import { MarketingExecutivePanel } from "../components/MarketingExecutivePanel";
 import { MarketingCampaignCostTable } from "../components/MarketingCampaignCostTable";
@@ -572,9 +571,9 @@ export function AdminMarketingCostsPage() {
             <p className="muted">
               Essas sessões não entram no denominador de CPS ou CPA. Assim, o painel não reduz artificialmente os custos enquanto a sincronização estiver incompleta.
             </p>
-            <a className="button button-secondary button-small" href="#integracoes-custos">
+            <Link className="button button-secondary button-small" to="/admin/integracoes">
               Revisar sincronização
-            </a>
+            </Link>
           </div>
         </section>
       )}
@@ -639,10 +638,6 @@ export function AdminMarketingCostsPage() {
           />
         </div>
       </section>
-
-      <MarketingCostIntegrationsPanel
-        onChanged={() => setReloadKey((current) => current + 1)}
-      />
 
       <section className="panel admin-manual-cost-panel">
         <div className="panel-heading">

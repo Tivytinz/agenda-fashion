@@ -58,6 +58,13 @@ function percentual(parte, total) {
   return Number(((numero(parte) / denominator) * 100).toFixed(2));
 }
 
+function taxaDaCoorte(parte, total, taxaInformada) {
+  if (numero(total) <= 0) return null;
+  return taxaInformada === undefined
+    ? percentual(parte, total)
+    : numeroOuNull(taxaInformada);
+}
+
 function mapearVisaoGeral(bruto, resumoFunil = {}) {
   const sessoes = numero(bruto.sessoes);
   const cadastros = numero(resumoFunil.cadastros);
@@ -95,21 +102,13 @@ function mapearVisaoGeral(bruto, resumoFunil = {}) {
       negociosPublicados: publicados,
       primeirosAgendamentos,
       taxaNegocioSobreCadastro:
-        resumoFunil.taxaNegocio === undefined
-          ? percentual(negocios, cadastros)
-          : numero(resumoFunil.taxaNegocio),
+        taxaDaCoorte(negocios, cadastros, resumoFunil.taxaNegocio),
       taxaServicoSobreCadastro:
-        resumoFunil.taxaServico === undefined
-          ? percentual(servicos, cadastros)
-          : numero(resumoFunil.taxaServico),
+        taxaDaCoorte(servicos, cadastros, resumoFunil.taxaServico),
       taxaPublicacaoSobreCadastro:
-        resumoFunil.taxaPublicacao === undefined
-          ? percentual(publicados, cadastros)
-          : numero(resumoFunil.taxaPublicacao),
+        taxaDaCoorte(publicados, cadastros, resumoFunil.taxaPublicacao),
       taxaPrimeiroAgendamentoSobreCadastro:
-        resumoFunil.taxaPrimeiroAgendamento === undefined
-          ? percentual(primeirosAgendamentos, cadastros)
-          : numero(resumoFunil.taxaPrimeiroAgendamento),
+        taxaDaCoorte(primeirosAgendamentos, cadastros, resumoFunil.taxaPrimeiroAgendamento),
     },
     demanda: {
       agendamentosValidos: numero(bruto.agendamentos_validos),
@@ -120,13 +119,11 @@ function mapearVisaoGeral(bruto, resumoFunil = {}) {
       receitaConfirmada: numero(bruto.receita_confirmada),
       assinaturasAtivadasCohorte: assinaturasAtivadas,
       taxaAssinaturaSobreCadastro:
-        resumoFunil.taxaAssinatura === undefined
-          ? percentual(assinaturasAtivadas, cadastros)
-          : numero(resumoFunil.taxaAssinatura),
+        taxaDaCoorte(assinaturasAtivadas, cadastros, resumoFunil.taxaAssinatura),
     },
     metodologia: {
       audiencia:
-        "Sessões e tempo vêm do analytics first-party do AF e excluem a navegação em /admin.",
+        "O indicador Contas que acessaram conta contas autenticadas distintas observadas pelo AF no período. Sessões e tempo incluem visitas sem login e excluem a navegação em /admin.",
       ativacao:
         "As taxas de cadastro, negócio, serviço, publicação e primeiro agendamento acompanham a mesma coorte de profissionais cadastrados no período, usando o funil profissional canônico do backend.",
       entidades:

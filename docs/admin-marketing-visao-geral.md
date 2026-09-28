@@ -9,7 +9,7 @@ A rota `/admin/trafego-pago` deve responder duas perguntas sem misturar fontes o
 1. de onde vem a aquisição;
 2. quais origens trazem profissionais que avançam até primeiro agendamento válido e monetização.
 
-A página é uma visão de decisão. Operações de OAuth, teste de conexão, vínculo e sincronização de plataformas permanecem no painel canônico de custos, em `/admin/trafego-pago/custos#integracoes-custos`.
+A página é uma visão de decisão. Operações de OAuth, teste de conexão, vínculo e sincronização de plataformas ficam na página de Integrações, em `/admin/integracoes`, com acesso direto no sidebar.
 
 ## Fontes
 
@@ -19,6 +19,8 @@ A página é uma visão de decisão. Operações de OAuth, teste de conexão, v�
 - Atribuição do AF: classificação oficial, orgânica, rastreamento incompleto, identidade não oficial e ausência de evidência.
 
 Sessão do GA4 não é cadastro e não pode ser usada como denominador automático para taxa de cadastro. Um usuário pode produzir várias sessões, e o recorte de navegação não representa necessariamente a mesma coorte comercial.
+
+Uma consulta bem-sucedida à Data API não comprova que o site esteja enviando eventos à propriedade consultada. Quando o relatório retornar zero sessões, o Admin indica "GA4 sem sessões no período" e mantém esse estado separado de indisponibilidade. O card de sessões explicita que sua fonte é o GA4.
 
 ## Cobertura
 
@@ -42,6 +44,8 @@ A personalização de horários não entra como etapa obrigatória dessa coorte.
 
 Os percentuais desses marcos usam `cadastros` da coorte como denominador quando esse for o contrato do backend. Eles **não são conversões adjacentes** por padrão.
 
+Sem cadastros no período, a página apresenta uma mensagem compacta em lugar da sequência de marcos zerados; taxas sem denominador não são exibidas como `0%`. A ausência de cadastros pagos é um estado neutro, sem sinalizar que a atribuição está saudável.
+
 A interface não deve usar conectores ou numeração que façam esses marcos parecerem uma sequência monotônica obrigatória quando a coorte e o legado não garantirem isso.
 
 ## Qualidade da aquisição
@@ -59,11 +63,15 @@ Campanhas classificadas como `oficial` podem sustentar leitura por campanha e, q
 
 Classificações `rastreamento_incompleto`, `identidade_nao_oficial` e `sem_evidencia` permanecem visíveis para diagnóstico, mas não devem ser apresentadas como aquisição comprovada nem usadas para CAC, ROAS ou recomendação forte.
 
+## Navegação e layout
+
+O topo de Marketing mantém título, navegação interna e seletor de período em faixas distintas. A largura disponível dentro do shell administrativo determina a quebra de layout, incluindo desktops com sidebar. A aba interna ativa é "Resumo", para distingui-la da Visão geral do Admin.
+
 ## Integrações
 
 A saúde de Google Ads, Meta Ads, TikTok Ads e Pinterest Ads representa estado operacional atual e não o período selecionado na visão de Marketing.
 
-Por isso, OAuth, teste de conexão, vínculos, última sincronização e sincronização manual ficam no painel `integracoes-custos`, que concentra a operação canônica das integrações de mídia.
+Por isso, OAuth, teste de conexão, vínculos, última sincronização e sincronização manual ficam na página `/admin/integracoes`, que concentra a operação canônica das integrações de mídia.
 
 ## Terminologia
 

@@ -111,6 +111,48 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+/* A visão geral é um resumo para leitura rápida; o detalhamento fica abaixo. */
+.admin-shell .admin-overview-page .admin-command-heading {
+  padding-block: 16px;
+}
+
+.admin-shell .admin-overview-page .admin-command-metric {
+  min-height: 112px;
+  align-content: start;
+  gap: 5px;
+  padding: 16px 18px;
+}
+
+.admin-shell .admin-overview-page .admin-command-metric::before {
+  display: none;
+}
+
+.admin-shell .admin-overview-page .admin-command-metric strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-overview-page .admin-command-funnel.is-milestones {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.admin-shell .admin-overview-empty {
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-sm);
+  padding: 16px 18px;
+  background: var(--admin-surface-soft);
+}
+
+.admin-shell .admin-overview-empty strong {
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-overview-empty p {
+  margin: 0;
+  color: var(--admin-muted);
+}
+
 .admin-command-funnel.is-milestones {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
@@ -323,8 +365,9 @@
   }
 }
 
-@media (max-width: 1180px) {
-  .admin-command-funnel.is-milestones {
+@media (max-width: 1250px) {
+  .admin-command-funnel.is-milestones,
+  .admin-overview-page .admin-command-funnel.is-milestones {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
@@ -345,7 +388,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .admin-command-funnel.is-milestones {
+  .admin-command-funnel.is-milestones,
+  .admin-overview-page .admin-command-funnel.is-milestones {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -457,6 +501,10 @@
   .admin-command-summary-grid.is-period-summary,
   .admin-command-funnel.is-milestones {
     grid-template-columns: 1fr;
+  }
+
+  .admin-overview-page .admin-command-funnel.is-milestones {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .admin-command-rate-summary {

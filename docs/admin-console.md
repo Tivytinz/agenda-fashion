@@ -32,21 +32,26 @@ não fecha requisito de segurança, dinheiro, permissão ou integridade.
 ## Arquitetura de informação atual
 
 A navegação principal do Admin é definida por uma única lista compartilhada
-entre o sidebar desktop e o painel de navegação mobile. Os oito destinos são
-agrupados por tarefa:
+entre o sidebar desktop e o painel de navegação mobile. As páginas são
+agrupadas por tarefa:
 
 - **Início:** `/admin` — Visão geral;
 - **Crescimento:** `/admin/trafego-pago` — Marketing,
-  `/admin/aquisicao` — Aquisição, `/admin/jornada` — Jornada,
+  `/admin/trafego-pago/custos` — Investimento e eficiência,
+  `/admin/integracoes` — Integrações, `/admin/aquisicao` — Aquisição,
+  `/admin/jornada` — Jornada,
   `/admin/retencao` — Retenção e `/admin/receita` — Receita;
-- **Plataforma:** `/admin/operacao` — Operação e
-  `/admin/saude` — Saúde do SaaS.
+- **Plataforma:** `/admin/operacao` — Operação,
+  `/admin/saude` — Saúde do SaaS, `/admin/whatsapp` — WhatsApp;
+  para superadmin, também `/admin/auditoria` — Auditoria.
 
-Marketing cobre canais, campanhas, custos e integrações; Aquisição mostra o
+Marketing cobre canais e campanhas; Investimento e eficiência apresenta custos,
+e Integrações concentra conexões e sincronização. Aquisição mostra o
 resultado das origens no funil de profissionais. Saúde do SaaS reúne diagnóstico
 de ativação com filas e workers. No celular, o botão Menu abre a lista completa,
-sem uma segunda navegação fixa sobre o conteúdo. As rotas filhas mantêm o grupo
-principal selecionado.
+sem uma segunda navegação fixa sobre o conteúdo. Cada página seleciona seu
+próprio link; o caminho antigo `/admin/trafego-pago/custos#integracoes-custos`
+leva à página de Integrações.
 
 `/admin/auditoria` é uma consulta especializada do superadmin para rastrear
 tentativas e resultados das ações críticas. O contrato e os limites desta
@@ -54,11 +59,7 @@ leitura ficam em `admin-wave-2-rf41-auditoria.md`.
 Revisões humanas das pendências vencidas preservam o resultado HTTP desconhecido;
 o contrato está em `admin-wave-3-rf41-reconciliacao.md`.
 
-As rotas especializadas permanecem acessíveis dentro do módulo correspondente:
-
-- `/admin/trafego-pago/custos` — custos, integrações e sincronização de mídia;
-- `/admin/whatsapp` — WhatsApp e automações;
-- `/conta` — conta da pessoa autenticada dentro do contexto adequado.
+`/conta` continua acessível pelo botão Conta no topo da administração.
 
 Essa arquitetura pode evoluir quando houver ganho claro de operação. O importante é preservar a separação semântica entre aquisição, ativação/jornada, retenção, monetização e operação.
 
@@ -70,6 +71,10 @@ As páginas administrativas podem misturar duas naturezas de informação, desde
 - **desempenho no período**: métricas de aquisição, jornada, agendamentos, retenção e receita calculadas para o recorte selecionado.
 
 Quando um indicador representa pessoas ou eventos, o rótulo deve indicar a entidade medida. “Clientes que agendaram”, por exemplo, não é sinônimo de total de contas de clientes cadastradas.
+
+Na Visão geral, **Contas que acessaram** conta IDs de contas autenticadas distintas em sessões iniciadas no período. As sessões e visualizações também incluem visitas sem login. Esse indicador não representa visitantes únicos nem o total de contas cadastradas; vínculos entre visitante e conta não permitem inferir retroativamente uma pessoa única em navegadores compartilhados.
+
+Em Aquisição, sessões por origem podem ser somadas; identidades distintas calculadas separadamente por origem não podem, pois uma mesma conta ou visitante pode aparecer em mais de uma origem. O resumo e a tabela priorizam sessões e engajamento para não exibir uma soma enganosa de “usuários”.
 
 Períodos administrativos navegáveis podem ser persistidos em `?periodo=` quando a página suporta essa dimensão. Durante a troca de período, manter os últimos dados válidos visíveis pode reduzir saltos de layout, desde que a interface deixe claro quando eles ainda pertencem ao recorte anterior.
 

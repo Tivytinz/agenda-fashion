@@ -70,7 +70,13 @@
 
 @media (max-width: 800px) {
   .admin-shell .admin-command-heading .segmented-control {
-    max-width: 100%;
-    overflow-x: auto;
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    white-space: normal;
+  }
+
+  .admin-shell .admin-command-heading .segmented-control button {
+    white-space: normal;
   }
 }

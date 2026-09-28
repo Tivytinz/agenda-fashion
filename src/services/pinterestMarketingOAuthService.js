@@ -11,7 +11,7 @@ const TOKEN_URL = "https://api.pinterest.com/v5/oauth/token";
 const API_BASE_URL = "https://api.pinterest.com/v5";
 const CALLBACK_PATH =
   "/admin/marketing/custos-integracoes/pinterest_ads/callback";
-const ADMIN_RESULT_PATH = "/admin/trafego-pago";
+const ADMIN_RESULT_PATH = "/admin/integracoes";
 const STATE_TTL_MS = 10 * 60 * 1000;
 const OAUTH_TIMEOUT_MS = 10000;
 const ACCESS_REFRESH_MARGIN_MS = 5 * 60 * 1000;

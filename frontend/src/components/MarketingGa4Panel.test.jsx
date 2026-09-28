@@ -83,7 +83,7 @@ describe("MarketingGa4Panel", () => {
       />
     );
 
-    expect(screen.getByText("GA4 conectado")).not.toBeNull();
+    expect(screen.getByText("GA4 com dados")).not.toBeNull();
     expect(screen.getByText("100")).not.toBeNull();
     expect(screen.getByText("Paid Search")).not.toBeNull();
     expect(screen.getByText("Profissionais")).not.toBeNull();
@@ -108,5 +108,15 @@ describe("MarketingGa4Panel", () => {
     );
 
     expect(screen.getByText(/o GA4 aplicou limites ao relatório/i)).not.toBeNull();
+  });
+
+  it("sinaliza relatório vazio sem chamar a coleta de conectada", () => {
+    render(
+      <MarketingGa4Panel data={{ habilitado: true, configurado: true, resumo: { sessoes: 0, usuarios: 0 } }} />
+    );
+
+    expect(screen.getByText("GA4 sem sessões no período")).not.toBeNull();
+    expect(screen.getByText("Nenhuma sessão retornada pelo GA4 neste período")).not.toBeNull();
+    expect(screen.queryByText("GA4 com dados")).toBeNull();
   });
 });

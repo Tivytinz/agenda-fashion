@@ -179,16 +179,6 @@
   background: #fff;
 }
 
-.marketing-funnel-stage:not(:last-child)::after {
-  position: absolute;
-  top: 24px;
-  right: -0.42rem;
-  width: 0.28rem;
-  height: 2px;
-  background: #dfbacb;
-  content: "";
-}
-
 .marketing-funnel-step {
   display: grid;
   place-items: center;

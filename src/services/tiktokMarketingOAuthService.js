@@ -12,7 +12,7 @@ const TOKEN_URL =
   "https://business-api.tiktok.com/open_api/v1.3/oauth2/access_token/";
 const CALLBACK_PATH =
   "/admin/marketing/custos-integracoes/tiktok_ads/callback";
-const ADMIN_RESULT_PATH = "/admin/trafego-pago";
+const ADMIN_RESULT_PATH = "/admin/integracoes";
 const STATE_TTL_MS = 10 * 60 * 1000;
 const OAUTH_TIMEOUT_MS = 10000;
 

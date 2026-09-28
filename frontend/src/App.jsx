@@ -4,7 +4,7 @@ import {
   useEffect,
   useState
 } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import reactRoutes from "../../src/config/reactRoutes.json";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useSession } from "./auth/SessionContext";
@@ -89,6 +89,18 @@ const AdminMarketingCostsPage = lazyNamedWithStyles(
   () => import("./pages/AdminMarketingCostsPage"),
   "AdminMarketingCostsPage"
 );
+const AdminMarketingIntegrationsPage = lazyNamedWithStyles(
+  loadAdminMarketingStyles,
+  () => import("./pages/AdminMarketingIntegrationsPage"),
+  "AdminMarketingIntegrationsPage"
+);
+
+function LegacyCostsHashRedirect({ children }) {
+  const { hash } = useLocation();
+  return hash === "#integracoes-custos"
+    ? <Navigate replace to={reactRoutes.adminIntegrations} />
+    : children;
+}
 const AdminSaasHealthPage = lazyNamedWithStyles(
   loadAdminSaasHealthStyles,
   () => import("./pages/AdminSaasHealthPage"),
@@ -305,12 +317,13 @@ export default function App() {
             <Route
               path={reactRoutes.adminCosts}
               element={(
-                <>
+                <LegacyCostsHashRedirect>
                   <AdminMarketingCostsPage />
                   <MarketingMetricGlossary terms={["CPS", "CPA", "COBERTURA"]} />
-                </>
+                </LegacyCostsHashRedirect>
               )}
             />
+            <Route path={reactRoutes.adminIntegrations} element={<AdminMarketingIntegrationsPage />} />
             {/* Compatibilidade: links antigos de funil profissional abrem a Aquisição 2.0. */}
             <Route
               path={reactRoutes.adminProfessionals}

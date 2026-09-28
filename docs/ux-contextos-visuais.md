@@ -139,7 +139,7 @@ A administração possui shell próprio e um conjunto visual próprio porque sua
 
 A direção visual atual do Admin é a de um centro operacional limpo. Como referência:
 
-- sidebar claro com links textuais agrupados facilita a localização dos oito módulos;
+- sidebar claro com links textuais agrupados facilita a localização das páginas autorizadas;
 - superfícies claras e uma cor de destaque discreta favorecem leitura de métricas e tabelas;
 - cores semânticas podem diferenciar sucesso, atenção, erro e informação;
 - tokens `--admin-*` são a fonte preferida para bordas, raios, sombras, foco e superfícies;
@@ -187,7 +187,7 @@ A cor de marca pode aparecer quando fizer sentido para a tarefa; o Admin não de
 
 ### Evolução do legado visual
 
-Os oito módulos principais do Admin recebem layout e densidade diretamente da camada administrativa. Algumas features históricas ainda podem carregar classes antigas por compatibilidade enquanto não houver benefício proporcional em reescrevê-las.
+As páginas do Admin recebem layout e densidade diretamente da camada administrativa. Algumas features históricas ainda podem carregar classes antigas por compatibilidade enquanto não houver benefício proporcional em reescrevê-las.
 
 Quando uma área for alterada, vale avaliar se migrar o trecho tocado para primitives `admin-*` simplifica a arquitetura. Se a migração aumentar muito o risco ou o tamanho do patch sem benefício proporcional, manter temporariamente a compatibilidade é aceitável.
 

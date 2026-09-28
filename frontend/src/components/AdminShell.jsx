@@ -5,14 +5,8 @@ import { adminNavigationPath } from "../utils/adminPeriods";
 import { AppIcon } from "./AppIcon";
 
 function isAdminSectionActive(pathname, path) {
-  if (path === "/admin") return pathname === path;
-  if (path === "/admin/operacao" && pathname.startsWith("/admin/auditoria")) {
-    return true;
-  }
-  if (path === "/admin/saude" && pathname.startsWith("/admin/whatsapp")) {
-    return true;
-  }
-  return pathname === path || pathname.startsWith(`${path}/`);
+  if (path === "/admin/aquisicao" && pathname === "/admin/trafego-pago/profissionais") return true;
+  return pathname === path;
 }
 
 function AdminNavigation({ groups, mobile = false, onNavigate }) {
@@ -32,7 +26,9 @@ function AdminNavigation({ groups, mobile = false, onNavigate }) {
           <div aria-labelledby={`${prefix}-group-${index}`} className="admin-nav-list">
             {links.map(({ path, label: linkLabel }) => (
               <Link
-                aria-current={pathname === path ? "page" : undefined}
+                aria-current={pathname === path
+                  ? "page"
+                  : isAdminSectionActive(pathname, path) ? "location" : undefined}
                 className={isAdminSectionActive(pathname, path)
                   ? "admin-nav-link active"
                   : "admin-nav-link"}

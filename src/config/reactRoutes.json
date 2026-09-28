@@ -26,6 +26,7 @@
   "adminAudit": "/admin/auditoria",
   "adminMarketing": "/admin/trafego-pago",
   "adminCosts": "/admin/trafego-pago/custos",
+  "adminIntegrations": "/admin/integracoes",
   "adminProfessionals": "/admin/trafego-pago/profissionais",
   "adminHealth": "/admin/saude",
   "adminWhatsapp": "/admin/whatsapp",

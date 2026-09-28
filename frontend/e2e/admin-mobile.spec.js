@@ -254,8 +254,8 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await expect(
     page.getByRole("heading", { name: "Marketing e aquisição" })
   ).toBeVisible();
-  await expect(page.getByText("Sessões no site")).toBeVisible();
-  await expect(page.getByText("GA4 conectado", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Sessões no GA4")).toBeVisible();
+  await expect(page.getByText("GA4 com dados", { exact: true }).first()).toBeVisible();
   await expect(
     page.getByText("80% dos cadastros pagos atribuídos", { exact: true })
   ).toBeVisible();
@@ -275,7 +275,7 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   ).toBeVisible();
   await expect(page.getByText("Campanha não identificada", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Integrações", exact: true }))
-    .toHaveAttribute("href", "/admin/trafego-pago/custos?periodo=30#integracoes-custos");
+    .toHaveAttribute("href", "/admin/integracoes");
   await expect(
     page.getByRole("heading", { name: "O que acontece depois do clique" })
   ).toBeVisible();
@@ -288,7 +288,7 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   const navigation = page.getByRole("navigation", {
     name: "Navegação mobile da administração"
   });
-  await expect(navigation.locator(".admin-nav-link")).toHaveCount(8);
+  await expect(navigation.locator(".admin-nav-link")).toHaveCount(11);
   await expect(navigation.getByRole("link", { name: "Marketing" })).toBeVisible();
   await expect(navigation.getByRole("link", { name: "Saúde do SaaS" })).toBeVisible();
   await expect(navigation.getByRole("link", { name: "Ver produto" })).toHaveCount(0);

@@ -20,6 +20,7 @@ const ANALYTICS_NAV_PATHS = new Set([
   "/admin",
   "/admin/aquisicao",
   "/admin/trafego-pago",
+  "/admin/trafego-pago/custos",
   "/admin/jornada",
   "/admin/retencao",
   "/admin/receita"

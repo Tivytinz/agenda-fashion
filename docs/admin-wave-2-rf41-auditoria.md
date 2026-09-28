@@ -38,8 +38,9 @@ for encerrada. Requisições só de leitura não criam evento.
 
 `GET /admin/auditoria` exige `auth` e `authAdmin` e libera a consulta apenas ao
 superadmin. A resposta é paginada (25 por padrão, máximo de 100) e filtrável por
-ação, ator, alvo e resultado (`PENDENTE`, `HTTP_OK`, `HTTP_ERRO`); a interface fica em `/admin/auditoria`, acessível a partir da
-Operação para superadmin. A lista não utiliza paginação no navegador nem devolve
+ação, ator, alvo e resultado (`PENDENTE`, `HTTP_OK`, `HTTP_ERRO`); a interface
+fica em `/admin/auditoria`, acessível diretamente no sidebar do superadmin e
+também a partir de Operação. A lista não utiliza paginação no navegador nem devolve
 detalhes de integração. Um resultado pendente é identificado de forma explícita.
 
 ## OAuth e autorização

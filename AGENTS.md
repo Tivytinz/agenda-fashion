@@ -537,9 +537,11 @@ universo de beleza. A marca deve permanecer reconhecível, mas cada contexto pod
 ter densidade e composição próprias.
 
 O Admin funciona como um centro de comando operacional com design system próprio.
-Seu shell usa uma navegação textual única com oito módulos, agrupados em Início,
-Crescimento e Plataforma. Marketing e Saúde do SaaS ficam visíveis no sidebar;
-no celular, a mesma lista é aberta por um botão Menu, sem barra inferior fixa.
+Seu shell usa uma navegação textual única para as páginas administrativas,
+agrupadas em Início, Crescimento e Plataforma. Marketing, Investimento e
+eficiência, Integrações, Saúde do SaaS e WhatsApp têm destinos próprios no
+sidebar; Auditoria aparece apenas para superadmin. No celular, a mesma lista
+é aberta por um botão Menu, sem barra inferior fixa.
 O contexto administrativo usa superfícies claras, texto de alto contraste e
 cor de destaque com moderação. Cores de estado só representam estados reais.
 Sua cobertura possui baseline independente em
