@@ -378,8 +378,19 @@ export function BusinessPage({ create = false }) {
       if (!create) setSavedForm(normalizedSaved);
       setMessage(result.mensagem || (create ? "Negócio criado." : "Alterações salvas."));
       if (result.publicacao) setPublication(result.publicacao);
-      await session.refresh();
       if (create) {
+        const businessAdopted = session.adoptCreatedBusiness(savedBusiness);
+
+        if (!businessAdopted) {
+          navigate("/entrar?tipo=profissional", { replace: true });
+          return;
+        }
+
+        // O POST já confirmou a criação e o vínculo de dona. A resposta é
+        // suficiente para liberar o primeiro serviço; /minha-sessao apenas
+        // reconcilia o restante do contexto em segundo plano.
+        session.refresh({ silent: true }).catch(() => {});
+
         navigate(getPlanIntentPath(
           FIRST_SERVICE_ONBOARDING_PATH,
           selectedPlan
@@ -390,10 +401,14 @@ export function BusinessPage({ create = false }) {
             onboardingStep: "servico"
           }
         });
-      } else if (
+      } else {
+        await session.refresh();
+      }
+
+      if (!create && (
         location.state?.onboarding === true
         && location.state?.onboardingStep === "perfil"
-      ) {
+      )) {
         const pending = Array.isArray(result.publicacao?.pendencias)
           ? result.publicacao.pendencias
           : [];
