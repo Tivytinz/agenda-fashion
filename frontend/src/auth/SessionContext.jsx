@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from "react";
 import { useLocation } from "react-router-dom";
@@ -34,6 +35,9 @@ const SIGNED_OUT_STATE = {
 
 export function SessionProvider({ children }) {
   const location = useLocation();
+  const sessionGenerationRef = useRef(0);
+  const refreshRequestRef = useRef(0);
+  const lastAppliedRefreshRef = useRef(0);
   const [state, setState] = useState(() => {
     const sessionPresent =
       hasSession();
@@ -53,7 +57,16 @@ export function SessionProvider({ children }) {
   });
 
   const refresh = useCallback(async ({ silent = false } = {}) => {
+    const requestId = ++refreshRequestRef.current;
+    const sessionGeneration = sessionGenerationRef.current;
+    const canApply = () => (
+      sessionGeneration === sessionGenerationRef.current
+      && requestId > lastAppliedRefreshRef.current
+    );
+
     if (!hasSession()) {
+      sessionGenerationRef.current += 1;
+      lastAppliedRefreshRef.current = requestId;
       setState(SIGNED_OUT_STATE);
       return null;
     }
@@ -66,14 +79,22 @@ export function SessionProvider({ children }) {
       const migration =
         await migrateLegacySession();
 
+      if (!canApply()) {
+        return null;
+      }
+
       if (migration.invalid) {
-        setState(
-          SIGNED_OUT_STATE
-        );
+        sessionGenerationRef.current += 1;
+        lastAppliedRefreshRef.current = requestId;
+        setState(SIGNED_OUT_STATE);
         return null;
       }
 
       const result = await apiRequest("/minha-sessao");
+
+      if (!canApply()) {
+        return null;
+      }
 
       const vinculos = Array.isArray(result.vinculos)
         ? result.vinculos
@@ -91,6 +112,7 @@ export function SessionProvider({ children }) {
         administrador: result.administrador || null,
         ehAdministrador: Boolean(result.ehAdministrador)
       };
+      lastAppliedRefreshRef.current = requestId;
       setState(next);
 
       return {
@@ -98,7 +120,13 @@ export function SessionProvider({ children }) {
         negocio: next.negocioPrincipal
       };
     } catch (error) {
+      if (!canApply()) {
+        return null;
+      }
+
       if (error.status === 401 || error.status === 403) {
+        sessionGenerationRef.current += 1;
+        lastAppliedRefreshRef.current = requestId;
         clearSession();
         setState(SIGNED_OUT_STATE);
       } else if (!silent) {
@@ -114,6 +142,7 @@ export function SessionProvider({ children }) {
 
   useEffect(() => {
     function handleSessionCleared() {
+      sessionGenerationRef.current += 1;
       setState(SIGNED_OUT_STATE);
     }
 
@@ -136,6 +165,7 @@ export function SessionProvider({ children }) {
       method: "POST",
       body: payload
     });
+    sessionGenerationRef.current += 1;
     saveSession(result);
     return refresh();
   }, [refresh]);
@@ -145,6 +175,7 @@ export function SessionProvider({ children }) {
       method: "POST",
       body: payload
     });
+    sessionGenerationRef.current += 1;
     saveSession(result);
     const current = await refresh();
 
@@ -185,6 +216,7 @@ export function SessionProvider({ children }) {
   }, [refresh]);
 
   const logout = useCallback(async () => {
+    sessionGenerationRef.current += 1;
     clearSession();
     setState(SIGNED_OUT_STATE);
 
