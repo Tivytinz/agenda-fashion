@@ -374,6 +374,48 @@ describe("configuração de horários", () => {
       .toBeNull();
   });
 
+  it("volta ao painel se não conseguir confirmar a missão ao recarregar a divulgação", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/agenda-configuracao" && !options.method) {
+        return Promise.resolve({
+          configuracao: {
+            duracao_padrao: 60,
+            intervalo_minutos: 0,
+            antecedencia_agendamento: 0,
+            antecedencia_cancelamento: 24,
+            configurado_em: "2026-09-10T05:00:00.000Z",
+            origem_horarios: "personalizado"
+          },
+          horarios: defaultSuggestedWeek()
+        });
+      }
+
+      if (path === "/configuracoes") {
+        return Promise.resolve({
+          negocio: {
+            id: 11,
+            nome: "Studio Aurora",
+            slug: "studio-aurora",
+            publicado: true
+          }
+        });
+      }
+
+      if (path === "/dashboard-dono?periodo=7dias") {
+        return Promise.reject(new Error("dashboard indisponível"));
+      }
+
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    renderPage("/painel/horarios?onboarding=divulgacao");
+
+    expect((await screen.findByTestId("destination")).textContent)
+      .toBe("/painel");
+    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
+      .toBeNull();
+  });
+
   it("não restaura divulgação de uma URL antiga depois da ativação", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {
