@@ -254,7 +254,7 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
     await json(route, { mensagem: "Negócio criado.", negocio: BUSINESS }, 201);
   });
 
-  await page.route("**/dashboard-dono/ativacao", (route) => json(route, {
+  const ownerDashboardPayload = () => ({
     negocio: {
       negocio_id: BUSINESS.id,
       papel: "dono",
@@ -284,7 +284,16 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
       serviceCreated,
       firstBookingReceived
     })
-  }));
+  });
+
+  await page.route(
+    "**/dashboard-dono/ativacao",
+    (route) => json(route, ownerDashboardPayload())
+  );
+  await page.route(
+    "**/dashboard-dono?periodo=7dias",
+    (route) => json(route, ownerDashboardPayload())
+  );
   await page.route("**/dashboard-dono/origem-clientes?periodo=7dias", (route) => json(route, { resumo: {}, origens: [] }));
   await page.route("**/conta", (route) => json(route, {
     usuario: {
