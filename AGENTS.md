@@ -196,7 +196,11 @@ o fim de `/minha-sessao`, porque uma resposta HTTP obsoleta também pode alterar
 cookie HttpOnly no backend. A migração do Bearer legado para cookie segue a mesma
 regra: não pode alterar o storage antes de a geração atual confirmar o resultado
 e toda sincronização pendente deve ser abortada antes de login, cadastro, logout
-ou outra transição que assuma uma nova geração da sessão. Fotos continuam
+ou outra transição que assuma uma nova geração da sessão. O cookie HttpOnly
+válido é a autoridade quando coexistir com um Bearer legado: o frontend deve
+validá-lo antes de tentar a migração e o backend de migração nunca pode
+sobrescrever um cookie de sessão já presente. Se o cookie estiver inválido, sua
+validação canônica o limpa antes de uma nova tentativa controlada do Bearer. Fotos continuam
 fora da primeira missão e podem ser
 adicionadas depois no editor normal de Serviços.
 
