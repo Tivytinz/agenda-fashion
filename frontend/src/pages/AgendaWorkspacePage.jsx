@@ -413,8 +413,8 @@ export function AgendaWorkspacePage({ owner = false }) {
     }
   }
 
-  if (!data && !error) return <div className="workspace-page"><LoadingState>Carregando agenda...</LoadingState></div>;
-  if (!data && error) return <div className="workspace-page"><ErrorState message={error} onRetry={() => void load().catch(() => {})} /></div>;
+  if (!data && !error) return <main className="workspace-page"><LoadingState>Carregando agenda...</LoadingState></main>;
+  if (!data && error) return <main className="workspace-page"><ErrorState message={error} onRetry={() => void load().catch(() => {})} /></main>;
 
   return (
     <main className="workspace-page agenda-workspace-page">
