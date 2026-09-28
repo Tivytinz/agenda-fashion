@@ -136,6 +136,14 @@ export function ScheduleSettingsPage() {
     () => new URLSearchParams(location.search).get("onboarding") === "divulgacao",
     [location.search]
   );
+  const showActivationNextStep =
+    activationNextStep && shareOnboardingRequested;
+
+  useEffect(() => {
+    if (!shareOnboardingRequested && activationNextStep) {
+      setActivationNextStep(false);
+    }
+  }, [activationNextStep, shareOnboardingRequested]);
 
   const load = useCallback(() => {
     setError("");
@@ -158,7 +166,7 @@ export function ScheduleSettingsPage() {
           duracaoPadrao: current.duracao_padrao ?? current.duracaoPadrao ?? 60,
           intervaloMinutos: current.intervalo_minutos ?? current.intervaloMinutos ?? 0,
           antecedenciaAgendamento: current.antecedencia_agendamento ?? current.antecedenciaAgendamento ?? 0,
-          antecedenciaCancelamento: current.antecedencia_cancelamento ?? current.antecedenciaCancelamento ?? 24,
+          antecedenciaCancelamento: current.antecedencia_cancelamento ?? current.antecedenciaCancelamento ?? 2,
           configuradoEm: configuredAt,
           origemHorarios: scheduleOrigin
         });
@@ -190,10 +198,10 @@ export function ScheduleSettingsPage() {
   useEffect(load, [load]);
 
   useEffect(() => {
-    if (!message || activationNextStep) return undefined;
+    if (!message || showActivationNextStep) return undefined;
     const timeout = window.setTimeout(() => setMessage(""), 2800);
     return () => window.clearTimeout(timeout);
-  }, [activationNextStep, message]);
+  }, [message, showActivationNextStep]);
 
   const leadTimeBookingOptions = useMemo(
     () => withCurrentOption(LEAD_TIME_OPTIONS, config?.antecedenciaAgendamento),
@@ -311,7 +319,7 @@ export function ScheduleSettingsPage() {
   }, []);
 
   const loadCanonicalActivationState = useCallback(async () => {
-    const dashboard = await apiRequest("/dashboard-dono?periodo=7dias");
+    const dashboard = await apiRequest("/dashboard-dono/ativacao");
     return dashboard?.proxima_acao_ativacao?.estado ?? null;
   }, []);
 
@@ -450,11 +458,13 @@ export function ScheduleSettingsPage() {
           }
         });
 
-        const publicationState = await loadBusinessContext();
-
+        let publicationState = null;
         let activationState = null;
         try {
-          activationState = await loadCanonicalActivationState();
+          [publicationState, activationState] = await Promise.all([
+            loadBusinessContext(),
+            loadCanonicalActivationState()
+          ]);
         } catch {
           navigate("/painel", {
             replace: true,
@@ -518,7 +528,7 @@ export function ScheduleSettingsPage() {
         </div>
       </header>
 
-      {firstConfiguration && !activationNextStep && (
+      {firstConfiguration && !showActivationNextStep && (
         <FlowSteps
           ariaLabel="Etapas iniciais do negócio"
           current={3}
@@ -526,7 +536,7 @@ export function ScheduleSettingsPage() {
         />
       )}
 
-      {activationNextStep ? (
+      {showActivationNextStep ? (
         <section
           aria-labelledby="schedule-next-step-title"
           aria-live="polite"

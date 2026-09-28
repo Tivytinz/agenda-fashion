@@ -254,7 +254,7 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
     await json(route, { mensagem: "Negócio criado.", negocio: BUSINESS }, 201);
   });
 
-  await page.route("**/dashboard-dono?periodo=7dias", (route) => json(route, {
+  await page.route("**/dashboard-dono/ativacao", (route) => json(route, {
     negocio: {
       negocio_id: BUSINESS.id,
       papel: "dono",
@@ -352,7 +352,7 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
         duracao_padrao: 60,
         intervalo_minutos: 0,
         antecedencia_agendamento: 0,
-        antecedencia_cancelamento: 24,
+        antecedencia_cancelamento: 2,
         configurado_em: null,
         origem_horarios: "padrao_af"
       },

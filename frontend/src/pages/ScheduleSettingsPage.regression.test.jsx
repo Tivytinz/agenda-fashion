@@ -82,7 +82,7 @@ describe("regressões da configuração de horários", () => {
           }
         });
       }
-      if (path === "/dashboard-dono?periodo=7dias") {
+      if (path === "/dashboard-dono/ativacao") {
         return Promise.resolve({
           proxima_acao_ativacao: {
             estado: "REVISAR_PUBLICACAO",
@@ -102,7 +102,7 @@ describe("regressões da configuração de horários", () => {
     expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
       .toBeNull();
     await waitFor(() => {
-      expect(apiRequest).toHaveBeenCalledWith("/dashboard-dono?periodo=7dias");
+      expect(apiRequest).toHaveBeenCalledWith("/dashboard-dono/ativacao");
     });
     expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes"))
       .toBe(true);
@@ -127,7 +127,7 @@ describe("regressões da configuração de horários", () => {
       if (path === "/configuracoes") {
         return Promise.reject(new Error("perfil indisponível"));
       }
-      if (path === "/dashboard-dono?periodo=7dias") {
+      if (path === "/dashboard-dono/ativacao") {
         return Promise.resolve({
           proxima_acao_ativacao: {
             estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",

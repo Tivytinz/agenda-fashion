@@ -19,7 +19,7 @@ O banco preenche os novos snapshots no `INSERT` a partir de dados internos e con
 
 - o nome vem de `servicos_negocio` pelo `servico_id`;
 - a antecedência vem de `agenda_configuracoes` pelo `profissional_id`;
-- quando não existe configuração de agenda, a antecedência defensiva permanece em 24 horas, preservando o fallback anterior.
+- quando não existe configuração de agenda, a antecedência defensiva é de 2 horas, alinhada à política padrão vigente para novas reservas.
 
 A trigger de preenchimento existe também para que uma instância antiga, ainda atendendo durante a troca de release, não consiga criar um agendamento sem os snapshots novos.
 
@@ -40,7 +40,7 @@ Os fluxos de cliente autenticada e visitante usam a mesma implementação de dom
 - horário local do negócio;
 - antecedência congelada no próprio agendamento.
 
-Alterar `agenda_configuracoes.antecedencia_cancelamento` afeta reservas futuras, mas não muda a possibilidade de cancelamento de bookings já criados.
+Alterar `agenda_configuracoes.antecedencia_cancelamento` afeta reservas futuras, mas não muda a possibilidade de cancelamento de bookings já criados. Configurações automáticas ainda marcadas como `padrao_af` usam 2 horas; uma migração de default nunca reescreve o snapshot de reservas existentes.
 
 O cancelamento continua transacional e continua enfileirando a comunicação operacional existente.
 

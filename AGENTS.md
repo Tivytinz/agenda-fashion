@@ -167,7 +167,13 @@ inicial:
 
 - segunda a sexta: 08:00–18:00, com pausa 12:00–13:00;
 - sábado: 08:00–13:00;
-- domingo: fechado.
+- domingo: fechado;
+- antecedência inicial de cancelamento: 2 horas.
+
+A antecedência automática de 2 horas vale para configurações ainda identificadas
+como `padrao_af`. Uma personalização explícita preserva o valor escolhido pela
+profissional, e snapshots já gravados em agendamentos não são reescritos por
+mudança posterior da configuração.
 
 Na criação inicial, o sucesso de `/criar-negocio` sempre continua em
 `/painel/servicos/novo?onboarding=servico`. Um `state.from` herdado de uma
@@ -218,7 +224,9 @@ não deve avançar.
 
 Depois do primeiro salvamento explícito da agenda, tanto a confirmação da
 sugestão quanto o ajuste manual convergem para a missão de **divulgar o perfil**
-e conquistar o primeiro agendamento. Essa conclusão usa
+e conquistar o primeiro agendamento. A revalidação dessa missão usa uma leitura
+leve e canônica de ativação no backend, sem depender das consultas de métricas,
+rankings ou retenção do dashboard completo. Essa conclusão usa
 `/painel/horarios?onboarding=divulgacao` como marcador navegável para preservar
 a missão em refresh/reabertura, sem depender apenas de estado transitório do
 React. Ao restaurar esse marcador, a interface deve confirmar a próxima ação

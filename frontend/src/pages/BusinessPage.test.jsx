@@ -73,7 +73,8 @@ afterEach(() => {
 });
 
 describe("publicação do negócio", () => {
-  it("retoma os horários depois de corrigir o perfil e publicar", async () => {
+  it("retoma os horários depois de corrigir o perfil e publicar mesmo se a sessão falhar", async () => {
+    refreshSession.mockRejectedValueOnce(new Error("Rede indisponível"));
     const business = { ...BUSINESS, localizacao_url: "https://maps.google.com/?q=goiania" };
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/configuracoes") return Promise.resolve({ negocio: business, publicacao: { publicado: options.method === "PUT", pendencias: [] } });
@@ -87,6 +88,8 @@ describe("publicação do negócio", () => {
     fireEvent.submit(screen.getByRole("button", { name: "Salvar alterações" }).closest("form"));
     expect((await screen.findByTestId("activation-destination")).textContent)
       .toBe("/painel/horarios?plano=autonoma|agenda");
+    expect(refreshSession).toHaveBeenCalledWith({ silent: true });
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("não deixa state.from pular o primeiro serviço depois de criar o negócio", async () => {

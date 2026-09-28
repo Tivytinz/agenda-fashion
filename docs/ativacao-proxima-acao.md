@@ -35,6 +35,13 @@ Esses estados são mecanismo interno do produto. No dashboard, a profissional re
 
 `GET /dashboard-dono` continua expondo `ativacao` e `proxima_acao_ativacao`.
 
+Para revalidar a missão durante a primeira jornada sem acoplar a navegação a
+consultas de período, retenção, performance ou rankings, o backend também expõe
+`GET /dashboard-dono/ativacao`. Essa projeção autenticada retorna somente o
+contexto mínimo do negócio, `ativacao` e `proxima_acao_ativacao`, usando a
+mesma máquina determinística. Ela não cria um segundo estado nem substitui o
+dashboard completo.
+
 Exemplo:
 
 ```json
@@ -132,8 +139,12 @@ A máquina de ativação não usa:
 - banco vetorial;
 - memória própria;
 - tabela específica de IA;
-- nova rota;
-- nova migration.
+- estado paralelo de ativação;
+- nova migration para representar a máquina.
+
+A rota leve `/dashboard-dono/ativacao` é apenas uma projeção de leitura do mesmo
+estado canônico e existe para evitar que a primeira jornada dependa de métricas
+secundárias do dashboard.
 
 Retenção, recorrência, otimização de conversão e recomendações baseadas em métricas não alteram esta máquina de estados. Depois de `ATIVADO`, o estado continua disponível internamente, enquanto a interface pode seguir diretamente para oportunidades de crescimento determinísticas, incluindo recorrência quando houver amostra agregada suficiente.
 

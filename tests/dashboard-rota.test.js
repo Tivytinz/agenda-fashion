@@ -510,6 +510,93 @@ describe(
     );
 
     test(
+      "dono autenticado consulta ativação sem carregar métricas do período",
+      async () => {
+        dashboardRepository
+          .buscarNegocioDoUsuario
+          .mockResolvedValue({
+            negocio_id:
+              "11",
+            papel:
+              "dono",
+            nome:
+              "Studio Fashion",
+            slug:
+              "studio-fashion",
+          });
+
+        const token =
+          criarToken(
+            1
+          );
+
+        const resposta =
+          await request(app)
+            .get(
+              "/dashboard-dono/ativacao"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${token}`
+            );
+
+        expect(
+          resposta.statusCode
+        ).toBe(
+          200
+        );
+
+        expect(
+          resposta.body
+        ).toMatchObject({
+          negocio: {
+            negocio_id: 11,
+            papel: "dono",
+            nome: "Studio Fashion",
+            slug: "studio-fashion",
+          },
+          ativacao: {
+            possui_servico_ativo:
+              true,
+            negocio_publicado:
+              true,
+            primeiro_agendamento_recebido:
+              false,
+          },
+          proxima_acao_ativacao: {
+            estado:
+              "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+            concluido:
+              false,
+          },
+        });
+
+        expect(
+          dashboardActivationRepository
+            .buscarEstadoAtivacao
+        ).toHaveBeenCalledWith(
+          11
+        );
+        expect(
+          dashboardRepository
+            .buscarResumoDono
+        ).not.toHaveBeenCalled();
+        expect(
+          dashboardRetentionRepository
+            .buscarResumoRetencao
+        ).not.toHaveBeenCalled();
+        expect(
+          dashboardRepository
+            .buscarResumoDias
+        ).not.toHaveBeenCalled();
+        expect(
+          dashboardRepository
+            .buscarRankingServicos
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
       "dono autenticado recebe o dashboard completo",
       async () => {
         configurarRepositorioDono();

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { track } from "../analytics/track";
 import { apiRequest } from "../api/client";
@@ -64,11 +64,27 @@ function Destination() {
   );
 }
 
+function OwnerScheduleRoute() {
+  const navigate = useNavigate();
+
+  return (
+    <>
+      <button
+        onClick={() => navigate("/painel/horarios")}
+        type="button"
+      >
+        Abrir editor de horários
+      </button>
+      <ScheduleSettingsPage />
+    </>
+  );
+}
+
 function renderPage(entry = "/painel/horarios") {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
-        <Route path="/painel/horarios" element={<ScheduleSettingsPage />} />
+        <Route path="/painel/horarios" element={<OwnerScheduleRoute />} />
         <Route path="/profissional/horarios" element={<ScheduleSettingsPage />} />
         <Route path="/profissional/agenda" element={<Destination />} />
         <Route path="/painel" element={<Destination />} />
@@ -90,7 +106,7 @@ function mockFirstConfiguration() {
           duracao_padrao: 60,
           intervalo_minutos: 0,
           antecedencia_agendamento: 0,
-          antecedencia_cancelamento: 24,
+          antecedencia_cancelamento: 2,
           configurado_em: "2026-09-10T04:00:00.000Z",
           origem_horarios: "padrao_af"
         },
@@ -109,7 +125,7 @@ function mockFirstConfiguration() {
       });
     }
 
-    if (path === "/dashboard-dono?periodo=7dias") {
+    if (path === "/dashboard-dono/ativacao") {
       return Promise.resolve({
         proxima_acao_ativacao: {
           estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
@@ -178,7 +194,7 @@ describe("configuração de horários", () => {
             duracao_padrao: 60,
             intervalo_minutos: 0,
             antecedencia_agendamento: 0,
-            antecedencia_cancelamento: 24,
+            antecedencia_cancelamento: 2,
             configurado_em: "2026-09-10T04:00:00.000Z",
           origem_horarios: "padrao_af"
           },
@@ -350,7 +366,7 @@ describe("configuração de horários", () => {
         });
       }
 
-      if (path === "/dashboard-dono?periodo=7dias") {
+      if (path === "/dashboard-dono/ativacao") {
         return Promise.resolve({
           proxima_acao_ativacao: {
             estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
@@ -372,6 +388,62 @@ describe("configuração de horários", () => {
       .toBeNull();
     expect(screen.queryByRole("link", { name: "Concluir plano escolhido" }))
       .toBeNull();
+  });
+
+  it("volta ao editor quando Horários é aberto sem o marcador de divulgação", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/agenda-configuracao" && !options.method) {
+        return Promise.resolve({
+          configuracao: {
+            duracao_padrao: 60,
+            intervalo_minutos: 0,
+            antecedencia_agendamento: 0,
+            antecedencia_cancelamento: 2,
+            configurado_em: "2026-09-10T05:00:00.000Z",
+            origem_horarios: "personalizado"
+          },
+          horarios: defaultSuggestedWeek()
+        });
+      }
+
+      if (path === "/configuracoes") {
+        return Promise.resolve({
+          negocio: {
+            id: 11,
+            nome: "Studio Aurora",
+            slug: "studio-aurora",
+            publicado: true
+          }
+        });
+      }
+
+      if (path === "/dashboard-dono/ativacao") {
+        return Promise.resolve({
+          proxima_acao_ativacao: {
+            estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+            concluido: false
+          }
+        });
+      }
+
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    renderPage("/painel/horarios?onboarding=divulgacao");
+
+    expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
+      .not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", {
+      name: "Abrir editor de horários"
+    }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
+        .toBeNull();
+    });
+    expect(screen.getByRole("button", { name: "Salvar horários" }))
+      .not.toBeNull();
   });
 
   it("volta ao painel se não conseguir confirmar a missão ao recarregar a divulgação", async () => {
@@ -401,7 +473,7 @@ describe("configuração de horários", () => {
         });
       }
 
-      if (path === "/dashboard-dono?periodo=7dias") {
+      if (path === "/dashboard-dono/ativacao") {
         return Promise.reject(new Error("dashboard indisponível"));
       }
 
@@ -443,7 +515,7 @@ describe("configuração de horários", () => {
         });
       }
 
-      if (path === "/dashboard-dono?periodo=7dias") {
+      if (path === "/dashboard-dono/ativacao") {
         return Promise.resolve({
           proxima_acao_ativacao: {
             estado: "ATIVADO",
@@ -479,7 +551,7 @@ describe("configuração de horários", () => {
         });
       }
 
-      if (path === "/dashboard-dono?periodo=7dias") {
+      if (path === "/dashboard-dono/ativacao") {
         return Promise.resolve({
           proxima_acao_ativacao: {
             estado: "ATIVADO",
@@ -516,7 +588,7 @@ describe("configuração de horários", () => {
         });
       }
 
-      if (path === "/dashboard-dono?periodo=7dias") {
+      if (path === "/dashboard-dono/ativacao") {
         return Promise.reject(new Error("dashboard indisponível"));
       }
 
@@ -754,7 +826,7 @@ describe("configuração de horários", () => {
           negocio: { id: 11, nome: "Studio Aurora", slug: "studio-aurora", publicado: true }
         });
       }
-      if (path === "/dashboard-dono?periodo=7dias") {
+      if (path === "/dashboard-dono/ativacao") {
         return Promise.resolve({
           proxima_acao_ativacao: {
             estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO"

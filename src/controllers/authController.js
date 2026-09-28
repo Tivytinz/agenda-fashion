@@ -15,6 +15,21 @@ const passwordResetService = require(
   "../services/passwordResetService"
 );
 
+const authSessionRepository = require(
+  "../repositories/authSessionRepository"
+);
+const {
+  hashToken,
+  verificarToken,
+} = require(
+  "../utils/sessionToken"
+);
+const {
+  tokenAnteriorATrocaDeSenha,
+} = require(
+  "../middlewares/auth"
+);
+
 const {
   definirCookieSessao,
   limparCookieSessao,
@@ -267,50 +282,115 @@ async function redefinirSenha(
   }
 }
 
-function migrarSessaoLegada(
-  req,
-  res
+async function cookieSessaoEstaValido(
+  token
 ) {
-  const tokenCookie =
-    obterTokenCookie(
-      req.headers.cookie
-    );
+  let decoded;
 
-  res.set(
-    "Cache-Control",
-    "no-store"
+  try {
+    decoded =
+      verificarToken(token);
+  } catch (erro) {
+    if (
+      [
+        "TokenExpiredError",
+        "JsonWebTokenError",
+        "NotBeforeError",
+      ].includes(
+        erro.name
+      )
+    ) {
+      return false;
+    }
+
+    throw erro;
+  }
+
+  if (!decoded?.id) {
+    return false;
+  }
+
+  const estadoDaSessao =
+    await authSessionRepository
+      .buscarEstadoDaSessao(
+        decoded.id,
+        hashToken(token)
+      );
+
+  return Boolean(
+    estadoDaSessao
+    && Number(
+      estadoDaSessao.id
+    ) === Number(
+      decoded.id
+    )
+    && estadoDaSessao.ativo === true
+    && estadoDaSessao
+      .token_revogado !== true
+    && !tokenAnteriorATrocaDeSenha(
+      decoded,
+      estadoDaSessao
+        .senha_alterada_em
+    )
   );
+}
 
-  // A migração existe apenas para transportar uma sessão legada quando
-  // ainda não há cookie. Nunca substitua uma sessão HttpOnly que possa
-  // ter sido criada por login/cadastro concorrente em outra identidade.
-  if (tokenCookie) {
+async function migrarSessaoLegada(
+  req,
+  res,
+  next
+) {
+  try {
+    const tokenCookie =
+      obterTokenCookie(
+        req.headers.cookie
+      );
+
+    res.set(
+      "Cache-Control",
+      "no-store"
+    );
+
+    // Cookie HttpOnly válido é a autoridade. Um cookie inválido não pode
+    // impedir que um Bearer legado já autenticado conclua a migração.
+    if (tokenCookie) {
+      if (
+        await cookieSessaoEstaValido(
+          tokenCookie
+        )
+      ) {
+        return res
+          .status(200)
+          .json({
+            codigo:
+              "COOKIE_SESSAO_PRESENTE",
+            migrado: false,
+            mensagem:
+              "Uma sessão em cookie já existe e deve ser preservada.",
+          });
+      }
+
+      limparCookieSessao(res);
+    }
+
+    const tokenLegado =
+      obterTokenBearer(
+        req.headers.authorization
+      );
+
+    if (tokenLegado) {
+      definirCookieSessao(
+        res,
+        tokenLegado
+      );
+    }
+
     return res
-      .status(200)
-      .json({
-        codigo:
-          "COOKIE_SESSAO_PRESENTE",
-        migrado: false,
-        mensagem:
-          "Uma sessão em cookie já existe e deve ser validada antes da migração.",
-      });
+      .status(204)
+      .end();
+  } catch (erro) {
+    return next(erro);
   }
-
-  const tokenLegado =
-    obterTokenBearer(
-      req.headers.authorization
-    );
-
-  if (tokenLegado) {
-    definirCookieSessao(
-      res,
-      tokenLegado
-    );
-  }
-
-  return res
-    .status(204)
-    .end();
 }
 
 function logout(

@@ -7,6 +7,14 @@ jest.mock(
 );
 
 jest.mock(
+  "../src/repositories/dashboardRepository",
+  () => ({
+    buscarNegocioDoUsuario:
+      jest.fn(),
+  })
+);
+
+jest.mock(
   "../src/services/dashboardActivationService",
   () => ({
     buscarAtivacaoNegocio:
@@ -39,6 +47,9 @@ jest.mock(
 const dashboardService = require(
   "../src/services/dashboardService"
 );
+const dashboardRepository = require(
+  "../src/repositories/dashboardRepository"
+);
 const dashboardActivationService = require(
   "../src/services/dashboardActivationService"
 );
@@ -65,6 +76,89 @@ describe(
           oportunidades: [],
         });
     });
+
+    test(
+      "resolve a ativação leve sem carregar métricas do dashboard",
+      async () => {
+        const ativacao = {
+          possui_servico: true,
+          possui_servico_ativo: true,
+          negocio_publicado: true,
+          agenda_configurada: true,
+          primeiro_agendamento_recebido: false,
+        };
+        const proximaAcaoAtivacao = {
+          estado:
+            "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+          concluido: false,
+          titulo:
+            "Seu perfil está no ar",
+          mensagem:
+            "Compartilhe seu perfil.",
+          acao: {
+            tipo:
+              "COMPARTILHAR_PERFIL",
+            rotulo:
+              "Compartilhar perfil",
+          },
+        };
+
+        dashboardRepository
+          .buscarNegocioDoUsuario
+          .mockResolvedValue({
+            negocio_id: "18",
+            papel: "dono",
+            nome: "Studio Aurora",
+            slug: "studio-aurora",
+          });
+        dashboardActivationService
+          .buscarAtivacaoNegocio
+          .mockResolvedValue(
+            ativacao
+          );
+        activationNextActionService
+          .resolverProximaAcaoAtivacao
+          .mockReturnValue(
+            proximaAcaoAtivacao
+          );
+
+        await expect(
+          dashboardDonoService
+            .buscarAtivacaoDono({
+              usuarioId: 7,
+            })
+        ).resolves.toEqual({
+          negocio: {
+            negocio_id: 18,
+            papel: "dono",
+            nome: "Studio Aurora",
+            slug: "studio-aurora",
+          },
+          ativacao,
+          proxima_acao_ativacao:
+            proximaAcaoAtivacao,
+        });
+
+        expect(
+          dashboardRepository
+            .buscarNegocioDoUsuario
+        ).toHaveBeenCalledWith(7);
+        expect(
+          dashboardActivationService
+            .buscarAtivacaoNegocio
+        ).toHaveBeenCalledWith({
+          negocioId: 18,
+        });
+        expect(
+          dashboardService
+            .buscarDashboardDono
+        ).not.toHaveBeenCalled();
+        expect(
+          growthIntelligenceService
+            .analyzeGrowthIntelligence
+        ).not.toHaveBeenCalled();
+      }
+    );
 
     test(
       "combina dashboard autorizado com ativação, próxima ação e inteligência de crescimento",

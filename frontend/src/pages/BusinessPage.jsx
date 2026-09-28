@@ -379,6 +379,11 @@ export function BusinessPage({ create = false }) {
       if (!create) setSavedForm(normalizedSaved);
       setMessage(result.mensagem || (create ? "Negócio criado." : "Alterações salvas."));
       if (result.publicacao) setPublication(result.publicacao);
+      const profileOnboarding =
+        !create
+        && location.state?.onboarding === true
+        && location.state?.onboardingStep === "perfil";
+
       if (create) {
         const businessAdopted = session.adoptCreatedBusiness(savedBusiness);
 
@@ -402,14 +407,15 @@ export function BusinessPage({ create = false }) {
             onboardingStep: "servico"
           }
         });
+      } else if (profileOnboarding) {
+        // O PUT já devolve a publicação canônica. A reconciliação de sessão
+        // não pode transformar um salvamento concluído em falha de UX.
+        session.refresh({ silent: true }).catch(() => {});
       } else {
         await session.refresh();
       }
 
-      if (!create && (
-        location.state?.onboarding === true
-        && location.state?.onboardingStep === "perfil"
-      )) {
+      if (profileOnboarding) {
         const pending = Array.isArray(result.publicacao?.pendencias)
           ? result.publicacao.pendencias
           : [];

@@ -11,6 +11,8 @@ jest.mock(
   () => ({
     buscarDashboardDono:
       jest.fn(),
+    buscarAtivacaoDono:
+      jest.fn(),
   })
 );
 
@@ -35,6 +37,68 @@ describe(
     beforeEach(() => {
       jest.resetAllMocks();
     });
+
+    test(
+      "delega a leitura leve de ativação sem período",
+      async () => {
+        const resultado = {
+          negocio: {
+            negocio_id: 18,
+            papel: "dono",
+            nome: "Studio Aurora",
+            slug: "studio-aurora",
+          },
+          ativacao: {
+            possui_servico_ativo: true,
+            negocio_publicado: true,
+            agenda_configurada: true,
+            primeiro_agendamento_recebido: false,
+          },
+          proxima_acao_ativacao: {
+            estado:
+              "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+            concluido: false,
+          },
+        };
+
+        dashboardDonoService
+          .buscarAtivacaoDono
+          .mockResolvedValue(
+            resultado
+          );
+
+        const req = {
+          user: {
+            id: 7,
+          },
+          query: {},
+        };
+        const res = {
+          json: jest.fn(),
+        };
+        const next = jest.fn();
+
+        await dashboardController
+          .buscarAtivacaoDono(
+            req,
+            res,
+            next
+          );
+
+        expect(
+          dashboardDonoService
+            .buscarAtivacaoDono
+        ).toHaveBeenCalledWith({
+          usuarioId: 7,
+        });
+        expect(
+          res.json
+        ).toHaveBeenCalledWith(
+          resultado
+        );
+        expect(next).not.toHaveBeenCalled();
+      }
+    );
 
     test(
       "delega o caso de uso e devolve o contrato pronto",

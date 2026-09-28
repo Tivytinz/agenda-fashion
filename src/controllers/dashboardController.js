@@ -34,6 +34,21 @@ async function buscarDashboardDono(req, res, next) {
   }
 }
 
+async function buscarAtivacaoDono(req, res, next) {
+  try {
+    const resultado =
+      await dashboardDonoService
+        .buscarAtivacaoDono({
+          usuarioId:
+            req.user?.id,
+        });
+
+    return res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function buscarOrigemClientesDono(req, res, next) {
   try {
     const resultado = await dashboardCustomerOriginService
@@ -65,6 +80,7 @@ async function gerarDivulgacaoCopilot(req, res, next) {
 module.exports = {
   buscarDashboardProfissional,
   buscarDashboardDono,
+  buscarAtivacaoDono,
   buscarOrigemClientesDono,
   gerarDivulgacaoCopilot,
 };

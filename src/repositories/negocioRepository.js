@@ -420,7 +420,7 @@ async function criarDisponibilidadePadrao(
       configurado_em,
       origem_horarios
     )
-    VALUES ($1, $2, 60, 0, 0, 24, NOW(), 'padrao_af')
+    VALUES ($1, $2, 60, 0, 0, 2, NOW(), 'padrao_af')
     ON CONFLICT (profissional_id, negocio_id)
     DO NOTHING
     `,

@@ -91,7 +91,7 @@ test("onboarding de horários confirma a sugestão e segue para divulgação no 
       pendencias: []
     }
   }));
-  await page.route("**/dashboard-dono?periodo=7dias", (route) => json(route, {
+  await page.route("**/dashboard-dono/ativacao", (route) => json(route, {
     proxima_acao_ativacao: {
       estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
       concluido: false
@@ -120,7 +120,7 @@ test("onboarding de horários confirma a sugestão e segue para divulgação no 
         duracao_padrao: 60,
         intervalo_minutos: 0,
         antecedencia_agendamento: 0,
-        antecedencia_cancelamento: 24,
+        antecedencia_cancelamento: 2,
         configurado_em: scheduleSaved
           ? "2026-09-10T05:00:00.000Z"
           : "2026-09-10T04:00:00.000Z",
