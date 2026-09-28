@@ -5,6 +5,20 @@ import { readRecentAppointment } from "../utils/appointments";
 import { ClientMobileNavigation } from "./ClientMobileNavigation";
 import "../styles/public-shell.css";
 
+function isClientNavigationRoute(pathname) {
+  return (
+    pathname === "/" ||
+    pathname === "/favoritos" ||
+    pathname === "/minha-agenda" ||
+    pathname === "/cliente/conta" ||
+    pathname === "/sucesso" ||
+    pathname.startsWith("/negocio/") ||
+    pathname.startsWith("/servicos/") ||
+    pathname.startsWith("/agendamento-acesso/") ||
+    pathname.startsWith("/agendamento-visitante/")
+  );
+}
+
 function isOperationalContext(pathname, session) {
   const adminArea = pathname === "/admin" || pathname.startsWith("/admin/");
   const ownerArea = pathname === "/painel" || pathname.startsWith("/painel/");
@@ -20,6 +34,8 @@ export function PublicShell({ children }) {
   const session = useSession();
   const publicContext = !isOperationalContext(location.pathname, session);
   const focusedBooking = location.pathname === "/confirmar";
+  const clientNavigationRoute =
+    isClientNavigationRoute(location.pathname);
   const guestAppointmentAvailable =
     !session.authenticated &&
     (
@@ -29,6 +45,7 @@ export function PublicShell({ children }) {
     );
   const showClientNavigation =
     publicContext &&
+    clientNavigationRoute &&
     !focusedBooking &&
     (
       session.authenticated ||
