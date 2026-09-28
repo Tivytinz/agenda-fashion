@@ -93,16 +93,9 @@ export function SessionProvider({ children }) {
     sessionSyncAbortRef.current = syncController;
 
     try {
-      let migration;
-      try {
-        migration = await migrateLegacySession({
-          signal: syncController.signal
-        });
-      } finally {
-        if (sessionSyncAbortRef.current === syncController) {
-          sessionSyncAbortRef.current = null;
-        }
-      }
+      const migration = await migrateLegacySession({
+        signal: syncController.signal
+      });
 
       if (!canApply()) {
         return null;
@@ -170,6 +163,10 @@ export function SessionProvider({ children }) {
         setState((current) => ({ ...current, loading: false }));
       }
       throw error;
+    } finally {
+      if (sessionSyncAbortRef.current === syncController) {
+        sessionSyncAbortRef.current = null;
+      }
     }
   }, [abortSessionSync]);
 
