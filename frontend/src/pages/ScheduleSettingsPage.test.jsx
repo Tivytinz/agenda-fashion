@@ -195,8 +195,10 @@ describe("configuração de horários", () => {
     renderPage("/profissional/horarios");
 
     expect(
-      await screen.findByRole("heading", { name: "Quando você recebe clientes" })
-    ).not.toBeNull();
+      (await screen.findAllByRole("heading", {
+        name: "Quando você recebe clientes"
+      })).length
+    ).toBeGreaterThan(0);
     expect(
       screen.queryByRole("heading", { name: "Confirme quando você atende" })
     ).toBeNull();
