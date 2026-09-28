@@ -712,6 +712,13 @@ describe("configuração de horários", () => {
           negocio: { id: 11, nome: "Studio Aurora", slug: "studio-aurora", publicado: true }
         });
       }
+      if (path === "/dashboard-dono?periodo=7dias") {
+        return Promise.resolve({
+          proxima_acao_ativacao: {
+            estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO"
+          }
+        });
+      }
       return Promise.reject(new Error(`Rota inesperada: ${path}`));
     });
 
