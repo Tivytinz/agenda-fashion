@@ -171,7 +171,12 @@ inicial:
 
 Na criação inicial, o sucesso de `/criar-negocio` sempre continua em
 `/painel/servicos/novo?onboarding=servico`. Um `state.from` herdado de uma
-tentativa anterior de abrir o workspace não pode pular o primeiro serviço.
+tentativa anterior de abrir o workspace não pode pular o primeiro serviço. Como
+o POST já persiste o negócio e o vínculo de dona de forma atômica, sua resposta
+canônica deve atualizar imediatamente o contexto local necessário para liberar
+essa rota; a reconciliação posterior de `/minha-sessao` é auxiliar e não pode
+manter a interface em Criar negócio nem induzir um segundo POST quando houver
+lentidão ou falha transitória.
 
 Depois que o primeiro serviço é salvo e o backend confirma a publicação, a
 interface apresenta `Horários` como terceiro momento visível da primeira
