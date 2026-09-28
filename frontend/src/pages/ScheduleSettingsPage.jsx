@@ -345,8 +345,18 @@ export function ScheduleSettingsPage() {
         navigate("/painel", { replace: true });
       })
       .catch(() => {
+        if (!active) return;
+
         // A URL de onboarding não deve afirmar uma missão sem confirmar
-        // o estado canônico da ativação no backend.
+        // o estado canônico da ativação no backend. Em falha transitória,
+        // volta ao painel com uma mensagem neutra em vez de deixar a dona
+        // presa no editor com um marcador de divulgação não confirmado.
+        navigate("/painel", {
+          replace: true,
+          state: {
+            message: "Não foi possível confirmar a próxima etapa agora."
+          }
+        });
       });
 
     return () => {
