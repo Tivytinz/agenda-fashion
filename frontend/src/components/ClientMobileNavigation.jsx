@@ -8,6 +8,7 @@ function ClientNavLink({ icon, label, to }) {
         isActive
           ? "client-mobile-nav-link active"
           : "client-mobile-nav-link"}
+      end={to === "/"}
       to={to}
     >
       <AppIcon name={icon} />
