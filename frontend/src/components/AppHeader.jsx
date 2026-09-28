@@ -30,6 +30,8 @@ export function AppHeader() {
     !session.authenticated;
 
   const homePage = location.pathname === "/";
+  const focusedBooking =
+    location.pathname === "/confirmar";
 
   const adminArea =
     location.pathname === "/admin" ||
@@ -59,7 +61,12 @@ export function AppHeader() {
 
   const showDiscoveryNavigation =
     !focusedProfessionalLanding &&
-    !operationalArea;
+    !operationalArea &&
+    !focusedBooking;
+  const clientContext =
+    !focusedProfessionalLanding &&
+    !operationalArea &&
+    !focusedBooking;
 
   useEffect(() => {
     if (!homePage) {
@@ -95,9 +102,10 @@ export function AppHeader() {
     .charAt(0)
     .toLocaleUpperCase("pt-BR");
 
-  const workspaceLabel = session.temNegocio
-    ? "Área de trabalho"
-    : "Criar negócio";
+  const workspaceLabel =
+    session.negocio?.papel === "profissional"
+      ? "Área profissional"
+      : "Ir para gestão";
 
   const headerClassName = [
     "site-header",
@@ -138,6 +146,7 @@ export function AppHeader() {
           </span>
         </Link>
 
+        {!focusedBooking && (
         <nav
           aria-label="Navegação principal"
           className="public-navigation"
@@ -225,25 +234,28 @@ export function AppHeader() {
               </summary>
 
               <div className="header-account-popover">
-                <NavLink to="/conta">
-                  Minha conta
-                </NavLink>
-
-                <NavLink to="/convites">
-                  Convites de equipe
-                </NavLink>
-
-                {session.ehAdministrador && !adminArea && (
-                  <NavLink to="/admin">
-                    Administração
-                  </NavLink>
-                )}
-
-                {!businessArea &&
-                  (!session.ehAdministrador || session.temNegocio) && (
-                  <NavLink to={getBusinessWorkspacePath(session)}>
-                    {workspaceLabel}
-                  </NavLink>
+                {clientContext ? (
+                  <>
+                    <NavLink to="/cliente/conta">Minha conta</NavLink>
+                    <NavLink to="/minha-agenda">Meus agendamentos</NavLink>
+                    <NavLink to="/favoritos">Favoritos</NavLink>
+                    {session.temNegocio && (
+                      <NavLink to={getBusinessWorkspacePath(session)}>
+                        {workspaceLabel}
+                      </NavLink>
+                    )}
+                    {session.ehAdministrador && (
+                      <NavLink to="/admin">Administração</NavLink>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <NavLink to="/conta">Minha conta</NavLink>
+                    <NavLink to="/convites">Convites de equipe</NavLink>
+                    {session.ehAdministrador && !adminArea && (
+                      <NavLink to="/admin">Administração</NavLink>
+                    )}
+                  </>
                 )}
 
                 <button
@@ -284,6 +296,7 @@ export function AppHeader() {
             </NavLink>
           )}
         </nav>
+        )}
       </div>
     </header>
   );
