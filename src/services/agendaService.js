@@ -12,8 +12,7 @@ const {
   exigirUsuario,
   exigirCampo,
   exigirRecurso,
-  exigirPermissao,
-  exigirInteiroPositivo
+  exigirPermissao
 } = require("../validators/commonValidator");
 
 const ValidationError = require("../errors/ValidationError");
@@ -1083,9 +1082,14 @@ async function buscarNotificacoesAgenda({
   papelContexto
 }) {
   exigirUsuario(usuarioId);
-  exigirInteiroPositivo(
+  exigirCampo(
     negocioIdContexto,
     "Contexto do negócio é obrigatório."
+  );
+  exigirPermissao(
+    Number.isInteger(Number(negocioIdContexto)) &&
+      Number(negocioIdContexto) > 0,
+    "Contexto da agenda inválido."
   );
   exigirPermissao(
     papelContexto === "dono" ||
