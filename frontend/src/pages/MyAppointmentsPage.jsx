@@ -508,82 +508,81 @@ export function MyAppointmentsPage() {
             </section>
           ) : (
             <>
-            <div className="agenda-tabs" role="tablist" aria-label="Status dos agendamentos">
-              {TABS.map((tab, index) => (
-                <button
-                  aria-controls={`appointments-panel-${tab.id}`}
-                  aria-selected={activeTab === tab.id}
-                  className={activeTab === tab.id ? "active" : ""}
-                  id={`appointments-tab-${tab.id}`}
-                  key={tab.id}
-                  onClick={() => selectTab(tab.id)}
-                  onKeyDown={(event) => handleTabKeyDown(event, index)}
-                  ref={(element) => { tabRefs.current[index] = element; }}
-                  role="tab"
-                  tabIndex={activeTab === tab.id ? 0 : -1}
-                  type="button"
-                >
-                  {tab.label}
-                  <span>{grouped[tab.id].length}</span>
-                </button>
-              ))}
-            </div>
-  
-            {TABS.map((tab) => (
-              <div
-                aria-labelledby={`appointments-tab-${tab.id}`}
-                hidden={activeTab !== tab.id}
-                id={`appointments-panel-${tab.id}`}
+          <div className="agenda-tabs" role="tablist" aria-label="Status dos agendamentos">
+            {TABS.map((tab, index) => (
+              <button
+                aria-controls={`appointments-panel-${tab.id}`}
+                aria-selected={activeTab === tab.id}
+                className={activeTab === tab.id ? "active" : ""}
+                id={`appointments-tab-${tab.id}`}
                 key={tab.id}
-                role="tabpanel"
-                tabIndex={0}
+                onClick={() => selectTab(tab.id)}
+                onKeyDown={(event) => handleTabKeyDown(event, index)}
+                ref={(element) => { tabRefs.current[index] = element; }}
+                role="tab"
+                tabIndex={activeTab === tab.id ? 0 : -1}
+                type="button"
               >
-                {grouped[tab.id].length > 0 ? (
-                  <section className="appointments-list" aria-live="polite">
-                    {grouped[tab.id].map((appointment) => (
-                      <AppointmentCard
-                        appointment={appointment}
-                        canCancel={[
-                          APPOINTMENT_STATUS.scheduled,
-                          APPOINTMENT_STATUS.confirmed
-                        ].includes(appointment.status)}
-                        canEvaluate={
-                          appointment.status === APPOINTMENT_STATUS.completed &&
-                          !appointment.avaliacao
-                        }
-                        canceling={cancelingId === appointment.id}
-                        evaluating={evaluatingId === appointment.id}
-                        evaluationError={
-                          evaluationErrorId === appointment.id
-                            ? evaluationError
-                            : ""
-                        }
-                        key={appointment.id}
-                        onCancel={(item) => {
-                          setCancelError("");
-                          setPendingCancellation(item);
-                        }}
-                        onEvaluate={evaluateAppointment}
-                      />
-                    ))}
-                  </section>
-                ) : (
-                  <section className="empty-agenda">
-                    <span aria-hidden="true">♡</span>
-                    <h2>Nenhum agendamento aqui</h2>
-                    <p>
-                      {tab.id === "scheduled"
-                        ? "Quando você marcar um novo horário, ele aparecerá nesta lista."
-                        : "Seu histórico aparecerá aqui conforme os atendimentos forem atualizados."}
-                    </p>
-                    {tab.id === "scheduled" && (
-                      <Link className="button" to="/">Encontrar um serviço</Link>
-                    )}
-                  </section>
-                )}
-              </div>
+                {tab.label}
+                <span>{grouped[tab.id].length}</span>
+              </button>
             ))}
-  
+          </div>
+
+          {TABS.map((tab) => (
+            <div
+              aria-labelledby={`appointments-tab-${tab.id}`}
+              hidden={activeTab !== tab.id}
+              id={`appointments-panel-${tab.id}`}
+              key={tab.id}
+              role="tabpanel"
+              tabIndex={0}
+            >
+              {grouped[tab.id].length > 0 ? (
+                <section className="appointments-list" aria-live="polite">
+                  {grouped[tab.id].map((appointment) => (
+                    <AppointmentCard
+                      appointment={appointment}
+                      canCancel={[
+                        APPOINTMENT_STATUS.scheduled,
+                        APPOINTMENT_STATUS.confirmed
+                      ].includes(appointment.status)}
+                      canEvaluate={
+                        appointment.status === APPOINTMENT_STATUS.completed &&
+                        !appointment.avaliacao
+                      }
+                      canceling={cancelingId === appointment.id}
+                      evaluating={evaluatingId === appointment.id}
+                      evaluationError={
+                        evaluationErrorId === appointment.id
+                          ? evaluationError
+                          : ""
+                      }
+                      key={appointment.id}
+                      onCancel={(item) => {
+                        setCancelError("");
+                        setPendingCancellation(item);
+                      }}
+                      onEvaluate={evaluateAppointment}
+                    />
+                  ))}
+                </section>
+              ) : (
+                <section className="empty-agenda">
+                  <span aria-hidden="true">♡</span>
+                  <h2>Nenhum agendamento aqui</h2>
+                  <p>
+                    {tab.id === "scheduled"
+                      ? "Quando você marcar um novo horário, ele aparecerá nesta lista."
+                      : "Seu histórico aparecerá aqui conforme os atendimentos forem atualizados."}
+                  </p>
+                  {tab.id === "scheduled" && (
+                    <Link className="button" to="/">Encontrar um serviço</Link>
+                  )}
+                </section>
+              )}
+            </div>
+          ))}
             </>
           )}
         </>
