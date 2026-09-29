@@ -413,7 +413,9 @@ export function MyAppointmentsPage() {
               : "Acompanhe a reserva salva nesta sessão e use o acesso seguro para consultar ou cancelar quando disponível."}
           </p>
         </div>
-        <Link className="button button-secondary" to="/">Agendar novo serviço</Link>
+        {(!isAuthenticated || appointments.length > 0) && (
+          <Link className="button button-secondary" to="/">Agendar novo serviço</Link>
+        )}
       </header>
 
       {!isAuthenticated && (
@@ -497,6 +499,15 @@ export function MyAppointmentsPage() {
       {status === "ready" && isAuthenticated && (
         <>
           {message && <p className="agenda-message" role="status">{message}</p>}
+          {appointments.length === 0 ? (
+            <section className="empty-agenda empty-agenda-global">
+              <span aria-hidden="true">♡</span>
+              <h2>Você ainda não tem agendamentos</h2>
+              <p>Encontre um serviço e marque seu próximo horário.</p>
+              <Link className="button" to="/">Agendar um serviço</Link>
+            </section>
+          ) : (
+            <>
           <div className="agenda-tabs" role="tablist" aria-label="Status dos agendamentos">
             {TABS.map((tab, index) => (
               <button
@@ -572,6 +583,8 @@ export function MyAppointmentsPage() {
               )}
             </div>
           ))}
+            </>
+          )}
         </>
       )}
 
