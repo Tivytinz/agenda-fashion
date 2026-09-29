@@ -12,7 +12,8 @@ const {
   exigirUsuario,
   exigirCampo,
   exigirRecurso,
-  exigirPermissao
+  exigirPermissao,
+  exigirInteiroPositivo
 } = require("../validators/commonValidator");
 
 const ValidationError = require("../errors/ValidationError");
