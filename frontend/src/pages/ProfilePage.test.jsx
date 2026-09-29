@@ -217,8 +217,8 @@ describe("fluxo publico de agendamento", () => {
     localStorage.setItem("token", "token-valido");
     apiRequest.mockImplementation((path, options) => {
       if (path.startsWith("/perfil-negocio/")) return Promise.resolve(PROFILE);
-      if (path === "/favoritos/7/status") return Promise.resolve({ favoritado: false });
-      if (path === "/favoritos/7" && options?.method === "POST") {
+      if (path === "/api/favoritos/7/status") return Promise.resolve({ favoritado: false });
+      if (path === "/api/favoritos/7" && options?.method === "POST") {
         return Promise.reject(new Error("Não foi possível salvar o favorito"));
       }
       return Promise.reject(new Error(`Requisicao inesperada: ${path}`));
@@ -409,8 +409,8 @@ describe("fluxo publico de agendamento", () => {
     localStorage.setItem("session_active", "1");
     apiRequest.mockImplementation((path, options) => {
       if (path.startsWith("/perfil-negocio/")) return Promise.resolve(PROFILE);
-      if (path === "/favoritos/7/status") return Promise.resolve({ favoritado: false });
-      if (path === "/favoritos/7" && options?.method === "POST") {
+      if (path === "/api/favoritos/7/status") return Promise.resolve({ favoritado: false });
+      if (path === "/api/favoritos/7" && options?.method === "POST") {
         return Promise.resolve({ favoritado: true });
       }
       return Promise.reject(new Error(`Requisicao inesperada: ${path}`));
@@ -433,7 +433,7 @@ describe("fluxo publico de agendamento", () => {
     localStorage.setItem("session_active", "1");
     apiRequest.mockImplementation((path) => {
       if (path.startsWith("/perfil-negocio/")) return Promise.resolve(PROFILE);
-      if (path === "/favoritos/7/status") {
+      if (path === "/api/favoritos/7/status") {
         return Promise.resolve({ favoritado: true });
       }
       return Promise.reject(new Error(`Requisicao inesperada: ${path}`));
@@ -454,7 +454,7 @@ describe("fluxo publico de agendamento", () => {
     localStorage.setItem("session_active", "1");
     apiRequest.mockImplementation((path) => {
       if (path.startsWith("/perfil-negocio/")) return Promise.resolve(PROFILE);
-      if (path === "/favoritos/7/status") return new Promise(() => {});
+      if (path === "/api/favoritos/7/status") return new Promise(() => {});
       return Promise.reject(new Error(`Requisicao inesperada: ${path}`));
     });
 
@@ -475,7 +475,7 @@ describe("fluxo publico de agendamento", () => {
     localStorage.setItem("session_active", "1");
     apiRequest.mockImplementation((path) => {
       if (path.startsWith("/perfil-negocio/")) return Promise.resolve(PROFILE);
-      if (path === "/favoritos/7/status") {
+      if (path === "/api/favoritos/7/status") {
         statusAttempts += 1;
         return statusAttempts === 1
           ? Promise.reject(new Error("Falha temporária"))

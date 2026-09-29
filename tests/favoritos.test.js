@@ -153,7 +153,7 @@ describe(
         const resposta =
           await request(app)
             .get(
-              "/favoritos"
+              "/api/favoritos"
             );
 
         expect(
@@ -179,7 +179,7 @@ describe(
         const resposta =
           await request(app)
             .get(
-              "/favoritos"
+              "/api/favoritos"
             )
             .set(
               "Authorization",
@@ -233,7 +233,7 @@ describe(
         const resposta =
           await request(app)
             .get(
-              "/favoritos"
+              "/api/favoritos"
             )
             .set(
               "Authorization",
@@ -299,7 +299,7 @@ describe(
         const resposta =
           await request(app)
             .post(
-              "/favoritos/1"
+              "/api/favoritos/1"
             )
             .set(
               "Authorization",
@@ -351,7 +351,7 @@ describe(
         const resposta =
           await request(app)
             .post(
-              "/favoritos/999"
+              "/api/favoritos/999"
             )
             .set(
               "Authorization",
@@ -389,7 +389,7 @@ describe(
         const resposta =
           await request(app)
             .get(
-              "/favoritos/1/status"
+              "/api/favoritos/1/status"
             )
             .set(
               "Authorization",
@@ -435,7 +435,7 @@ describe(
         const resposta =
           await request(app)
             .delete(
-              "/favoritos/1"
+              "/api/favoritos/1"
             )
             .set(
               "Authorization",
@@ -481,7 +481,7 @@ describe(
         const resposta =
           await request(app)
             .post(
-              `/favoritos/${negocioId}`
+              `/api/favoritos/${negocioId}`
             )
             .set(
               "Authorization",
