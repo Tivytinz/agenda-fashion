@@ -3,7 +3,7 @@ const agendaConfiguracaoService = require(
 );
 
 function obterContextoAgenda(req) {
-  return req.get("X-AF-Contexto") || "dono";
+  return req.agendaContexto?.papel;
 }
 
 async function buscarMinhaConfiguracao(req, res, next) {

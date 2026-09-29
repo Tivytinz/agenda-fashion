@@ -510,6 +510,76 @@ describe(
     );
 
     test(
+      "configuração da agenda usa o contexto profissional validado quando a conta também é dona",
+      async () => {
+        await db.query(
+          `
+            INSERT INTO usuarios_negocios (
+              usuario_id,
+              negocio_id,
+              papel,
+              ativo
+            )
+            VALUES (
+              $1,
+              $2,
+              'profissional',
+              TRUE
+            )
+          `,
+          [
+            negocioDona.profissional.id,
+            negocioExterno.negocioId,
+          ]
+        );
+
+        const app = criarApp();
+
+        const resposta =
+          await request(app)
+            .get("/agenda-configuracao")
+            .set(
+              "X-AF-Contexto",
+              "profissional"
+            );
+
+        expect(
+          resposta.statusCode
+        ).toBe(200);
+        expect(
+          resposta.body.profissional
+        ).toMatchObject({
+          id:
+            negocioDona.profissional.id,
+          papel: "profissional",
+        });
+
+        const configuracoes =
+          await db.query(
+            `
+              SELECT negocio_id
+              FROM agenda_configuracoes
+              WHERE profissional_id = $1
+            `,
+            [
+              negocioDona.profissional.id,
+            ]
+          );
+
+        expect(
+          configuracoes.rows.map(
+            (row) =>
+              Number(row.negocio_id)
+          )
+        ).toContain(
+          Number(
+            negocioExterno.negocioId
+          )
+        );
+      }
+    );
+
+    test(
       "dona não consegue alterar agenda de profissional de outro negócio",
       async () => {
         const app =

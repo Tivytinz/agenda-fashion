@@ -109,6 +109,56 @@ describe(
     );
 
     test(
+      "permite preservar um contexto padrão específico da rota",
+      async () => {
+        agendaRepository
+          .buscarVinculoUsuarioNegocio
+          .mockResolvedValue({
+            negocio_id: 9,
+            papel: "dono",
+            fuso_horario:
+              "America/Sao_Paulo",
+          });
+
+        const middleware =
+          agendaVinculoAtivo
+            .comContextoPadrao(
+              "dono"
+            );
+        const req = {
+          user: {
+            id: 3,
+          },
+          get: jest.fn(
+            () => null
+          ),
+        };
+        const next =
+          jest.fn();
+
+        await middleware(
+          req,
+          {},
+          next
+        );
+
+        expect(
+          agendaRepository
+            .buscarVinculoUsuarioNegocio
+        ).toHaveBeenCalledWith(
+          3,
+          "dono"
+        );
+        expect(
+          req.agendaContexto
+            .papel
+        ).toBe("dono");
+        expect(next)
+          .toHaveBeenCalledWith();
+      }
+    );
+
+    test(
       "preserva compatibilidade quando o contexto não foi enviado",
       async () => {
         agendaRepository
