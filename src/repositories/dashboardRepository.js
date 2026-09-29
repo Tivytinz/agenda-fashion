@@ -39,6 +39,42 @@ async function buscarNegocioDoUsuario(
   return result.rows[0] || null;
 }
 
+async function buscarNegocioProfissional(
+  usuarioId
+) {
+  const result = await db.query(
+    `
+    SELECT
+      un.negocio_id,
+      un.papel,
+      n.nome,
+      n.slug
+
+    FROM usuarios_negocios un
+
+    INNER JOIN negocios n
+      ON n.id = un.negocio_id
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
+
+    WHERE un.usuario_id = $1
+      AND un.papel = 'profissional'
+      AND un.ativo = TRUE
+      AND u.ativo = TRUE
+      AND n.ativo = TRUE
+
+    ORDER BY
+      un.created_at ASC,
+      n.id ASC
+
+    LIMIT 1
+    `,
+    [usuarioId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function buscarResumoProfissional(
   negocioId,
   usuarioId
@@ -762,6 +798,7 @@ async function buscarRankingServicos(
 
 module.exports = {
   buscarNegocioDoUsuario,
+  buscarNegocioProfissional,
   buscarResumoProfissional,
   buscarProximoAtendimentoProfissional,
   listarProximosAtendimentosProfissional,
