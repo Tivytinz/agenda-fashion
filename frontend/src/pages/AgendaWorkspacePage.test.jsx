@@ -104,6 +104,49 @@ describe("agenda do negócio", () => {
     ]);
   });
 
+  it("marca Hoje pelo fuso do negócio em vez do relógio local do dispositivo", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(
+      new Date(
+        "2026-09-29T02:30:00.000Z"
+      )
+    );
+
+    apiRequest.mockResolvedValue({
+      fuso_horario:
+        "America/Noronha",
+      agenda: [{
+        data:
+          "2026-09-29",
+        profissionais: [{
+          id: 1,
+          nome: "Ana",
+          horarios: [{
+            hora: "09:00",
+            status: "livre"
+          }]
+        }]
+      }]
+    });
+
+    render(
+      <AgendaWorkspacePage owner />
+    );
+
+    await act(
+      async () => {}
+    );
+
+    expect(
+      screen.getByRole(
+        "button",
+        { name: /Hoje/i }
+      )
+    ).not.toBeNull();
+
+    vi.useRealTimers();
+  });
+
   it("explica quando a data escolhida não possui profissional disponível", async () => {
     render(<AgendaWorkspacePage owner />);
 
