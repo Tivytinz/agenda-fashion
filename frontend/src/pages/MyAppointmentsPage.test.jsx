@@ -76,6 +76,18 @@ describe("agenda da cliente", () => {
     expect(repeatLink.getAttribute("href")).not.toContain("profissional");
   });
 
+  it("prioriza uma única ação quando a cliente ainda não possui histórico", async () => {
+    useSession.mockReturnValue({ authenticated: true, loading: false });
+    apiRequest.mockResolvedValue({ agendamentos: [] });
+
+    render(<MemoryRouter><MyAppointmentsPage /></MemoryRouter>);
+
+    expect(await screen.findByRole("heading", { name: "Você ainda não tem agendamentos" })).not.toBeNull();
+    expect(screen.queryByRole("tab")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Agendar novo serviço" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Agendar um serviço" }).getAttribute("href")).toBe("/");
+  });
+
   it("mantém o histórico legado utilizável quando não existe servico_id", async () => {
     useSession.mockReturnValue({ authenticated: true, loading: false });
     apiRequest.mockResolvedValue({

@@ -243,17 +243,6 @@ export function AppHeader() {
                   Minha conta
                 </NavLink>
 
-                {!operationalArea && (
-                  <>
-                    <NavLink to="/minha-agenda">
-                      Meus agendamentos
-                    </NavLink>
-                    <NavLink to="/favoritos">
-                      Favoritos
-                    </NavLink>
-                  </>
-                )}
-
                 {operationalArea && (
                   <NavLink to="/convites">
                     Convites de equipe
