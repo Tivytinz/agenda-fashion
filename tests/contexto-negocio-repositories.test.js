@@ -64,7 +64,7 @@ describe("Resolução do contexto principal de negócio", () => {
     expect(parametros).toEqual([9]);
   });
 
-  test("notificações da agenda usam a mesma prioridade de contexto", async () => {
+  test("vínculo compartilhado preserva fallback legado quando contexto não é explícito", async () => {
     await agendaRepository.buscarVinculoUsuarioNegocio(10);
 
     const [sql, parametros] = db.query.mock.calls[0];
