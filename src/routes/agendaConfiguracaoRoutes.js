@@ -9,24 +9,29 @@ const agendaConfiguracaoController = require(
   "../controllers/agendaConfiguracaoController"
 );
 
+const agendaConfiguracaoVinculoAtivo =
+  agendaVinculoAtivo.comContextoPadrao(
+    "dono"
+  );
+
 router.get(
   "/agenda-configuracao/status",
   auth,
-  agendaVinculoAtivo,
+  agendaConfiguracaoVinculoAtivo,
   agendaConfiguracaoController.buscarStatusConfiguracao
 );
 
 router.get(
   "/agenda-configuracao",
   auth,
-  agendaVinculoAtivo,
+  agendaConfiguracaoVinculoAtivo,
   agendaConfiguracaoController.buscarMinhaConfiguracao
 );
 
 router.put(
   "/agenda-configuracao",
   auth,
-  agendaVinculoAtivo,
+  agendaConfiguracaoVinculoAtivo,
   agendaConfiguracaoController.salvarMinhaConfiguracao
 );
 
