@@ -2,6 +2,7 @@ jest.mock(
   "../src/repositories/dashboardRepository",
   () => ({
     buscarNegocioDoUsuario: jest.fn(),
+    buscarNegocioProfissional: jest.fn(),
 
     buscarResumoProfissional: jest.fn(),
 
@@ -62,7 +63,7 @@ describe(
       "retorna dashboard completo da profissional",
       async () => {
         dashboardRepository
-          .buscarNegocioDoUsuario
+          .buscarNegocioProfissional
           .mockResolvedValue({
             negocio_id: "11",
             papel: "profissional",
@@ -163,7 +164,7 @@ describe(
 
         expect(
           dashboardRepository
-            .buscarNegocioDoUsuario
+            .buscarNegocioProfissional
         ).toHaveBeenCalledWith(7);
 
         expect(
@@ -540,7 +541,7 @@ describe(
       "retorna erro quando usuário não possui negócio",
       async () => {
         dashboardRepository
-          .buscarNegocioDoUsuario
+          .buscarNegocioProfissional
           .mockResolvedValue(null);
 
         await expect(
