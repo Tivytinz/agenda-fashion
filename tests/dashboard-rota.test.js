@@ -17,6 +17,9 @@ jest.mock(
     buscarNegocioDoUsuario:
       jest.fn(),
 
+    buscarNegocioProfissional:
+      jest.fn(),
+
     buscarResumoProfissional:
       jest.fn(),
 
