@@ -431,7 +431,7 @@ describe(
           '"/conta/foto"'
         );
         expect(favoritos).toContain(
-          'apiRequest("/favoritos"'
+          'apiRequest("/api/favoritos"'
         );
         expect(cobranca).toContain(
           '"Idempotency-Key"'
