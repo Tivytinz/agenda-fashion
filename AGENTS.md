@@ -241,6 +241,23 @@ cancelamento e não reabre o onboarding da dona. Uma disponibilidade com todos o
 dias fechados é válida: mantém negócio e serviços visíveis quando publicados,
 mas não gera slots para novas reservas.
 
+A agenda operacional deve usar a mesma configuração contextual persistida em
+`agenda_configuracoes` e `agenda_horarios` para o par
+`profissional_id + negocio_id`; não pode reconstruir a grade com um horário
+fixo independente do que foi salvo. `Minha agenda` e `Agenda geral` usam o
+fuso IANA do negócio para decidir o dia local e marcar slots passados. Bookings
+de outro negócio, quando exibidos apenas como ocupação redigida, devem ser
+convertidos pelo instante canônico `inicio_previsto_em` para o fuso do contexto
+consultado.
+
+A modelagem atual continua permitindo no máximo um vínculo ativo com papel
+`profissional` por conta, embora a mesma identidade possa simultaneamente ser
+dona do próprio negócio e profissional em outro. Por isso, endpoints de agenda
+compartilhados entre os workspaces devem receber o seletor de papel
+`X-AF-Contexto: dono|profissional` e sempre validar no backend o vínculo
+persistido correspondente; o header escolhe o contexto, mas nunca concede
+permissão.
+
 Não existe ação `Pular por agora` nessa etapa: a dona confirma a sugestão ou
 personaliza a disponibilidade. Se o salvamento dos horários falhar, a interface
 não deve avançar.
@@ -266,7 +283,12 @@ agendável, apresenta o compartilhamento. Esse diagnóstico é estrutural: exige
 profissional ativa, serviço ativo explicitamente habilitado e pelo menos um
 segmento semanal em que a duração inteira desse serviço caiba, considerando a
 pausa configurada. Ocupações e bloqueios pontuais não transformam a publicação
-em gate e continuam sendo filtrados no cálculo público de slots. Isso não
+em gate e continuam sendo filtrados no cálculo público de slots. Para não
+divulgar um perfil cuja antecedência mínima empurre toda a agenda para fora da
+janela pesquisada, a consulta pública amplia o horizonte quando necessário:
+parte de 7 dias e, para antecedências maiores, cobre a antecedência configurada
+mais uma semana recorrente, limitada pelos 720h aceitos pelo produto (máximo de
+37 dias). A UI continua exibindo somente datas que realmente possuem slots. Isso não
 transforma agenda em gate de
 publicação nem em novo estado de ativação. Se o negócio já estiver `ATIVADO` ou tiver
 regredido para serviço/publicação, a interface volta ao painel para apresentar a

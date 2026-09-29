@@ -338,6 +338,62 @@ async function listarHorarios(
   return result.rows;
 }
 
+async function listarConfiguracoesHorariosNegocio({
+  negocioId,
+  profissionalIds,
+  executor = db,
+}) {
+  const ids = Array.from(
+    new Set(
+      (profissionalIds || [])
+        .map(Number)
+        .filter(
+          (id) =>
+            Number.isInteger(id) &&
+            id > 0
+        )
+    )
+  );
+
+  if (ids.length === 0) {
+    return [];
+  }
+
+  const result = await executor.query(
+    `
+      SELECT
+        ac.profissional_id,
+        ac.duracao_padrao,
+        ac.intervalo_minutos,
+        ac.antecedencia_agendamento,
+        ah.dia_semana,
+        ah.trabalha,
+        ah.hora_inicio,
+        ah.hora_fim,
+        ah.intervalo_inicio,
+        ah.intervalo_fim
+      FROM agenda_configuracoes ac
+      LEFT JOIN agenda_horarios ah
+        ON ah.profissional_id =
+          ac.profissional_id
+        AND ah.negocio_id =
+          ac.negocio_id
+      WHERE ac.negocio_id = $1
+        AND ac.profissional_id =
+          ANY($2::BIGINT[])
+      ORDER BY
+        ac.profissional_id,
+        ah.dia_semana
+    `,
+    [
+      negocioId,
+      ids,
+    ]
+  );
+
+  return result.rows;
+}
+
 async function salvarHorario({
   profissionalId,
   negocioId,
@@ -514,6 +570,7 @@ module.exports = {
   atualizarConfiguracao,
   marcarConfigurada,
   listarHorarios,
+  listarConfiguracoesHorariosNegocio,
   salvarHorario,
   garantirDisponibilidadePadrao,
   executarTransacao:

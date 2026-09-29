@@ -23,7 +23,10 @@ async function agendaProfissionalAtiva(req, res, next) {
 
     req.agendaContexto = {
       negocioId: Number(vinculo.negocio_id),
-      papel: vinculo.papel
+      papel: vinculo.papel,
+      fusoHorario:
+        vinculo.fuso_horario ||
+        "America/Sao_Paulo",
     };
 
     return next();

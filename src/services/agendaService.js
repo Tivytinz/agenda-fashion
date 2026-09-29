@@ -3,6 +3,10 @@ const db = require("../db/db");
 const agendaConfiguracaoRepository = require(
   "../repositories/agendaConfiguracaoRepository"
 );
+const {
+  obterDataHoraNoFuso,
+  resolverFusoHorario,
+} = require("../utils/fusoHorario");
 
 const {
   exigirUsuario,
@@ -13,20 +17,47 @@ const {
 
 const ValidationError = require("../errors/ValidationError");
 
-function gerarDatasAgenda(quantidadeDias = 7) {
+function gerarDatasAgenda(
+  quantidadeDias = 7,
+  fusoHorario
+) {
   const datas = [];
+  const agoraLocal =
+    obterDataHoraNoFuso(
+      resolverFusoHorario(
+        fusoHorario
+      )
+    );
+  const dataBase = new Date(
+    `${agoraLocal.data}T12:00:00Z`
+  );
 
-  for (let i = 0; i < quantidadeDias; i++) {
-    const data = new Date();
+  for (
+    let indice = 0;
+    indice < quantidadeDias;
+    indice += 1
+  ) {
+    const data = new Date(
+      dataBase
+    );
 
-    data.setHours(12, 0, 0, 0);
-    data.setDate(data.getDate() + i);
+    data.setUTCDate(
+      dataBase.getUTCDate() +
+      indice
+    );
 
-    const ano = data.getFullYear();
-    const mes = String(data.getMonth() + 1).padStart(2, "0");
-    const dia = String(data.getDate()).padStart(2, "0");
+    const ano =
+      data.getUTCFullYear();
+    const mes = String(
+      data.getUTCMonth() + 1
+    ).padStart(2, "0");
+    const dia = String(
+      data.getUTCDate()
+    ).padStart(2, "0");
 
-    datas.push(`${ano}-${mes}-${dia}`);
+    datas.push(
+      `${ano}-${mes}-${dia}`
+    );
   }
 
   return datas;
@@ -289,54 +320,6 @@ function gerarHorariosConfigurados({
   return horarios;
 }
 
-function obterDataHoraBrasil() {
-  const partes =
-    new Intl.DateTimeFormat(
-      "pt-BR",
-      {
-        timeZone:
-          "America/Sao_Paulo",
-
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hourCycle: "h23",
-      }
-    ).formatToParts(
-      new Date()
-    );
-
-  const obterParte =
-    (tipo) =>
-      partes.find(
-        (parte) =>
-          parte.type === tipo
-      )?.value;
-
-  return {
-    data:
-      `${obterParte(
-        "year"
-      )}-` +
-      `${obterParte(
-        "month"
-      )}-` +
-      `${obterParte(
-        "day"
-      )}`,
-
-    hora:
-      `${obterParte(
-        "hour"
-      )}:` +
-      `${obterParte(
-        "minute"
-      )}`,
-  };
-}
-
 function obterDiaSemana(
   data
 ) {
@@ -361,52 +344,56 @@ function obterDiaSemana(
 function horarioJaPassou({
   data,
   hora,
-  agoraBrasil,
+  agoraLocal,
 }) {
   if (
     data <
-    agoraBrasil.data
+    agoraLocal.data
   ) {
     return true;
   }
 
   if (
     data >
-    agoraBrasil.data
+    agoraLocal.data
   ) {
     return false;
   }
 
   return (
     hora <=
-    agoraBrasil.hora
+    agoraLocal.hora
   );
 }
 
 async function listarAgendaProfissional({
   profissionalId,
+  negocioId,
+  fusoHorario,
 }) {
   exigirUsuario(
     profissionalId
   );
-
-  const vinculo =
-    await agendaRepository
-      .buscarVinculoUsuarioNegocio(
-        profissionalId
-      );
-
-  exigirRecurso(
-    vinculo,
-    "Vínculo profissional não encontrado."
+  exigirCampo(
+    negocioId,
+    "Contexto do negócio é obrigatório."
   );
 
+  const negocioIdNormalizado =
+    Number(
+      negocioId
+    );
+  const fusoResolvido =
+    resolverFusoHorario(
+      fusoHorario
+    );
   const datas =
-    gerarDatasAgenda(7);
-
+    gerarDatasAgenda(
+      7,
+      fusoResolvido
+    );
   const dataInicio =
     datas[0];
-
   const dataFim =
     datas[
       datas.length - 1
@@ -416,29 +403,21 @@ async function listarAgendaProfissional({
     configuracao,
     horariosConfigurados,
     bloqueios,
-    agendamentos,
   ] = await Promise.all([
     agendaConfiguracaoRepository
       .buscarConfiguracao(
-        profissionalId
+        profissionalId,
+        negocioIdNormalizado
       ),
-
     agendaConfiguracaoRepository
       .listarHorarios(
-        profissionalId
+        profissionalId,
+        negocioIdNormalizado
       ),
-
     agendaRepository
       .buscarBloqueiosPorPeriodo(
         profissionalId,
-        vinculo.negocio_id,
-        dataInicio,
-        dataFim
-      ),
-
-    agendaRepository
-      .buscarAgendamentosPorPeriodo(
-        profissionalId,
+        negocioIdNormalizado,
         dataInicio,
         dataFim
       ),
@@ -449,7 +428,6 @@ async function listarAgendaProfissional({
       configuracao
         ?.duracao_padrao
     );
-
   const intervaloConfigurado =
     Number(
       configuracao
@@ -463,7 +441,6 @@ async function listarAgendaProfissional({
     duracaoConfigurada > 0
       ? duracaoConfigurada
       : 60;
-
   const intervaloMinutos =
     Number.isInteger(
       intervaloConfigurado
@@ -487,23 +464,10 @@ async function listarAgendaProfissional({
       )
     );
 
-  const mapaAgendamentos =
-    new Map(
-      agendamentos.map(
-        (item) => [
-          criarChaveAgenda(
-            item.data,
-            normalizarHorario(
-              item.hora
-            )
-          ),
-          item,
-        ]
-      )
+  const agoraLocal =
+    obterDataHoraNoFuso(
+      fusoResolvido
     );
-
-  const agoraBrasil =
-    obterDataHoraBrasil();
 
   const agenda =
     datas.map(
@@ -512,7 +476,6 @@ async function listarAgendaProfissional({
           obterDiaSemana(
             data
           );
-
         const horarioConfigurado =
           horariosConfigurados.find(
             (item) =>
@@ -540,23 +503,20 @@ async function listarAgendaProfissional({
           horarioConfigurado
             ?.hora_inicio ||
           "08:00";
-
         const horaFim =
           horarioConfigurado
             ?.hora_fim ||
           "18:00";
-
         const intervaloInicio =
           horarioConfigurado
             ?.intervalo_inicio ||
           null;
-
         const intervaloFim =
           horarioConfigurado
             ?.intervalo_fim ||
           null;
 
-        const horariosBase =
+        const horarios =
           gerarHorariosConfigurados({
             horaInicio,
             horaFim,
@@ -565,60 +525,29 @@ async function listarAgendaProfissional({
             duracaoMinutos:
               duracaoPadrao,
             intervaloMinutos,
-          });
-
-        const horarios =
-          horariosBase.map(
+          }).map(
             (hora) => {
               const chave =
                 criarChaveAgenda(
                   data,
                   hora
                 );
-
               const bloqueio =
                 mapaBloqueios.get(
                   chave
                 );
-
-              const agendamento =
-                mapaAgendamentos.get(
-                  chave
-                );
-
               let status =
-                "livre";
+                bloqueio
+                  ? "bloqueado"
+                  : "livre";
 
-              if (bloqueio) {
-                status =
-                  "bloqueado";
-              }
-
-              if (agendamento) {
-                status =
-                  agendamento.status ===
-                    "confirmado"
-                    ? "confirmado"
-                    : "agendado";
-              }
-
-              const horarioPassado =
+              if (
+                !bloqueio &&
                 horarioJaPassou({
                   data,
                   hora,
-                  agoraBrasil,
-                });
-
-              if (
-                horarioPassado &&
-                agendamento
-              ) {
-                status =
-                  "realizado";
-              } else if (
-                horarioPassado &&
-                !agendamento &&
-                !bloqueio
+                  agoraLocal,
+                })
               ) {
                 status =
                   "passado";
@@ -628,45 +557,21 @@ async function listarAgendaProfissional({
                 data,
                 hora,
                 status,
-
                 agendamento_id:
-                  agendamento
-                    ?.agendamento_id ||
                   null,
-
                 cliente_id:
-                  agendamento
-                    ?.cliente_id ||
                   null,
-
                 cliente:
-                  agendamento
-                    ?.cliente ||
                   null,
-
                 cliente_whatsapp:
-                  agendamento
-                    ?.cliente_whatsapp ||
                   null,
-
                 servico_id:
-                  agendamento
-                    ?.servico_id ||
                   null,
-
                 servico:
-                  agendamento
-                    ?.servico ||
                   null,
-
                 valor:
-                  agendamento
-                    ?.valor ||
                   null,
-
                 duracao_minutos:
-                  agendamento
-                    ?.duracao_minutos ||
                   duracaoPadrao,
               };
             }
@@ -675,35 +580,28 @@ async function listarAgendaProfissional({
         return {
           data,
           trabalha: true,
-
           configuracao: {
             hora_inicio:
               normalizarHorario(
                 horaInicio
               ),
-
             hora_fim:
               normalizarHorario(
                 horaFim
               ),
-
             intervalo_inicio:
               normalizarHorario(
                 intervaloInicio
               ),
-
             intervalo_fim:
               normalizarHorario(
                 intervaloFim
               ),
-
             duracao_padrao:
               duracaoPadrao,
-
             intervalo_minutos:
               intervaloMinutos,
           },
-
           horarios,
         };
       }
@@ -713,11 +611,11 @@ async function listarAgendaProfissional({
     configuracao: {
       duracao_padrao:
         duracaoPadrao,
-
       intervalo_minutos:
         intervaloMinutos,
     },
-
+    fuso_horario:
+      fusoResolvido,
     agenda,
   };
 }
@@ -847,100 +745,335 @@ async function buscarAgendaGeral({ usuarioId }) {
   exigirUsuario(usuarioId);
 
   const vinculoDono =
-    await agendaRepository.buscarNegocioDono(usuarioId);
+    await agendaRepository
+      .buscarNegocioDono(
+        usuarioId
+      );
 
   exigirPermissao(
     vinculoDono,
     "Apenas o dono pode acessar a agenda geral."
   );
 
-  const negocio = {
-    id: vinculoDono.negocio_id
-  };
-
-  const profissionais =
-    await agendaRepository.buscarProfissionaisDoNegocio(
-      negocio.id
+  const negocioId =
+    Number(
+      vinculoDono.negocio_id
     );
-
-  const datas = gerarDatasAgenda(7);
-  const horas = gerarHorariosAgenda(8, 18);
-
-  const dataInicio = datas[0];
-  const dataFim = datas[datas.length - 1];
-
+  const fusoResolvido =
+    resolverFusoHorario(
+      vinculoDono.fuso_horario
+    );
+  const profissionais =
+    await agendaRepository
+      .buscarProfissionaisDoNegocio(
+        negocioId
+      );
+  const datas =
+    gerarDatasAgenda(
+      7,
+      fusoResolvido
+    );
+  const dataInicio =
+    datas[0];
+  const dataFim =
+    datas[
+      datas.length - 1
+    ];
   const profissionalIds =
-    profissionais.map((profissional) => profissional.id);
+    profissionais
+      .map(
+        (profissional) =>
+          Number(
+            profissional.id
+          )
+      )
+      .filter(
+        (id) =>
+          Number.isInteger(id) &&
+          id > 0
+      );
 
-  if (profissionalIds.length === 0) {
-    return { agenda: [] };
+  if (
+    profissionalIds.length === 0
+  ) {
+    return {
+      fuso_horario:
+        fusoResolvido,
+      agenda: [],
+    };
   }
 
-  const bloqueios =
-    await agendaRepository.buscarBloqueiosProfissionaisPorPeriodo(
-      negocio.id,
-      profissionalIds,
-      dataInicio,
-      dataFim
+  const [
+    configuracoesHorarios,
+    bloqueios,
+  ] = await Promise.all([
+    agendaConfiguracaoRepository
+      .listarConfiguracoesHorariosNegocio({
+        negocioId,
+        profissionalIds,
+      }),
+    agendaRepository
+      .buscarBloqueiosProfissionaisPorPeriodo(
+        negocioId,
+        profissionalIds,
+        dataInicio,
+        dataFim
+      ),
+  ]);
+
+  const configuracaoPorProfissional =
+    new Map();
+  const horariosPorProfissional =
+    new Map();
+
+  for (
+    const item of
+      configuracoesHorarios
+  ) {
+    const profissionalId =
+      Number(
+        item.profissional_id
+      );
+
+    if (
+      !configuracaoPorProfissional
+        .has(
+          profissionalId
+        )
+    ) {
+      configuracaoPorProfissional
+        .set(
+          profissionalId,
+          {
+            duracao_padrao:
+              item.duracao_padrao,
+            intervalo_minutos:
+              item.intervalo_minutos,
+          }
+        );
+    }
+
+    if (
+      item.dia_semana !==
+        null &&
+      item.dia_semana !==
+        undefined
+    ) {
+      const horarios =
+        horariosPorProfissional
+          .get(
+            profissionalId
+          ) || [];
+      horarios.push(
+        item
+      );
+      horariosPorProfissional
+        .set(
+          profissionalId,
+          horarios
+        );
+    }
+  }
+
+  const mapaBloqueios =
+    new Map(
+      bloqueios.map(
+        (item) => [
+          `${item.profissional_id}_${criarChaveAgenda(
+            item.data,
+            normalizarHorario(
+              item.hora
+            )
+          )}`,
+          item,
+        ]
+      )
     );
 
-  const agendamentos =
-    await agendaRepository.buscarAgendamentosProfissionaisPorPeriodo(
-      negocio.id,
-      profissionalIds,
-      dataInicio,
-      dataFim
+  const agoraLocal =
+    obterDataHoraNoFuso(
+      fusoResolvido
     );
 
-  const mapaBloqueios = new Map(
-    bloqueios.map((item) => [
-      `${item.profissional_id}_${criarChaveAgenda(item.data, item.hora)}`,
-      item
-    ])
-  );
-
-  const mapaAgendamentos = new Map(
-    agendamentos.map((item) => [
-      `${item.profissional_id}_${criarChaveAgenda(item.data, item.hora)}`,
-      item
-    ])
-  );
-
-  const agenda = datas.map((data) => ({
-    data,
-    profissionais: profissionais.map((profissional) => ({
-      id: profissional.id,
-      nome: profissional.nome,
-      foto_url: profissional.foto_url,
-      servico_ids:
-        profissional.servico_ids || [],
-      horarios: horas.map((hora) => {
-        const chave =
-          `${profissional.id}_${criarChaveAgenda(data, hora)}`;
-
-        const agendamento = mapaAgendamentos.get(chave);
-
-        let status = "livre";
-
-        if (mapaBloqueios.has(chave)) {
-          status = "bloqueado";
-        }
-
-        if (agendamento) {
-          status = "agendado";
-        }
+  const agenda =
+    datas.map(
+      (data) => {
+        const diaSemana =
+          obterDiaSemana(
+            data
+          );
 
         return {
-          hora,
-          status,
-          cliente: agendamento?.cliente || null,
-          servico: agendamento?.servico || null
-        };
-      })
-    }))
-  }));
+          data,
+          profissionais:
+            profissionais.map(
+              (profissional) => {
+                const profissionalId =
+                  Number(
+                    profissional.id
+                  );
+                const configuracao =
+                  configuracaoPorProfissional
+                    .get(
+                      profissionalId
+                    ) || {};
+                const duracaoRecebida =
+                  Number(
+                    configuracao
+                      .duracao_padrao
+                  );
+                const intervaloRecebido =
+                  Number(
+                    configuracao
+                      .intervalo_minutos
+                  );
+                const duracaoPadrao =
+                  Number.isInteger(
+                    duracaoRecebida
+                  ) &&
+                  duracaoRecebida >
+                    0
+                    ? duracaoRecebida
+                    : 60;
+                const intervaloMinutos =
+                  Number.isInteger(
+                    intervaloRecebido
+                  ) &&
+                  intervaloRecebido >=
+                    0
+                    ? intervaloRecebido
+                    : 0;
+                const horarioConfigurado =
+                  (
+                    horariosPorProfissional
+                      .get(
+                        profissionalId
+                      ) || []
+                  ).find(
+                    (item) =>
+                      Number(
+                        item.dia_semana
+                      ) ===
+                      Number(
+                        diaSemana
+                      )
+                  );
 
-  return { agenda };
+                if (
+                  horarioConfigurado &&
+                  !horarioConfigurado
+                    .trabalha
+                ) {
+                  return {
+                    id:
+                      profissional.id,
+                    nome:
+                      profissional.nome,
+                    foto_url:
+                      profissional
+                        .foto_url,
+                    servico_ids:
+                      profissional
+                        .servico_ids ||
+                      [],
+                    trabalha:
+                      false,
+                    horarios: [],
+                  };
+                }
+
+                const horaInicio =
+                  horarioConfigurado
+                    ?.hora_inicio ||
+                  "08:00";
+                const horaFim =
+                  horarioConfigurado
+                    ?.hora_fim ||
+                  "18:00";
+                const intervaloInicio =
+                  horarioConfigurado
+                    ?.intervalo_inicio ||
+                  null;
+                const intervaloFim =
+                  horarioConfigurado
+                    ?.intervalo_fim ||
+                  null;
+
+                const horarios =
+                  gerarHorariosConfigurados({
+                    horaInicio,
+                    horaFim,
+                    intervaloInicio,
+                    intervaloFim,
+                    duracaoMinutos:
+                      duracaoPadrao,
+                    intervaloMinutos,
+                  }).map(
+                    (hora) => {
+                      const chave =
+                        `${profissionalId}_${criarChaveAgenda(
+                          data,
+                          hora
+                        )}`;
+                      const bloqueio =
+                        mapaBloqueios
+                          .get(
+                            chave
+                          );
+                      let status =
+                        bloqueio
+                          ? "bloqueado"
+                          : "livre";
+
+                      if (
+                        !bloqueio &&
+                        horarioJaPassou({
+                          data,
+                          hora,
+                          agoraLocal,
+                        })
+                      ) {
+                        status =
+                          "passado";
+                      }
+
+                      return {
+                        hora,
+                        status,
+                        cliente:
+                          null,
+                        servico:
+                          null,
+                      };
+                    }
+                  );
+
+                return {
+                  id:
+                    profissional.id,
+                  nome:
+                    profissional.nome,
+                  foto_url:
+                    profissional
+                      .foto_url,
+                  servico_ids:
+                    profissional
+                      .servico_ids ||
+                    [],
+                  trabalha: true,
+                  horarios,
+                };
+              }
+            ),
+        };
+      }
+    );
+
+  return {
+    fuso_horario:
+      fusoResolvido,
+    agenda,
+  };
 }
 
 async function buscarNotificacoesAgenda({ usuarioId }) {

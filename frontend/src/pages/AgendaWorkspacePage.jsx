@@ -102,7 +102,19 @@ export function AgendaWorkspacePage({ owner = false }) {
   const load = useCallback(async () => {
     setError("");
     try {
-      const result = await apiRequest(owner ? "/agenda-geral" : "/agenda-profissional");
+      const result = await apiRequest(
+        owner
+          ? "/agenda-geral"
+          : "/agenda-profissional",
+        {
+          headers: {
+            "X-AF-Contexto":
+              owner
+                ? "dono"
+                : "profissional"
+          }
+        }
+      );
       setData(result);
       const firstDay = getValidAgendaDays(result.agenda)[0];
       const firstDate = firstDay?.data || "";
@@ -249,6 +261,12 @@ export function AgendaWorkspacePage({ owner = false }) {
     try {
       const result = await apiRequest("/bloqueios-horario", {
         method: "POST",
+        headers: {
+          "X-AF-Contexto":
+            owner
+              ? "dono"
+              : "profissional"
+        },
         body: {
           data: selectedDate,
           hora: slot.hora,

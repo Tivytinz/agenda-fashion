@@ -24,6 +24,86 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("agenda do negócio", () => {
+  it("mantém o contexto profissional explícito ao carregar e bloquear a própria agenda", async () => {
+    const agendaProfissional = {
+      agenda: [{
+        data: "2026-08-03",
+        trabalha: true,
+        horarios: [{
+          hora: "09:00",
+          status: "livre"
+        }]
+      }]
+    };
+
+    apiRequest
+      .mockResolvedValueOnce(
+        agendaProfissional
+      )
+      .mockResolvedValueOnce({
+        mensagem:
+          "Horário bloqueado."
+      })
+      .mockResolvedValueOnce({
+        agenda: [{
+          data: "2026-08-03",
+          trabalha: true,
+          horarios: [{
+            hora: "09:00",
+            status: "bloqueado"
+          }]
+        }]
+      });
+
+    render(
+      <MemoryRouter>
+        <AgendaWorkspacePage />
+      </MemoryRouter>
+    );
+
+    const slot =
+      await screen.findByRole(
+        "button",
+        { name: /09:00 Livre/ }
+      );
+
+    expect(
+      apiRequest.mock.calls[0]
+    ).toEqual([
+      "/agenda-profissional",
+      {
+        headers: {
+          "X-AF-Contexto":
+            "profissional"
+        }
+      }
+    ]);
+
+    fireEvent.click(
+      slot
+    );
+
+    await waitFor(
+      () =>
+        expect(
+          apiRequest
+        ).toHaveBeenCalledTimes(3)
+    );
+
+    expect(
+      apiRequest.mock.calls[1]
+    ).toEqual([
+      "/bloqueios-horario",
+      expect.objectContaining({
+        method: "POST",
+        headers: {
+          "X-AF-Contexto":
+            "profissional"
+        }
+      })
+    ]);
+  });
+
   it("explica quando a data escolhida não possui profissional disponível", async () => {
     render(<AgendaWorkspacePage owner />);
 

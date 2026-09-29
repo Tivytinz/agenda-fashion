@@ -151,9 +151,6 @@ async function buscarDisponibilidade({
 
         duracaoServico,
 
-        quantidadeDias:
-          7,
-
         fusoHorario,
       })
   );

@@ -99,14 +99,17 @@ Dentro do contexto de negócio resolvido pelo backend:
 - vínculos inativos ou outro negócio não autorizam a operação;
 - o agendamento é bloqueado durante a transação para evitar corrida com outra alteração de estado.
 
-A limitação atual de seleção explícita de contexto multi-negócio continua documentada separadamente. Este fluxo não deve ser usado para ampliar acesso entre negócios.
+Nos endpoints de agenda compartilhados entre os workspaces de dona e profissional, o frontend informa o papel pretendido por `X-AF-Contexto` e o backend resolve somente um vínculo ativo compatível. Esse seletor não substitui autorização nem permite apontar diretamente um `negocio_id` arbitrário. Este fluxo não deve ser usado para ampliar acesso entre negócios.
 
 ## Regra temporal
 
 Para bookings materializados, `agendamentos.inicio_previsto_em` é o instante
-canônico usado para comparar o relógio atual com o compromisso. O fuso atual do
-negócio é usado apenas no fallback de registros legados sem esse instante
-persistido.
+canônico usado para comparar o relógio atual com o compromisso. A agenda
+operacional também usa o fuso IANA do negócio consultado para montar as datas
+locais e interpretar a ocupação exibida. Quando um booking de outro negócio
+precisa aparecer somente como ocupação redigida, seu instante canônico é
+convertido para o fuso do contexto atual; o fuso atual do negócio é usado como
+fallback somente para registros legados sem instante persistido.
 
 - `iniciado` só pode ser registrado a partir do início previsto;
 - `falta` só pode ser registrada após 15 minutos de tolerância contados do início previsto;
@@ -191,7 +194,15 @@ Cancelamentos continuam fora do consumo conforme a regra vigente.
 
 Quando uma profissional também possui compromisso em outro negócio por um contexto atualmente permitido, a agenda pode preservar a ocupação necessária para evitar conflito físico, mas não expõe `agendamento_id`, cliente, serviço nem ações de lifecycle desse outro negócio.
 
-A intenção durável do produto permite que uma profissional possua vínculo com mais de um negócio, mas a modelagem atual ainda possui componentes globais por profissional, como disponibilidade semanal e bloqueios, além de não expor seleção explícita de contexto ativo. A migração que remover a restrição legada de um único vínculo profissional ativo deve ser feita junto do isolamento `negócio + profissional`, para não fazer uma alteração de agenda em um negócio afetar silenciosamente outro.
+A modelagem atual já isola disponibilidade recorrente e bloqueios por
+`negócio + profissional`, mas ainda permite no máximo um vínculo ativo com
+papel `profissional` por conta. A mesma identidade pode, contudo, ser dona do
+próprio negócio e profissional em outro; por isso o workspace profissional não
+pode cair silenciosamente no vínculo de dona. Endpoints compartilhados usam o
+papel explícito como seletor de contexto e revalidam o vínculo no backend.
+Qualquer evolução futura para múltiplos vínculos ativos com papel
+`profissional` deve acrescentar seleção explícita do negócio sem relaxar o
+isolamento já existente.
 
 ## Fora deste escopo
 

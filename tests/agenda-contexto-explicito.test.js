@@ -6,6 +6,9 @@ const db = require("../src/db/db");
 const agendaContextoRepository = require(
   "../src/repositories/agendaContextoRepository"
 );
+const agendaRepository = require(
+  "../src/repositories/agendaRepository"
+);
 
 describe("contexto explícito da agenda profissional", () => {
   beforeEach(() => {
@@ -22,6 +25,25 @@ describe("contexto explícito da agenda profissional", () => {
     expect(sql).toContain("un.ativo = TRUE");
     expect(sql).not.toContain("WHEN un.papel = 'dono'");
     expect(parametros).toEqual([7]);
+  });
+
+  test("endpoint compartilhado pode restringir a busca ao papel profissional", async () => {
+    await agendaRepository
+      .buscarVinculoUsuarioNegocio(
+        7,
+        "profissional"
+      );
+
+    const [sql, parametros] =
+      db.query.mock.calls[0];
+
+    expect(sql).toContain(
+      "OR un.papel = $2"
+    );
+    expect(parametros).toEqual([
+      7,
+      "profissional",
+    ]);
   });
 
   test("resolve operações pelo negócio do próprio agendamento", async () => {
@@ -49,6 +71,12 @@ describe("contexto explícito da agenda profissional", () => {
     const [sql, parametros] = db.query.mock.calls[0];
 
     expect(sql).toContain("a.negocio_id = $2");
+    expect(sql).toContain(
+      "negocio_contexto.id = $2"
+    );
+    expect(sql).toContain(
+      "AT TIME ZONE"
+    );
     expect(sql).not.toContain("WITH contexto AS");
     expect(parametros).toEqual([
       7,

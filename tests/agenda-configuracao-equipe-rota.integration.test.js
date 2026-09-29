@@ -29,6 +29,9 @@ const db = require(
 const agendaConfiguracaoRoutes = require(
   "../src/routes/agendaConfiguracaoRoutes"
 );
+const agendaRoutes = require(
+  "../src/routes/agendaRoutes"
+);
 const {
   criarCenarioAgendamento,
   removerCenarioAgendamento,
@@ -45,6 +48,9 @@ function criarApp() {
   );
   app.use(
     agendaConfiguracaoRoutes
+  );
+  app.use(
+    agendaRoutes
   );
   app.use(
     (
@@ -367,6 +373,139 @@ describe(
           hora_fim:
             "17:00:00",
         });
+
+        const agendaGeral =
+          await request(app)
+            .get(
+              "/agenda-geral"
+            );
+
+        expect(
+          agendaGeral.statusCode
+        ).toBe(200);
+
+        const segunda =
+          agendaGeral.body
+            .agenda
+            .find(
+              (dia) =>
+                new Date(
+                  `${dia.data}T12:00:00Z`
+                )
+                  .getUTCDay() ===
+                1
+            );
+
+        const profissionalNaAgenda =
+          segunda
+            ?.profissionais
+            ?.find(
+              (profissional) =>
+                Number(
+                  profissional.id
+                ) ===
+                profissionalEquipeId
+            );
+
+        expect(
+          profissionalNaAgenda
+            ?.horarios
+            ?.map(
+              (slot) =>
+                slot.hora
+            )
+        ).toEqual([
+          "09:00",
+          "10:00",
+          "11:00",
+          "12:00",
+          "13:00",
+          "14:00",
+          "15:00",
+          "16:00",
+        ]);
+      }
+    );
+
+    test(
+      "endpoint compartilhado respeita o contexto profissional quando a mesma conta também é dona",
+      async () => {
+        await db.query(
+          `
+            INSERT INTO usuarios_negocios (
+              usuario_id,
+              negocio_id,
+              papel,
+              ativo
+            )
+            VALUES (
+              $1,
+              $2,
+              'profissional',
+              TRUE
+            )
+          `,
+          [
+            negocioDona
+              .profissional.id,
+            negocioExterno
+              .negocioId,
+          ]
+        );
+
+        const app =
+          criarApp();
+
+        const resposta =
+          await request(app)
+            .post(
+              "/bloqueios-horario"
+            )
+            .set(
+              "X-AF-Contexto",
+              "profissional"
+            )
+            .send({
+              data:
+                "2030-01-15",
+              hora:
+                "09:00",
+            });
+
+        expect(
+          resposta.statusCode
+        ).toBe(200);
+
+        const bloqueios =
+          await db.query(
+            `
+              SELECT
+                negocio_id
+              FROM bloqueios_horarios
+              WHERE profissional_id =
+                $1
+                AND data_bloqueio =
+                  DATE '2030-01-15'
+                AND hora_bloqueio =
+                  TIME '09:00'
+            `,
+            [
+              negocioDona
+                .profissional.id,
+            ]
+          );
+
+        expect(
+          bloqueios.rows
+        ).toEqual([
+          {
+            negocio_id:
+              String(
+                negocioExterno
+                  .negocioId
+              ),
+          },
+        ]);
       }
     );
 

@@ -144,6 +144,10 @@ Ao salvar a agenda pelo fluxo atual, o backend marca `origem_horarios = personal
 
 A disponibilidade sugerida nunca deve sobrescrever silenciosamente uma agenda comprovadamente personalizada.
 
+A agenda operacional deve refletir essa mesma configuração contextual: `Minha agenda` usa a disponibilidade do vínculo profissional atual e `Agenda geral` monta cada integrante a partir da própria configuração, sempre no fuso IANA do negócio. A grade operacional não deve voltar a um intervalo fixo independente do que foi salvo.
+
+No perfil público, a busca começa com uma semana, mas a antecedência mínima de agendamento pode chegar a 720 horas. Para evitar um falso estado de “sem horários” apenas porque todos os slots válidos ficaram além da janela inicial, o backend amplia automaticamente o horizonte para cobrir a antecedência configurada mais uma semana recorrente, até 37 dias. A interface continua mostrando somente datas que tenham horários realmente elegíveis.
+
 ## Negócios existentes e migração
 
 O campo `negocios.publicacao_exige_agenda` é legado e não deve voltar a ser usado como gate de publicação.

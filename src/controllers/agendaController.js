@@ -24,7 +24,9 @@ async function listarAgendamentosFuncionario(req, res, next) {
   try {
     const resultado = await agendaOperacionalService.listarAgendaProfissional({
       profissionalId: req.user?.id,
-      negocioId: req.agendaContexto?.negocioId
+      negocioId: req.agendaContexto?.negocioId,
+      fusoHorario:
+        req.agendaContexto?.fusoHorario
     });
 
     return res.json(resultado);

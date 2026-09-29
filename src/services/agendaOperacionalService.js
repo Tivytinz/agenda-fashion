@@ -216,8 +216,15 @@ function obterPeriodoAgenda(agenda) {
 async function listarAgendaProfissional({
   profissionalId,
   negocioId,
+  fusoHorario,
 }) {
-  const resultado = await agendaService.listarAgendaProfissional({ profissionalId });
+  const resultado =
+    await agendaService
+      .listarAgendaProfissional({
+        profissionalId,
+        negocioId,
+        fusoHorario,
+      });
   const periodo = obterPeriodoAgenda(resultado?.agenda);
 
   if (!periodo) return resultado;
