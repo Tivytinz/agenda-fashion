@@ -111,7 +111,8 @@ describe("cabeçalho por contexto", () => {
 
     expect(screen.getByRole("link", { name: "Minha conta" })
       .getAttribute("href")).toBe("/cliente/conta");
-    expect(screen.getAllByRole("link", { name: "Meus agendamentos" })).toHaveLength(1);\n    expect(screen.getAllByRole("link", { name: "Favoritos" })).toHaveLength(1);
+    expect(screen.getAllByRole("link", { name: "Meus agendamentos" })).toHaveLength(1);
+    expect(screen.getAllByRole("link", { name: "Favoritos" })).toHaveLength(1);
     expect(screen.queryByRole("link", { name: "Convites de equipe" }))
       .toBeNull();
     expect(screen.queryByRole("link", { name: "Criar negócio" }))
