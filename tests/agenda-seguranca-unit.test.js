@@ -79,6 +79,48 @@ describe("Segurança da agenda", () => {
     );
   });
 
+  test("notificações de dono usam o negócio do contexto já autorizado", async () => {
+    agendaRepository.contarNotificacoesAgendaDono.mockResolvedValue(4);
+
+    const resultado = await agendaService.buscarNotificacoesAgenda({
+      usuarioId: 7,
+      negocioIdContexto: 33,
+      papelContexto: "dono"
+    });
+
+    expect(
+      agendaRepository.buscarVinculoUsuarioNegocio
+    ).not.toHaveBeenCalled();
+    expect(
+      agendaRepository.contarNotificacoesAgendaDono
+    ).toHaveBeenCalledWith(33);
+    expect(
+      agendaRepository.contarNotificacoesAgendaProfissional
+    ).not.toHaveBeenCalled();
+    expect(resultado).toEqual({ total: 4 });
+  });
+
+  test("notificações profissionais ficam escopadas ao negócio do contexto", async () => {
+    agendaRepository.contarNotificacoesAgendaProfissional.mockResolvedValue(2);
+
+    const resultado = await agendaService.buscarNotificacoesAgenda({
+      usuarioId: 10,
+      negocioIdContexto: 44,
+      papelContexto: "profissional"
+    });
+
+    expect(
+      agendaRepository.buscarVinculoUsuarioNegocio
+    ).not.toHaveBeenCalled();
+    expect(
+      agendaRepository.contarNotificacoesAgendaProfissional
+    ).toHaveBeenCalledWith(10, 44);
+    expect(
+      agendaRepository.contarNotificacoesAgendaDono
+    ).not.toHaveBeenCalled();
+    expect(resultado).toEqual({ total: 2 });
+  });
+
   test("bloqueia, consulta e grava o horário na mesma transação", async () => {
     agendaRepository.bloquearAlteracaoHorario.mockResolvedValue();
     agendaRepository.buscarAgendamentoAtivo.mockResolvedValue(null);
