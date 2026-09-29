@@ -107,13 +107,25 @@ describe(
             db.query.mock.calls.length - 1
           ];
 
-        expect(sql).toContain(
+        const sqlNormalizado =
+          sql.replace(
+            /\s+/g,
+            " "
+          );
+
+        expect(
+          sqlNormalizado
+        ).toContain(
           "ac.negocio_id = $1"
         );
-        expect(sql).toContain(
+        expect(
+          sqlNormalizado
+        ).toContain(
           "ANY($2::BIGINT[])"
         );
-        expect(sql).toContain(
+        expect(
+          sqlNormalizado
+        ).toContain(
           "ah.negocio_id = ac.negocio_id"
         );
         expect(

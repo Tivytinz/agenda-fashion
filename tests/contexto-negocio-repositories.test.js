@@ -57,6 +57,9 @@ describe("Resolução do contexto principal de negócio", () => {
 
     esperarPrioridadeDono(sql);
     expect(sql).toContain("un.negocio_id ASC");
-    expect(parametros).toEqual([10]);
+    expect(parametros).toEqual([
+      10,
+      null
+    ]);
   });
 });

@@ -11,6 +11,9 @@ jest.mock("../src/repositories/agendaConfiguracaoRepository");
 
 const db = require("../src/db/db");
 const agendaRepository = require("../src/repositories/agendaRepository");
+const agendaConfiguracaoRepository = require(
+  "../src/repositories/agendaConfiguracaoRepository"
+);
 const agendaService = require("../src/services/agendaService");
 
 describe("Segurança da agenda", () => {
@@ -33,9 +36,10 @@ describe("Segurança da agenda", () => {
     ).not.toHaveBeenCalled();
   });
 
-  test("preserva o negócio autorizado ao carregar compromissos da agenda geral", async () => {
+  test("preserva o negócio autorizado ao montar a grade contextual da agenda geral", async () => {
     agendaRepository.buscarNegocioDono.mockResolvedValue({
-      negocio_id: 33
+      negocio_id: 33,
+      fuso_horario: "America/Sao_Paulo"
     });
 
     agendaRepository.buscarProfissionaisDoNegocio.mockResolvedValue([
@@ -46,15 +50,27 @@ describe("Segurança da agenda", () => {
       }
     ]);
 
-    agendaRepository.buscarBloqueiosProfissionaisPorPeriodo.mockResolvedValue([]);
-    agendaRepository.buscarAgendamentosProfissionaisPorPeriodo.mockResolvedValue([]);
+    agendaConfiguracaoRepository
+      .listarConfiguracoesHorariosNegocio
+      .mockResolvedValue([]);
+    agendaRepository
+      .buscarBloqueiosProfissionaisPorPeriodo
+      .mockResolvedValue([]);
 
     await agendaService.buscarAgendaGeral({
       usuarioId: 7
     });
 
     expect(
-      agendaRepository.buscarAgendamentosProfissionaisPorPeriodo
+      agendaConfiguracaoRepository
+        .listarConfiguracoesHorariosNegocio
+    ).toHaveBeenCalledWith({
+      negocioId: 33,
+      profissionalIds: [10]
+    });
+
+    expect(
+      agendaRepository.buscarBloqueiosProfissionaisPorPeriodo
     ).toHaveBeenCalledWith(
       33,
       [10],
