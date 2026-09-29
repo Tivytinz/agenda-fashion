@@ -19,7 +19,7 @@ export function FavoritesPage() {
 
   const load = useCallback(() => {
     setError("");
-    apiRequest("/favoritos")
+    apiRequest("/api/favoritos")
       .then((result) => setItems(Array.isArray(result) ? result : result.favoritos || []))
       .catch((requestError) => setError(requestError.message));
   }, []);
@@ -38,7 +38,7 @@ export function FavoritesPage() {
     setRemoving(true);
     setRemoveError("");
     try {
-      await apiRequest(`/favoritos/${id}`, { method: "DELETE" });
+      await apiRequest(`/api/favoritos/${id}`, { method: "DELETE" });
       setItems((current) => current.filter((item) => Number(item.id || item.negocio_id) !== Number(id)));
       removeDialogRef.current?.close();
       setPendingRemove(null);

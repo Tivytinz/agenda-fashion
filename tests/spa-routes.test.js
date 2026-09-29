@@ -31,6 +31,17 @@ describe("rotas SPA servidas pelo Express", () => {
     expect(Object.values(routes)).toContain(route);
   });
 
+  it("mantém /favoritos como documento da SPA e separa a API de favoritos", () => {
+    const favoritosRoutesSource = fs.readFileSync(
+      path.join(__dirname, "..", "src", "routes", "favoritosRoutes.js"),
+      "utf8"
+    );
+
+    expect(routes.favorites).toBe("/favoritos");
+    expect(favoritosRoutesSource).toContain('"/api/favoritos"');
+    expect(favoritosRoutesSource).not.toContain('router.get(\n  "/favoritos"');
+  });
+
   it("mantém a rota dinâmica do catálogo local compartilhada com o React Router", () => {
     expect(routes.localCatalog).toBe(
       "/servicos/:categoria/em/:localidade"

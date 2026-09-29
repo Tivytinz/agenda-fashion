@@ -160,7 +160,7 @@ export function ProfilePage() {
     const controller = new AbortController();
     setFavoriteStatus("loading");
 
-    apiRequest(`/favoritos/${businessId}/status`, {
+    apiRequest(`/api/favoritos/${businessId}/status`, {
       signal: controller.signal
     })
       .then((result) => {
@@ -425,7 +425,7 @@ export function ProfilePage() {
     setFavoriteBusy(true);
     setFavoriteError("");
     try {
-      const result = await apiRequest(`/favoritos/${business.id}`, {
+      const result = await apiRequest(`/api/favoritos/${business.id}`, {
         method: favorite ? "DELETE" : "POST"
       });
       const nextFavorite = result?.favoritado;
