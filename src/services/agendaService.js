@@ -1076,27 +1076,39 @@ async function buscarAgendaGeral({ usuarioId }) {
   };
 }
 
-async function buscarNotificacoesAgenda({ usuarioId }) {
+async function buscarNotificacoesAgenda({
+  usuarioId,
+  negocioIdContexto,
+  papelContexto
+}) {
   exigirUsuario(usuarioId);
-
-  const vinculo =
-    await agendaRepository.buscarVinculoUsuarioNegocio(usuarioId);
-
-  if (!vinculo) {
-    return { total: 0 };
-  }
+  exigirCampo(
+    negocioIdContexto,
+    "Contexto do negócio é obrigatório."
+  );
+  exigirPermissao(
+    Number.isInteger(Number(negocioIdContexto)) &&
+      Number(negocioIdContexto) > 0,
+    "Contexto da agenda inválido."
+  );
+  exigirPermissao(
+    papelContexto === "dono" ||
+      papelContexto === "profissional",
+    "Contexto da agenda inválido."
+  );
 
   let total = 0;
 
-  if (vinculo.papel === "dono") {
+  if (papelContexto === "dono") {
     total =
       await agendaRepository.contarNotificacoesAgendaDono(
-        vinculo.negocio_id
+        Number(negocioIdContexto)
       );
   } else {
     total =
       await agendaRepository.contarNotificacoesAgendaProfissional(
-        usuarioId
+        usuarioId,
+        Number(negocioIdContexto)
       );
   }
 

@@ -30,6 +30,20 @@ describe("Resolução do contexto principal de negócio", () => {
     expect(parametros).toEqual([7]);
   });
 
+  test("dashboard profissional exige vínculo profissional explícito", async () => {
+    await dashboardRepository.buscarNegocioProfissional(7);
+
+    const [sql, parametros] = db.query.mock.calls[0];
+
+    expect(sql).toContain("un.papel = 'profissional'");
+    expect(sql).not.toContain("WHEN un.papel = 'dono' THEN 0");
+    expect(sql).toContain("un.ativo = TRUE");
+    expect(sql).toContain("u.ativo = TRUE");
+    expect(sql).toContain("n.ativo = TRUE");
+    expect(sql).toContain("LIMIT 1");
+    expect(parametros).toEqual([7]);
+  });
+
   test("serviços usam a mesma prioridade de contexto da sessão", async () => {
     await servicosRepository.buscarNegocioUsuario(8);
 
@@ -50,7 +64,7 @@ describe("Resolução do contexto principal de negócio", () => {
     expect(parametros).toEqual([9]);
   });
 
-  test("notificações da agenda usam a mesma prioridade de contexto", async () => {
+  test("vínculo compartilhado preserva fallback legado quando contexto não é explícito", async () => {
     await agendaRepository.buscarVinculoUsuarioNegocio(10);
 
     const [sql, parametros] = db.query.mock.calls[0];

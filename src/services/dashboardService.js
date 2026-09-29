@@ -231,7 +231,7 @@ async function buscarDashboardProfissional({
 
   const negocio =
     await dashboardRepository
-      .buscarNegocioDoUsuario(
+      .buscarNegocioProfissional(
         usuarioId
       );
 

@@ -72,7 +72,11 @@ async function buscarAgendaGeral(req, res, next) {
 async function buscarNotificacoesAgenda(req, res, next) {
   try {
     const resultado = await agendaService.buscarNotificacoesAgenda({
-      usuarioId: req.user?.id
+      usuarioId: req.user?.id,
+      negocioIdContexto:
+        req.agendaContexto?.negocioId,
+      papelContexto:
+        req.agendaContexto?.papel
     });
 
     return res.json(resultado);

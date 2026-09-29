@@ -549,16 +549,20 @@ async function contarNotificacoesAgendaDono(negocioId) {
   return result.rows[0]?.total || 0;
 }
 
-async function contarNotificacoesAgendaProfissional(profissionalId) {
+async function contarNotificacoesAgendaProfissional(
+  profissionalId,
+  negocioId
+) {
   const result = await db.query(
     `
     SELECT COUNT(*)::int AS total
     FROM agendamentos
     WHERE profissional_id = $1
+      AND negocio_id = $2
       AND data >= CURRENT_DATE
       AND status IN ('agendado', 'confirmado')
     `,
-    [profissionalId]
+    [profissionalId, negocioId]
   );
 
   return result.rows[0]?.total || 0;

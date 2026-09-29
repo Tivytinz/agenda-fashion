@@ -46,6 +46,27 @@ describe("contexto explícito da agenda profissional", () => {
     ]);
   });
 
+  test("notificações profissionais filtram também pelo negócio validado", async () => {
+    await agendaRepository.contarNotificacoesAgendaProfissional(
+      7,
+      22
+    );
+
+    const [sql, parametros] =
+      db.query.mock.calls[0];
+
+    expect(sql).toContain(
+      "profissional_id = $1"
+    );
+    expect(sql).toContain(
+      "negocio_id = $2"
+    );
+    expect(parametros).toEqual([
+      7,
+      22,
+    ]);
+  });
+
   test("resolve operações pelo negócio do próprio agendamento", async () => {
     await agendaContextoRepository.buscarVinculoOperacionalDoAgendamento({
       agendamentoId: 91,

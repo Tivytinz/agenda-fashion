@@ -69,6 +69,7 @@ router.post(
 router.get(
   "/notificacoes-agenda",
   auth,
+  agendaVinculoAtivo,
   agendaController.buscarNotificacoesAgenda
 );
 
