@@ -5,25 +5,25 @@ const auth = require("../middlewares/auth");
 const favoritosController = require("../controllers/favoritosController");
 
 router.get(
-  "/favoritos",
+  "/api/favoritos",
   auth,
   favoritosController.listarFavoritos
 );
 
 router.post(
-  "/favoritos/:negocioId",
+  "/api/favoritos/:negocioId",
   auth,
   favoritosController.adicionarFavorito
 );
 
 router.delete(
-  "/favoritos/:negocioId",
+  "/api/favoritos/:negocioId",
   auth,
   favoritosController.removerFavorito
 );
 
 router.get(
-  "/favoritos/:negocioId/status",
+  "/api/favoritos/:negocioId/status",
   auth,
   favoritosController.verificarFavorito
 );
