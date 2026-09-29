@@ -25,7 +25,7 @@ jest.mock(
 jest.mock(
   "../src/repositories/whatsappAgendaRepository",
   () => ({
-    negocioTemAgendaConfigurada:
+    negocioPodeDivulgarParaPrimeiroAgendamento:
       jest.fn(),
   })
 );
@@ -92,12 +92,12 @@ describe(
         .mockResolvedValue(true);
 
       whatsappAgendaRepository
-        .negocioTemAgendaConfigurada
+        .negocioPodeDivulgarParaPrimeiroAgendamento
         .mockResolvedValue(true);
     });
 
     test(
-      "cancela a divulgação se a agenda deixou de estar configurada antes do envio",
+      "cancela a divulgação se o negócio deixou de estar elegível para conquistar o primeiro agendamento",
       async () => {
         const mensagem =
           criarLembreteDivulgacao();
@@ -109,7 +109,7 @@ describe(
           );
 
         whatsappAgendaRepository
-          .negocioTemAgendaConfigurada
+          .negocioPodeDivulgarParaPrimeiroAgendamento
           .mockResolvedValue(false);
 
         const resultado =
@@ -120,7 +120,7 @@ describe(
 
         expect(
           whatsappAgendaRepository
-            .negocioTemAgendaConfigurada
+            .negocioPodeDivulgarParaPrimeiroAgendamento
         ).toHaveBeenCalledWith(42);
 
         expect(
@@ -144,7 +144,7 @@ describe(
     );
 
     test(
-      "mantém a divulgação quando a agenda continua configurada",
+      "mantém a divulgação quando a próxima ação continua sendo compartilhar",
       async () => {
         const mensagem =
           criarLembreteDivulgacao();
@@ -173,7 +173,7 @@ describe(
 
         expect(
           whatsappAgendaRepository
-            .negocioTemAgendaConfigurada
+            .negocioPodeDivulgarParaPrimeiroAgendamento
         ).toHaveBeenCalledWith(42);
 
         expect(

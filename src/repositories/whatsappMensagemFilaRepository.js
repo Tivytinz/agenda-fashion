@@ -6,6 +6,10 @@ const {
   TIPOS_CLIENTE,
   TIPOS_PROFISSIONAL,
 } = require("./whatsappMensagemRepositoryConfig");
+const {
+  sqlPossuiDisponibilidadeAgendavel,
+  sqlPossuiPrimeiroAgendamentoValido,
+} = require("./ativacaoSql");
 
 async function reservarProximaMensagem() {
   const result =
@@ -113,6 +117,12 @@ async function reservarProximaMensagem() {
                       WHERE s.negocio_id = n.id
                         AND s.ativo = TRUE
                     )
+                    AND ${sqlPossuiDisponibilidadeAgendavel(
+                      "n.id"
+                    )}
+                    AND NOT ${sqlPossuiPrimeiroAgendamentoValido(
+                      "n.id"
+                    )}
                   )
                 )
               )
@@ -335,6 +345,12 @@ async function mensagemContinuaValida(
                       WHERE s.negocio_id = n.id
                         AND s.ativo = TRUE
                     )
+                    AND ${sqlPossuiDisponibilidadeAgendavel(
+                      "n.id"
+                    )}
+                    AND NOT ${sqlPossuiPrimeiroAgendamentoValido(
+                      "n.id"
+                    )}
                   )
                 )
               )

@@ -87,6 +87,12 @@ describe(
         "Revisar meu negócio",
         "/painel/negocio",
       ],
+      [
+        "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+        "Adicione horários para receber agendamentos",
+        "Configurar horários",
+        "/painel/horarios",
+      ],
     ])(
       "renderiza a navegação canônica do estado %s",
       (

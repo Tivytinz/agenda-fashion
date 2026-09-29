@@ -182,7 +182,10 @@ rollout e não deve ser usado como fonte de verdade para novas reservas. Enquant
 esse campo legado existir para rollback, o runtime novo o espelha
 transacionalmente e a migration de compatibilidade também intercepta escritas de
 versões antigas: escrita da dona atualiza a política canônica e escrita de
-profissional é normalizada para a política do negócio. Cada booking congela
+profissional é normalizada para a política do negócio. Para evitar deadlock no
+rollout misto, a ordem de lock é `agenda da dona → negócio → demais agendas`;
+a escrita legada de profissional apenas lê a política canônica e normaliza seu
+espelho, sem bloquear o negócio. Cada booking congela
 `antecedencia_cancelamento_horas` no momento da confirmação, e alterações
 posteriores da política do negócio não reescrevem snapshots existentes.
 
@@ -259,7 +262,12 @@ canônico continua `CONQUISTAR_PRIMEIRO_AGENDAMENTO` mesmo quando todos os dias
 estão fechados, mas o CTA operacional muda: sem
 `possui_disponibilidade_agendavel`, a interface mantém o editor de horários e
 orienta a ativar disponibilidade antes de divulgar; com disponibilidade
-agendável, apresenta o compartilhamento. Isso não transforma agenda em gate de
+agendável, apresenta o compartilhamento. Esse diagnóstico é estrutural: exige
+profissional ativa, serviço ativo explicitamente habilitado e pelo menos um
+segmento semanal em que a duração inteira desse serviço caiba, considerando a
+pausa configurada. Ocupações e bloqueios pontuais não transformam a publicação
+em gate e continuam sendo filtrados no cálculo público de slots. Isso não
+transforma agenda em gate de
 publicação nem em novo estado de ativação. Se o negócio já estiver `ATIVADO` ou tiver
 regredido para serviço/publicação, a interface volta ao painel para apresentar a
 missão correta. URLs antigas não podem ressuscitar a missão concluída. Uma intenção válida de plano
@@ -289,9 +297,13 @@ dados/migrations legados; o runtime atual não deve reintroduzir esse gate.
 Depois da passagem pela agenda, a missão principal é conquistar o primeiro
 agendamento. Quando existe disponibilidade agendável, o CTA operacional é
 divulgar o perfil; sem disponibilidade, a mesma missão orienta primeiro a
-configurar horários. Uma intenção de plano pago não substitui essa missão nem
-provoca checkout automático. Compartilhamento deve reutilizar os links públicos
-rastreáveis existentes do AF.
+configurar horários. Os lembretes de divulgação por WhatsApp devem respeitar os
+mesmos sinais canônicos: negócio publicado, serviço ativo, disponibilidade
+agendável e ausência de primeiro agendamento válido. `configurado_em` não pode
+ser usado como substituto dessa elegibilidade, e uma mensagem pendente deve ser
+revalidada antes do envio. Uma intenção de plano pago não substitui essa missão
+nem provoca checkout automático. Compartilhamento deve reutilizar os links
+públicos rastreáveis existentes do AF.
 
 A disponibilidade continua crítica para gerar slots corretos e pode ser
 acompanhada como diagnóstico operacional separado.

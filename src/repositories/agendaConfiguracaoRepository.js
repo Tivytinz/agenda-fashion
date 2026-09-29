@@ -121,6 +121,34 @@ async function atualizarPoliticaCancelamentoNegocio(
   antecedenciaCancelamento,
   executor = db
 ) {
+  /*
+   * Ordem de lock compatível com o trigger legado:
+   * agenda da dona -> negócio -> demais agendas.
+   * Isso evita o ciclo negócio -> agenda / agenda -> negócio durante rollout
+   * com uma versão antiga ainda escrevendo agenda_configuracoes.
+   */
+  await executor.query(
+    `
+      SELECT
+        ac.profissional_id
+      FROM agenda_configuracoes ac
+      INNER JOIN usuarios_negocios un
+        ON un.usuario_id =
+          ac.profissional_id
+        AND un.negocio_id =
+          ac.negocio_id
+        AND un.papel = 'dono'
+        AND un.ativo = TRUE
+      WHERE ac.negocio_id = $1
+      ORDER BY
+        un.created_at ASC,
+        un.id ASC
+      LIMIT 1
+      FOR UPDATE OF ac
+    `,
+    [negocioId]
+  );
+
   const result = await executor.query(
     `
     UPDATE negocios

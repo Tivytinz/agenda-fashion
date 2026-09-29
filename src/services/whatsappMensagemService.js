@@ -456,7 +456,7 @@ async function mensagemContinuaElegivel(
   }
 
   return whatsappAgendaRepository
-    .negocioTemAgendaConfigurada(
+    .negocioPodeDivulgarParaPrimeiroAgendamento(
       mensagem.negocio_id
     );
 }

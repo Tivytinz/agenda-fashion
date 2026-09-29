@@ -212,9 +212,18 @@ describe(
           "LEMBRETE_DIVULGAR_NEGOCIO"
         );
         expect(sql).toContain(
-          "ac.configurado_em IS NOT NULL"
+          "possui_disponibilidade_agendavel"
         );
         expect(sql).toContain(
+          "primeiro_agendamento_recebido"
+        );
+        expect(sql).toContain(
+          "disponibilidade_s.duracao_minutos"
+        );
+        expect(sql).toContain(
+          "ativacao_agendamento.status NOT IN"
+        );
+        expect(sql).not.toContain(
           "agenda_configurada = TRUE"
         );
         expect(sql).toContain(
@@ -312,6 +321,12 @@ describe(
         expect(sql).toContain(
           "optout.recebido_em >= a.whatsapp_consentido_em"
         );
+        expect(sql).toContain(
+          "disponibilidade_s.duracao_minutos"
+        );
+        expect(sql).toContain(
+          "ativacao_agendamento.status NOT IN"
+        );
       }
     );
 
@@ -357,6 +372,12 @@ describe(
             "LEMBRETE_AGENDAMENTO_CLIENTE",
             "CANCELAMENTO_AGENDAMENTO_CLIENTE",
           ])
+        );
+        expect(sql).toContain(
+          "disponibilidade_s.duracao_minutos"
+        );
+        expect(sql).toContain(
+          "ativacao_agendamento.status NOT IN"
         );
       }
     );

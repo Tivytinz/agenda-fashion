@@ -15,7 +15,7 @@ A decisão é feita no backend a partir do estado canônico do negócio:
 - `possui_servico_ativo`: existe ao menos um registro ativo em `servicos_negocio` para o negócio;
 - `negocio_publicado`: `negocios.publicado = TRUE`;
 - `primeiro_agendamento_recebido`: existe ao menos um agendamento não cancelado para o negócio. O nome do campo é preservado por compatibilidade, mas um cancelamento deixa de encerrar a ativação se não existir outro agendamento válido;
-- `possui_disponibilidade_agendavel`: diagnóstico operacional que indica se existe profissional ativa, serviço ativo habilitado e ao menos uma faixa semanal ativa no negócio. Esse sinal escolhe o CTA dentro de `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, mas não cria um estado novo nem vira gate de publicação.
+- `possui_disponibilidade_agendavel`: diagnóstico operacional estrutural que indica se existe profissional ativa, serviço ativo habilitado e ao menos um segmento semanal em que a duração inteira desse serviço caiba, considerando a pausa configurada. Ocupações e bloqueios pontuais continuam sendo filtrados no cálculo público de slots e não transformam publicação em gate. Esse sinal escolhe o CTA dentro de `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, mas não cria um estado novo nem vira gate de publicação.
 
 O frontend não recalcula a próxima etapa usando visitas ao perfil, métricas de conversão, pendências de publicação ou outras heurísticas.
 
@@ -69,7 +69,7 @@ Exemplo:
 }
 ```
 
-Ações de navegação usam `tipo = NAVEGAR`, `rotulo` e `destino`. Divulgação usa `tipo = COMPARTILHAR_PERFIL` para reutilizar o mecanismo rastreável de compartilhamento já existente no AF. Em `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, `possui_disponibilidade_agendavel = false` produz `NAVEGAR → /painel/horarios`; esse ajuste é operacional e mantém o mesmo estado canônico.
+Ações de navegação usam `tipo = NAVEGAR`, `rotulo` e `destino`. Divulgação usa `tipo = COMPARTILHAR_PERFIL` para reutilizar o mecanismo rastreável de compartilhamento já existente no AF. Em `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, `possui_disponibilidade_agendavel = false` produz `NAVEGAR → /painel/horarios`; o frontend deve permitir explicitamente esse destino em sua whitelist de navegação. Esse ajuste é operacional e mantém o mesmo estado canônico.
 
 O contrato pode continuar entregando os sinais canônicos para analytics, diagnóstico e compatibilidade sem obrigar a interface a exibi-los como checklist.
 
@@ -85,6 +85,8 @@ Os eventos usam `dashboard_dono`, missão `gerenciar_crescimento` e apenas propr
 No estado `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, a seleção da recomendação e a conclusão do compartilhamento são fatos diferentes. A seleção registra intenção; `link_negocio_compartilhado` ou `link_negocio_copiado` continua registrando o resultado do mecanismo de share.
 
 Nenhum desses eventos substitui os marcos canônicos do backend. Clique, visualização e compartilhamento são sinais de comportamento, não ativação. O resultado deve ser medido pela progressão real do negócio entre os sinais canônicos e, por fim, pelo primeiro agendamento não cancelado.
+
+As orientações automáticas de divulgação por WhatsApp usam a mesma fronteira operacional da próxima ação: só permanecem elegíveis enquanto o negócio estiver publicado, possuir serviço ativo, possuir disponibilidade agendável e ainda não tiver primeiro agendamento válido. O marcador técnico `agenda_configuracoes.configurado_em` não substitui essa decisão. A fila revalida esses sinais antes da reserva e novamente antes do envio.
 
 A análise recomendada é:
 

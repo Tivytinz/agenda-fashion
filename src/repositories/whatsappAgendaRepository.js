@@ -1,4 +1,8 @@
 const db = require("../db/db");
+const {
+  sqlPossuiDisponibilidadeAgendavel,
+  sqlPossuiPrimeiroAgendamentoValido,
+} = require("./ativacaoSql");
 
 async function negocioTemAgendaConfigurada(
   negocioId
@@ -24,6 +28,8 @@ async function negocioTemAgendaConfigurada(
         INNER JOIN agenda_configuracoes ac
           ON ac.profissional_id =
             un.usuario_id
+          AND ac.negocio_id =
+            un.negocio_id
         WHERE un.negocio_id = $1
           AND un.ativo = TRUE
           AND u.ativo = TRUE
@@ -31,8 +37,8 @@ async function negocioTemAgendaConfigurada(
             'dono',
             'profissional'
           )
-          AND ac.configurado_em
-            IS NOT NULL
+          AND ac.origem_horarios =
+            'personalizado'
       ) AS configurada
     `,
     [id]
@@ -43,6 +49,52 @@ async function negocioTemAgendaConfigurada(
   );
 }
 
+async function negocioPodeDivulgarParaPrimeiroAgendamento(
+  negocioId
+) {
+  const id = Number(
+    negocioId
+  );
+
+  if (
+    !Number.isInteger(id) ||
+    id <= 0
+  ) {
+    return false;
+  }
+
+  const result = await db.query(
+    `
+      SELECT (
+        n.ativo = TRUE
+        AND n.publicado = TRUE
+        AND EXISTS (
+          SELECT 1
+          FROM servicos_negocio s
+          WHERE s.negocio_id = n.id
+            AND s.ativo = TRUE
+        )
+        AND ${sqlPossuiDisponibilidadeAgendavel(
+          "n.id"
+        )}
+        AND NOT ${sqlPossuiPrimeiroAgendamentoValido(
+          "n.id"
+        )}
+      ) AS pode_divulgar
+      FROM negocios n
+      WHERE n.id = $1
+      LIMIT 1
+    `,
+    [id]
+  );
+
+  return Boolean(
+    result.rows[0]
+      ?.pode_divulgar
+  );
+}
+
 module.exports = {
   negocioTemAgendaConfigurada,
+  negocioPodeDivulgarParaPrimeiroAgendamento,
 };

@@ -227,6 +227,78 @@ describe(
             },
           ]);
 
+          const runtimeClient =
+            await db.connect();
+          const legadoProfissionalClient =
+            await db.connect();
+
+          try {
+            await runtimeClient.query(
+              `SET search_path TO "${schema}"`
+            );
+            await legadoProfissionalClient.query(
+              `SET search_path TO "${schema}"`
+            );
+
+            await runtimeClient.query(
+              "BEGIN"
+            );
+            await runtimeClient.query(`
+              SELECT
+                ac.profissional_id
+              FROM agenda_configuracoes ac
+              INNER JOIN usuarios_negocios un
+                ON un.usuario_id =
+                  ac.profissional_id
+                AND un.negocio_id =
+                  ac.negocio_id
+                AND un.papel = 'dono'
+                AND un.ativo = TRUE
+              WHERE ac.negocio_id = 11
+              LIMIT 1
+              FOR UPDATE OF ac
+            `);
+            await runtimeClient.query(`
+              UPDATE negocios
+              SET antecedencia_cancelamento =
+                18
+              WHERE id = 11
+            `);
+
+            await legadoProfissionalClient.query(
+              "BEGIN"
+            );
+            await legadoProfissionalClient.query(
+              "SET LOCAL lock_timeout = '500ms'"
+            );
+
+            await expect(
+              legadoProfissionalClient.query(`
+                UPDATE agenda_configuracoes
+                SET antecedencia_cancelamento =
+                  1
+                WHERE profissional_id = 2
+                  AND negocio_id = 11
+              `)
+            ).resolves.toBeDefined();
+
+            await legadoProfissionalClient.query(
+              "COMMIT"
+            );
+            await runtimeClient.query(
+              "ROLLBACK"
+            );
+          } finally {
+            await legadoProfissionalClient
+              .query("ROLLBACK")
+              .catch(() => {});
+            await runtimeClient
+              .query("ROLLBACK")
+              .catch(() => {});
+            legadoProfissionalClient.release();
+            runtimeClient.release();
+          }
+
           await client.query(`
             UPDATE agenda_configuracoes
             SET antecedencia_cancelamento = 1

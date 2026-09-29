@@ -53,10 +53,16 @@ describe(
           "'cancelado'"
         );
         expect(sql).toContain(
-          "INNER JOIN agenda_horarios ah"
+          "INNER JOIN agenda_horarios disponibilidade_ah"
         );
         expect(sql).toContain(
-          "INNER JOIN profissional_servicos ps"
+          "INNER JOIN profissional_servicos disponibilidade_ps"
+        );
+        expect(sql).toContain(
+          "disponibilidade_s.duracao_minutos"
+        );
+        expect(sql).toContain(
+          "EXTRACT("
         );
         expect(sql).toContain(
           "AS possui_disponibilidade_agendavel"

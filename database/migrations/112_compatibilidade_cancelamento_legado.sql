@@ -8,7 +8,9 @@ BEGIN;
 --   - escrita legada da dona atualiza a política canônica e espelha o negócio;
 --   - escrita legada de profissional é normalizada para a política do negócio;
 --   - espelhamentos feitos pelo runtime novo usam uma flag transacional para
---     não serem reinterpretados como intenção de produto.
+--     não serem reinterpretados como intenção de produto;
+--   - a ordem de lock evita o ciclo negócio -> agenda / agenda -> negócio
+--     durante rollout misto.
 CREATE OR REPLACE FUNCTION sincronizar_antecedencia_cancelamento_legado()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -25,8 +27,7 @@ BEGIN
     )
   INTO politica_canonica
   FROM negocios n
-  WHERE n.id = NEW.negocio_id
-  FOR UPDATE;
+  WHERE n.id = NEW.negocio_id;
 
   IF NOT FOUND THEN
     RETURN NEW;
@@ -60,6 +61,13 @@ BEGIN
   INTO eh_dona;
 
   IF NOT eh_dona THEN
+    /*
+     * A escrita de profissional não tenta bloquear o negócio. Ela apenas
+     * normaliza o espelho legado para o último valor canônico confirmado.
+     * Assim uma atualização concorrente da dona nunca cria o ciclo
+     * profissional -> negócio; a dona e o runtime novo usam a mesma ordem
+     * agenda da dona -> negócio -> equipe.
+     */
     NEW.antecedencia_cancelamento :=
       politica_canonica;
     RETURN NEW;

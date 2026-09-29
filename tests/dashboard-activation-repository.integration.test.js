@@ -84,6 +84,77 @@ describe(
           ]
         );
 
+        await db.query(
+          `
+            UPDATE agenda_horarios
+            SET
+              trabalha = TRUE,
+              hora_inicio = '09:00',
+              hora_fim = '09:30'
+            WHERE profissional_id = $1
+              AND negocio_id = $2
+              AND dia_semana = 1
+          `,
+          [
+            cenario.profissional.id,
+            cenario.negocioId,
+          ]
+        );
+
+        const faixaCurta =
+          await dashboardActivationRepository
+            .buscarEstadoAtivacao(
+              cenario.negocioId
+            );
+
+        expect(
+          faixaCurta
+            .possui_disponibilidade_agendavel
+        ).toBe(false);
+
+        await db.query(
+          `
+            UPDATE agenda_horarios
+            SET
+              hora_fim = '10:00'
+            WHERE profissional_id = $1
+              AND negocio_id = $2
+              AND dia_semana = 1
+          `,
+          [
+            cenario.profissional.id,
+            cenario.negocioId,
+          ]
+        );
+
+        const faixaSuficiente =
+          await dashboardActivationRepository
+            .buscarEstadoAtivacao(
+              cenario.negocioId
+            );
+
+        expect(
+          faixaSuficiente
+            .possui_disponibilidade_agendavel
+        ).toBe(true);
+
+        await db.query(
+          `
+            UPDATE agenda_horarios
+            SET
+              trabalha = FALSE,
+              hora_inicio = NULL,
+              hora_fim = NULL
+            WHERE profissional_id = $1
+              AND negocio_id = $2
+              AND dia_semana = 1
+          `,
+          [
+            cenario.profissional.id,
+            cenario.negocioId,
+          ]
+        );
+
         const semDisponibilidade =
           await dashboardActivationRepository
             .buscarEstadoAtivacao(
