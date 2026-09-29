@@ -52,7 +52,7 @@ function json(route, body, status = 200) {
   });
 }
 
-test("onboarding de horários salva a sugestão ao pular e permanece utilizável no mobile", async ({ page }) => {
+test("onboarding de horários confirma a sugestão e segue para divulgação no mobile", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("session_active", "1");
     localStorage.setItem("usuario", JSON.stringify({ id: 4, nome: "Ana" }));
@@ -83,15 +83,38 @@ test("onboarding de horários salva a sugestão ao pular e permanece utilizável
     enabled: false,
     measurementId: null
   }));
+  await page.route("**/configuracoes", (route) => json(route, {
+    negocio: BUSINESS,
+    publicacao: {
+      publicado: true,
+      pode_publicar: true,
+      pendencias: []
+    }
+  }));
+  await page.route("**/dashboard-dono/ativacao", (route) => json(route, {
+    negocio: {
+      negocio_id: BUSINESS.id,
+      papel: "dono",
+      nome: BUSINESS.nome,
+      slug: BUSINESS.slug
+    },
+    proxima_acao_ativacao: {
+      estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+      concluido: false
+    }
+  }));
 
   let savedPayload = null;
+  let scheduleSaved = false;
   await page.route("**/agenda-configuracao", async (route) => {
     if (route.request().method() === "PUT") {
       savedPayload = route.request().postDataJSON();
+      scheduleSaved = true;
       return json(route, {
         mensagem: "Horários salvos.",
         configuracao: {
-          configurado_em: "2026-09-10T05:00:00.000Z"
+          configurado_em: "2026-09-10T05:00:00.000Z",
+          origem_horarios: "personalizado"
         },
         horarios: SUGGESTED_WEEK,
         publicacao: null
@@ -103,8 +126,11 @@ test("onboarding de horários salva a sugestão ao pular e permanece utilizável
         duracao_padrao: 60,
         intervalo_minutos: 0,
         antecedencia_agendamento: 0,
-        antecedencia_cancelamento: 24,
-        configurado_em: null
+        antecedencia_cancelamento: 2,
+        configurado_em: scheduleSaved
+          ? "2026-09-10T05:00:00.000Z"
+          : "2026-09-10T04:00:00.000Z",
+        origem_horarios: scheduleSaved ? "personalizado" : "padrao_af"
       },
       horarios: SUGGESTED_WEEK
     });
@@ -119,28 +145,29 @@ test("onboarding de horários salva a sugestão ao pular e permanece utilizável
   await expect(page.getByRole("heading", { name: "Confirme quando você atende" }))
     .toBeVisible();
   await expect(confirm).toBeVisible();
-  await expect(skip).toBeVisible();
+  await expect(skip).toHaveCount(0);
   await expect(adjust).toBeVisible();
-
-  const viewport = page.viewportSize();
-  if (viewport && viewport.width <= 680) {
-    const [confirmBox, skipBox] = await Promise.all([
-      confirm.boundingBox(),
-      skip.boundingBox()
-    ]);
-
-    expect(confirmBox).not.toBeNull();
-    expect(skipBox).not.toBeNull();
-    expect(skipBox.y).toBeGreaterThan(confirmBox.y + confirmBox.height - 1);
-    expect(Math.abs(skipBox.width - confirmBox.width)).toBeLessThanOrEqual(2);
-  }
 
   await expect.poll(() => page.evaluate(() => (
     document.documentElement.scrollWidth === document.documentElement.clientWidth
   ))).toBe(true);
 
-  await skip.click();
-  await page.waitForURL(/\/checkout\?plano=autonoma$/);
+  await confirm.click();
+  await expect(page).toHaveURL(
+    /\/painel\/horarios\?(?=.*plano=autonoma)(?=.*onboarding=divulgacao)/
+  );
+  await expect(page.getByRole("heading", { name: "Agora divulgue seu perfil" }))
+    .toBeVisible();
+  await expect(page.getByRole("button", { name: "Compartilhar perfil" }))
+    .toBeVisible();
+  await expect(page.getByRole("link", { name: "Concluir plano escolhido" }))
+    .toHaveCount(0);
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Agora divulgue seu perfil" }))
+    .toBeVisible();
+  await expect(page.getByRole("button", { name: "Compartilhar perfil" }))
+    .toBeVisible();
 
   expect(savedPayload?.horarios).toEqual(expect.arrayContaining([
     expect.objectContaining({

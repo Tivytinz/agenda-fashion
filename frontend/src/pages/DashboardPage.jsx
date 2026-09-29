@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { DashboardNextAction } from "../components/DashboardNextAction";
 import { DashboardGrowthInsight } from "../components/DashboardGrowthInsight";
@@ -64,6 +64,11 @@ export function getWhatsappConsentVisibility({
 }
 
 export function DashboardPage() {
+  const location = useLocation();
+  const navigationMessage =
+    typeof location.state?.message === "string"
+      ? location.state.message.trim()
+      : "";
   const [period, setPeriod] = useState("7dias");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
@@ -328,6 +333,9 @@ export function DashboardPage() {
         </div>
       </header>
 
+      {navigationMessage && (
+        <p className="form-success" role="status">{navigationMessage}</p>
+      )}
       {refreshing && <p className="data-refresh-status" role="status">Atualizando indicadores...</p>}
       {error && <p className="form-error" role="alert">{error} Os últimos dados carregados continuam visíveis.</p>}
 

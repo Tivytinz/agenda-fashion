@@ -36,6 +36,20 @@ describe(
     test(
       "usa serviço ativo, publicação e agenda confirmada como estado canônico",
       async () => {
+        await db.query(
+          `
+            UPDATE agenda_configuracoes
+            SET origem_horarios =
+              'personalizado'
+            WHERE profissional_id = $1
+              AND negocio_id = $2
+          `,
+          [
+            cenario.profissional.id,
+            cenario.negocioId,
+          ]
+        );
+
         const estado =
           await dashboardActivationRepository
             .buscarEstadoAtivacao(
@@ -47,8 +61,110 @@ describe(
           possui_servico_ativo: true,
           negocio_publicado: true,
           agenda_configurada: true,
+          possui_disponibilidade_agendavel:
+            true,
           primeiro_agendamento_recebido: false,
         });
+
+        await db.query(
+          `
+            UPDATE agenda_horarios
+            SET
+              trabalha = FALSE,
+              hora_inicio = NULL,
+              hora_fim = NULL,
+              intervalo_inicio = NULL,
+              intervalo_fim = NULL
+            WHERE profissional_id = $1
+              AND negocio_id = $2
+          `,
+          [
+            cenario.profissional.id,
+            cenario.negocioId,
+          ]
+        );
+
+        await db.query(
+          `
+            UPDATE agenda_horarios
+            SET
+              trabalha = TRUE,
+              hora_inicio = '09:00',
+              hora_fim = '09:30'
+            WHERE profissional_id = $1
+              AND negocio_id = $2
+              AND dia_semana = 1
+          `,
+          [
+            cenario.profissional.id,
+            cenario.negocioId,
+          ]
+        );
+
+        const faixaCurta =
+          await dashboardActivationRepository
+            .buscarEstadoAtivacao(
+              cenario.negocioId
+            );
+
+        expect(
+          faixaCurta
+            .possui_disponibilidade_agendavel
+        ).toBe(false);
+
+        await db.query(
+          `
+            UPDATE agenda_horarios
+            SET
+              hora_fim = '10:00'
+            WHERE profissional_id = $1
+              AND negocio_id = $2
+              AND dia_semana = 1
+          `,
+          [
+            cenario.profissional.id,
+            cenario.negocioId,
+          ]
+        );
+
+        const faixaSuficiente =
+          await dashboardActivationRepository
+            .buscarEstadoAtivacao(
+              cenario.negocioId
+            );
+
+        expect(
+          faixaSuficiente
+            .possui_disponibilidade_agendavel
+        ).toBe(true);
+
+        await db.query(
+          `
+            UPDATE agenda_horarios
+            SET
+              trabalha = FALSE,
+              hora_inicio = NULL,
+              hora_fim = NULL
+            WHERE profissional_id = $1
+              AND negocio_id = $2
+              AND dia_semana = 1
+          `,
+          [
+            cenario.profissional.id,
+            cenario.negocioId,
+          ]
+        );
+
+        const semDisponibilidade =
+          await dashboardActivationRepository
+            .buscarEstadoAtivacao(
+              cenario.negocioId
+            );
+
+        expect(
+          semDisponibilidade
+            .possui_disponibilidade_agendavel
+        ).toBe(false);
 
         await db.query(
           `
@@ -71,10 +187,15 @@ describe(
         await db.query(
           `
             UPDATE agenda_configuracoes
-            SET configurado_em = NULL
+            SET origem_horarios =
+              'padrao_af'
             WHERE profissional_id = $1
+              AND negocio_id = $2
           `,
-          [cenario.profissional.id]
+          [
+            cenario.profissional.id,
+            cenario.negocioId,
+          ]
         );
 
         const atualizado =
@@ -88,6 +209,8 @@ describe(
           possui_servico_ativo: false,
           negocio_publicado: false,
           agenda_configurada: false,
+          possui_disponibilidade_agendavel:
+            false,
           primeiro_agendamento_recebido: false,
         });
       }

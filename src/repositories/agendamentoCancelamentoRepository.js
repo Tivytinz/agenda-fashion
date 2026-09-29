@@ -11,7 +11,7 @@ async function buscarPoliticaPublica({
         n.id AS negocio_id,
         un.usuario_id AS profissional_id,
         COALESCE(
-          ac.antecedencia_cancelamento,
+          n.antecedencia_cancelamento,
           2
         )::int AS antecedencia_cancelamento_horas
       FROM negocios n
@@ -23,8 +23,6 @@ async function buscarPoliticaPublica({
       INNER JOIN usuarios u
         ON u.id = un.usuario_id
         AND u.ativo = TRUE
-      LEFT JOIN agenda_configuracoes ac
-        ON ac.profissional_id = un.usuario_id
       WHERE n.slug = $1
         AND n.ativo = TRUE
         AND n.publicado = TRUE

@@ -20,6 +20,12 @@ router.get(
 );
 
 router.get(
+  "/dashboard-dono/ativacao",
+  auth,
+  dashboardController.buscarAtivacaoDono
+);
+
+router.get(
   "/dashboard-dono/origem-clientes",
   auth,
   dashboardController.buscarOrigemClientesDono

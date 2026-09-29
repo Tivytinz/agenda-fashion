@@ -284,6 +284,18 @@ describe("equipe por convite", () => {
       { name: "Configurar serviços" }
     );
 
+    const scheduleLink =
+      screen.getByRole(
+        "link",
+        { name: "Configurar horários" }
+      );
+
+    expect(
+      scheduleLink.getAttribute("href")
+    ).toBe(
+      "/painel/horarios?profissional=9"
+    );
+
     fireEvent.click(buttons[1]);
 
     const pedicure = await screen.findByRole(

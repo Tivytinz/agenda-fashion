@@ -1,8 +1,6 @@
 import { clearSession } from "../auth/session";
 import {
-  readBrowserStorage,
-  removeBrowserStorage,
-  writeBrowserStorage
+  readBrowserStorage
 } from "../utils/browserStorage";
 
 const API_URL = String(import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
@@ -17,7 +15,113 @@ export class ApiError extends Error {
   }
 }
 
-export async function migrateLegacySession() {
+async function hasValidCookieSession(
+  signal
+) {
+  const response =
+    await fetch(
+      `${API_URL}/minha-sessao`,
+      {
+        headers: {
+          Accept:
+            "application/json"
+        },
+        credentials:
+          "include",
+        signal
+      }
+    );
+
+  if (response.ok) {
+    return true;
+  }
+
+  if (
+    response.status === 401 ||
+    response.status === 403
+  ) {
+    return false;
+  }
+
+  const data =
+    await response
+      .json()
+      .catch(() => ({}));
+
+  throw new ApiError(
+    data.erro ||
+      data.mensagem ||
+      "Não foi possível validar a sessão atual antes da migração.",
+    response.status,
+    data
+  );
+}
+
+async function requestLegacyMigration(
+  token,
+  signal
+) {
+  return fetch(
+    `${API_URL}/auth/migrar-sessao-legada`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization:
+          `Bearer ${token}`
+      },
+      credentials: "include",
+      signal
+    }
+  );
+}
+
+async function resolveLegacyCookieConflict(
+  response,
+  signal
+) {
+  let cookiePresent =
+    response.status === 409;
+
+  if (response.status === 200) {
+    const data =
+      await response
+        .json()
+        .catch(() => ({}));
+
+    cookiePresent =
+      data.codigo ===
+      "COOKIE_SESSAO_PRESENTE";
+  }
+
+  if (!cookiePresent) {
+    return {
+      handled: false
+    };
+  }
+
+  if (
+    await hasValidCookieSession(
+      signal
+    )
+  ) {
+    return {
+      handled: true,
+      result: {
+        attempted: true,
+        migrated: false,
+        alreadyCookie: true
+      }
+    };
+  }
+
+  return {
+    handled: true,
+    retry: true
+  };
+}
+
+export async function migrateLegacySession({ signal } = {}) {
   const token =
     readBrowserStorage(
       "local",
@@ -31,31 +135,69 @@ export async function migrateLegacySession() {
     };
   }
 
-  const response =
-    await fetch(
-      `${API_URL}/auth/migrar-sessao-legada`,
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          Authorization:
-            `Bearer ${token}`
-        },
-        credentials: "include"
-      }
+  // Cookie HttpOnly é a sessão canônica. Um Bearer legado só pode ser
+  // migrado quando não existe uma sessão atual válida.
+  if (
+    await hasValidCookieSession(
+      signal
+    )
+  ) {
+    return {
+      attempted: true,
+      migrated: false,
+      alreadyCookie: true
+    };
+  }
+
+  let response =
+    await requestLegacyMigration(
+      token,
+      signal
     );
+
+  let cookieConflict =
+    await resolveLegacyCookieConflict(
+      response,
+      signal
+    );
+
+  if (cookieConflict.result) {
+    return cookieConflict.result;
+  }
+
+  if (cookieConflict.retry) {
+    // A validação acima limpa um cookie inválido. Tente uma única vez
+    // novamente; o backend continuará sem sobrescrever qualquer cookie
+    // que tenha surgido por uma autenticação concorrente.
+    response =
+      await requestLegacyMigration(
+        token,
+        signal
+      );
+
+    cookieConflict =
+      await resolveLegacyCookieConflict(
+        response,
+        signal
+      );
+
+    if (cookieConflict.result) {
+      return cookieConflict.result;
+    }
+
+    if (cookieConflict.retry) {
+      throw new ApiError(
+        "Não foi possível estabilizar a sessão atual antes da migração.",
+        409,
+        {
+          codigo:
+            "COOKIE_SESSAO_PRESENTE"
+        }
+      );
+    }
+  }
 
   if (response.ok) {
-    removeBrowserStorage(
-      "local",
-      "token"
-    );
-    writeBrowserStorage(
-      "local",
-      "session_active",
-      "1"
-    );
-
     return {
       attempted: true,
       migrated: true
@@ -66,40 +208,17 @@ export async function migrateLegacySession() {
     response.status === 401 ||
     response.status === 403
   ) {
-    const cookieSession =
-      await fetch(
-        `${API_URL}/minha-sessao`,
-        {
-          headers: {
-            Accept:
-              "application/json"
-          },
-          credentials:
-            "include"
-        }
-      );
-
-    if (cookieSession.ok) {
-      removeBrowserStorage(
-        "local",
-        "token"
-      );
-      writeBrowserStorage(
-        "local",
-        "session_active",
-        "1"
-      );
-
+    if (
+      await hasValidCookieSession(
+        signal
+      )
+    ) {
       return {
         attempted: true,
         migrated: false,
         alreadyCookie: true
       };
     }
-
-    clearSession({
-      notify: true
-    });
 
     return {
       attempted: true,
@@ -126,6 +245,7 @@ export async function apiRequest(path, options = {}) {
   const {
     signal: externalSignal,
     timeoutMs = DEFAULT_TIMEOUT_MS,
+    clearSessionOnUnauthorized = true,
     ...requestOptions
   } = options;
   const headers = new Headers(options.headers || {});
@@ -182,7 +302,7 @@ export async function apiRequest(path, options = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    if (response.status === 401) {
+    if (response.status === 401 && clearSessionOnUnauthorized) {
       clearSession({ notify: true });
     }
 

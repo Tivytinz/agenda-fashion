@@ -32,16 +32,66 @@ function getDatePageSize() {
   return 2;
 }
 
-function getLocalDateKey(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+function getLocalDateKey(
+  date = new Date(),
+  timeZone = ""
+) {
+  if (timeZone) {
+    try {
+      const parts =
+        new Intl.DateTimeFormat(
+          "pt-BR",
+          {
+            timeZone,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }
+        ).formatToParts(
+          date
+        );
+      const part = (type) =>
+        parts.find(
+          (item) =>
+            item.type === type
+        )?.value;
+
+      return `${part("year")}-${part("month")}-${part("day")}`;
+    } catch {
+      // Fallback local apenas para fusos inválidos recebidos de dados legados.
+    }
+  }
+
+  const year =
+    date.getFullYear();
+  const month = String(
+    date.getMonth() + 1
+  ).padStart(2, "0");
+  const day = String(
+    date.getDate()
+  ).padStart(2, "0");
+
   return `${year}-${month}-${day}`;
 }
 
-function formatAgendaDate(value) {
-  const compact = formatDate(value).replace(" de ", " ");
-  if (value !== getLocalDateKey()) return compact;
+function formatAgendaDate(
+  value,
+  timeZone
+) {
+  const compact =
+    formatDate(value)
+      .replace(" de ", " ");
+
+  if (
+    value !==
+    getLocalDateKey(
+      new Date(),
+      timeZone
+    )
+  ) {
+    return compact;
+  }
+
   return `Hoje, ${compact.replace(/^[^,]+,\s*/, "")}`;
 }
 
@@ -102,7 +152,19 @@ export function AgendaWorkspacePage({ owner = false }) {
   const load = useCallback(async () => {
     setError("");
     try {
-      const result = await apiRequest(owner ? "/agenda-geral" : "/agenda-profissional");
+      const result = await apiRequest(
+        owner
+          ? "/agenda-geral"
+          : "/agenda-profissional",
+        {
+          headers: {
+            "X-AF-Contexto":
+              owner
+                ? "dono"
+                : "profissional"
+          }
+        }
+      );
       setData(result);
       const firstDay = getValidAgendaDays(result.agenda)[0];
       const firstDate = firstDay?.data || "";
@@ -249,6 +311,12 @@ export function AgendaWorkspacePage({ owner = false }) {
     try {
       const result = await apiRequest("/bloqueios-horario", {
         method: "POST",
+        headers: {
+          "X-AF-Contexto":
+            owner
+              ? "dono"
+              : "profissional"
+        },
         body: {
           data: selectedDate,
           hora: slot.hora,
@@ -459,7 +527,10 @@ export function AgendaWorkspacePage({ owner = false }) {
               <div className="date-switcher" aria-label="Escolha uma data">
                 {visibleDates.map((day) => (
                   <button aria-pressed={selectedDate === day.data} className={selectedDate === day.data ? "active" : ""} key={day.data} onClick={() => selectDate(day)} type="button">
-                    {formatAgendaDate(day.data)}
+                    {formatAgendaDate(
+                      day.data,
+                      data?.fuso_horario
+                    )}
                   </button>
                 ))}
               </div>
@@ -728,7 +799,10 @@ export function AgendaWorkspacePage({ owner = false }) {
               </label>
               <input
                 id="agenda-reschedule-date"
-                min={getLocalDateKey()}
+                min={getLocalDateKey(
+                  new Date(),
+                  data?.fuso_horario
+                )}
                 onChange={(event) => setRescheduleDate(event.target.value)}
                 type="date"
                 value={rescheduleDate}

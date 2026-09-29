@@ -87,6 +87,47 @@ describe("disponibilidade no fuso do negócio", () => {
       .toBe("2026-09-15");
   });
 
+  test("amplia o horizonte público para respeitar antecedência máxima sem esconder a semana útil", async () => {
+    agendaConfiguracaoRepository
+      .buscarConfiguracao
+      .mockResolvedValue({
+        configurado_em: new Date(),
+        duracao_padrao: 60,
+        intervalo_minutos: 0,
+        antecedencia_agendamento: 720,
+      });
+
+    const disponibilidade =
+      await agendaDisponibilidadeService
+        .buscarDisponibilidade({
+          profissionalId: 9,
+          negocioId: 11,
+          duracaoServico: 60,
+          fusoHorario: "America/Sao_Paulo",
+        });
+
+    expect(
+      disponibilidade
+    ).toHaveLength(37);
+    expect(
+      disponibilidade[0].data
+    ).toBe("2026-09-14");
+    expect(
+      disponibilidade[36].data
+    ).toBe("2026-10-20");
+
+    expect(
+      agendaPublicaRepository
+        .listarAgendamentosOcupados
+    ).toHaveBeenCalledWith(
+      9,
+      "2026-09-14",
+      "2026-10-20",
+      null,
+      "America/Sao_Paulo"
+    );
+  });
+
   test("não oferece o slot do minuto atual quando ele já começou", async () => {
     jest.setSystemTime(
       new Date("2026-09-15T22:00:07.000Z")

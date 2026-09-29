@@ -14,7 +14,8 @@ A decisão é feita no backend a partir do estado canônico do negócio:
 
 - `possui_servico_ativo`: existe ao menos um registro ativo em `servicos_negocio` para o negócio;
 - `negocio_publicado`: `negocios.publicado = TRUE`;
-- `primeiro_agendamento_recebido`: existe ao menos um agendamento não cancelado para o negócio. O nome do campo é preservado por compatibilidade, mas um cancelamento deixa de encerrar a ativação se não existir outro agendamento válido.
+- `primeiro_agendamento_recebido`: existe ao menos um agendamento não cancelado para o negócio. O nome do campo é preservado por compatibilidade, mas um cancelamento deixa de encerrar a ativação se não existir outro agendamento válido;
+- `possui_disponibilidade_agendavel`: diagnóstico operacional estrutural que indica se existe profissional ativa, serviço ativo habilitado e ao menos um segmento semanal em que a duração inteira desse serviço caiba, considerando a pausa configurada. Ocupações e bloqueios pontuais continuam sendo filtrados no cálculo público de slots e não transformam publicação em gate. Esse sinal escolhe o CTA dentro de `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, mas não cria um estado novo nem vira gate de publicação.
 
 O frontend não recalcula a próxima etapa usando visitas ao perfil, métricas de conversão, pendências de publicação ou outras heurísticas.
 
@@ -27,13 +28,22 @@ A prioridade oficial é:
 3. `CONQUISTAR_PRIMEIRO_AGENDAMENTO`
 4. `ATIVADO`
 
-A ordem é deliberada e também protege estados legados ou regressões operacionais. Um negócio que já recebeu agendamento, mas perdeu todos os serviços ativos, volta para `GARANTIR_SERVICO_ATIVO`. Disponibilidade não altera essa ordem: o AF a inicializa automaticamente e a profissional pode personalizá-la depois.
+A ordem é deliberada e também protege estados legados ou regressões operacionais. Um negócio que já recebeu agendamento, mas perdeu todos os serviços ativos, volta para `GARANTIR_SERVICO_ATIVO`. Disponibilidade não altera essa ordem nem a publicação. Dentro de `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, porém, ausência de disponibilidade agendável troca o CTA de compartilhamento por `Configurar horários`; assim que existir faixa elegível, a mesma etapa volta a recomendar divulgação.
 
 Esses estados são mecanismo interno do produto. No dashboard, a profissional recebe uma única missão útil de cada vez. A interface não precisa expor a quantidade total de estados nem apresentar `X de N etapas concluídas` quando essa informação não ajuda a decidir o que fazer agora.
 
 ## Contrato do dashboard
 
 `GET /dashboard-dono` continua expondo `ativacao` e `proxima_acao_ativacao`.
+
+Para revalidar a missão durante a primeira jornada sem acoplar a navegação a
+consultas de período, retenção, performance ou rankings, o backend também expõe
+`GET /dashboard-dono/ativacao`. A projeção inclui o contexto mínimo do negócio
+(`negocio_id`, nome e slug), portanto a missão de divulgação não precisa consultar
+`/configuracoes` em paralelo. Essa projeção autenticada retorna somente o
+contexto mínimo do negócio, `ativacao` e `proxima_acao_ativacao`, usando a
+mesma máquina determinística. Ela não cria um segundo estado nem substitui o
+dashboard completo.
 
 Exemplo:
 
@@ -43,6 +53,7 @@ Exemplo:
     "possui_servico_ativo": true,
     "negocio_publicado": true,
     "agenda_configurada": true,
+    "possui_disponibilidade_agendavel": true,
     "primeiro_agendamento_recebido": false
   },
   "proxima_acao_ativacao": {
@@ -58,7 +69,7 @@ Exemplo:
 }
 ```
 
-Ações de navegação usam `tipo = NAVEGAR`, `rotulo` e `destino`. Divulgação usa `tipo = COMPARTILHAR_PERFIL` para reutilizar o mecanismo rastreável de compartilhamento já existente no AF.
+Ações de navegação usam `tipo = NAVEGAR`, `rotulo` e `destino`. Divulgação usa `tipo = COMPARTILHAR_PERFIL` para reutilizar o mecanismo rastreável de compartilhamento já existente no AF. Em `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, `possui_disponibilidade_agendavel = false` produz `NAVEGAR → /painel/horarios`; o frontend deve permitir explicitamente esse destino em sua whitelist de navegação. Esse ajuste é operacional e mantém o mesmo estado canônico.
 
 O contrato pode continuar entregando os sinais canônicos para analytics, diagnóstico e compatibilidade sem obrigar a interface a exibi-los como checklist.
 
@@ -74,6 +85,8 @@ Os eventos usam `dashboard_dono`, missão `gerenciar_crescimento` e apenas propr
 No estado `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, a seleção da recomendação e a conclusão do compartilhamento são fatos diferentes. A seleção registra intenção; `link_negocio_compartilhado` ou `link_negocio_copiado` continua registrando o resultado do mecanismo de share.
 
 Nenhum desses eventos substitui os marcos canônicos do backend. Clique, visualização e compartilhamento são sinais de comportamento, não ativação. O resultado deve ser medido pela progressão real do negócio entre os sinais canônicos e, por fim, pelo primeiro agendamento não cancelado.
+
+As orientações automáticas de divulgação por WhatsApp usam a mesma fronteira operacional da próxima ação: só permanecem elegíveis enquanto o negócio estiver publicado, possuir serviço ativo, possuir disponibilidade agendável e ainda não tiver primeiro agendamento válido. O marcador técnico `agenda_configuracoes.configurado_em` não substitui essa decisão. A fila revalida esses sinais antes da reserva e novamente antes do envio.
 
 A análise recomendada é:
 
@@ -132,8 +145,12 @@ A máquina de ativação não usa:
 - banco vetorial;
 - memória própria;
 - tabela específica de IA;
-- nova rota;
-- nova migration.
+- estado paralelo de ativação;
+- nova migration para representar a máquina.
+
+A rota leve `/dashboard-dono/ativacao` é apenas uma projeção de leitura do mesmo
+estado canônico e existe para evitar que a primeira jornada dependa de métricas
+secundárias do dashboard.
 
 Retenção, recorrência, otimização de conversão e recomendações baseadas em métricas não alteram esta máquina de estados. Depois de `ATIVADO`, o estado continua disponível internamente, enquanto a interface pode seguir diretamente para oportunidades de crescimento determinísticas, incluindo recorrência quando houver amostra agregada suficiente.
 

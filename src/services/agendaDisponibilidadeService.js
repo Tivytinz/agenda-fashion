@@ -456,7 +456,7 @@ async function buscarDisponibilidade({
   profissionalId,
   negocioId,
   duracaoServico,
-  quantidadeDias = 7,
+  quantidadeDias = null,
   fusoHorario,
   agendamentoIgnorarId = null,
   ignorarAntecedencia = false,
@@ -476,17 +476,51 @@ async function buscarDisponibilidade({
   const fusoResolvido =
     resolverFusoHorario(fusoHorario);
 
-  const dias = gerarDiasProximos(
-    quantidadeDias,
-    fusoResolvido
-  );
-
   const configuracao =
     await agendaConfiguracaoRepository
       .buscarConfiguracao(
         profissionalId,
         negocioId
       );
+
+  const antecedenciaHoras =
+    obterNumeroNaoNegativo(
+      configuracao?.antecedencia_agendamento,
+      0
+    );
+
+  const quantidadeSolicitada =
+    Number(
+      quantidadeDias
+    );
+
+  /*
+   * O perfil público precisa procurar longe o bastante para que a maior
+   * antecedência permitida não esconda uma agenda semanal estruturalmente
+   * válida. Depois da janela de antecedência, mais 7 dias garantem pelo menos
+   * uma ocorrência de cada dia da semana. Chamadores que informam quantidade
+   * explícita mantêm o horizonte solicitado.
+   */
+  const quantidadeDiasEfetiva =
+    Number.isInteger(
+      quantidadeSolicitada
+    ) &&
+    quantidadeSolicitada > 0
+      ? quantidadeSolicitada
+      : Math.min(
+          37,
+          Math.max(
+            7,
+            Math.ceil(
+              antecedenciaHoras / 24
+            ) + 7
+          )
+        );
+
+  const dias = gerarDiasProximos(
+    quantidadeDiasEfetiva,
+    fusoResolvido
+  );
 
   /*
    * `configurado_em` é apenas um marcador técnico de inicialização desde a
@@ -541,12 +575,6 @@ async function buscarDisponibilidade({
     obterNumeroNaoNegativo(
       configuracao?.intervalo_minutos,
       HORARIOS_PADRAO.intervaloMinutos
-    );
-
-  const antecedenciaHoras =
-    obterNumeroNaoNegativo(
-      configuracao?.antecedencia_agendamento,
-      0
     );
 
   const agoraLocal =
@@ -655,7 +683,7 @@ async function horarioEstaDisponivel({
   duracaoServico,
   data,
   horario,
-  quantidadeDias = 7,
+  quantidadeDias = null,
   fusoHorario,
   agendamentoIgnorarId = null,
   ignorarAntecedencia = false,

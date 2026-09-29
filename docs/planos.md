@@ -107,9 +107,11 @@ ou receita.
 - O backend só inicia checkout pago para a proprietária ativa de um negócio
   ativo e com `negocios.publicado = TRUE`; navegação, botão ou URL do frontend
   não substituem essa validação.
-- A confirmação/personalização manual dos horários não é gate financeiro. A
-  primeira jornada pode ordenar a tela de Horários antes do checkout sem fazer
-  de `agenda_configuracoes` uma autoridade de billing.
+- A confirmação/personalização manual dos horários não é gate financeiro. Na
+  primeira jornada, concluir Horários leva à divulgação do perfil e não dispara
+  checkout automático. Upgrade e checkout permanecem ações explícitas ou
+  contextuais posteriores, sem fazer de `agenda_configuracoes` uma autoridade
+  de billing.
 - O retorno do navegador não confirma pagamento.
 - O novo plano só é ativado depois da confirmação autenticada e idempotente do
   Asaas.

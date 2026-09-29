@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from "react";
 import { useLocation } from "react-router-dom";
@@ -14,6 +15,7 @@ import {
 import {
   clearSession,
   clearStoredSessionMetadata,
+  completeLegacySessionMigration,
   getBusinessContextForPath,
   hasSession,
   saveSession,
@@ -34,6 +36,10 @@ const SIGNED_OUT_STATE = {
 
 export function SessionProvider({ children }) {
   const location = useLocation();
+  const sessionGenerationRef = useRef(0);
+  const refreshRequestRef = useRef(0);
+  const lastAppliedRefreshRef = useRef(0);
+  const sessionSyncAbortRef = useRef(null);
   const [state, setState] = useState(() => {
     const sessionPresent =
       hasSession();
@@ -52,26 +58,71 @@ export function SessionProvider({ children }) {
     };
   });
 
-  const refresh = useCallback(async () => {
+  const abortSessionSync = useCallback(() => {
+    sessionSyncAbortRef.current?.abort();
+    sessionSyncAbortRef.current = null;
+  }, []);
+
+  const beginSessionTransition = useCallback(() => {
+    sessionGenerationRef.current += 1;
+    abortSessionSync();
+  }, [abortSessionSync]);
+
+  const refresh = useCallback(async ({ silent = false } = {}) => {
+    const requestId = ++refreshRequestRef.current;
+    const sessionGeneration = sessionGenerationRef.current;
+    abortSessionSync();
+    const canApply = () => (
+      sessionGeneration === sessionGenerationRef.current
+      && requestId === refreshRequestRef.current
+      && requestId > lastAppliedRefreshRef.current
+    );
+
     if (!hasSession()) {
+      sessionGenerationRef.current += 1;
+      lastAppliedRefreshRef.current = requestId;
       setState(SIGNED_OUT_STATE);
       return null;
     }
 
-    setState((current) => ({ ...current, loading: true }));
+    if (!silent) {
+      setState((current) => ({ ...current, loading: true }));
+    }
+
+    const syncController = new AbortController();
+    sessionSyncAbortRef.current = syncController;
 
     try {
-      const migration =
-        await migrateLegacySession();
+      const migration = await migrateLegacySession({
+        signal: syncController.signal
+      });
 
-      if (migration.invalid) {
-        setState(
-          SIGNED_OUT_STATE
-        );
+      if (!canApply()) {
         return null;
       }
 
-      const result = await apiRequest("/minha-sessao");
+      if (migration.invalid) {
+        sessionGenerationRef.current += 1;
+        lastAppliedRefreshRef.current = requestId;
+        clearSession();
+        setState(SIGNED_OUT_STATE);
+        return null;
+      }
+
+      if (migration.migrated || migration.alreadyCookie) {
+        completeLegacySessionMigration();
+      }
+
+      const result = await apiRequest("/minha-sessao", {
+        // A sincronização inteira é cancelável: além do estado React, uma
+        // resposta 401 obsoleta do backend poderia limpar o cookie HttpOnly.
+        clearSessionOnUnauthorized: false,
+        signal: syncController.signal
+      });
+
+      if (!canApply()) {
+        return null;
+      }
 
       const vinculos = Array.isArray(result.vinculos)
         ? result.vinculos
@@ -89,6 +140,7 @@ export function SessionProvider({ children }) {
         administrador: result.administrador || null,
         ehAdministrador: Boolean(result.ehAdministrador)
       };
+      lastAppliedRefreshRef.current = requestId;
       setState(next);
 
       return {
@@ -96,22 +148,39 @@ export function SessionProvider({ children }) {
         negocio: next.negocioPrincipal
       };
     } catch (error) {
+      if (!canApply()) {
+        return null;
+      }
+
       if (error.status === 401 || error.status === 403) {
+        sessionGenerationRef.current += 1;
+        lastAppliedRefreshRef.current = requestId;
         clearSession();
         setState(SIGNED_OUT_STATE);
       } else {
+        // Se este refresh silencioso tornou um refresh bloqueante anterior
+        // obsoleto, a falha transitória também precisa liberar o loading.
         setState((current) => ({ ...current, loading: false }));
       }
       throw error;
+    } finally {
+      if (sessionSyncAbortRef.current === syncController) {
+        sessionSyncAbortRef.current = null;
+      }
     }
-  }, []);
+  }, [abortSessionSync]);
 
   useEffect(() => {
     refresh().catch(() => {});
   }, [refresh]);
 
+  useEffect(() => () => {
+    abortSessionSync();
+  }, [abortSessionSync]);
+
   useEffect(() => {
     function handleSessionCleared() {
+      beginSessionTransition();
       setState(SIGNED_OUT_STATE);
     }
 
@@ -127,18 +196,20 @@ export function SessionProvider({ children }) {
       window.removeEventListener(SESSION_CLEARED_EVENT, handleSessionCleared);
       window.removeEventListener("storage", handleStorage);
     };
-  }, []);
+  }, [beginSessionTransition]);
 
   const login = useCallback(async (payload) => {
+    beginSessionTransition();
     const result = await apiRequest("/login", {
       method: "POST",
       body: payload
     });
     saveSession(result);
     return refresh();
-  }, [refresh]);
+  }, [beginSessionTransition, refresh]);
 
   const register = useCallback(async (payload) => {
+    beginSessionTransition();
     const result = await apiRequest("/cadastro", {
       method: "POST",
       body: payload
@@ -150,7 +221,7 @@ export function SessionProvider({ children }) {
       ...current,
       contaCriada: Boolean(result.contaCriada)
     };
-  }, [refresh]);
+  }, [beginSessionTransition, refresh]);
 
   const loginWithGoogle = useCallback(async (
     credential,
@@ -159,6 +230,7 @@ export function SessionProvider({ children }) {
     aceitaNotificacoesWhatsapp,
     perfilProfissional
   ) => {
+    beginSessionTransition();
     const result = await apiRequest("/auth/google", {
       method: "POST",
       body: {
@@ -180,9 +252,50 @@ export function SessionProvider({ children }) {
       ...current,
       contaCriada: Boolean(result.contaCriada)
     };
-  }, [refresh]);
+  }, [beginSessionTransition, refresh]);
+
+  const adoptCreatedBusiness = useCallback((business) => {
+    const businessId = Number(business?.id);
+
+    if (!Number.isInteger(businessId) || businessId <= 0) {
+      throw new Error("O negócio criado não possui um identificador válido.");
+    }
+
+    if (!hasSession()) {
+      return false;
+    }
+
+    const ownerBusiness = {
+      ...business,
+      id: businessId,
+      papel: "dono"
+    };
+
+    beginSessionTransition();
+
+    setState((current) => {
+      if (!current.authenticated) {
+        return current;
+      }
+
+      const remainingLinks = current.vinculos.filter(
+        (link) => Number(link?.id) !== businessId
+      );
+
+      return {
+        ...current,
+        loading: false,
+        negocioPrincipal: ownerBusiness,
+        vinculos: [ownerBusiness, ...remainingLinks],
+        temNegocio: true
+      };
+    });
+
+    return true;
+  }, [beginSessionTransition]);
 
   const logout = useCallback(async () => {
+    beginSessionTransition();
     clearSession();
     setState(SIGNED_OUT_STATE);
 
@@ -193,7 +306,7 @@ export function SessionProvider({ children }) {
     } catch {
       // A saída local precisa funcionar mesmo durante uma falha de rede.
     }
-  }, []);
+  }, [beginSessionTransition]);
 
   const routeSession = useMemo(() => ({
     ...state,
@@ -212,8 +325,17 @@ export function SessionProvider({ children }) {
     login,
     register,
     loginWithGoogle,
+    adoptCreatedBusiness,
     logout
-  }), [routeSession, refresh, login, register, loginWithGoogle, logout]);
+  }), [
+    routeSession,
+    refresh,
+    login,
+    register,
+    loginWithGoogle,
+    adoptCreatedBusiness,
+    logout
+  ]);
 
   return (
     <SessionContext.Provider value={value}>

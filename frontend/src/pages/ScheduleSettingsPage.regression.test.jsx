@@ -37,7 +37,7 @@ afterEach(cleanup);
 describe("regressões da configuração de horários", () => {
   it("mantém a estrutura responsiva do editor sem repetir cabeçalhos por linha", async () => {
     apiRequest.mockResolvedValueOnce({
-      configuracao: { configurado_em: null },
+      configuracao: { configurado_em: "2026-09-10T04:00:00.000Z", origem_horarios: "padrao_af" },
       horarios: [{
         dia_semana: 1,
         trabalha: true,
@@ -60,16 +60,34 @@ describe("regressões da configuração de horários", () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {
         return Promise.resolve({
-          configuracao: { configurado_em: null },
+          configuracao: { configurado_em: "2026-09-10T04:00:00.000Z", origem_horarios: "padrao_af" },
           horarios: validWeek()
         });
       }
       if (path === "/agenda-configuracao" && options.method === "PUT") {
         return Promise.resolve({
           mensagem: "Horários de atendimento confirmados com sucesso.",
-          configuracao: { configurado_em: "2026-09-10T05:00:00.000Z" },
+          configuracao: { configurado_em: "2026-09-10T05:00:00.000Z", origem_horarios: "personalizado" },
           horarios: validWeek(),
-          publicacao: { publicado: false, pode_publicar: false }
+          publicacao: null
+        });
+      }
+      if (path === "/configuracoes") {
+        return Promise.resolve({
+          negocio: {
+            id: 11,
+            nome: "Studio Aurora",
+            slug: "studio-aurora",
+            publicado: false
+          }
+        });
+      }
+      if (path === "/dashboard-dono/ativacao") {
+        return Promise.resolve({
+          proxima_acao_ativacao: {
+            estado: "REVISAR_PUBLICACAO",
+            concluido: false
+          }
         });
       }
       return Promise.reject(new Error(`Rota inesperada: ${path}`));
@@ -83,28 +101,45 @@ describe("regressões da configuração de horários", () => {
       .not.toBeNull();
     expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
       .toBeNull();
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith("/dashboard-dono/ativacao");
+    });
     expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes"))
       .toBe(false);
   });
 
-  it("mantém a agenda salva mesmo se o contexto de compartilhamento falhar", async () => {
+  it("usa a projeção canônica de ativação para divulgar mesmo se /configuracoes estiver indisponível", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {
         return Promise.resolve({
-          configuracao: { configurado_em: null },
+          configuracao: { configurado_em: "2026-09-10T04:00:00.000Z", origem_horarios: "padrao_af" },
           horarios: validWeek()
         });
       }
       if (path === "/agenda-configuracao" && options.method === "PUT") {
         return Promise.resolve({
           mensagem: "Horários salvos.",
-          configuracao: { configurado_em: "2026-09-10T05:00:00.000Z" },
+          configuracao: { configurado_em: "2026-09-10T05:00:00.000Z", origem_horarios: "personalizado" },
           horarios: validWeek(),
           publicacao: { publicado: true, pode_publicar: true }
         });
       }
       if (path === "/configuracoes") {
         return Promise.reject(new Error("perfil indisponível"));
+      }
+      if (path === "/dashboard-dono/ativacao") {
+        return Promise.resolve({
+          negocio: {
+            negocio_id: 11,
+            papel: "dono",
+            nome: "Studio Aurora",
+            slug: "studio-aurora"
+          },
+          proxima_acao_ativacao: {
+            estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+            concluido: false
+          }
+        });
       }
       return Promise.reject(new Error(`Rota inesperada: ${path}`));
     });
@@ -115,9 +150,15 @@ describe("regressões da configuração de horários", () => {
 
     expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
       .not.toBeNull();
-    expect(await screen.findByRole("link", { name: "Ir para o painel" }))
+    expect(screen.getByRole("button", { name: "Compartilhar perfil" }))
+      .not.toBeNull();
+    expect(screen.getByRole("button", { name: "Copiar link" }))
+      .not.toBeNull();
+    expect(screen.getByRole("link", { name: "Ver perfil público" }))
       .not.toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
+    expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes"))
+      .toBe(false);
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(

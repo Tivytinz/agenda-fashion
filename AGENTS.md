@@ -138,8 +138,9 @@ disponibilidade antes de seguir a jornada.
 diferentes. Não usar uma etapa como proxy automático de outra.
 
 O primeiro agendamento válido é o primeiro agendamento não cancelado do
-negócio. Ele mede primeira reserva válida; não confirma comparecimento nem
-receita.
+negócio. O estado legado `cancelamento_solicitado`, enquanto permanecer em
+revisão sem desfecho confiável, não conta como evidência de ativação. O marco
+mede primeira reserva válida; não confirma comparecimento nem receita.
 
 ## Onboarding, publicação e disponibilidade
 
@@ -167,31 +168,145 @@ inicial:
 
 - segunda a sexta: 08:00–18:00, com pausa 12:00–13:00;
 - sábado: 08:00–13:00;
-- domingo: fechado.
+- domingo: fechado;
+- antecedência inicial de cancelamento: 2 horas.
+
+A antecedência de cancelamento é uma **política do negócio**, persistida em
+`negocios.antecedencia_cancelamento`, com faixa válida de 0 a 168 horas e
+fallback de 2 horas. Somente a proprietária pode alterá-la; profissionais podem
+editar a própria disponibilidade, mas não essa política. A interface da
+proprietária aceita qualquer hora inteira entre 0 e 168; campo vazio é inválido,
+e `0` significa zero horas apenas quando informado explicitamente. O campo
+homônimo em `agenda_configuracoes` permanece apenas por compatibilidade de
+rollout e não deve ser usado como fonte de verdade para novas reservas. Enquanto
+esse campo legado existir para rollback, o runtime novo o espelha
+transacionalmente e a migration de compatibilidade também intercepta escritas de
+versões antigas: escrita da dona atualiza a política canônica e escrita de
+profissional é normalizada para a política do negócio. Para evitar deadlock no
+rollout misto, a ordem de lock é `agenda da dona → negócio → demais agendas`;
+a escrita legada de profissional apenas lê a política canônica e normaliza seu
+espelho, sem bloquear o negócio. Cada booking congela
+`antecedencia_cancelamento_horas` no momento da confirmação, e alterações
+posteriores da política do negócio não reescrevem snapshots existentes.
+
+Na criação inicial, o sucesso de `/criar-negocio` sempre continua em
+`/painel/servicos/novo?onboarding=servico`. Um `state.from` herdado de uma
+tentativa anterior de abrir o workspace não pode pular o primeiro serviço. Como
+o POST já persiste o negócio e o vínculo de dona de forma atômica, sua resposta
+canônica deve atualizar imediatamente o contexto local necessário para liberar
+essa rota; a reconciliação posterior de `/minha-sessao` é auxiliar e não pode
+manter a interface em Criar negócio nem induzir um segundo POST quando houver
+lentidão ou falha transitória.
 
 Depois que o primeiro serviço é salvo e o backend confirma a publicação, a
 interface apresenta `Horários` como terceiro momento visível da primeira
 jornada. O objetivo é mostrar que o AF é uma agenda editável sem transformar a
-disponibilidade em requisito de publicação.
+disponibilidade em requisito de publicação. A atualização de `/minha-sessao`
+após esse salvamento é uma sincronização auxiliar e não pode bloquear a transição
+`Serviço → Horários` por lentidão ou falha transitória. Respostas assíncronas de
+sessão também não podem restaurar uma sessão encerrada, sobrescrever uma nova
+autenticação nem substituir um estado mais recente quando refreshes concorrentes
+terminarem fora de ordem. Assim que um refresh mais novo for iniciado na mesma
+geração da sessão, qualquer sucesso ou erro do refresh anterior se torna obsoleto
+e não pode alterar o `SessionContext`. Em `/minha-sessao`, inclusive o tratamento de
+`401/403` pertence ao `SessionContext`, que conhece a geração da requisição;
+o cliente HTTP não deve limpar globalmente uma sessão mais nova por causa de uma
+resposta obsoleta. A sincronização canônica de sessão deve ser cancelável até
+o fim de `/minha-sessao`, porque uma resposta HTTP obsoleta também pode alterar o
+cookie HttpOnly no backend. A migração do Bearer legado para cookie segue a mesma
+regra: não pode alterar o storage antes de a geração atual confirmar o resultado
+e toda sincronização pendente deve ser abortada antes de login, cadastro, logout
+ou outra transição que assuma uma nova geração da sessão. O cookie HttpOnly
+válido é a autoridade quando coexistir com um Bearer legado: o frontend deve
+validá-lo antes de tentar a migração e o backend de migração nunca pode
+sobrescrever um cookie de sessão já presente. Se o endpoint de migração encontrar
+um cookie que surgiu concorrentemente, deve preservar esse cookie e responder de
+forma compatível com bundles anteriores; o frontend atual revalida a sessão
+canônica antes de concluir a migração local. Se o cookie estiver inválido, sua
+validação canônica o limpa antes de uma nova tentativa controlada do Bearer. Fotos continuam
+fora da primeira missão e podem ser
+adicionadas depois no editor normal de Serviços.
 
 Na confirmação rápida:
 
 - `Confirmar horários` salva a sugestão exibida e continua;
-- `Pular por agora` pula apenas a edição manual, salva a mesma sugestão e
-  continua;
 - `Ajustar horários` abre o editor antes do salvamento.
 
-Se o salvamento dos horários falhar, a interface não deve avançar. Quando houver
-uma intenção válida de plano pago, ela deve ser preservada durante
-`Negócio → Serviço → Horários` e seguir para o checkout somente depois do
-salvamento da agenda; sem intenção de plano, o fluxo segue para o painel.
+A profissional ativa pode editar a própria disponibilidade. A proprietária pode
+editar a disponibilidade semanal de qualquer profissional ativa do negócio a
+partir da equipe, usando o contexto explícito
+`/painel/horarios?profissional=<id>`; o backend valida que o alvo pertence ao
+mesmo negócio. Esse contexto de equipe não altera a política global de
+cancelamento e não reabre o onboarding da dona. Uma disponibilidade com todos os
+dias fechados é válida: mantém negócio e serviços visíveis quando publicados,
+mas não gera slots para novas reservas.
+
+A agenda operacional deve usar a mesma configuração contextual persistida em
+`agenda_configuracoes` e `agenda_horarios` para o par
+`profissional_id + negocio_id`; não pode reconstruir a grade com um horário
+fixo independente do que foi salvo. `Minha agenda` e `Agenda geral` usam o
+fuso IANA do negócio para decidir o dia local e marcar slots passados. Bookings
+de outro negócio, quando exibidos apenas como ocupação redigida, devem ser
+convertidos pelo instante canônico `inicio_previsto_em` para o fuso do contexto
+consultado.
+
+A modelagem atual continua permitindo no máximo um vínculo ativo com papel
+`profissional` por conta, embora a mesma identidade possa simultaneamente ser
+dona do próprio negócio e profissional em outro. Por isso, endpoints de agenda
+compartilhados entre os workspaces devem receber o seletor de papel
+`X-AF-Contexto: dono|profissional` e sempre validar no backend o vínculo
+persistido correspondente; o header escolhe o contexto, mas nunca concede
+permissão.
+
+Não existe ação `Pular por agora` nessa etapa: a dona confirma a sugestão ou
+personaliza a disponibilidade. Se o salvamento dos horários falhar, a interface
+não deve avançar.
+
+Depois do primeiro salvamento explícito da agenda, tanto a confirmação da
+sugestão quanto o ajuste manual convergem para a missão de **divulgar o perfil**
+e conquistar o primeiro agendamento. A revalidação dessa missão usa uma leitura
+leve e canônica de ativação no backend, sem depender das consultas de métricas,
+rankings ou retenção do dashboard completo. `GET /dashboard-dono/ativacao`
+também fornece o contexto mínimo do negócio (id, nome e slug) necessário para a
+missão de divulgação; a tela de horários não deve depender de
+`GET /configuracoes` para montar o link público. Essa conclusão usa
+`/painel/horarios?onboarding=divulgacao` como marcador navegável para preservar
+a missão em refresh/reabertura, sem depender apenas de estado transitório do
+React. Ao restaurar esse marcador, a interface deve confirmar a próxima ação
+canônica no backend. A mesma consulta canônica deve ocorrer imediatamente após
+o primeiro salvamento explícito da agenda e na restauração do marcador. O estado
+canônico continua `CONQUISTAR_PRIMEIRO_AGENDAMENTO` mesmo quando todos os dias
+estão fechados, mas o CTA operacional muda: sem
+`possui_disponibilidade_agendavel`, a interface mantém o editor de horários e
+orienta a ativar disponibilidade antes de divulgar; com disponibilidade
+agendável, apresenta o compartilhamento. Esse diagnóstico é estrutural: exige
+profissional ativa, serviço ativo explicitamente habilitado e pelo menos um
+segmento semanal em que a duração inteira desse serviço caiba, considerando a
+pausa configurada. Ocupações e bloqueios pontuais não transformam a publicação
+em gate e continuam sendo filtrados no cálculo público de slots. Para não
+divulgar um perfil cuja antecedência mínima empurre toda a agenda para fora da
+janela pesquisada, a consulta pública amplia o horizonte quando necessário:
+parte de 7 dias e, para antecedências maiores, cobre a antecedência configurada
+mais uma semana recorrente, limitada pelos 720h aceitos pelo produto (máximo de
+37 dias). A UI continua exibindo somente datas que realmente possuem slots. Isso não
+transforma agenda em gate de
+publicação nem em novo estado de ativação. Se o negócio já estiver `ATIVADO` ou tiver
+regredido para serviço/publicação, a interface volta ao painel para apresentar a
+missão correta. URLs antigas não podem ressuscitar a missão concluída. Uma intenção válida de plano
+pago pode ser preservada durante `Negócio → Serviço → Horários`, mas não deve
+redirecionar automaticamente ao
+checkout nessa conclusão nem competir com a ativação. Upgrade e checkout
+permanecem ações explícitas/contextuais posteriores.
 
 `agenda_configuracoes.configurado_em` é um marcador técnico legado de que a
 disponibilidade foi inicializada. Desde a migration 065 ele recebe valor já na
 inicialização automática e **não representa confirmação ou salvamento manual**.
 Para distinguir personalização explícita, usar `origem_horarios`,
-`primeira_personalizacao_em` e `ultima_personalizacao_em`. Nenhum desses campos
-deve ser usado para bloquear publicação.
+`primeira_personalizacao_em` e `ultima_personalizacao_em`. O diagnóstico
+`agenda_configurada` deve ser calculado no mesmo `negocio_id` e somente para
+`origem_horarios = 'personalizado'`; inicialização automática `padrao_af` não
+conta como confirmação. Nenhum desses campos deve ser usado para bloquear
+publicação.
 
 `agenda_configuracoes.origem_horarios` continua separando a origem da
 disponibilidade. O runtime atual cria a configuração com `padrao_af` e, no
@@ -201,10 +316,16 @@ timestamps de personalização.
 `negocios.publicacao_exige_agenda` permanece apenas por compatibilidade com
 dados/migrations legados; o runtime atual não deve reintroduzir esse gate.
 
-Depois da passagem pela agenda, a missão principal é divulgar o perfil e
-conquistar o primeiro agendamento, exceto quando uma intenção de plano pago
-válida conduzir ao checkout. Compartilhamento deve reutilizar os links públicos
-rastreáveis existentes do AF.
+Depois da passagem pela agenda, a missão principal é conquistar o primeiro
+agendamento. Quando existe disponibilidade agendável, o CTA operacional é
+divulgar o perfil; sem disponibilidade, a mesma missão orienta primeiro a
+configurar horários. Os lembretes de divulgação por WhatsApp devem respeitar os
+mesmos sinais canônicos: negócio publicado, serviço ativo, disponibilidade
+agendável e ausência de primeiro agendamento válido. `configurado_em` não pode
+ser usado como substituto dessa elegibilidade, e uma mensagem pendente deve ser
+revalidada antes do envio. Uma intenção de plano pago não substitui essa missão
+nem provoca checkout automático. Compartilhamento deve reutilizar os links
+públicos rastreáveis existentes do AF.
 
 A disponibilidade continua crítica para gerar slots corretos e pode ser
 acompanhada como diagnóstico operacional separado.

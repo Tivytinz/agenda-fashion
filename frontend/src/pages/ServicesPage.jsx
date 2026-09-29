@@ -425,6 +425,36 @@ export function ServiceEditorPage() {
     setGalleryFiles(files);
   }
 
+  function continueFirstServiceOnboarding(saveResult) {
+    const published = saveResult.publicacao?.publicado === true;
+
+    if (published) {
+      // A sessão atual já contém o vínculo e o papel da dona. Atualizar o
+      // marcador de publicação é útil, mas não pode bloquear Serviço → Horários
+      // em uma falha ou lentidão transitória de /minha-sessao.
+      session.refresh({ silent: true }).catch(() => {});
+    }
+
+    const destination = !published
+      ? getPlanIntentPath("/painel/negocio", selectedPlan)
+      : getPlanIntentPath("/painel/horarios", selectedPlan);
+
+    navigate(destination, {
+      replace: true,
+      state: !published
+        ? {
+            message: "Serviço cadastrado. Revise os dados obrigatórios do negócio para concluir a publicação.",
+            onboarding: true,
+            onboardingStep: "perfil"
+          }
+        : {
+            message: "Serviço cadastrado e perfil publicado. Agora confirme ou ajuste os horários sugeridos.",
+            onboarding: true,
+            onboardingStep: "agenda"
+          }
+    });
+  }
+
   async function submit(event) {
     event.preventDefault();
     setSaving(true);
@@ -455,6 +485,15 @@ export function ServiceEditorPage() {
       return;
     }
 
+    // A primeira missão não exibe mídia. Assim que o serviço principal é
+    // persistido, a jornada segue sem criar uma dependência artificial de upload.
+    if (firstServiceOnboarding) {
+      continueFirstServiceOnboarding(saveResult);
+      return;
+    }
+
+    let mediaUploadError = null;
+
     try {
       if (cover) {
         await uploadImage(`/servicos/${savedId}/foto`, cover);
@@ -464,44 +503,25 @@ export function ServiceEditorPage() {
         await uploadImage(`/servicos/${savedId}/fotos`, file);
         setGalleryFiles((current) => current.filter((item) => item !== file));
       }
-
-      if (firstServiceOnboarding) {
-        const published = saveResult.publicacao?.publicado === true;
-        if (published) await session.refresh();
-        const destination = !published
-          ? getPlanIntentPath("/painel/negocio", selectedPlan)
-          : getPlanIntentPath("/painel/horarios", selectedPlan);
-
-        navigate(destination, {
-          replace: true,
-          state: !published
-            ? {
-                message: "Serviço cadastrado. Revise os dados obrigatórios do negócio para concluir a publicação.",
-                onboarding: true,
-                onboardingStep: "perfil"
-              }
-            : {
-                message: "Serviço cadastrado e perfil publicado. Agora confirme ou ajuste os horários sugeridos.",
-                onboarding: true,
-                onboardingStep: "agenda"
-              }
-        });
-        return;
-      }
-
-      navigate("/painel/servicos", {
-        replace: true,
-        state: {
-          message: editing
-            ? "Serviço atualizado."
-            : "Serviço criado."
-        }
-      });
     } catch (requestError) {
-      setError(`O serviço foi salvo, mas algumas fotos não foram enviadas. ${requestError.message} Tente novamente para enviar apenas as fotos pendentes.`);
-    } finally {
-      setSaving(false);
+      mediaUploadError = requestError;
     }
+
+    if (mediaUploadError) {
+      setError(`O serviço foi salvo, mas algumas fotos não foram enviadas. ${mediaUploadError.message} Tente novamente para enviar apenas as fotos pendentes.`);
+      setSaving(false);
+      return;
+    }
+
+    navigate("/painel/servicos", {
+      replace: true,
+      state: {
+        message: editing
+          ? "Serviço atualizado."
+          : "Serviço criado."
+      }
+    });
+    setSaving(false);
   }
 
   async function chooseGalleryCover(photo) {

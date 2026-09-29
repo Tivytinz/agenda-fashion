@@ -171,6 +171,29 @@ function obterCookies(
   return cookies;
 }
 
+function obterTokenCookie(
+  cookieHeader
+) {
+  const cookies =
+    obterCookies(
+      cookieHeader
+    );
+
+  for (const nome of [
+    COOKIE_PRODUCAO,
+    COOKIE_DESENVOLVIMENTO,
+  ]) {
+    const token =
+      cookies.get(nome);
+
+    if (token) {
+      return token;
+    }
+  }
+
+  return null;
+}
+
 function obterTokenDaRequisicao(
   req
 ) {
@@ -191,29 +214,21 @@ function obterTokenDaRequisicao(
     };
   }
 
-  const cookies =
-    obterCookies(
+  const tokenCookie =
+    obterTokenCookie(
       req.headers.cookie
     );
 
-  for (const nome of [
-    COOKIE_PRODUCAO,
-    COOKIE_DESENVOLVIMENTO,
-  ]) {
-    const token =
-      cookies.get(nome);
+  if (tokenCookie) {
+    authTransportMetrics
+      .registrarTransporte(
+        "cookie"
+      );
 
-    if (token) {
-      authTransportMetrics
-        .registrarTransporte(
-          "cookie"
-        );
-
-      return {
-        token,
-        origem: "cookie",
-      };
-    }
+    return {
+      token: tokenCookie,
+      origem: "cookie",
+    };
   }
 
   return {
@@ -231,5 +246,6 @@ module.exports = {
   obterNomeCookie,
   obterOpcoesCookie,
   obterTokenBearer,
+  obterTokenCookie,
   obterTokenDaRequisicao,
 };

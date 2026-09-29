@@ -189,41 +189,15 @@ describe(
     ) {
       await db.query(
         `
-          INSERT INTO
-            agenda_configuracoes (
-              profissional_id,
-              negocio_id,
-              duracao_padrao,
-              intervalo_minutos,
-              antecedencia_agendamento,
-              antecedencia_cancelamento
-            )
-
-          VALUES (
-            $1,
-            $2,
-            60,
-            0,
-            0,
-            $3
-          )
-
-          ON CONFLICT (
-            profissional_id,
-            negocio_id
-          )
-
-          DO UPDATE SET
-            antecedencia_cancelamento =
-              EXCLUDED.antecedencia_cancelamento,
-
-            updated_at =
-              NOW()
+          UPDATE negocios
+          SET
+            antecedencia_cancelamento = $1,
+            updated_at = NOW()
+          WHERE id = $2
         `,
         [
-          profissionalId,
-          negocioId,
           horas,
+          negocioId,
         ]
       );
     }

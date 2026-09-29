@@ -4,8 +4,7 @@ import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
 import {
   getPlanIntentPath,
-  normalizePlanSlug,
-  safeInternalPath
+  normalizePlanSlug
 } from "../auth/session";
 import { BackLink } from "../components/BackLink";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
@@ -13,6 +12,7 @@ import { FlowSteps } from "../components/FlowSteps";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatCep, formatWhatsApp } from "../utils/format";
+import { buildPublicLink, copyPublicLink } from "../utils/publicLinks";
 import {
   BUSINESS_SPECIALTIES,
   normalizeBusinessSpecialties
@@ -152,9 +152,9 @@ export function BusinessPage({ create = false }) {
 
   const hasChanges = !create
     && serializeBusinessForm(form) !== serializeBusinessForm(savedForm);
-  const publicUrl = form.slug
-    ? `https://app.agendafashion.com.br/negocio/${form.slug}`
-    : "";
+  const publicUrl = buildPublicLink({
+    businessSlug: form.slug
+  });
   const googleMapsValid = isValidGoogleMapsUrl(form.localizacao_url);
   const whatsappError = validateWhatsApp(form.whatsapp);
 
@@ -318,7 +318,7 @@ export function BusinessPage({ create = false }) {
     if (!publicUrl) return;
 
     try {
-      await navigator.clipboard.writeText(publicUrl);
+      await copyPublicLink(publicUrl);
       setMessage("Link público copiado.");
     } catch {
       setError("Não foi possível copiar o link automaticamente.");
@@ -379,28 +379,43 @@ export function BusinessPage({ create = false }) {
       if (!create) setSavedForm(normalizedSaved);
       setMessage(result.mensagem || (create ? "Negócio criado." : "Alterações salvas."));
       if (result.publicacao) setPublication(result.publicacao);
-      await session.refresh();
-      if (create) {
-        const requestedPath = safeInternalPath(location.state?.from);
+      const profileOnboarding =
+        !create
+        && location.state?.onboarding === true
+        && location.state?.onboardingStep === "perfil";
 
-        if (!selectedPlan && requestedPath) {
-          navigate(requestedPath, { replace: true });
-        } else {
-          navigate(getPlanIntentPath(
-            FIRST_SERVICE_ONBOARDING_PATH,
-            selectedPlan
-          ), {
-            replace: true,
-            state: {
-              onboarding: true,
-              onboardingStep: "servico"
-            }
-          });
+      if (create) {
+        const businessAdopted = session.adoptCreatedBusiness(savedBusiness);
+
+        if (!businessAdopted) {
+          navigate("/entrar?tipo=profissional", { replace: true });
+          return;
         }
-      } else if (
-        location.state?.onboarding === true
-        && location.state?.onboardingStep === "perfil"
-      ) {
+
+        // O POST já confirmou a criação e o vínculo de dona. A resposta é
+        // suficiente para liberar o primeiro serviço; /minha-sessao apenas
+        // reconcilia o restante do contexto em segundo plano.
+        session.refresh({ silent: true }).catch(() => {});
+
+        navigate(getPlanIntentPath(
+          FIRST_SERVICE_ONBOARDING_PATH,
+          selectedPlan
+        ), {
+          replace: true,
+          state: {
+            onboarding: true,
+            onboardingStep: "servico"
+          }
+        });
+      } else if (profileOnboarding) {
+        // O PUT já devolve a publicação canônica. A reconciliação de sessão
+        // não pode transformar um salvamento concluído em falha de UX.
+        session.refresh({ silent: true }).catch(() => {});
+      } else {
+        await session.refresh();
+      }
+
+      if (profileOnboarding) {
         const pending = Array.isArray(result.publicacao?.pendencias)
           ? result.publicacao.pendencias
           : [];
@@ -413,22 +428,25 @@ export function BusinessPage({ create = false }) {
             SERVICE_PUBLICATION_PENDING
           );
 
+          const published = result.publicacao?.publicado === true;
+          const destination = servicePending
+            ? FIRST_SERVICE_ONBOARDING_PATH
+            : published
+              ? "/painel/horarios"
+              : "/painel";
+
           navigate(
-            getPlanIntentPath(servicePending
-              ? FIRST_SERVICE_ONBOARDING_PATH
-              : result.publicacao?.publicado && selectedPlan
-                ? "/checkout"
-                : "/painel", selectedPlan),
+            getPlanIntentPath(destination, selectedPlan),
             {
               replace: true,
               state: servicePending
                 ? { onboarding: true, onboardingStep: "servico" }
-                : {
-                    message: result.publicacao?.publicado
-                      ? "Dados essenciais concluídos. Seu negócio está publicado."
-                      : "Dados essenciais concluídos. Estamos atualizando sua publicação.",
-                    onboardingCompleted: result.publicacao?.publicado === true
-                  }
+                : published
+                  ? { onboarding: true, onboardingStep: "agenda" }
+                  : {
+                      message: "Dados essenciais concluídos. Estamos atualizando sua publicação.",
+                      onboardingCompleted: false
+                    }
             }
           );
         }
@@ -740,7 +758,7 @@ export function BusinessPage({ create = false }) {
               <div className="field-wide public-address-card" data-testid="public-address-hint">
                 <div className="public-address-copy">
                   <span>Seu link público</span>
-                  <strong>app.agendafashion.com.br/negocio/{form.slug}</strong>
+                  <strong>{publicUrl}</strong>
                   <small>Alterar o nome também atualiza este endereço. Links antigos continuam funcionando.</small>
                 </div>
                 <button className="button button-secondary button-small" onClick={copyPublicUrl} type="button">

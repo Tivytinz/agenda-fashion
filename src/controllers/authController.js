@@ -15,10 +15,15 @@ const passwordResetService = require(
   "../services/passwordResetService"
 );
 
+const authSessionValidationService = require(
+  "../services/authSessionValidationService"
+);
+
 const {
   definirCookieSessao,
   limparCookieSessao,
   obterTokenBearer,
+  obterTokenCookie,
 } = require(
   "../config/sessionCookie"
 );
@@ -266,30 +271,63 @@ async function redefinirSenha(
   }
 }
 
-function migrarSessaoLegada(
+async function migrarSessaoLegada(
   req,
-  res
+  res,
+  next
 ) {
-  const tokenLegado =
-    obterTokenBearer(
-      req.headers.authorization
+  try {
+    const tokenCookie =
+      obterTokenCookie(
+        req.headers.cookie
+      );
+
+    res.set(
+      "Cache-Control",
+      "no-store"
     );
 
-  if (tokenLegado) {
-    definirCookieSessao(
-      res,
-      tokenLegado
-    );
+    // Cookie HttpOnly válido é a autoridade. Um cookie inválido não pode
+    // impedir que um Bearer legado já autenticado conclua a migração.
+    if (tokenCookie) {
+      if (
+        await authSessionValidationService
+          .cookieSessaoEstaValido(
+            tokenCookie
+          )
+      ) {
+        return res
+          .status(200)
+          .json({
+            codigo:
+              "COOKIE_SESSAO_PRESENTE",
+            migrado: false,
+            mensagem:
+              "Uma sessão em cookie já existe e deve ser preservada.",
+          });
+      }
+
+      limparCookieSessao(res);
+    }
+
+    const tokenLegado =
+      obterTokenBearer(
+        req.headers.authorization
+      );
+
+    if (tokenLegado) {
+      definirCookieSessao(
+        res,
+        tokenLegado
+      );
+    }
+
+    return res
+      .status(204)
+      .end();
+  } catch (erro) {
+    return next(erro);
   }
-
-  res.set(
-    "Cache-Control",
-    "no-store"
-  );
-
-  return res
-    .status(204)
-    .end();
 }
 
 function logout(

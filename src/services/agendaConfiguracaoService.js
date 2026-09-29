@@ -229,9 +229,102 @@ async function resolverVinculoAgenda(
   return vinculo;
 }
 
+function normalizarProfissionalIdOpcional(
+  profissionalId
+) {
+  if (
+    profissionalId === undefined ||
+    profissionalId === null ||
+    profissionalId === ""
+  ) {
+    return null;
+  }
+
+  const id = Number(
+    profissionalId
+  );
+
+  if (
+    !Number.isInteger(id) ||
+    id <= 0
+  ) {
+    throw criarErro(
+      "Profissional inválido.",
+      400
+    );
+  }
+
+  return id;
+}
+
+async function resolverProfissionalAlvo({
+  usuarioId,
+  profissionalId,
+  vinculo,
+  executor,
+}) {
+  const solicitado =
+    normalizarProfissionalIdOpcional(
+      profissionalId
+    );
+
+  if (!solicitado) {
+    return {
+      id: Number(usuarioId),
+      negocio_id:
+        vinculo.negocio_id,
+      papel:
+        vinculo.papel,
+    };
+  }
+
+  if (
+    vinculo.papel ===
+      "profissional" &&
+    solicitado !==
+      Number(usuarioId)
+  ) {
+    throw criarErro(
+      "Você só pode configurar a própria disponibilidade.",
+      403
+    );
+  }
+
+  if (
+    solicitado ===
+    Number(usuarioId)
+  ) {
+    return {
+      id: Number(usuarioId),
+      negocio_id:
+        vinculo.negocio_id,
+      papel:
+        vinculo.papel,
+    };
+  }
+
+  const profissional =
+    await agendaConfiguracaoRepository
+      .buscarProfissionalAtivo(
+        solicitado,
+        vinculo.negocio_id,
+        executor
+      );
+
+  if (!profissional) {
+    throw criarErro(
+      "Profissional ativo não encontrado neste negócio.",
+      404
+    );
+  }
+
+  return profissional;
+}
+
 async function buscarMinhaConfiguracao({
   usuarioId,
   contexto,
+  profissionalId,
 }) {
   exigirUsuario(usuarioId);
 
@@ -244,18 +337,52 @@ async function buscarMinhaConfiguracao({
           client
         );
 
+        const profissional =
+          await resolverProfissionalAlvo({
+            usuarioId,
+            profissionalId,
+            vinculo,
+            executor: client,
+          });
+
         const estado =
           await agendaConfiguracaoRepository
             .garantirDisponibilidadePadrao({
-              profissionalId: usuarioId,
-              negocioId: vinculo.negocio_id,
+              profissionalId:
+                profissional.id,
+              negocioId:
+                vinculo.negocio_id,
             }, client);
 
+        const politicaCancelamento =
+          await agendaConfiguracaoRepository
+            .buscarPoliticaCancelamentoNegocio(
+              vinculo.negocio_id,
+              client
+            );
+
         return {
-          configuracao: estado.configuracao,
+          configuracao: {
+            ...estado.configuracao,
+            antecedencia_cancelamento:
+              politicaCancelamento
+                ?.antecedencia_cancelamento ??
+              2,
+          },
           horarios: estado.horarios.map(
             formatarHorarioBanco
           ),
+          profissional: {
+            id:
+              Number(
+                profissional.id
+              ),
+            papel:
+              profissional.papel,
+            nome:
+              profissional.nome ||
+              null,
+          },
         };
       }
     );
@@ -264,6 +391,7 @@ async function buscarMinhaConfiguracao({
 async function buscarStatusConfiguracao({
   usuarioId,
   contexto,
+  profissionalId,
 }) {
   exigirUsuario(usuarioId);
 
@@ -272,10 +400,17 @@ async function buscarStatusConfiguracao({
     contexto
   );
 
+  const profissional =
+    await resolverProfissionalAlvo({
+      usuarioId,
+      profissionalId,
+      vinculo,
+    });
+
   const configuracao =
     await agendaConfiguracaoRepository
       .buscarConfiguracao(
-        usuarioId,
+        profissional.id,
         vinculo.negocio_id
       );
 
@@ -296,6 +431,7 @@ async function buscarStatusConfiguracao({
 async function salvarMinhaConfiguracao({
   usuarioId,
   contexto,
+  profissionalId,
   duracaoPadrao,
   intervaloMinutos,
   antecedenciaAgendamento,
@@ -326,13 +462,38 @@ async function salvarMinhaConfiguracao({
       maximo: 720,
     });
 
-  const antecedenciaCancelamentoValidada =
-    validarNumeroInteiro({
-      valor: antecedenciaCancelamento ?? 2,
-      campo: "A antecedência para cancelamento",
-      minimo: 0,
-      maximo: 168,
-    });
+  const contextoNormalizado =
+    normalizarContexto(
+      contexto
+    );
+
+  const cancelamentoInformado =
+    contextoNormalizado === "dono" &&
+    antecedenciaCancelamento !== undefined &&
+    antecedenciaCancelamento !== null;
+
+  if (
+    cancelamentoInformado &&
+    typeof antecedenciaCancelamento === "string" &&
+    antecedenciaCancelamento.trim() === ""
+  ) {
+    throw criarErro(
+      "A antecedência para cancelamento deve estar entre 0 e 168.",
+      400
+    );
+  }
+
+  const antecedenciaCancelamentoSolicitada =
+    cancelamentoInformado
+      ? validarNumeroInteiro({
+          valor:
+            antecedenciaCancelamento,
+          campo:
+            "A antecedência para cancelamento",
+          minimo: 0,
+          maximo: 168,
+        })
+      : null;
 
   if (!Array.isArray(horarios) || horarios.length !== 7) {
     throw criarErro(
@@ -365,11 +526,63 @@ async function salvarMinhaConfiguracao({
           client
         );
         const negocioId = vinculo.negocio_id;
+        const profissional =
+          await resolverProfissionalAlvo({
+            usuarioId,
+            profissionalId,
+            vinculo,
+            executor: client,
+          });
+        const profissionalAlvoId =
+          Number(
+            profissional.id
+          );
+
+        const politicaAtual =
+          await agendaConfiguracaoRepository
+            .buscarPoliticaCancelamentoNegocio(
+              negocioId,
+              client
+            );
+
+        const antecedenciaCancelamentoAtual =
+          Number.isInteger(
+            Number(
+              politicaAtual
+                ?.antecedencia_cancelamento
+            )
+          )
+            ? Number(
+                politicaAtual
+                  .antecedencia_cancelamento
+              )
+            : 2;
+
+        let antecedenciaCancelamentoEfetiva =
+          antecedenciaCancelamentoAtual;
+
+        if (vinculo.papel === "dono") {
+          antecedenciaCancelamentoEfetiva =
+            antecedenciaCancelamentoSolicitada ??
+            antecedenciaCancelamentoAtual;
+
+          if (
+            antecedenciaCancelamentoSolicitada !==
+            null
+          ) {
+            await agendaConfiguracaoRepository
+              .atualizarPoliticaCancelamentoNegocio(
+                negocioId,
+                antecedenciaCancelamentoEfetiva,
+                client
+              );
+          }
+        }
 
         const configuracaoExistente =
           await agendaConfiguracaoRepository
             .buscarConfiguracao(
-              usuarioId,
+              profissionalAlvoId,
               negocioId,
               client
             );
@@ -382,14 +595,15 @@ async function salvarMinhaConfiguracao({
         let configuracao;
 
         const dadosConfiguracao = {
-          profissionalId: usuarioId,
+          profissionalId:
+            profissionalAlvoId,
           negocioId,
           duracaoPadrao: duracao,
           intervaloMinutos: intervalo,
           antecedenciaAgendamento:
             antecedenciaAgendamentoValidada,
           antecedenciaCancelamento:
-            antecedenciaCancelamentoValidada,
+            antecedenciaCancelamentoEfetiva,
         };
 
         if (configuracaoExistente) {
@@ -414,7 +628,8 @@ async function salvarMinhaConfiguracao({
           const horarioSalvo =
             await agendaConfiguracaoRepository
               .salvarHorario({
-                profissionalId: usuarioId,
+                profissionalId:
+                  profissionalAlvoId,
                 negocioId,
                 ...horario,
               }, client);
@@ -425,7 +640,7 @@ async function salvarMinhaConfiguracao({
         const configuracaoMarcada =
           await agendaConfiguracaoRepository
             .marcarConfigurada(
-              usuarioId,
+              profissionalAlvoId,
               negocioId,
               client
             );
@@ -439,7 +654,11 @@ async function salvarMinhaConfiguracao({
             primeiraPersonalizacao
               ? "Horários personalizados com sucesso."
               : "Horários atualizados com sucesso.",
-          configuracao,
+          configuracao: {
+            ...configuracao,
+            antecedencia_cancelamento:
+              antecedenciaCancelamentoEfetiva,
+          },
           horarios:
             horariosSalvos.map(
               formatarHorarioBanco

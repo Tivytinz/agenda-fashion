@@ -93,17 +93,34 @@ afterEach(() => {
 });
 
 describe("editor de serviços", () => {
-  it("atualiza a sessão publicada antes de abrir os horários mantendo o plano escolhido", async () => {
-    let finishRefresh;
-    refreshSession.mockImplementation(() => new Promise((resolve) => { finishRefresh = resolve; }));
-    apiRequest.mockResolvedValue({ servico: { id: 58 }, publicacao: { publicado: true, pode_publicar: true } });
+  it("não espera o refresh da sessão para abrir os horários mantendo o plano escolhido", async () => {
+    refreshSession.mockImplementation(() => new Promise(() => {}));
+    apiRequest.mockResolvedValue({
+      servico: { id: 58 },
+      publicacao: { publicado: true, pode_publicar: true }
+    });
     renderEditor("/painel/servicos/novo?onboarding=servico&plano=autonoma");
     fillService();
     submit();
-    await waitFor(() => expect(refreshSession).toHaveBeenCalledTimes(1));
-    expect(screen.queryByTestId("onboarding-destination")).toBeNull();
-    finishRefresh();
-    expect((await screen.findByTestId("onboarding-destination")).textContent).toBe("/painel/horarios?plano=autonoma");
+
+    expect((await screen.findByTestId("onboarding-destination")).textContent)
+      .toBe("/painel/horarios?plano=autonoma");
+    expect(refreshSession).toHaveBeenCalledWith({ silent: true });
+  });
+
+  it("não bloqueia os horários quando o refresh da sessão falha após a publicação", async () => {
+    refreshSession.mockRejectedValueOnce(new Error("Falha temporária de sessão"));
+    apiRequest.mockResolvedValue({
+      servico: { id: 59 },
+      publicacao: { publicado: true, pode_publicar: true }
+    });
+    renderEditor("/painel/servicos/novo?onboarding=servico");
+    fillService();
+    submit();
+
+    expect((await screen.findByTestId("onboarding-destination")).textContent)
+      .toBe("/painel/horarios");
+    expect(refreshSession).toHaveBeenCalledWith({ silent: true });
   });
 
   it("oferece e envia a categoria Bronzeamento", async () => {

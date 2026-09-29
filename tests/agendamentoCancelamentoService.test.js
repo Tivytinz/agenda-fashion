@@ -91,7 +91,7 @@ describe("agendamentoCancelamentoService", () => {
       });
   });
 
-  test("retorna a política pública vigente do profissional", async () => {
+  test("retorna a política pública vigente do negócio para a profissional escolhida", async () => {
     repository.buscarPoliticaPublica.mockResolvedValue({
       negocio_id: 4,
       profissional_id: 8,

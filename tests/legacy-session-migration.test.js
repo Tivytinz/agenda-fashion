@@ -53,14 +53,30 @@ function criarApp() {
   return app;
 }
 
-function tokenValido() {
+function tokenValido(
+  usuarioId = 1
+) {
   return jwt.sign(
     {
-      id: 1,
+      id: usuarioId,
     },
     process.env.JWT_SECRET,
     {
       expiresIn: "1h",
+    }
+  );
+}
+
+function tokenExpirado(
+  usuarioId = 1
+) {
+  return jwt.sign(
+    {
+      id: usuarioId,
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "-1s",
     }
   );
 }
@@ -73,14 +89,16 @@ describe(
 
       authSessionRepository
         .buscarEstadoDaSessao
-        .mockResolvedValue({
-          id: 1,
-          ativo: true,
-          senha_alterada_em:
-            null,
-          token_revogado:
-            false,
-        });
+        .mockImplementation(
+          async (usuarioId) => ({
+            id: usuarioId,
+            ativo: true,
+            senha_alterada_em:
+              null,
+            token_revogado:
+              false,
+          })
+        );
     });
 
     test(
@@ -128,6 +146,147 @@ describe(
             ),
             expect.stringContaining(
               "HttpOnly"
+            ),
+          ])
+        );
+      }
+    );
+
+    test(
+      "não sobrescreve cookie existente com Bearer válido de outra identidade",
+      async () => {
+        const bearerContaA =
+          tokenValido(1);
+        const cookieContaB =
+          tokenValido(2);
+
+        const resposta =
+          await request(
+            criarApp()
+          )
+            .post(
+              "/auth/migrar-sessao-legada"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${bearerContaA}`
+            )
+            .set(
+              "Cookie",
+              `af_session=${cookieContaB}`
+            );
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          resposta.body
+        ).toMatchObject({
+          codigo:
+            "COOKIE_SESSAO_PRESENTE",
+          migrado: false,
+        });
+
+        expect(
+          resposta.headers[
+            "set-cookie"
+          ]
+        ).toBeUndefined();
+      }
+    );
+
+    test(
+      "substitui cookie expirado pelo Bearer legado já autenticado",
+      async () => {
+        const bearer =
+          tokenValido(1);
+        const cookieExpirado =
+          tokenExpirado(2);
+
+        const resposta =
+          await request(
+            criarApp()
+          )
+            .post(
+              "/auth/migrar-sessao-legada"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${bearer}`
+            )
+            .set(
+              "Cookie",
+              `af_session=${cookieExpirado}`
+            );
+
+        expect(
+          resposta.status
+        ).toBe(204);
+
+        expect(
+          resposta.headers[
+            "set-cookie"
+          ]
+        ).toEqual(
+          expect.arrayContaining([
+            expect.stringContaining(
+              `af_session=${bearer}`
+            ),
+          ])
+        );
+      }
+    );
+
+    test(
+      "substitui cookie revogado pelo Bearer legado de sessão válida",
+      async () => {
+        const bearer =
+          tokenValido(1);
+        const cookieRevogado =
+          tokenValido(2);
+
+        authSessionRepository
+          .buscarEstadoDaSessao
+          .mockImplementation(
+            async (usuarioId) => ({
+              id: usuarioId,
+              ativo: true,
+              senha_alterada_em:
+                null,
+              token_revogado:
+                usuarioId === 2,
+            })
+          );
+
+        const resposta =
+          await request(
+            criarApp()
+          )
+            .post(
+              "/auth/migrar-sessao-legada"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${bearer}`
+            )
+            .set(
+              "Cookie",
+              `af_session=${cookieRevogado}`
+            );
+
+        expect(
+          resposta.status
+        ).toBe(204);
+
+        expect(
+          resposta.headers[
+            "set-cookie"
+          ]
+        ).toEqual(
+          expect.arrayContaining([
+            expect.stringContaining(
+              `af_session=${bearer}`
             ),
           ])
         );

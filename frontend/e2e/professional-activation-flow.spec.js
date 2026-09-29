@@ -171,6 +171,10 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   let businessPayload = null;
   let servicePayload = null;
   let schedulePayload = null;
+  let postBusinessSessionRefreshStarted = false;
+  let releasePostBusinessSessionRefresh = null;
+  let postServiceSessionRefreshStarted = false;
+  let releasePostServiceSessionRefresh = null;
 
   await page.addInitScript(() => {
     localStorage.setItem("af_marketing_consent_v2", JSON.stringify({
@@ -203,13 +207,37 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
     await json(route, { token: "activation-e2e-token", usuario: USER, contaCriada: true }, 201);
   });
 
-  await page.route("**/minha-sessao", (route) => json(route, {
-    usuario: USER,
-    negocio: businessCreated ? { ...BUSINESS, publicado: serviceCreated } : null,
-    temNegocio: businessCreated,
-    administrador: null,
-    ehAdministrador: false
-  }));
+  await page.route("**/minha-sessao", async (route) => {
+    if (
+      businessCreated
+      && !serviceCreated
+      && !postBusinessSessionRefreshStarted
+    ) {
+      postBusinessSessionRefreshStarted = true;
+      await new Promise((resolve) => {
+        releasePostBusinessSessionRefresh = resolve;
+      });
+    }
+
+    if (
+      serviceCreated
+      && !scheduleSaved
+      && !postServiceSessionRefreshStarted
+    ) {
+      postServiceSessionRefreshStarted = true;
+      await new Promise((resolve) => {
+        releasePostServiceSessionRefresh = resolve;
+      });
+    }
+
+    await json(route, {
+      usuario: USER,
+      negocio: businessCreated ? { ...BUSINESS, publicado: serviceCreated } : null,
+      temNegocio: businessCreated,
+      administrador: null,
+      ehAdministrador: false
+    });
+  });
 
   await page.route("**/cep/74000123", (route) => json(route, {
     cep: "74000123",
@@ -226,7 +254,7 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
     await json(route, { mensagem: "Negócio criado.", negocio: BUSINESS }, 201);
   });
 
-  await page.route("**/dashboard-dono?periodo=7dias", (route) => json(route, {
+  const ownerDashboardPayload = () => ({
     negocio: {
       negocio_id: BUSINESS.id,
       papel: "dono",
@@ -256,7 +284,16 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
       serviceCreated,
       firstBookingReceived
     })
-  }));
+  });
+
+  await page.route(
+    "**/dashboard-dono/ativacao",
+    (route) => json(route, ownerDashboardPayload())
+  );
+  await page.route(
+    "**/dashboard-dono?periodo=7dias",
+    (route) => json(route, ownerDashboardPayload())
+  );
   await page.route("**/dashboard-dono/origem-clientes?periodo=7dias", (route) => json(route, { resumo: {}, origens: [] }));
   await page.route("**/conta", (route) => json(route, {
     usuario: {
@@ -324,7 +361,7 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
         duracao_padrao: 60,
         intervalo_minutos: 0,
         antecedencia_agendamento: 0,
-        antecedencia_cancelamento: 24,
+        antecedencia_cancelamento: 2,
         configurado_em: null,
         origem_horarios: "padrao_af"
       },
@@ -369,6 +406,11 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   await page.getByRole("button", { name: "Criar negócio" }).click();
 
   await expect(page).toHaveURL(/\/painel\/servicos\/novo\?onboarding=servico$/);
+  await expect.poll(() => postBusinessSessionRefreshStarted).toBe(true);
+  await expect(page.getByRole("heading", { name: "Novo serviço" })).toBeVisible();
+  expect(releasePostBusinessSessionRefresh).not.toBeNull();
+  releasePostBusinessSessionRefresh();
+
   expect(businessPayload).toEqual(expect.objectContaining({
     nome: "Studio Aurora",
     descricao: "",
@@ -385,6 +427,11 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   await page.getByRole("button", { name: "Salvar serviço e publicar" }).click();
 
   await expect(page).toHaveURL(/\/painel\/horarios$/);
+  await expect.poll(() => postServiceSessionRefreshStarted).toBe(true);
+  await expect(page.getByRole("heading", { name: "Confirme quando você atende" })).toBeVisible();
+  expect(releasePostServiceSessionRefresh).not.toBeNull();
+  releasePostServiceSessionRefresh();
+
   expect(servicePayload).toEqual(expect.objectContaining({
     nome: "Design + Henna",
     categoria: "unha",
@@ -396,12 +443,13 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   expect(schedulePayload).toBeNull();
   await expect(page.getByRole("heading", { name: "Confirme quando você atende" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Confirmar horários" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Pular por agora" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pular por agora" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Ajustar horários" })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
   await page.getByRole("button", { name: "Confirmar horários" }).click();
-  await expect(page).toHaveURL(/\/painel$/);
+  await expect(page).toHaveURL(/\/painel\/horarios\?onboarding=divulgacao$/);
+  await expect(page.getByRole("heading", { name: "Agora divulgue seu perfil" })).toBeVisible();
 
   expect(schedulePayload?.horarios).toEqual(expect.arrayContaining([
     expect.objectContaining({
@@ -419,10 +467,6 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
       horaFim: "13:00"
     })
   ]));
-
-  await expect(page.getByText("Próximo passo")).toBeVisible();
-  await expect(page.getByText(/Copilot AF/i)).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Divulgue seu perfil" })).toBeVisible();
 
   const shareProfileButton = page.getByRole("button", {
     name: "Compartilhar perfil"
@@ -444,7 +488,10 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
 
   // Compartilhar é intenção/comportamento; a ativação só encerra quando o
   // backend passa a informar o primeiro agendamento válido.
+  await page.goto("/painel");
   await expect(page.getByText("Próximo passo")).toBeVisible();
+  await expect(page.getByText(/Copilot AF/i)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Divulgue seu perfil" })).toBeVisible();
 
   firstBookingReceived = true;
   await page.reload();

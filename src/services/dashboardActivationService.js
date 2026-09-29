@@ -18,6 +18,7 @@ async function buscarAtivacaoNegocio({
       possui_servico_ativo: false,
       negocio_publicado: false,
       agenda_configurada: false,
+      possui_disponibilidade_agendavel: false,
       primeiro_agendamento_recebido: false,
     };
   }
@@ -37,6 +38,10 @@ async function buscarAtivacaoNegocio({
       estado?.negocio_publicado === true,
     agenda_configurada:
       estado?.agenda_configurada === true,
+    possui_disponibilidade_agendavel:
+      estado
+        ?.possui_disponibilidade_agendavel ===
+      true,
     primeiro_agendamento_recebido:
       estado?.primeiro_agendamento_recebido === true,
   };

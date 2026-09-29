@@ -44,6 +44,10 @@ async function buscarProfissionalAtivo(
     `
     SELECT
       u.id,
+      COALESCE(
+        NULLIF(BTRIM(un.nome_exibicao), ''),
+        u.nome
+      ) AS nome,
       un.negocio_id,
       un.papel
     FROM usuarios u
@@ -93,6 +97,126 @@ async function buscarConfiguracao(
   return result.rows[0] || null;
 }
 
+async function buscarPoliticaCancelamentoNegocio(
+  negocioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    SELECT
+      antecedencia_cancelamento
+    FROM negocios
+    WHERE id = $1
+      AND ativo = TRUE
+    LIMIT 1
+    `,
+    [negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function atualizarPoliticaCancelamentoNegocio(
+  negocioId,
+  antecedenciaCancelamento,
+  executor = db
+) {
+  /*
+   * Ordem de lock compatível com o trigger legado:
+   * agenda da dona -> negócio -> demais agendas.
+   * Isso evita o ciclo negócio -> agenda / agenda -> negócio durante rollout
+   * com uma versão antiga ainda escrevendo agenda_configuracoes.
+   */
+  await executor.query(
+    `
+      SELECT
+        ac.profissional_id
+      FROM agenda_configuracoes ac
+      INNER JOIN usuarios_negocios un
+        ON un.usuario_id =
+          ac.profissional_id
+        AND un.negocio_id =
+          ac.negocio_id
+        AND un.papel = 'dono'
+        AND un.ativo = TRUE
+      WHERE ac.negocio_id = $1
+      ORDER BY
+        un.created_at ASC,
+        un.id ASC
+      LIMIT 1
+      FOR UPDATE OF ac
+    `,
+    [negocioId]
+  );
+
+  const result = await executor.query(
+    `
+    UPDATE negocios
+    SET
+      antecedencia_cancelamento = $1,
+      updated_at = NOW()
+    WHERE id = $2
+      AND ativo = TRUE
+    RETURNING antecedencia_cancelamento
+    `,
+    [
+      antecedenciaCancelamento,
+      negocioId,
+    ]
+  );
+
+  const politica = result.rows[0] || null;
+
+  if (!politica) {
+    return null;
+  }
+
+  /*
+   * Espelho temporário para rollback/convivência com versões anteriores.
+   * negocios.antecedencia_cancelamento continua sendo a fonte canônica.
+   *
+   * A flag transacional evita que o trigger de compatibilidade interprete
+   * este espelhamento interno como uma escrita vinda de uma versão antiga.
+   */
+  await executor.query(
+    `
+    SELECT set_config(
+      'agenda_fashion.sincronizando_cancelamento',
+      '1',
+      TRUE
+    )
+    `
+  );
+
+  await executor.query(
+    `
+    UPDATE agenda_configuracoes
+    SET
+      antecedencia_cancelamento = $1,
+      updated_at = NOW()
+    WHERE negocio_id = $2
+      AND antecedencia_cancelamento
+        IS DISTINCT FROM $1
+    `,
+    [
+      antecedenciaCancelamento,
+      negocioId,
+    ]
+  );
+
+  await executor.query(
+    `
+    SELECT set_config(
+      'agenda_fashion.sincronizando_cancelamento',
+      '0',
+      TRUE
+    )
+    `
+  );
+
+  return politica;
+}
+
 async function criarConfiguracao({
   profissionalId,
   negocioId,
@@ -133,8 +257,7 @@ async function atualizarConfiguracao({
   negocioId,
   duracaoPadrao,
   intervaloMinutos,
-  antecedenciaAgendamento,
-  antecedenciaCancelamento
+  antecedenciaAgendamento
 }, executor = db) {
   const result = await executor.query(
     `
@@ -143,17 +266,15 @@ async function atualizarConfiguracao({
       duracao_padrao = $1,
       intervalo_minutos = $2,
       antecedencia_agendamento = $3,
-      antecedencia_cancelamento = $4,
       updated_at = NOW()
-    WHERE profissional_id = $5
-      AND negocio_id = $6
+    WHERE profissional_id = $4
+      AND negocio_id = $5
     RETURNING *
     `,
     [
       duracaoPadrao,
       intervaloMinutos,
       antecedenciaAgendamento,
-      antecedenciaCancelamento,
       profissionalId,
       negocioId
     ]
@@ -211,6 +332,62 @@ async function listarHorarios(
     [
       profissionalId,
       negocioId,
+    ]
+  );
+
+  return result.rows;
+}
+
+async function listarConfiguracoesHorariosNegocio({
+  negocioId,
+  profissionalIds,
+  executor = db,
+}) {
+  const ids = Array.from(
+    new Set(
+      (profissionalIds || [])
+        .map(Number)
+        .filter(
+          (id) =>
+            Number.isInteger(id) &&
+            id > 0
+        )
+    )
+  );
+
+  if (ids.length === 0) {
+    return [];
+  }
+
+  const result = await executor.query(
+    `
+      SELECT
+        ac.profissional_id,
+        ac.duracao_padrao,
+        ac.intervalo_minutos,
+        ac.antecedencia_agendamento,
+        ah.dia_semana,
+        ah.trabalha,
+        ah.hora_inicio,
+        ah.hora_fim,
+        ah.intervalo_inicio,
+        ah.intervalo_fim
+      FROM agenda_configuracoes ac
+      LEFT JOIN agenda_horarios ah
+        ON ah.profissional_id =
+          ac.profissional_id
+        AND ah.negocio_id =
+          ac.negocio_id
+      WHERE ac.negocio_id = $1
+        AND ac.profissional_id =
+          ANY($2::BIGINT[])
+      ORDER BY
+        ac.profissional_id,
+        ah.dia_semana
+    `,
+    [
+      negocioId,
+      ids,
     ]
   );
 
@@ -289,7 +466,20 @@ async function garantirDisponibilidadePadrao({
       configurado_em,
       origem_horarios
     )
-    VALUES ($1,$2,60,0,0,2,NOW(),'padrao_af')
+    SELECT
+      $1,
+      $2,
+      60,
+      0,
+      0,
+      COALESCE(
+        n.antecedencia_cancelamento,
+        2
+      ),
+      NOW(),
+      'padrao_af'
+    FROM negocios n
+    WHERE n.id = $2
     ON CONFLICT (profissional_id, negocio_id)
     DO NOTHING
     `,
@@ -374,10 +564,13 @@ module.exports = {
   buscarVinculoAtivoPorPapel,
   buscarProfissionalAtivo,
   buscarConfiguracao,
+  buscarPoliticaCancelamentoNegocio,
+  atualizarPoliticaCancelamentoNegocio,
   criarConfiguracao,
   atualizarConfiguracao,
   marcarConfigurada,
   listarHorarios,
+  listarConfiguracoesHorariosNegocio,
   salvarHorario,
   garantirDisponibilidadePadrao,
   executarTransacao:

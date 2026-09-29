@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
 import { PlanUpgradeOpportunity } from "../components/PlanUpgradeOpportunity";
@@ -349,13 +350,24 @@ export function ProfessionalsPage() {
                       </button>
                     </>
                   ) : (
-                    <button
-                      className="text-button"
-                      onClick={() => void openServices(professional)}
-                      type="button"
-                    >
-                      Configurar serviços
-                    </button>
+                    <>
+                      <button
+                        className="text-button"
+                        onClick={() => void openServices(professional)}
+                        type="button"
+                      >
+                        Configurar serviços
+                      </button>
+
+                      {!owner && (
+                        <Link
+                          className="text-button"
+                          to={`/painel/horarios?profissional=${encodeURIComponent(professional.id)}`}
+                        >
+                          Configurar horários
+                        </Link>
+                      )}
+                    </>
                   )}
 
                   {!owner && (

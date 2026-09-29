@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -20,7 +20,20 @@ function SessionProbe() {
   return (
     <>
       <span>{session.authenticated ? session.usuario?.nome : "Desconectada"}</span>
+      <span data-testid="session-loading">{session.loading ? "Carregando" : "Pronta"}</span>
       <button type="button" onClick={session.logout}>Sair</button>
+      <button type="button" onClick={() => session.refresh().catch(() => {})}>
+        Sincronizar
+      </button>
+      <button type="button" onClick={() => session.refresh({ silent: true }).catch(() => {})}>
+        Sincronizar silenciosamente
+      </button>
+      <button
+        type="button"
+        onClick={() => session.login({ email: "bruna@example.com", senha: "senha" }).catch(() => {})}
+      >
+        Entrar como Bruna
+      </button>
     </>
   );
 }
@@ -90,22 +103,10 @@ describe("sincronização da sessão", () => {
     );
 
     migrateLegacySession
-      .mockImplementation(
-        async () => {
-          localStorage.removeItem(
-            "token"
-          );
-          localStorage.setItem(
-            "session_active",
-            "1"
-          );
-
-          return {
-            attempted: true,
-            migrated: true
-          };
-        }
-      );
+      .mockResolvedValue({
+        attempted: true,
+        migrated: true
+      });
 
     renderSession();
 
@@ -122,7 +123,11 @@ describe("sincronização da sessão", () => {
     expect(
       apiRequest
     ).toHaveBeenCalledWith(
-      "/minha-sessao"
+      "/minha-sessao",
+      expect.objectContaining({
+        clearSessionOnUnauthorized: false,
+        signal: expect.any(AbortSignal)
+      })
     );
 
     expect(
@@ -132,6 +137,469 @@ describe("sincronização da sessão", () => {
       apiRequest
         .mock.invocationCallOrder[0]
     );
+    expect(
+      migrateLegacySession
+    ).toHaveBeenCalledWith({
+      signal: expect.any(AbortSignal)
+    });
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(localStorage.getItem("session_active")).toBe("1");
+  });
+
+  it("cancela migração legada pendente antes de autenticar outra conta", async () => {
+    localStorage.removeItem("session_active");
+    localStorage.setItem("token", "jwt-legado");
+
+    let migrationSignal;
+    migrateLegacySession
+      .mockImplementationOnce(({ signal }) => new Promise((_resolve, reject) => {
+        migrationSignal = signal;
+        signal.addEventListener("abort", () => {
+          reject(new DOMException("Abortada", "AbortError"));
+        });
+      }))
+      .mockResolvedValueOnce({
+        attempted: false,
+        migrated: false
+      });
+
+    apiRequest.mockImplementation((path) => {
+      if (path === "/login") {
+        return Promise.resolve({
+          usuario: { id: 2, nome: "Bruna" }
+        });
+      }
+
+      if (path === "/minha-sessao") {
+        return Promise.resolve({
+          usuario: { id: 2, nome: "Bruna" },
+          negocio: { id: 12, nome: "Studio Bruna", papel: "dono" },
+          temNegocio: true
+        });
+      }
+
+      return Promise.resolve({});
+    });
+
+    renderSession();
+    await waitFor(() => expect(migrateLegacySession).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("button", { name: "Entrar como Bruna" }));
+
+    expect(await screen.findByText("Bruna")).not.toBeNull();
+    expect(migrationSignal.aborted).toBe(true);
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(localStorage.getItem("session_active")).toBe("1");
+  });
+
+  it("cancela migração legada pendente antes do logout", async () => {
+    localStorage.removeItem("session_active");
+    localStorage.setItem("token", "jwt-legado");
+
+    let migrationSignal;
+    migrateLegacySession
+      .mockImplementationOnce(({ signal }) => new Promise((_resolve, reject) => {
+        migrationSignal = signal;
+        signal.addEventListener("abort", () => {
+          reject(new DOMException("Abortada", "AbortError"));
+        });
+      }));
+
+    apiRequest.mockImplementation((path) => {
+      if (path === "/logout") {
+        return Promise.resolve({});
+      }
+
+      return Promise.resolve({
+        usuario: { id: 1, nome: "Ana" },
+        negocio: null,
+        temNegocio: false
+      });
+    });
+
+    renderSession();
+    await waitFor(() => expect(migrateLegacySession).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+
+    expect(screen.getByText("Desconectada")).not.toBeNull();
+    expect(migrationSignal.aborted).toBe(true);
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(localStorage.getItem("session_active")).toBeNull();
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith("/logout", {
+      method: "POST"
+    }));
+  });
+
+  it("limpa a sessão somente quando a migração inválida ainda pertence à geração atual", async () => {
+    localStorage.removeItem("session_active");
+    localStorage.setItem("token", "jwt-expirado");
+    migrateLegacySession.mockResolvedValueOnce({
+      attempted: true,
+      migrated: false,
+      invalid: true
+    });
+
+    renderSession();
+
+    await waitFor(() => expect(screen.getByText("Desconectada")).not.toBeNull());
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(localStorage.getItem("session_active")).toBeNull();
+    expect(apiRequest).not.toHaveBeenCalledWith(
+      "/minha-sessao",
+      expect.anything()
+    );
+  });
+
+  it("mantém a sessão utilizável enquanto uma sincronização silenciosa está pendente", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+    expect(screen.getByTestId("session-loading").textContent).toBe("Pronta");
+
+    let finishRefresh;
+    apiRequest.mockImplementationOnce(() => new Promise((resolve) => {
+      finishRefresh = resolve;
+    }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
+
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("Ana")).not.toBeNull();
+    expect(screen.getByTestId("session-loading").textContent).toBe("Pronta");
+
+    finishRefresh({
+      usuario: { id: 1, nome: "Ana Atualizada" },
+      negocio: {
+        id: 9,
+        nome: "Studio Ana",
+        papel: "dono",
+        publicado: true
+      },
+      temNegocio: true
+    });
+
+    expect(await screen.findByText("Ana Atualizada")).not.toBeNull();
+    expect(screen.getByTestId("session-loading").textContent).toBe("Pronta");
+  });
+
+  it("preserva a sessão atual quando uma sincronização silenciosa falha por rede", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    apiRequest.mockRejectedValueOnce(new Error("Rede indisponível"));
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
+
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("Ana")).not.toBeNull();
+    expect(screen.getByTestId("session-loading").textContent).toBe("Pronta");
+    expect(localStorage.getItem("session_active")).toBe("1");
+  });
+
+  it("encerra a sessão se a sincronização silenciosa receber 401", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    const unauthorized = new Error("Sessão expirada");
+    unauthorized.status = 401;
+    apiRequest.mockRejectedValueOnce(unauthorized);
+
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
+
+    await waitFor(() => expect(screen.getByText("Desconectada")).not.toBeNull());
+    expect(localStorage.getItem("session_active")).toBeNull();
+  });
+
+  it("não restaura a sessão quando um refresh antigo termina depois do logout", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    let finishOldRefresh;
+    let oldSyncSignal;
+    apiRequest.mockImplementationOnce((_path, options = {}) => new Promise((resolve) => {
+      oldSyncSignal = options.signal;
+      finishOldRefresh = resolve;
+    }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
+
+    fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+    expect(screen.getByText("Desconectada")).not.toBeNull();
+    expect(oldSyncSignal.aborted).toBe(true);
+
+    finishOldRefresh({
+      usuario: { id: 1, nome: "Ana Obsoleta" },
+      negocio: { id: 9, nome: "Studio Ana", papel: "dono" },
+      temNegocio: true
+    });
+
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith("/logout", {
+      method: "POST"
+    }));
+    expect(screen.getByText("Desconectada")).not.toBeNull();
+    expect(screen.queryByText("Ana Obsoleta")).toBeNull();
+    expect(localStorage.getItem("session_active")).toBeNull();
+  });
+
+  it("não deixa refresh da conta anterior sobrescrever um novo login", async () => {
+    let finishOldRefresh;
+    let oldSyncSignal;
+    let sessionReads = 0;
+
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/minha-sessao") {
+        sessionReads += 1;
+        if (sessionReads === 1) {
+          return Promise.resolve({
+            usuario: { id: 1, nome: "Ana" },
+            negocio: null,
+            temNegocio: false
+          });
+        }
+        if (sessionReads === 2) {
+          oldSyncSignal = options.signal;
+          return new Promise((resolve) => {
+            finishOldRefresh = resolve;
+          });
+        }
+        return Promise.resolve({
+          usuario: { id: 2, nome: "Bruna" },
+          negocio: { id: 12, nome: "Studio Bruna", papel: "dono" },
+          temNegocio: true
+        });
+      }
+
+      if (path === "/login" && options.method === "POST") {
+        return Promise.resolve({
+          usuario: { id: 2, nome: "Bruna" }
+        });
+      }
+
+      return Promise.resolve({});
+    });
+
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
+    await waitFor(() => expect(sessionReads).toBe(2));
+
+    fireEvent.click(screen.getByRole("button", { name: "Entrar como Bruna" }));
+    expect(await screen.findByText("Bruna")).not.toBeNull();
+    expect(oldSyncSignal.aborted).toBe(true);
+
+    finishOldRefresh({
+      usuario: { id: 1, nome: "Ana Obsoleta" },
+      negocio: { id: 9, nome: "Studio Ana", papel: "dono" },
+      temNegocio: true
+    });
+
+    await waitFor(() => expect(sessionReads).toBe(3));
+    expect(screen.getByText("Bruna")).not.toBeNull();
+    expect(screen.queryByText("Ana Obsoleta")).toBeNull();
+  });
+
+  it("ignora 401 atrasado da conta anterior depois de um novo login", async () => {
+    let rejectOldRefresh;
+    let sessionReads = 0;
+
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/minha-sessao") {
+        sessionReads += 1;
+        if (sessionReads === 1) {
+          return Promise.resolve({
+            usuario: { id: 1, nome: "Ana" },
+            negocio: null,
+            temNegocio: false
+          });
+        }
+        if (sessionReads === 2) {
+          return new Promise((_resolve, reject) => {
+            rejectOldRefresh = reject;
+          });
+        }
+        return Promise.resolve({
+          usuario: { id: 2, nome: "Bruna" },
+          negocio: { id: 12, nome: "Studio Bruna", papel: "dono" },
+          temNegocio: true
+        });
+      }
+
+      if (path === "/login" && options.method === "POST") {
+        return Promise.resolve({
+          usuario: { id: 2, nome: "Bruna" }
+        });
+      }
+
+      return Promise.resolve({});
+    });
+
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
+    await waitFor(() => expect(sessionReads).toBe(2));
+
+    fireEvent.click(screen.getByRole("button", { name: "Entrar como Bruna" }));
+    expect(await screen.findByText("Bruna")).not.toBeNull();
+
+    const unauthorized = new Error("Sessão antiga expirada");
+    unauthorized.status = 401;
+    rejectOldRefresh(unauthorized);
+
+    await waitFor(() => expect(sessionReads).toBe(3));
+    expect(screen.getByText("Bruna")).not.toBeNull();
+    expect(localStorage.getItem("session_active")).toBe("1");
+  });
+
+  it("ignora 401 de refresh antigo assim que um refresh mais novo já começou", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    let rejectOlder;
+    let finishNewer;
+    apiRequest
+      .mockImplementationOnce(() => new Promise((_resolve, reject) => {
+        rejectOlder = reject;
+      }))
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        finishNewer = resolve;
+      }));
+
+    const syncButton = screen.getByRole("button", { name: "Sincronizar silenciosamente" });
+    fireEvent.click(syncButton);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
+    fireEvent.click(syncButton);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(3));
+
+    const unauthorized = new Error("Refresh antigo expirou");
+    unauthorized.status = 401;
+    rejectOlder(unauthorized);
+
+    await waitFor(() => {
+      expect(screen.getByText("Ana")).not.toBeNull();
+      expect(localStorage.getItem("session_active")).toBe("1");
+    });
+
+    finishNewer({
+      usuario: { id: 1, nome: "Ana Nova" },
+      negocio: null,
+      temNegocio: false
+    });
+
+    expect(await screen.findByText("Ana Nova")).not.toBeNull();
+    expect(localStorage.getItem("session_active")).toBe("1");
+  });
+
+  it("não aplica sucesso antigo depois que um refresh mais novo já começou", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    let finishOlder;
+    let finishNewer;
+    apiRequest
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        finishOlder = resolve;
+      }))
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        finishNewer = resolve;
+      }));
+
+    const syncButton = screen.getByRole("button", { name: "Sincronizar silenciosamente" });
+    fireEvent.click(syncButton);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
+    fireEvent.click(syncButton);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(3));
+
+    await act(async () => {
+      finishOlder({
+        usuario: { id: 1, nome: "Ana Antiga" },
+        negocio: null,
+        temNegocio: false
+      });
+    });
+
+    expect(screen.queryByText("Ana Antiga")).toBeNull();
+    expect(screen.getByText("Ana")).not.toBeNull();
+
+    finishNewer({
+      usuario: { id: 1, nome: "Ana Nova" },
+      negocio: null,
+      temNegocio: false
+    });
+
+    expect(await screen.findByText("Ana Nova")).not.toBeNull();
+  });
+
+  it("libera loading se refresh silencioso mais novo falhar após tornar outro refresh obsoleto", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    let finishOlder;
+    apiRequest
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        finishOlder = resolve;
+      }))
+      .mockRejectedValueOnce(new Error("Rede indisponível"));
+
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar" }));
+    expect(screen.getByTestId("session-loading").textContent).toBe("Carregando");
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
+
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledTimes(3);
+      expect(screen.getByTestId("session-loading").textContent).toBe("Pronta");
+    });
+
+    await act(async () => {
+      finishOlder({
+        usuario: { id: 1, nome: "Ana Antiga" },
+        negocio: null,
+        temNegocio: false
+      });
+    });
+
+    expect(screen.queryByText("Ana Antiga")).toBeNull();
+    expect(screen.getByText("Ana")).not.toBeNull();
+  });
+
+  it("descarta resposta mais antiga quando refreshes da mesma sessão terminam fora de ordem", async () => {
+    renderSession();
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    let finishOlder;
+    let finishNewer;
+    apiRequest
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        finishOlder = resolve;
+      }))
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        finishNewer = resolve;
+      }));
+
+    const syncButton = screen.getByRole("button", { name: "Sincronizar silenciosamente" });
+    fireEvent.click(syncButton);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
+    fireEvent.click(syncButton);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(3));
+
+    finishNewer({
+      usuario: { id: 1, nome: "Ana Nova" },
+      negocio: null,
+      temNegocio: false
+    });
+    expect(await screen.findByText("Ana Nova")).not.toBeNull();
+
+    finishOlder({
+      usuario: { id: 1, nome: "Ana Antiga" },
+      negocio: null,
+      temNegocio: false
+    });
+
+    await waitFor(() => expect(screen.getByText("Ana Nova")).not.toBeNull());
+    expect(screen.queryByText("Ana Antiga")).toBeNull();
   });
 
   it("limpa a sessão local e encerra o cookie no servidor", async () => {

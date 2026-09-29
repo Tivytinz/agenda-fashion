@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { track } from "../analytics/track";
 import { apiRequest } from "../api/client";
-import { getPlanIntentPath, normalizePlanSlug } from "../auth/session";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { FlowSteps } from "../components/FlowSteps";
 import { PublicShareButton } from "../components/PublicShareButton";
@@ -21,27 +20,6 @@ function CopyIcon({ className = "" }) {
       <rect fill="none" height="12" rx="2" stroke="currentColor" strokeWidth="1.8" width="12" x="8" y="8" />
       <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
     </svg>
-  );
-}
-
-function SelectedPlanCheckoutLink() {
-  const [searchParams] = useSearchParams();
-  const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
-
-  if (!selectedPlan) {
-    return null;
-  }
-
-  return (
-    <p className="muted">
-      Se quiser, você também pode concluir agora o plano que escolheu.{" "}
-      <Link
-        className="text-button"
-        to={getPlanIntentPath("/checkout", selectedPlan)}
-      >
-        Concluir plano escolhido
-      </Link>
-    </p>
   );
 }
 
@@ -138,13 +116,32 @@ export function validateSchedule(days, { requireActiveDay = false } = {}) {
 }
 
 export function ScheduleSettingsPage() {
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const contextoAgenda = location.pathname.startsWith("/profissional/")
     ? "profissional"
     : "dono";
-  const [searchParams] = useSearchParams();
-  const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
+  const professionalContext =
+    contextoAgenda === "profissional";
+  const targetProfessionalId = useMemo(() => {
+    if (professionalContext) return null;
+
+    const value =
+      new URLSearchParams(
+        location.search
+      ).get("profissional");
+    const id = Number(value);
+
+    return Number.isInteger(id) && id > 0
+      ? id
+      : null;
+  }, [
+    location.search,
+    professionalContext
+  ]);
+  const ownerTeamSchedule =
+    !professionalContext &&
+    Boolean(targetProfessionalId);
   const [config, setConfig] = useState(null);
   const [days, setDays] = useState([]);
   const [expandedPauses, setExpandedPauses] = useState(() => new Set());
@@ -156,11 +153,29 @@ export function ScheduleSettingsPage() {
   const [activationNextStep, setActivationNextStep] = useState(false);
   const [businessContext, setBusinessContext] = useState(null);
   const [businessContextLoading, setBusinessContextLoading] = useState(false);
+  const [scheduleProfessional, setScheduleProfessional] = useState(null);
+  const [availabilityPending, setAvailabilityPending] = useState(false);
+  const shareOnboardingRequested = useMemo(
+    () => new URLSearchParams(location.search).get("onboarding") === "divulgacao",
+    [location.search]
+  );
+  const showActivationNextStep =
+    activationNextStep && shareOnboardingRequested;
+
+  useEffect(() => {
+    if (!shareOnboardingRequested && activationNextStep) {
+      setActivationNextStep(false);
+    }
+  }, [activationNextStep, shareOnboardingRequested]);
 
   const load = useCallback(() => {
     setError("");
 
-    apiRequest("/agenda-configuracao", {
+    const path = ownerTeamSchedule
+      ? `/agenda-configuracao?profissionalId=${encodeURIComponent(targetProfessionalId)}`
+      : "/agenda-configuracao";
+
+    apiRequest(path, {
       headers: {
         "X-AF-Contexto": contextoAgenda
       }
@@ -171,16 +186,22 @@ export function ScheduleSettingsPage() {
           .map(normalizeDay)
           .sort((a, b) => a.diaSemana - b.diaSemana);
         const configuredAt = current.configurado_em ?? current.configuradoEm ?? null;
+        const scheduleOrigin = current.origem_horarios ?? current.origemHorarios ?? "padrao_af";
+        const personalized = scheduleOrigin === "personalizado";
 
+        setScheduleProfessional(
+          result.profissional || null
+        );
         setConfig({
           duracaoPadrao: current.duracao_padrao ?? current.duracaoPadrao ?? 60,
           intervaloMinutos: current.intervalo_minutos ?? current.intervaloMinutos ?? 0,
           antecedenciaAgendamento: current.antecedencia_agendamento ?? current.antecedenciaAgendamento ?? 0,
-          antecedenciaCancelamento: current.antecedencia_cancelamento ?? current.antecedenciaCancelamento ?? 24,
-          configuradoEm: configuredAt
+          antecedenciaCancelamento: current.antecedencia_cancelamento ?? current.antecedenciaCancelamento ?? 2,
+          configuradoEm: configuredAt,
+          origemHorarios: scheduleOrigin
         });
-        setAdvancedOpen(Boolean(configuredAt));
-        setFirstScheduleMode(configuredAt ? "editor" : "quick");
+        setAdvancedOpen(personalized);
+        setFirstScheduleMode(personalized ? "editor" : "quick");
         setDays(normalizedDays);
         setExpandedPauses(new Set(
           normalizedDays
@@ -192,33 +213,33 @@ export function ScheduleSettingsPage() {
           page: "configuracao_agenda",
           mission: "disponibilizar_horarios",
           properties: {
-            status: configuredAt
+            status: personalized
               ? "configurada"
               : "pendente",
-            origem: configuredAt
+            origem: personalized
               ? "editor"
               : "confirmacao_rapida"
           }
         });
       })
       .catch((requestError) => setError(requestError.message));
-  }, [contextoAgenda]);
+  }, [
+    contextoAgenda,
+    ownerTeamSchedule,
+    targetProfessionalId
+  ]);
 
   useEffect(load, [load]);
 
   useEffect(() => {
-    if (!message || activationNextStep) return undefined;
+    if (!message || showActivationNextStep) return undefined;
     const timeout = window.setTimeout(() => setMessage(""), 2800);
     return () => window.clearTimeout(timeout);
-  }, [activationNextStep, message]);
+  }, [message, showActivationNextStep]);
 
   const leadTimeBookingOptions = useMemo(
     () => withCurrentOption(LEAD_TIME_OPTIONS, config?.antecedenciaAgendamento),
     [config?.antecedenciaAgendamento]
-  );
-  const leadTimeCancellationOptions = useMemo(
-    () => withCurrentOption(LEAD_TIME_OPTIONS, config?.antecedenciaCancelamento),
-    [config?.antecedenciaCancelamento]
   );
   const quickSummary = useMemo(() => summarizeSchedule(days), [days]);
 
@@ -296,45 +317,146 @@ export function ScheduleSettingsPage() {
     });
   }
 
-  async function loadBusinessContext() {
+  const loadCanonicalActivationContext = useCallback(async () => {
     setBusinessContextLoading(true);
 
     try {
-      const result = await apiRequest("/configuracoes");
-      const business = result.negocio || result.configuracoes || {};
+      const dashboard =
+        await apiRequest(
+          "/dashboard-dono/ativacao"
+        );
+      const activationState =
+        dashboard
+          ?.proxima_acao_ativacao
+          ?.estado ??
+        null;
+      const hasBookableAvailability =
+        dashboard
+          ?.ativacao
+          ?.possui_disponibilidade_agendavel !==
+        false;
+      const canShare =
+        activationState ===
+          "CONQUISTAR_PRIMEIRO_AGENDAMENTO" &&
+        hasBookableAvailability;
+      const business =
+        dashboard?.negocio || {};
 
-      if (!business.slug) {
+      if (
+        canShare &&
+        business.slug
+      ) {
+        setBusinessContext({
+          id:
+            business.negocio_id ??
+            business.id,
+          name:
+            business.nome ||
+            "Seu negócio",
+          slug:
+            business.slug
+        });
+      } else {
         setBusinessContext(null);
-        return;
       }
 
-      setBusinessContext({
-        id: business.id ?? business.negocio_id,
-        name: business.nome ?? business.nome_negocio ?? "Seu negócio",
-        slug: business.slug
-      });
-    } catch {
-      setBusinessContext(null);
+      return {
+        activationState,
+        canShare,
+      };
     } finally {
       setBusinessContextLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (
+      contextoAgenda !== "dono"
+      || ownerTeamSchedule
+      || !shareOnboardingRequested
+      || config?.origemHorarios !== "personalizado"
+      || activationNextStep
+    ) {
+      return undefined;
+    }
+
+    let active = true;
+
+    loadCanonicalActivationContext()
+      .then(({
+        activationState,
+        canShare,
+      }) => {
+        if (!active) return;
+
+        if (
+          activationState ===
+            "CONQUISTAR_PRIMEIRO_AGENDAMENTO" &&
+          canShare
+        ) {
+          setAvailabilityPending(false);
+          setActivationNextStep(true);
+          return;
+        }
+
+        if (
+          activationState ===
+          "CONQUISTAR_PRIMEIRO_AGENDAMENTO"
+        ) {
+          setActivationNextStep(false);
+          setAvailabilityPending(true);
+          setMessage(
+            "Seu perfil está publicado. Ative pelo menos um dia de atendimento antes de divulgar."
+          );
+          return;
+        }
+
+        navigate("/painel", { replace: true });
+      })
+      .catch(() => {
+        if (!active) return;
+
+        // A URL de onboarding não deve afirmar uma missão sem confirmar
+        // o estado canônico da ativação no backend. Em falha transitória,
+        // volta ao painel com uma mensagem neutra em vez de deixar a dona
+        // presa no editor com um marcador de divulgação não confirmado.
+        navigate("/painel", {
+          replace: true,
+          state: {
+            message: "Não foi possível confirmar a próxima etapa agora."
+          }
+        });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    activationNextStep,
+    config?.origemHorarios,
+    contextoAgenda,
+    loadCanonicalActivationContext,
+    navigate,
+    ownerTeamSchedule,
+    shareOnboardingRequested
+  ]);
 
   async function submit(event) {
     event.preventDefault();
     setError("");
     setMessage("");
 
-    const primeiraConfiguracao = !config?.configuradoEm;
+    const primeiraConfiguracao =
+      config?.origemHorarios !== "personalizado";
     const onboardingDona =
-      primeiraConfiguracao && contextoAgenda === "dono";
+      primeiraConfiguracao &&
+      contextoAgenda === "dono" &&
+      !ownerTeamSchedule;
     const submitSource = event.nativeEvent?.submitter?.dataset?.source;
     const origem = primeiraConfiguracao
       ? submitSource === "confirmacao_rapida"
         ? "confirmacao_rapida"
-        : submitSource === "pular_sugestao"
-          ? "sugestao_aceita_ao_pular"
-          : "ajuste_manual"
+        : "ajuste_manual"
       : "editor";
 
     track("agenda_configuracao_salvamento_tentado", {
@@ -348,9 +470,8 @@ export function ScheduleSettingsPage() {
       }
     });
 
-    const validationError = validateSchedule(days, {
-      requireActiveDay: primeiraConfiguracao
-    });
+    const validationError =
+      validateSchedule(days);
     if (validationError) {
       setError(validationError);
       track("agenda_configuracao_erro", {
@@ -364,28 +485,84 @@ export function ScheduleSettingsPage() {
       return;
     }
 
+    const cancellationLeadValue =
+      config?.antecedenciaCancelamento;
+    const cancellationLeadIsBlank =
+      typeof cancellationLeadValue ===
+        "string" &&
+      cancellationLeadValue.trim() === "";
+
+    if (
+      !professionalContext &&
+      !ownerTeamSchedule &&
+      (
+        cancellationLeadIsBlank ||
+        !Number.isInteger(
+          Number(
+            cancellationLeadValue
+          )
+        ) ||
+        Number(
+          cancellationLeadValue
+        ) < 0 ||
+        Number(
+          cancellationLeadValue
+        ) > 168
+      )
+    ) {
+      setError(
+        "A antecedência para cancelamento deve estar entre 0 e 168 horas."
+      );
+      return;
+    }
+
     setSaving(true);
     try {
+      const body = {
+        ...config,
+        horarios: days
+      };
+
+      if (
+        professionalContext ||
+        ownerTeamSchedule
+      ) {
+        delete body.antecedenciaCancelamento;
+      }
+
+      if (ownerTeamSchedule) {
+        body.profissionalId =
+          targetProfessionalId;
+      }
+
       const result = await apiRequest("/agenda-configuracao", {
         method: "PUT",
         headers: {
           "X-AF-Contexto": contextoAgenda
         },
-        body: { ...config, horarios: days }
+        body
       });
       const savedConfig = result.configuracao || {};
       const configuradoEm = savedConfig.configurado_em
         ?? savedConfig.configuradoEm
         ?? config.configuradoEm
         ?? null;
+      const origemHorarios = savedConfig.origem_horarios
+        ?? savedConfig.origemHorarios
+        ?? "personalizado";
 
       setConfig((current) => ({
         ...current,
-        configuradoEm
+        configuradoEm,
+        origemHorarios
       }));
       setMessage(result.mensagem || "Horários atualizados.");
 
-      if (onboardingDona && configuradoEm) {
+      if (
+        onboardingDona &&
+        origemHorarios ===
+          "personalizado"
+      ) {
         track("agenda_configurada", {
           page: "configuracao_agenda",
           mission: "disponibilizar_horarios",
@@ -394,31 +571,86 @@ export function ScheduleSettingsPage() {
             origem
           }
         });
+      }
 
-        const quickAction = submitSource === "confirmacao_rapida"
-          || submitSource === "pular_sugestao";
+      const shouldContinueActivation =
+        contextoAgenda === "dono" &&
+        !ownerTeamSchedule &&
+        (
+          onboardingDona ||
+          shareOnboardingRequested ||
+          availabilityPending
+        );
 
-        if (quickAction) {
-          const destination = selectedPlan
-            ? getPlanIntentPath("/checkout", selectedPlan)
-            : "/painel";
-          navigate(destination, {
+      if (
+        shouldContinueActivation &&
+        origemHorarios ===
+          "personalizado"
+      ) {
+        let activationContext = null;
+        try {
+          activationContext =
+            await loadCanonicalActivationContext();
+        } catch {
+          navigate("/painel", {
             replace: true,
             state: {
-              message: submitSource === "pular_sugestao"
-                ? "Horários sugeridos salvos. Você pode ajustá-los quando quiser."
-                : "Horários confirmados. Você pode ajustá-los quando quiser."
+              message: "Horários salvos. Não foi possível confirmar a próxima etapa agora."
             }
           });
           return;
         }
 
-        const publicadoAgora = result.publicacao?.publicado === true;
+        if (
+          activationContext
+            ?.activationState ===
+            "CONQUISTAR_PRIMEIRO_AGENDAMENTO" &&
+          activationContext?.canShare
+        ) {
+          setAvailabilityPending(false);
+          setActivationNextStep(true);
 
-        setActivationNextStep(publicadoAgora);
-        if (publicadoAgora) {
-          void loadBusinessContext();
+          const params = new URLSearchParams(location.search);
+          params.set("onboarding", "divulgacao");
+          navigate(`${location.pathname}?${params.toString()}`, {
+            replace: true,
+            state: location.state
+          });
+          return;
         }
+
+        if (
+          activationContext
+            ?.activationState ===
+          "CONQUISTAR_PRIMEIRO_AGENDAMENTO"
+        ) {
+          setActivationNextStep(false);
+          setAvailabilityPending(true);
+          setMessage(
+            "Horários salvos. Ative pelo menos um dia de atendimento antes de divulgar."
+          );
+
+          if (!shareOnboardingRequested) {
+            const params =
+              new URLSearchParams(
+                location.search
+              );
+            params.set(
+              "onboarding",
+              "divulgacao"
+            );
+            navigate(
+              `${location.pathname}?${params.toString()}`,
+              {
+                replace: true,
+                state: location.state
+              }
+            );
+          }
+          return;
+        }
+
+        navigate("/painel", { replace: true });
       }
     } catch (requestError) {
       setError(requestError.message);
@@ -438,11 +670,16 @@ export function ScheduleSettingsPage() {
   if (!config && !error) return <main className="workspace-page"><LoadingState>Carregando horários...</LoadingState></main>;
   if (!config && error) return <main className="workspace-page"><ErrorState message={error} onRetry={load} /></main>;
 
-  const professionalContext = contextoAgenda === "profissional";
   const firstConfiguration =
-    !config.configuradoEm && !professionalContext;
+    config.origemHorarios !== "personalizado" &&
+    !professionalContext &&
+    !ownerTeamSchedule;
   const firstProfessionalConfiguration =
-    !config.configuradoEm && professionalContext;
+    config.origemHorarios !== "personalizado" &&
+    (
+      professionalContext ||
+      ownerTeamSchedule
+    );
   const quickConfirmation =
     firstConfiguration && firstScheduleMode === "quick";
 
@@ -453,10 +690,19 @@ export function ScheduleSettingsPage() {
           <p className="eyebrow">Disponibilidade</p>
           <h1>Horários de atendimento</h1>
           <p>A cliente verá apenas horários que realmente podem ser agendados.</p>
+          {ownerTeamSchedule && (
+            <p className="muted">
+              Configurando a disponibilidade de{" "}
+              <strong>
+                {scheduleProfessional?.nome ||
+                  "uma profissional da equipe"}
+              </strong>.
+            </p>
+          )}
         </div>
       </header>
 
-      {firstConfiguration && !activationNextStep && (
+      {firstConfiguration && !showActivationNextStep && (
         <FlowSteps
           ariaLabel="Etapas iniciais do negócio"
           current={3}
@@ -464,7 +710,7 @@ export function ScheduleSettingsPage() {
         />
       )}
 
-      {activationNextStep ? (
+      {showActivationNextStep ? (
         <section
           aria-labelledby="schedule-next-step-title"
           aria-live="polite"
@@ -473,17 +719,27 @@ export function ScheduleSettingsPage() {
           <div className="onboarding-complete-copy">
             <p className="eyebrow onboarding-complete-eyebrow">
               <ConfirmationIcon className="onboarding-complete-icon" />
-              <span>Negócio publicado <span aria-hidden="true">✨</span></span>
+              <span>
+                {businessContext
+                  ? <>Negócio publicado <span aria-hidden="true">✨</span></>
+                  : "Horários salvos"}
+              </span>
             </p>
-            <h2 id="schedule-next-step-title">Agora divulgue seu perfil</h2>
+            <h2 id="schedule-next-step-title">
+              {businessContext ? "Agora divulgue seu perfil" : "Sua agenda foi atualizada"}
+            </h2>
             <p className="schedule-publish-status">
               <ConfirmationIcon className="schedule-save-icon" />
-              <span>{message || "Horários confirmados. Seu negócio está publicado."}</span>
+              <span>
+                {businessContext
+                  ? message || "Horários confirmados. Seu negócio está publicado."
+                  : "Os horários foram salvos, mas não conseguimos carregar seu perfil agora."}
+              </span>
             </p>
             <p className="muted">
-              Sua próxima ação é levar este link para as clientes. Compartilhe no
-              WhatsApp ou copie para usar no Instagram e conduza as pessoas direto
-              aos seus serviços e horários disponíveis.
+              {businessContext
+                ? "Sua próxima ação é levar este link para as clientes. Compartilhe no WhatsApp ou copie para usar no Instagram e conduza as pessoas direto aos seus serviços e horários disponíveis."
+                : "Você pode seguir para o painel sem perder a configuração. A divulgação continua disponível quando o perfil puder ser carregado novamente."}
             </p>
           </div>
 
@@ -528,7 +784,6 @@ export function ScheduleSettingsPage() {
               </Link>
             )}
           </div>
-          <SelectedPlanCheckoutLink />
         </section>
       ) : (
         <form className="panel stack-form schedule-settings-form" onSubmit={submit}>
@@ -545,7 +800,7 @@ export function ScheduleSettingsPage() {
                 <h2 id="schedule-activation-title">Confirme quando você atende</h2>
                 <p className="muted">
                   O Agenda Fashion preparou horários sugeridos para você começar.
-                  Confirme, pule a edição por agora ou ajuste sua disponibilidade antes de continuar.
+                  Confirme a sugestão ou ajuste sua disponibilidade antes de continuar.
                 </p>
               </div>
 
@@ -567,31 +822,21 @@ export function ScheduleSettingsPage() {
 
               <p className="schedule-quick-assurance">
                 <span aria-hidden="true">✓</span>{" "}
-                Ao confirmar ou pular, estes horários sugeridos serão salvos. Você poderá editá-los depois.
+                Ao confirmar, estes horários sugeridos serão salvos. Você poderá editá-los depois.
               </p>
 
               {error && <p className="form-error schedule-settings-error" role="alert">{error}</p>}
 
               <div className="schedule-quick-actions">
                 {quickSummary.length > 0 && (
-                  <>
-                    <button
-                      className="button"
-                      data-source="confirmacao_rapida"
-                      disabled={saving}
-                      type="submit"
-                    >
-                      {saving ? "Salvando..." : "Confirmar horários"}
-                    </button>
-                    <button
-                      className="button button-secondary"
-                      data-source="pular_sugestao"
-                      disabled={saving}
-                      type="submit"
-                    >
-                      {saving ? "Salvando..." : "Pular por agora"}
-                    </button>
-                  </>
+                  <button
+                    className="button"
+                    data-source="confirmacao_rapida"
+                    disabled={saving}
+                    type="submit"
+                  >
+                    {saving ? "Salvando..." : "Confirmar horários"}
+                  </button>
                 )}
                 <button
                   className="text-button"
@@ -615,7 +860,9 @@ export function ScheduleSettingsPage() {
                   <p className="muted">
                     {professionalContext
                       ? "Ative os dias em que você atende neste negócio e ajuste início, fim e pausas. Você poderá voltar e editar estes horários quando quiser."
-                      : "Ative os dias em que atende e ajuste início, fim e pausas. Ao salvar pela primeira vez, o AF confirma sua agenda. Você poderá voltar e editar estes horários quando quiser."}
+                      : ownerTeamSchedule
+                        ? "Ajuste os dias, horários e pausas desta profissional. A política de cancelamento continua pertencendo ao negócio."
+                        : "Ative os dias em que atende e ajuste início, fim e pausas. Ao salvar pela primeira vez, o AF confirma sua agenda. Você poderá voltar e editar estes horários quando quiser."}
                   </p>
                 </section>
               )}
@@ -755,15 +1002,41 @@ export function ScheduleSettingsPage() {
                       {leadTimeBookingOptions.map((value) => <option key={value} value={value}>{formatLeadTime(value)}</option>)}
                     </select>
                   </label>
-                  <label>
-                    Antecedência para cancelar
-                    <select onChange={(e) => setConfig({ ...config, antecedenciaCancelamento: Number(e.target.value) })} value={config.antecedenciaCancelamento}>
-                      {leadTimeCancellationOptions.map((value) => <option key={value} value={value}>{formatLeadTime(value)}</option>)}
-                    </select>
-                  </label>
+                  {!professionalContext && !ownerTeamSchedule && (
+                    <label>
+                      Antecedência para cancelar
+                      <input
+                        aria-label="Antecedência para cancelar"
+                        inputMode="numeric"
+                        max="168"
+                        min="0"
+                        onChange={(e) => setConfig({
+                          ...config,
+                          antecedenciaCancelamento:
+                            e.target.value === ""
+                              ? ""
+                              : Number(e.target.value)
+                        })}
+                        step="1"
+                        type="number"
+                        value={config.antecedenciaCancelamento}
+                      />
+                      <small className="muted">
+                        De 0 a 168 horas. O padrão do AF é 2 horas.
+                      </small>
+                    </label>
+                  )}
                 </section>
               </details>
 
+              {availabilityPending && (
+                <p
+                  className="muted"
+                  role="status"
+                >
+                  Seu perfil está publicado, mas ainda não há disponibilidade para novas reservas. Ative pelo menos um dia de atendimento antes de divulgar.
+                </p>
+              )}
               {error && <p className="form-error schedule-settings-error" role="alert">{error}</p>}
               <div className="form-actions schedule-save-bar">
                 <div className="schedule-save-feedback" aria-live="polite">

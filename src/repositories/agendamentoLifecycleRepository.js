@@ -375,8 +375,46 @@ async function listarAgendamentosProfissionaisDoNegocioPorPeriodo({
           ELSE NULL
         END AS agendamento_id,
         a.profissional_id,
-        TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
-        TO_CHAR(a.horario::time, 'HH24:MI') AS hora,
+        COALESCE(
+          TO_CHAR(
+            a.inicio_previsto_em
+              AT TIME ZONE COALESCE(
+                NULLIF(
+                  BTRIM(
+                    negocio_contexto
+                      .fuso_horario
+                  ),
+                  ''
+                ),
+                'America/Sao_Paulo'
+              ),
+            'YYYY-MM-DD'
+          ),
+          TO_CHAR(
+            a.data,
+            'YYYY-MM-DD'
+          )
+        ) AS data,
+        COALESCE(
+          TO_CHAR(
+            a.inicio_previsto_em
+              AT TIME ZONE COALESCE(
+                NULLIF(
+                  BTRIM(
+                    negocio_contexto
+                      .fuso_horario
+                  ),
+                  ''
+                ),
+                'America/Sao_Paulo'
+              ),
+            'HH24:MI'
+          ),
+          TO_CHAR(
+            a.horario::time,
+            'HH24:MI'
+          )
+        ) AS hora,
         CASE
           WHEN a.negocio_id = $1 THEN a.status
           ELSE 'agendado'
@@ -443,6 +481,9 @@ async function listarAgendamentosProfissionaisDoNegocioPorPeriodo({
           ELSE FALSE
         END AS pode_marcar_realizado
       FROM agendamentos a
+      INNER JOIN negocios negocio_contexto
+        ON negocio_contexto.id = $1
+        AND negocio_contexto.ativo = TRUE
       INNER JOIN negocios n_agendamento
         ON n_agendamento.id = a.negocio_id
       LEFT JOIN usuarios c
@@ -452,7 +493,22 @@ async function listarAgendamentosProfissionaisDoNegocioPorPeriodo({
         ON s.id = a.servico_id
         AND s.negocio_id = $1
       WHERE a.profissional_id = ANY($2::int[])
-        AND a.data BETWEEN $3 AND $4
+        AND COALESCE(
+          (
+            a.inicio_previsto_em
+              AT TIME ZONE COALESCE(
+                NULLIF(
+                  BTRIM(
+                    negocio_contexto
+                      .fuso_horario
+                  ),
+                  ''
+                ),
+                'America/Sao_Paulo'
+              )
+          )::date,
+          a.data
+        ) BETWEEN $3 AND $4
         AND (
           (
             a.negocio_id = $1
@@ -464,8 +520,8 @@ async function listarAgendamentosProfissionaisDoNegocioPorPeriodo({
           )
         )
       ORDER BY
-        a.data ASC,
-        a.horario ASC
+        data ASC,
+        hora ASC
     `,
     [negocioId, profissionalIds, dataInicio, dataFim]
   );

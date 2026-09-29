@@ -109,7 +109,15 @@ async function buscarAgendamentoHorarioPainel(profissionalId, data, hora) {
 async function buscarNegocioDono(usuarioId) {
   const result = await db.query(
     `
-    SELECT un.negocio_id
+    SELECT
+      un.negocio_id,
+      COALESCE(
+        NULLIF(
+          BTRIM(n.fuso_horario),
+          ''
+        ),
+        'America/Sao_Paulo'
+      ) AS fuso_horario
     FROM usuarios_negocios un
     INNER JOIN usuarios u
       ON u.id = un.usuario_id
@@ -473,16 +481,38 @@ async function buscarAgendamentoHorarioGeral(profissionalId, data, hora) {
   return result.rows[0] || null;
 }
 
-async function buscarVinculoUsuarioNegocio(usuarioId) {
+async function buscarVinculoUsuarioNegocio(
+  usuarioId,
+  papel = null
+) {
+  const papelNormalizado =
+    papel === "dono" ||
+    papel === "profissional"
+      ? papel
+      : null;
+
   const result = await db.query(
     `
-    SELECT un.negocio_id, un.papel
+    SELECT
+      un.negocio_id,
+      un.papel,
+      COALESCE(
+        NULLIF(
+          BTRIM(n.fuso_horario),
+          ''
+        ),
+        'America/Sao_Paulo'
+      ) AS fuso_horario
     FROM usuarios_negocios un
     INNER JOIN usuarios u
       ON u.id = un.usuario_id
     INNER JOIN negocios n
       ON n.id = un.negocio_id
     WHERE un.usuario_id = $1
+      AND (
+        $2::TEXT IS NULL
+        OR un.papel = $2
+      )
       AND un.ativo = TRUE
       AND u.ativo = TRUE
       AND n.ativo = TRUE
@@ -495,7 +525,10 @@ async function buscarVinculoUsuarioNegocio(usuarioId) {
       un.negocio_id ASC
     LIMIT 1
     `,
-    [usuarioId]
+    [
+      usuarioId,
+      papelNormalizado,
+    ]
   );
 
   return result.rows[0] || null;

@@ -26,14 +26,26 @@ da aprovação de um novo modelo externo.
 Separadamente, o AF pode criar orientações de ativação para o dono do negócio:
 
 1. `lembrete_primeiro_servico`, quando ainda não existe serviço ativo;
-2. `lembrete_divulgar_negocio`, quando o negócio está publicado e possui ao
-   menos um serviço ativo.
+2. `lembrete_divulgar_negocio`, quando o negócio está publicado, possui ao
+   menos um serviço ativo, existe disponibilidade estruturalmente agendável e
+   ainda não existe primeiro agendamento válido.
+
+A disponibilidade usada nessa orientação segue a mesma definição operacional da
+ativação: profissional ativa, serviço ativo explicitamente habilitado e pelo
+menos um segmento semanal em que a duração inteira do serviço caiba,
+considerando a pausa. `agenda_configuracoes.configurado_em` não é usado como
+atalho para essa decisão, porque desde a inicialização automática ele é apenas
+marcador técnico. Ocupações e bloqueios pontuais continuam sendo avaliados no
+cálculo público de slots.
 
 Esses dois modelos são mutuamente exclusivos. O banco permite no máximo uma
 mensagem por negócio e data, e a regra de elegibilidade impede que
 os dois sejam enviados para o mesmo negócio no mesmo dia. A cadência atual
 também respeita o intervalo mínimo configurado, então essas orientações não
-representam um envio diário obrigatório.
+representam um envio diário obrigatório. A fila revalida a elegibilidade antes
+de reservar a mensagem e novamente imediatamente antes do envio, cancelando a
+orientação se a disponibilidade deixar de existir ou se o primeiro agendamento
+válido já tiver sido recebido.
 
 Para visitantes, as mensagens para a cliente só são criadas quando ela marca o
 consentimento no formulário do agendamento. Para clientes com conta, vale a

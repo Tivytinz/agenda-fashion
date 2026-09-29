@@ -18,16 +18,16 @@ Preço (`valor_servico`) e duração (`duracao_minutos`) já possuíam snapshots
 O banco preenche os novos snapshots no `INSERT` a partir de dados internos e confiáveis:
 
 - o nome vem de `servicos_negocio` pelo `servico_id`;
-- a antecedência vem de `agenda_configuracoes` pelo `profissional_id`;
-- quando não existe configuração de agenda, a antecedência defensiva permanece em 24 horas, preservando o fallback anterior.
+- a antecedência vem de `negocios.antecedencia_cancelamento`, porque a política pertence ao negócio e não à profissional escolhida;
+- quando não existe configuração de agenda, a antecedência defensiva é de 2 horas, alinhada à política padrão vigente para novas reservas.
 
-A trigger de preenchimento existe também para que uma instância antiga, ainda atendendo durante a troca de release, não consiga criar um agendamento sem os snapshots novos.
+A trigger de preenchimento existe também para que uma instância antiga, ainda atendendo durante a troca de release, não consiga criar um agendamento sem os snapshots novos. Enquanto o campo legado `agenda_configuracoes.antecedencia_cancelamento` existir, um trigger de compatibilidade também mantém versões antigas alinhadas à política canônica: escrita da dona é promovida ao negócio e espelhada para a equipe; escrita de profissional é normalizada para o valor do negócio.
 
 Agendamentos anteriores à migration são preenchidos com o melhor estado disponível no momento da migração. Isso preserva o histórico dali em diante, mas não reconstrói uma regra antiga que já tivesse sido alterada antes da implantação.
 
 ## Política mostrada antes da confirmação
 
-A tela final consulta a política pública vigente do profissional antes de liberar `Confirmar agendamento`.
+A tela final consulta a política pública vigente do negócio antes de liberar `Confirmar agendamento`, independentemente da profissional escolhida.
 
 O frontend envia `antecedencia_cancelamento_esperada` apenas como controle de consistência. Esse valor não define a regra e não é confiado pelo backend. Antes de criar a reserva, o backend consulta novamente a política vigente. Se ela mudou desde a exibição, retorna conflito e a interface recarrega a regra para que a cliente a veja antes de tentar novamente.
 
@@ -40,7 +40,7 @@ Os fluxos de cliente autenticada e visitante usam a mesma implementação de dom
 - horário local do negócio;
 - antecedência congelada no próprio agendamento.
 
-Alterar `agenda_configuracoes.antecedencia_cancelamento` afeta reservas futuras, mas não muda a possibilidade de cancelamento de bookings já criados.
+Alterar `negocios.antecedencia_cancelamento` afeta somente reservas futuras e só pode ser feito pela proprietária. A política padrão é 2 horas e aceita valores inteiros de 0 a 168 horas; valor vazio é inválido e não equivale a zero. O campo legado em `agenda_configuracoes` não é mais fonte de verdade. Nenhuma alteração da política reescreve `agendamentos.antecedencia_cancelamento_horas` já persistido.
 
 O cancelamento continua transacional e continua enfileirando a comunicação operacional existente.
 
