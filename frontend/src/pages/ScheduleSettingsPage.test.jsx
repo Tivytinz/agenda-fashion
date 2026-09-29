@@ -925,7 +925,14 @@ describe("configuração de horários", () => {
     fireEvent.click(
       await screen.findByRole(
         "button",
-        { name: "Confirmar horários" }
+        { name: "Ajustar horários" }
+      )
+    );
+
+    fireEvent.click(
+      screen.getByRole(
+        "button",
+        { name: "Salvar horários e continuar" }
       )
     );
 
