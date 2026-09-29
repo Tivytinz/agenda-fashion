@@ -7,63 +7,82 @@ const ValidationError = require(
   "../errors/ValidationError"
 );
 
-async function agendaVinculoAtivo(req, res, next) {
-  try {
-    const usuarioId = req.user?.id;
+function criarAgendaVinculoAtivo({
+  contextoPadrao = null,
+} = {}) {
+  return async function agendaVinculoAtivo(
+    req,
+    res,
+    next
+  ) {
+    try {
+      const usuarioId = req.user?.id;
 
-    exigirUsuario(usuarioId);
+      exigirUsuario(usuarioId);
 
-    const contextoSolicitado =
-      String(
-        req.get?.("X-AF-Contexto") ||
-        ""
-      )
-        .trim()
-        .toLowerCase();
+      const contextoSolicitado =
+        String(
+          req.get?.("X-AF-Contexto") ||
+          contextoPadrao ||
+          ""
+        )
+          .trim()
+          .toLowerCase();
 
-    if (
-      contextoSolicitado &&
-      ![
-        "dono",
-        "profissional",
-      ].includes(
-        contextoSolicitado
-      )
-    ) {
-      throw new ValidationError(
-        "Contexto da agenda inválido."
+      if (
+        contextoSolicitado &&
+        ![
+          "dono",
+          "profissional",
+        ].includes(
+          contextoSolicitado
+        )
+      ) {
+        throw new ValidationError(
+          "Contexto da agenda inválido."
+        );
+      }
+
+      const papelSolicitado =
+        contextoSolicitado ||
+        null;
+
+      const vinculo =
+        await agendaRepository.buscarVinculoUsuarioNegocio(
+          usuarioId,
+          papelSolicitado
+        );
+
+      exigirPermissao(
+        vinculo,
+        "Seu acesso à agenda não está ativo."
       );
+
+      req.agendaContexto = {
+        negocioId: Number(
+          vinculo.negocio_id
+        ),
+        papel: vinculo.papel,
+        fusoHorario:
+          vinculo.fuso_horario ||
+          "America/Sao_Paulo",
+      };
+
+      return next();
+    } catch (erro) {
+      return next(erro);
     }
-
-    const papelSolicitado =
-      contextoSolicitado ||
-      null;
-
-    const vinculo =
-      await agendaRepository.buscarVinculoUsuarioNegocio(
-        usuarioId,
-        papelSolicitado
-      );
-
-    exigirPermissao(
-      vinculo,
-      "Seu acesso à agenda não está ativo."
-    );
-
-    req.agendaContexto = {
-      negocioId: Number(
-        vinculo.negocio_id
-      ),
-      papel: vinculo.papel,
-      fusoHorario:
-        vinculo.fuso_horario ||
-        "America/Sao_Paulo",
-    };
-
-    return next();
-  } catch (erro) {
-    return next(erro);
-  }
+  };
 }
+
+const agendaVinculoAtivo =
+  criarAgendaVinculoAtivo();
+
+agendaVinculoAtivo.comContextoPadrao = (
+  contextoPadrao
+) =>
+  criarAgendaVinculoAtivo({
+    contextoPadrao,
+  });
 
 module.exports = agendaVinculoAtivo;
