@@ -52,6 +52,15 @@ describe(
         expect(sql).toContain(
           "'cancelado'"
         );
+        expect(sql).toContain(
+          "INNER JOIN agenda_horarios ah"
+        );
+        expect(sql).toContain(
+          "INNER JOIN profissional_servicos ps"
+        );
+        expect(sql).toContain(
+          "AS possui_disponibilidade_agendavel"
+        );
         expect(
           db.query.mock.calls[0][1]
         ).toEqual([11]);

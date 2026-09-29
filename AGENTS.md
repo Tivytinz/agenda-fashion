@@ -175,11 +175,14 @@ A antecedência de cancelamento é uma **política do negócio**, persistida em
 `negocios.antecedencia_cancelamento`, com faixa válida de 0 a 168 horas e
 fallback de 2 horas. Somente a proprietária pode alterá-la; profissionais podem
 editar a própria disponibilidade, mas não essa política. A interface da
-proprietária aceita qualquer hora inteira entre 0 e 168. O campo homônimo em
-`agenda_configuracoes` permanece apenas por compatibilidade de rollout e não
-deve ser usado como fonte de verdade para novas reservas; enquanto esse campo
-legado existir para rollback, alterações autorizadas da política devem espelhá-lo
-transacionalmente em todas as agendas do negócio. Cada booking congela
+proprietária aceita qualquer hora inteira entre 0 e 168; campo vazio é inválido,
+e `0` significa zero horas apenas quando informado explicitamente. O campo
+homônimo em `agenda_configuracoes` permanece apenas por compatibilidade de
+rollout e não deve ser usado como fonte de verdade para novas reservas. Enquanto
+esse campo legado existir para rollback, o runtime novo o espelha
+transacionalmente e a migration de compatibilidade também intercepta escritas de
+versões antigas: escrita da dona atualiza a política canônica e escrita de
+profissional é normalizada para a política do negócio. Cada booking congela
 `antecedencia_cancelamento_horas` no momento da confirmação, e alterações
 posteriores da política do negócio não reescrevem snapshots existentes.
 
@@ -251,9 +254,13 @@ missão de divulgação; a tela de horários não deve depender de
 a missão em refresh/reabertura, sem depender apenas de estado transitório do
 React. Ao restaurar esse marcador, a interface deve confirmar a próxima ação
 canônica no backend. A mesma consulta canônica deve ocorrer imediatamente após
-o primeiro salvamento explícito da agenda e na restauração do marcador; a
-divulgação só aparece enquanto o estado for
-`CONQUISTAR_PRIMEIRO_AGENDAMENTO`. Se o negócio já estiver `ATIVADO` ou tiver
+o primeiro salvamento explícito da agenda e na restauração do marcador. O estado
+canônico continua `CONQUISTAR_PRIMEIRO_AGENDAMENTO` mesmo quando todos os dias
+estão fechados, mas o CTA operacional muda: sem
+`possui_disponibilidade_agendavel`, a interface mantém o editor de horários e
+orienta a ativar disponibilidade antes de divulgar; com disponibilidade
+agendável, apresenta o compartilhamento. Isso não transforma agenda em gate de
+publicação nem em novo estado de ativação. Se o negócio já estiver `ATIVADO` ou tiver
 regredido para serviço/publicação, a interface volta ao painel para apresentar a
 missão correta. URLs antigas não podem ressuscitar a missão concluída. Uma intenção válida de plano
 pago pode ser preservada durante `Negócio → Serviço → Horários`, mas não deve
@@ -279,10 +286,12 @@ timestamps de personalização.
 `negocios.publicacao_exige_agenda` permanece apenas por compatibilidade com
 dados/migrations legados; o runtime atual não deve reintroduzir esse gate.
 
-Depois da passagem pela agenda, a missão principal é divulgar o perfil e
-conquistar o primeiro agendamento. Uma intenção de plano pago não substitui essa
-missão nem provoca checkout automático. Compartilhamento deve reutilizar os links
-públicos rastreáveis existentes do AF.
+Depois da passagem pela agenda, a missão principal é conquistar o primeiro
+agendamento. Quando existe disponibilidade agendável, o CTA operacional é
+divulgar o perfil; sem disponibilidade, a mesma missão orienta primeiro a
+configurar horários. Uma intenção de plano pago não substitui essa missão nem
+provoca checkout automático. Compartilhamento deve reutilizar os links públicos
+rastreáveis existentes do AF.
 
 A disponibilidade continua crítica para gerar slots corretos e pode ser
 acompanhada como diagnóstico operacional separado.

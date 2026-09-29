@@ -30,6 +30,7 @@ describe(
             possui_servico_ativo: true,
             negocio_publicado: true,
             agenda_configurada: true,
+            possui_disponibilidade_agendavel: true,
             primeiro_agendamento_recebido: false,
           });
 
@@ -43,6 +44,7 @@ describe(
           possui_servico_ativo: true,
           negocio_publicado: true,
           agenda_configurada: true,
+          possui_disponibilidade_agendavel: true,
           primeiro_agendamento_recebido: false,
         });
 
@@ -63,6 +65,7 @@ describe(
             possui_servico_ativo: 1,
             negocio_publicado: "true",
             agenda_configurada: null,
+            possui_disponibilidade_agendavel: null,
             primeiro_agendamento_recebido: undefined,
           });
 
@@ -76,6 +79,7 @@ describe(
           possui_servico_ativo: false,
           negocio_publicado: false,
           agenda_configurada: false,
+          possui_disponibilidade_agendavel: false,
           primeiro_agendamento_recebido: false,
         });
       }
@@ -94,6 +98,7 @@ describe(
           possui_servico_ativo: false,
           negocio_publicado: false,
           agenda_configurada: false,
+          possui_disponibilidade_agendavel: false,
           primeiro_agendamento_recebido: false,
         });
 

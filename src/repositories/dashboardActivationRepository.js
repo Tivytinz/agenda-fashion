@@ -45,6 +45,39 @@ async function buscarEstadoAtivacao(
 
         EXISTS (
           SELECT 1
+          FROM usuarios_negocios un
+          INNER JOIN usuarios u
+            ON u.id = un.usuario_id
+          INNER JOIN agenda_horarios ah
+            ON ah.profissional_id =
+              un.usuario_id
+            AND ah.negocio_id =
+              n.id
+          INNER JOIN profissional_servicos ps
+            ON ps.profissional_id =
+              un.usuario_id
+            AND ps.negocio_id =
+              n.id
+          INNER JOIN servicos_negocio s
+            ON s.id = ps.servico_id
+            AND s.negocio_id =
+              n.id
+            AND s.ativo = TRUE
+          WHERE un.negocio_id = n.id
+            AND un.ativo = TRUE
+            AND u.ativo = TRUE
+            AND un.papel IN (
+              'dono',
+              'profissional'
+            )
+            AND ah.trabalha = TRUE
+            AND ah.hora_inicio IS NOT NULL
+            AND ah.hora_fim IS NOT NULL
+            AND ah.hora_inicio < ah.hora_fim
+        ) AS possui_disponibilidade_agendavel,
+
+        EXISTS (
+          SELECT 1
           FROM agendamentos a
           WHERE a.negocio_id = n.id
             AND a.status NOT IN (

@@ -528,6 +528,90 @@ describe("configuração de horários", () => {
       .toBeNull();
   });
 
+  it("restaura o editor em vez da divulgação quando o negócio está sem disponibilidade agendável", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (
+        path === "/agenda-configuracao" &&
+        !options.method
+      ) {
+        return Promise.resolve({
+          configuracao: {
+            duracao_padrao: 60,
+            intervalo_minutos: 0,
+            antecedencia_agendamento: 0,
+            antecedencia_cancelamento: 2,
+            configurado_em:
+              "2026-09-10T05:00:00.000Z",
+            origem_horarios:
+              "personalizado"
+          },
+          horarios: defaultSuggestedWeek()
+        });
+      }
+
+      if (
+        path === "/dashboard-dono/ativacao"
+      ) {
+        return Promise.resolve({
+          negocio:
+            activationBusiness(),
+          ativacao: {
+            possui_servico_ativo:
+              true,
+            negocio_publicado:
+              true,
+            agenda_configurada:
+              true,
+            possui_disponibilidade_agendavel:
+              false,
+            primeiro_agendamento_recebido:
+              false
+          },
+          proxima_acao_ativacao: {
+            estado:
+              "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+            concluido: false,
+            acao: {
+              tipo: "NAVEGAR",
+              rotulo:
+                "Configurar horários",
+              destino:
+                "/painel/horarios"
+            }
+          }
+        });
+      }
+
+      return Promise.reject(
+        new Error(
+          `Rota inesperada: ${path}`
+        )
+      );
+    });
+
+    renderPage(
+      "/painel/horarios?onboarding=divulgacao"
+    );
+
+    expect(
+      await screen.findByText(
+        /ainda não há disponibilidade para novas reservas/i
+      )
+    ).not.toBeNull();
+    expect(
+      screen.queryByRole(
+        "heading",
+        { name: "Agora divulgue seu perfil" }
+      )
+    ).toBeNull();
+    expect(
+      screen.getByRole(
+        "button",
+        { name: "Salvar horários" }
+      )
+    ).not.toBeNull();
+  });
+
   it("volta ao editor quando Horários é aberto sem o marcador de divulgação", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {
@@ -745,6 +829,131 @@ describe("configuração de horários", () => {
       .toBeNull();
   });
 
+  it("mantém o editor e pede disponibilidade antes de divulgar quando todos os dias estão fechados", async () => {
+    const closedWeek = Array.from(
+      { length: 7 },
+      (_, diaSemana) => ({
+        dia_semana: diaSemana,
+        trabalha: false,
+        hora_inicio: null,
+        hora_fim: null,
+        intervalo_inicio: null,
+        intervalo_fim: null
+      })
+    );
+
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (
+        path === "/agenda-configuracao" &&
+        !options.method
+      ) {
+        return Promise.resolve({
+          configuracao: {
+            duracao_padrao: 60,
+            intervalo_minutos: 0,
+            antecedencia_agendamento: 0,
+            antecedencia_cancelamento: 2,
+            configurado_em:
+              "2026-09-10T04:00:00.000Z",
+            origem_horarios:
+              "padrao_af"
+          },
+          horarios: closedWeek
+        });
+      }
+
+      if (
+        path === "/agenda-configuracao" &&
+        options.method === "PUT"
+      ) {
+        return Promise.resolve({
+          mensagem:
+            "Horários salvos.",
+          configuracao: {
+            configurado_em:
+              "2026-09-10T05:00:00.000Z",
+            origem_horarios:
+              "personalizado"
+          },
+          horarios: closedWeek,
+          publicacao: null
+        });
+      }
+
+      if (
+        path === "/dashboard-dono/ativacao"
+      ) {
+        return Promise.resolve({
+          negocio:
+            activationBusiness(),
+          ativacao: {
+            possui_servico_ativo:
+              true,
+            negocio_publicado:
+              true,
+            agenda_configurada:
+              true,
+            possui_disponibilidade_agendavel:
+              false,
+            primeiro_agendamento_recebido:
+              false
+          },
+          proxima_acao_ativacao: {
+            estado:
+              "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+            concluido: false,
+            acao: {
+              tipo: "NAVEGAR",
+              rotulo:
+                "Configurar horários",
+              destino:
+                "/painel/horarios"
+            }
+          }
+        });
+      }
+
+      return Promise.reject(
+        new Error(
+          `Rota inesperada: ${path}`
+        )
+      );
+    });
+
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole(
+        "button",
+        { name: "Confirmar horários" }
+      )
+    );
+
+    expect(
+      await screen.findByText(
+        /ainda não há disponibilidade para novas reservas/i
+      )
+    ).not.toBeNull();
+    expect(
+      screen.queryByRole(
+        "heading",
+        { name: "Agora divulgue seu perfil" }
+      )
+    ).toBeNull();
+    expect(
+      screen.queryByRole(
+        "button",
+        { name: "Compartilhar perfil" }
+      )
+    ).toBeNull();
+    expect(
+      screen.getByRole(
+        "button",
+        { name: "Salvar horários" }
+      )
+    ).not.toBeNull();
+  });
+
   it("não avança quando o salvamento da sugestão falha", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {
@@ -905,6 +1114,55 @@ describe("configuração de horários", () => {
     fireEvent.change(
       cancellationLead,
       { target: { value: "169" } }
+    );
+
+    fireEvent.submit(
+      cancellationLead.closest("form")
+    );
+
+    expect(
+      await screen.findByRole("alert")
+    ).toHaveProperty(
+      "textContent",
+      "A antecedência para cancelamento deve estar entre 0 e 168 horas."
+    );
+
+    expect(
+      apiRequest.mock.calls.filter(
+        ([requestPath, options = {}]) =>
+          requestPath ===
+            "/agenda-configuracao" &&
+          options.method === "PUT"
+      )
+    ).toHaveLength(0);
+  });
+
+  it("rejeita antecedência de cancelamento vazia em vez de salvar zero", async () => {
+    apiRequest.mockResolvedValueOnce({
+      configuracao: {
+        duracao_padrao: 60,
+        intervalo_minutos: 0,
+        antecedencia_agendamento: 0,
+        antecedencia_cancelamento: 24,
+        configurado_em:
+          "2026-09-28T20:00:00.000Z",
+        origem_horarios:
+          "personalizado"
+      },
+      horarios: validWeek()
+    });
+
+    renderPage();
+
+    const cancellationLead =
+      await screen.findByRole(
+        "spinbutton",
+        { name: "Antecedência para cancelar" }
+      );
+
+    fireEvent.change(
+      cancellationLead,
+      { target: { value: "" } }
     );
 
     fireEvent.submit(

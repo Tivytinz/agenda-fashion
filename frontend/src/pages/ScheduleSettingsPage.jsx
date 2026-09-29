@@ -154,6 +154,7 @@ export function ScheduleSettingsPage() {
   const [businessContext, setBusinessContext] = useState(null);
   const [businessContextLoading, setBusinessContextLoading] = useState(false);
   const [scheduleProfessional, setScheduleProfessional] = useState(null);
+  const [availabilityPending, setAvailabilityPending] = useState(false);
   const shareOnboardingRequested = useMemo(
     () => new URLSearchParams(location.search).get("onboarding") === "divulgacao",
     [location.search]
@@ -329,12 +330,20 @@ export function ScheduleSettingsPage() {
           ?.proxima_acao_ativacao
           ?.estado ??
         null;
+      const hasBookableAvailability =
+        dashboard
+          ?.ativacao
+          ?.possui_disponibilidade_agendavel !==
+        false;
+      const canShare =
+        activationState ===
+          "CONQUISTAR_PRIMEIRO_AGENDAMENTO" &&
+        hasBookableAvailability;
       const business =
         dashboard?.negocio || {};
 
       if (
-        activationState ===
-          "CONQUISTAR_PRIMEIRO_AGENDAMENTO" &&
+        canShare &&
         business.slug
       ) {
         setBusinessContext({
@@ -351,7 +360,10 @@ export function ScheduleSettingsPage() {
         setBusinessContext(null);
       }
 
-      return activationState;
+      return {
+        activationState,
+        canShare,
+      };
     } finally {
       setBusinessContextLoading(false);
     }
@@ -371,14 +383,31 @@ export function ScheduleSettingsPage() {
     let active = true;
 
     loadCanonicalActivationContext()
-      .then((activationState) => {
+      .then(({
+        activationState,
+        canShare,
+      }) => {
         if (!active) return;
+
+        if (
+          activationState ===
+            "CONQUISTAR_PRIMEIRO_AGENDAMENTO" &&
+          canShare
+        ) {
+          setAvailabilityPending(false);
+          setActivationNextStep(true);
+          return;
+        }
 
         if (
           activationState ===
           "CONQUISTAR_PRIMEIRO_AGENDAMENTO"
         ) {
-          setActivationNextStep(true);
+          setActivationNextStep(false);
+          setAvailabilityPending(true);
+          setMessage(
+            "Seu perfil está publicado. Ative pelo menos um dia de atendimento antes de divulgar."
+          );
           return;
         }
 
@@ -456,20 +485,28 @@ export function ScheduleSettingsPage() {
       return;
     }
 
+    const cancellationLeadValue =
+      config?.antecedenciaCancelamento;
+    const cancellationLeadIsBlank =
+      typeof cancellationLeadValue ===
+        "string" &&
+      cancellationLeadValue.trim() === "";
+
     if (
       !professionalContext &&
       !ownerTeamSchedule &&
       (
+        cancellationLeadIsBlank ||
         !Number.isInteger(
           Number(
-            config?.antecedenciaCancelamento
+            cancellationLeadValue
           )
         ) ||
         Number(
-          config?.antecedenciaCancelamento
+          cancellationLeadValue
         ) < 0 ||
         Number(
-          config?.antecedenciaCancelamento
+          cancellationLeadValue
         ) > 168
       )
     ) {
@@ -521,7 +558,11 @@ export function ScheduleSettingsPage() {
       }));
       setMessage(result.mensagem || "Horários atualizados.");
 
-      if (onboardingDona && origemHorarios === "personalizado") {
+      if (
+        onboardingDona &&
+        origemHorarios ===
+          "personalizado"
+      ) {
         track("agenda_configurada", {
           page: "configuracao_agenda",
           mission: "disponibilizar_horarios",
@@ -530,10 +571,25 @@ export function ScheduleSettingsPage() {
             origem
           }
         });
+      }
 
-        let activationState = null;
+      const shouldContinueActivation =
+        contextoAgenda === "dono" &&
+        !ownerTeamSchedule &&
+        (
+          onboardingDona ||
+          shareOnboardingRequested ||
+          availabilityPending
+        );
+
+      if (
+        shouldContinueActivation &&
+        origemHorarios ===
+          "personalizado"
+      ) {
+        let activationContext = null;
         try {
-          activationState =
+          activationContext =
             await loadCanonicalActivationContext();
         } catch {
           navigate("/painel", {
@@ -546,9 +602,12 @@ export function ScheduleSettingsPage() {
         }
 
         if (
-          activationState ===
-          "CONQUISTAR_PRIMEIRO_AGENDAMENTO"
+          activationContext
+            ?.activationState ===
+            "CONQUISTAR_PRIMEIRO_AGENDAMENTO" &&
+          activationContext?.canShare
         ) {
+          setAvailabilityPending(false);
           setActivationNextStep(true);
 
           const params = new URLSearchParams(location.search);
@@ -557,6 +616,37 @@ export function ScheduleSettingsPage() {
             replace: true,
             state: location.state
           });
+          return;
+        }
+
+        if (
+          activationContext
+            ?.activationState ===
+          "CONQUISTAR_PRIMEIRO_AGENDAMENTO"
+        ) {
+          setActivationNextStep(false);
+          setAvailabilityPending(true);
+          setMessage(
+            "Horários salvos. Ative pelo menos um dia de atendimento antes de divulgar."
+          );
+
+          if (!shareOnboardingRequested) {
+            const params =
+              new URLSearchParams(
+                location.search
+              );
+            params.set(
+              "onboarding",
+              "divulgacao"
+            );
+            navigate(
+              `${location.pathname}?${params.toString()}`,
+              {
+                replace: true,
+                state: location.state
+              }
+            );
+          }
           return;
         }
 
@@ -939,6 +1029,14 @@ export function ScheduleSettingsPage() {
                 </section>
               </details>
 
+              {availabilityPending && (
+                <p
+                  className="muted"
+                  role="status"
+                >
+                  Seu perfil está publicado, mas ainda não há disponibilidade para novas reservas. Ative pelo menos um dia de atendimento antes de divulgar.
+                </p>
+              )}
               {error && <p className="form-error schedule-settings-error" role="alert">{error}</p>}
               <div className="form-actions schedule-save-bar">
                 <div className="schedule-save-feedback" aria-live="polite">

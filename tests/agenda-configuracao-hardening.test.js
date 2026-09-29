@@ -488,6 +488,67 @@ describe(
     );
 
     test(
+      "rejeita antecedência de cancelamento vazia em vez de convertê-la para zero",
+      async () => {
+        await expect(
+          service
+            .salvarMinhaConfiguracao({
+              usuarioId: 7,
+              contexto: "dono",
+              duracaoPadrao: 60,
+              intervaloMinutos: 10,
+              antecedenciaAgendamento: 2,
+              antecedenciaCancelamento: "",
+              horarios,
+            })
+        ).rejects.toMatchObject({
+          statusCode: 400,
+        });
+
+        expect(
+          repository
+            .executarTransacao
+        ).not.toHaveBeenCalled();
+        expect(
+          repository
+            .atualizarPoliticaCancelamentoNegocio
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "repara o espelho legado mesmo quando a política canônica não mudou",
+      async () => {
+        repository
+          .buscarPoliticaCancelamentoNegocio
+          .mockResolvedValue({
+            antecedencia_cancelamento:
+              24,
+          });
+
+        await service
+          .salvarMinhaConfiguracao({
+            usuarioId: 7,
+            contexto: "dono",
+            duracaoPadrao: 60,
+            intervaloMinutos: 10,
+            antecedenciaAgendamento: 2,
+            antecedenciaCancelamento: 24,
+            horarios,
+          });
+
+        expect(
+          repository
+            .atualizarPoliticaCancelamentoNegocio
+        ).toHaveBeenCalledWith(
+          11,
+          24,
+          client
+        );
+      }
+    );
+
+    test(
       "profissional não altera a política mesmo enviando outro valor",
       async () => {
         repository

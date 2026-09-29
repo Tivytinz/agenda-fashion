@@ -190,6 +190,36 @@ describe(
     );
 
     test(
+      "mantém o estado de conquista mas pede horários antes de divulgar quando não há disponibilidade agendável",
+      () => {
+        const resultado =
+          resolverProximaAcaoAtivacao({
+            possui_servico_ativo: true,
+            agenda_configurada: true,
+            negocio_publicado: true,
+            possui_disponibilidade_agendavel:
+              false,
+            primeiro_agendamento_recebido:
+              false,
+          });
+
+        expect(resultado).toMatchObject({
+          estado:
+            ESTADOS_PROXIMA_ACAO_ATIVACAO
+              .CONQUISTAR_PRIMEIRO_AGENDAMENTO,
+          concluido: false,
+          titulo:
+            "Adicione horários para receber agendamentos",
+          acao: {
+            tipo: "NAVEGAR",
+            rotulo: "Configurar horários",
+            destino: "/painel/horarios",
+          },
+        });
+      }
+    );
+
+    test(
       "marca somente o primeiro agendamento como conclusão da ativação",
       () => {
         const resultado =

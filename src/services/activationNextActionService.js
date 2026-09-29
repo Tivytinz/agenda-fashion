@@ -19,6 +19,10 @@ function resolverProximaAcaoAtivacao(ativacao = {}) {
   const negocioPublicado = ativacao?.negocio_publicado === true;
   const primeiroAgendamentoRecebido =
     ativacao?.primeiro_agendamento_recebido === true;
+  const semDisponibilidadeAgendavel =
+    ativacao
+      ?.possui_disponibilidade_agendavel ===
+    false;
 
   if (!possuiServicoAtivo) {
     const primeiraInclusao = !possuiServico;
@@ -52,6 +56,22 @@ function resolverProximaAcaoAtivacao(ativacao = {}) {
   }
 
   if (!primeiroAgendamentoRecebido) {
+    if (semDisponibilidadeAgendavel) {
+      return {
+        estado:
+          ESTADOS_PROXIMA_ACAO_ATIVACAO.CONQUISTAR_PRIMEIRO_AGENDAMENTO,
+        concluido: false,
+        titulo:
+          "Adicione horários para receber agendamentos",
+        mensagem:
+          "Seu perfil está publicado, mas ainda não há uma disponibilidade que permita novas reservas. Ative pelo menos um dia de atendimento antes de divulgar.",
+        acao: acaoNavegacao(
+          "Configurar horários",
+          "/painel/horarios"
+        ),
+      };
+    }
+
     return {
       estado:
         ESTADOS_PROXIMA_ACAO_ATIVACAO.CONQUISTAR_PRIMEIRO_AGENDAMENTO,

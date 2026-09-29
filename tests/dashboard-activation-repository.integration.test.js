@@ -61,8 +61,39 @@ describe(
           possui_servico_ativo: true,
           negocio_publicado: true,
           agenda_configurada: true,
+          possui_disponibilidade_agendavel:
+            true,
           primeiro_agendamento_recebido: false,
         });
+
+        await db.query(
+          `
+            UPDATE agenda_horarios
+            SET
+              trabalha = FALSE,
+              hora_inicio = NULL,
+              hora_fim = NULL,
+              intervalo_inicio = NULL,
+              intervalo_fim = NULL
+            WHERE profissional_id = $1
+              AND negocio_id = $2
+          `,
+          [
+            cenario.profissional.id,
+            cenario.negocioId,
+          ]
+        );
+
+        const semDisponibilidade =
+          await dashboardActivationRepository
+            .buscarEstadoAtivacao(
+              cenario.negocioId
+            );
+
+        expect(
+          semDisponibilidade
+            .possui_disponibilidade_agendavel
+        ).toBe(false);
 
         await db.query(
           `
@@ -107,6 +138,8 @@ describe(
           possui_servico_ativo: false,
           negocio_publicado: false,
           agenda_configurada: false,
+          possui_disponibilidade_agendavel:
+            false,
           primeiro_agendamento_recebido: false,
         });
       }

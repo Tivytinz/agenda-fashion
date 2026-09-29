@@ -14,7 +14,8 @@ A decisão é feita no backend a partir do estado canônico do negócio:
 
 - `possui_servico_ativo`: existe ao menos um registro ativo em `servicos_negocio` para o negócio;
 - `negocio_publicado`: `negocios.publicado = TRUE`;
-- `primeiro_agendamento_recebido`: existe ao menos um agendamento não cancelado para o negócio. O nome do campo é preservado por compatibilidade, mas um cancelamento deixa de encerrar a ativação se não existir outro agendamento válido.
+- `primeiro_agendamento_recebido`: existe ao menos um agendamento não cancelado para o negócio. O nome do campo é preservado por compatibilidade, mas um cancelamento deixa de encerrar a ativação se não existir outro agendamento válido;
+- `possui_disponibilidade_agendavel`: diagnóstico operacional que indica se existe profissional ativa, serviço ativo habilitado e ao menos uma faixa semanal ativa no negócio. Esse sinal escolhe o CTA dentro de `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, mas não cria um estado novo nem vira gate de publicação.
 
 O frontend não recalcula a próxima etapa usando visitas ao perfil, métricas de conversão, pendências de publicação ou outras heurísticas.
 
@@ -27,7 +28,7 @@ A prioridade oficial é:
 3. `CONQUISTAR_PRIMEIRO_AGENDAMENTO`
 4. `ATIVADO`
 
-A ordem é deliberada e também protege estados legados ou regressões operacionais. Um negócio que já recebeu agendamento, mas perdeu todos os serviços ativos, volta para `GARANTIR_SERVICO_ATIVO`. Disponibilidade não altera essa ordem: o AF a inicializa automaticamente e a profissional pode personalizá-la depois.
+A ordem é deliberada e também protege estados legados ou regressões operacionais. Um negócio que já recebeu agendamento, mas perdeu todos os serviços ativos, volta para `GARANTIR_SERVICO_ATIVO`. Disponibilidade não altera essa ordem nem a publicação. Dentro de `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, porém, ausência de disponibilidade agendável troca o CTA de compartilhamento por `Configurar horários`; assim que existir faixa elegível, a mesma etapa volta a recomendar divulgação.
 
 Esses estados são mecanismo interno do produto. No dashboard, a profissional recebe uma única missão útil de cada vez. A interface não precisa expor a quantidade total de estados nem apresentar `X de N etapas concluídas` quando essa informação não ajuda a decidir o que fazer agora.
 
@@ -52,6 +53,7 @@ Exemplo:
     "possui_servico_ativo": true,
     "negocio_publicado": true,
     "agenda_configurada": true,
+    "possui_disponibilidade_agendavel": true,
     "primeiro_agendamento_recebido": false
   },
   "proxima_acao_ativacao": {
@@ -67,7 +69,7 @@ Exemplo:
 }
 ```
 
-Ações de navegação usam `tipo = NAVEGAR`, `rotulo` e `destino`. Divulgação usa `tipo = COMPARTILHAR_PERFIL` para reutilizar o mecanismo rastreável de compartilhamento já existente no AF.
+Ações de navegação usam `tipo = NAVEGAR`, `rotulo` e `destino`. Divulgação usa `tipo = COMPARTILHAR_PERFIL` para reutilizar o mecanismo rastreável de compartilhamento já existente no AF. Em `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, `possui_disponibilidade_agendavel = false` produz `NAVEGAR → /painel/horarios`; esse ajuste é operacional e mantém o mesmo estado canônico.
 
 O contrato pode continuar entregando os sinais canônicos para analytics, diagnóstico e compatibilidade sem obrigar a interface a exibi-los como checklist.
 

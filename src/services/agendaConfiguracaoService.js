@@ -467,10 +467,24 @@ async function salvarMinhaConfiguracao({
       contexto
     );
 
-  const antecedenciaCancelamentoSolicitada =
+  const cancelamentoInformado =
     contextoNormalizado === "dono" &&
     antecedenciaCancelamento !== undefined &&
-    antecedenciaCancelamento !== null
+    antecedenciaCancelamento !== null;
+
+  if (
+    cancelamentoInformado &&
+    typeof antecedenciaCancelamento === "string" &&
+    antecedenciaCancelamento.trim() === ""
+  ) {
+    throw criarErro(
+      "A antecedência para cancelamento deve estar entre 0 e 168.",
+      400
+    );
+  }
+
+  const antecedenciaCancelamentoSolicitada =
+    cancelamentoInformado
       ? validarNumeroInteiro({
           valor:
             antecedenciaCancelamento,
@@ -553,8 +567,8 @@ async function salvarMinhaConfiguracao({
             antecedenciaCancelamentoAtual;
 
           if (
-            antecedenciaCancelamentoEfetiva !==
-            antecedenciaCancelamentoAtual
+            antecedenciaCancelamentoSolicitada !==
+            null
           ) {
             await agendaConfiguracaoRepository
               .atualizarPoliticaCancelamentoNegocio(

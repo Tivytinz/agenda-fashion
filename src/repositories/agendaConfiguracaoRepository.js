@@ -146,7 +146,20 @@ async function atualizarPoliticaCancelamentoNegocio(
   /*
    * Espelho temporário para rollback/convivência com versões anteriores.
    * negocios.antecedencia_cancelamento continua sendo a fonte canônica.
+   *
+   * A flag transacional evita que o trigger de compatibilidade interprete
+   * este espelhamento interno como uma escrita vinda de uma versão antiga.
    */
+  await executor.query(
+    `
+    SELECT set_config(
+      'agenda_fashion.sincronizando_cancelamento',
+      '1',
+      TRUE
+    )
+    `
+  );
+
   await executor.query(
     `
     UPDATE agenda_configuracoes
@@ -161,6 +174,16 @@ async function atualizarPoliticaCancelamentoNegocio(
       antecedenciaCancelamento,
       negocioId,
     ]
+  );
+
+  await executor.query(
+    `
+    SELECT set_config(
+      'agenda_fashion.sincronizando_cancelamento',
+      '0',
+      TRUE
+    )
+    `
   );
 
   return politica;

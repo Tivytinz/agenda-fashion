@@ -170,6 +170,12 @@ describe(
             )
           );
 
+          await client.query(
+            migration(
+              "112_compatibilidade_cancelamento_legado.sql"
+            )
+          );
+
           const negocios =
             await client.query(`
               SELECT
@@ -220,6 +226,65 @@ describe(
                 12,
             },
           ]);
+
+          await client.query(`
+            UPDATE agenda_configuracoes
+            SET antecedencia_cancelamento = 1
+            WHERE profissional_id = 2
+              AND negocio_id = 11
+          `);
+
+          const escritaProfissional =
+            await client.query(`
+              SELECT
+                n.antecedencia_cancelamento
+                  AS politica_negocio,
+                ac.antecedencia_cancelamento
+                  AS politica_profissional
+              FROM negocios n
+              INNER JOIN agenda_configuracoes ac
+                ON ac.negocio_id = n.id
+                AND ac.profissional_id = 2
+              WHERE n.id = 11
+            `);
+
+          expect(
+            escritaProfissional.rows[0]
+          ).toEqual({
+            politica_negocio: 12,
+            politica_profissional: 12,
+          });
+
+          await client.query(`
+            UPDATE agenda_configuracoes
+            SET antecedencia_cancelamento = 36
+            WHERE profissional_id = 1
+              AND negocio_id = 11
+          `);
+
+          const escritaDona =
+            await client.query(`
+              SELECT
+                n.antecedencia_cancelamento
+                  AS politica_negocio,
+                ARRAY_AGG(
+                  ac.antecedencia_cancelamento
+                  ORDER BY ac.profissional_id
+                ) AS espelhos
+              FROM negocios n
+              INNER JOIN agenda_configuracoes ac
+                ON ac.negocio_id = n.id
+              WHERE n.id = 11
+              GROUP BY
+                n.antecedencia_cancelamento
+            `);
+
+          expect(
+            escritaDona.rows[0]
+          ).toEqual({
+            politica_negocio: 36,
+            espelhos: [36, 36],
+          });
 
           const antigo =
             await client.query(`
