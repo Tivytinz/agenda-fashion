@@ -7,7 +7,8 @@ import {
   waitFor
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { StrictMode } from "react";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import {
   afterEach,
   beforeEach,
@@ -47,10 +48,21 @@ function business(id, name) {
   };
 }
 
+function NavigationProbe() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return <>
+    <output data-testid="location">{location.search}</output>
+    <button onClick={() => navigate(-1)}>Voltar no histórico</button>
+    <button onClick={() => navigate(1)}>Avançar no histórico</button>
+  </>;
+}
+
 function renderExplore(pathname = "/") {
   return render(
     <MemoryRouter initialEntries={[pathname]}>
       <ExplorePage />
+      <NavigationProbe />
     </MemoryRouter>
   );
 }
@@ -63,6 +75,102 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("catálogo público paginado", () => {
+  it.each(["manicure GO", "manicure acolhimento", "manicure cabelo"])(
+    "mantém serviços relevantes ao combinar nome com contexto do negócio: %s",
+    async (query) => {
+      apiRequest.mockResolvedValue({
+        negocios: [{
+          ...business(1, "Studio Aurora"),
+          cidade: "Anápolis",
+          estado: "GO",
+          descricao: "Acolhimento em cada atendimento",
+          areas: ["unha", "cabelo"],
+          servicos: [
+            { id: 11, nome: "Manicure tradicional", categoria: "unha", valor: 45 },
+            { id: 12, nome: "Corte", categoria: "cabelo", valor: 70 }
+          ]
+        }],
+        paginacao: { tem_mais: false }
+      });
+      renderExplore(`/?busca=${encodeURIComponent(query)}`);
+      expect(await screen.findByRole("heading", { name: "Manicure tradicional" })).not.toBeNull();
+      expect(screen.queryByRole("heading", { name: "Corte" })).toBeNull();
+    }
+  );
+
+  it("mantém a localização acessível durante carregamento", () => {
+    apiRequest.mockReturnValue(new Promise(() => {}));
+    renderExplore("/?cidade=An%C3%A1polis&estado=GO");
+    expect(screen.getByRole("combobox", { name: "Escolher localização" }).value)
+      .toBe("Anápolis::GO");
+    expect(screen.getByRole("button", { name: "Limpar filtros" })).not.toBeNull();
+  });
+
+  it("permite limpar os filtros para recuperar uma consulta que falhou", async () => {
+    const user = userEvent.setup();
+    apiRequest.mockRejectedValueOnce(new Error("Falha no catálogo"))
+      .mockResolvedValue({ negocios: [], paginacao: { tem_mais: false } });
+    renderExplore("/?cidade=An%C3%A1polis&estado=GO&categoria=unha&busca=manicure&utm_source=teste");
+    await screen.findByText("Falha no catálogo");
+    expect(screen.getByRole("combobox", { name: "Escolher localização" }).value)
+      .toBe("Anápolis::GO");
+    await user.click(screen.getByRole("button", { name: "Limpar filtros" }));
+    await screen.findByText("Nenhum serviço encontrado");
+    expect(screen.getByTestId("location").textContent).toBe("?utm_source=teste");
+    expect(window.localStorage.getItem("af_catalog_location")).toBeNull();
+    expect(apiRequest).toHaveBeenLastCalledWith(
+      "/negocios-publicos?pagina=1&limite=12", expect.any(Object)
+    );
+  });
+
+  it("restaura a cidade lembrada na URL em StrictMode e permite removê-la", async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem("af_catalog_location", "Anápolis::GO");
+    apiRequest.mockResolvedValue({ negocios: [], paginacao: { tem_mais: false } });
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={["/?categoria=unha"]}>
+          <ExplorePage />
+          <NavigationProbe />
+        </MemoryRouter>
+      </StrictMode>
+    );
+    await screen.findByText("Nenhum serviço encontrado");
+    const params = new URLSearchParams(screen.getByTestId("location").textContent);
+    expect(params.get("cidade")).toBe("Anápolis");
+    expect(params.get("estado")).toBe("GO");
+    expect(params.get("categoria")).toBe("unha");
+    expect(window.localStorage.getItem("af_catalog_location")).toBe("Anápolis::GO");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Escolher localização" }), "");
+    await waitFor(() => expect(apiRequest).toHaveBeenLastCalledWith(
+      "/negocios-publicos?pagina=1&limite=12&categoria=unha", expect.any(Object)
+    ));
+    expect(screen.getByTestId("location").textContent).toBe("?categoria=unha");
+    expect(window.localStorage.getItem("af_catalog_location")).toBeNull();
+  });
+
+  it("acompanha a localização da URL ao voltar e avançar no histórico", async () => {
+    const user = userEvent.setup();
+    apiRequest.mockResolvedValue({ negocios: [], paginacao: { tem_mais: false } });
+    render(
+      <MemoryRouter initialEntries={["/", "/?cidade=An%C3%A1polis&estado=GO"]}>
+        <ExplorePage />
+        <NavigationProbe />
+      </MemoryRouter>
+    );
+    await screen.findByText("Nenhum serviço encontrado");
+    await user.click(screen.getByRole("button", { name: "Voltar no histórico" }));
+    expect(screen.getByRole("combobox", { name: "Escolher localização" }).value).toBe("");
+    await waitFor(() => expect(apiRequest).toHaveBeenLastCalledWith(
+      "/negocios-publicos?pagina=1&limite=12", expect.any(Object)
+    ));
+    await user.click(screen.getByRole("button", { name: "Avançar no histórico" }));
+    expect(screen.getByRole("combobox", { name: "Escolher localização" }).value).toBe("Anápolis::GO");
+    await waitFor(() => expect(apiRequest).toHaveBeenLastCalledWith(
+      expect.stringContaining("cidade=An%C3%A1polis&estado=GO"), expect.any(Object)
+    ));
+  });
+
   it("monta a URL sem enviar parâmetros vazios", () => {
     expect(buildCatalogPath({
       query: "  manicure  ",
@@ -239,7 +347,7 @@ describe("catálogo público paginado", () => {
       "Nenhum serviço encontrado"
     )).not.toBeNull();
     expect(screen.getByRole("heading", {
-      name: "Profissionais no Agenda Fashion"
+      name: "Espaços e profissionais no Agenda Fashion"
     })).not.toBeNull();
     expect(screen.getByText(
       "Nenhum negócio encontrado"
@@ -464,7 +572,7 @@ describe("catálogo público paginado", () => {
 
     await screen.findAllByText("Rio de Janeiro, RJ");
     expect(container.querySelector(".home-title-with-icon")?.textContent)
-      .toContain("📍Profissionais no Agenda Fashion");
+      .toContain("📍Espaços e profissionais no Agenda Fashion");
     expect(screen.getByRole("combobox", {
       name: "Escolher localização"
     }).value).toBe("");
@@ -508,7 +616,7 @@ describe("catálogo público paginado", () => {
     );
 
     expect(await screen.findByRole("heading", {
-      name: "Profissionais em Goiânia"
+      name: "Espaços e profissionais em Goiânia"
     })).not.toBeNull();
     await waitFor(() => {
       expect(apiRequest).toHaveBeenLastCalledWith(

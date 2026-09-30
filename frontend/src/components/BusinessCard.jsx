@@ -52,7 +52,7 @@ export function BusinessCard({ business }) {
       }
     >
       <div
-        className={hasImage ? "card-image card-image-photo" : "card-image"}
+        className={hasImage ? "card-image card-image-photo" : "card-image card-image-placeholder"}
         aria-hidden={!hasImage}
       >
         {hasImage ? (
@@ -122,26 +122,12 @@ export function BusinessCard({ business }) {
         )}
 
         <div className="card-footer">
-          {!available && <small>Agenda em configuração</small>}
-
-          {available ? (
-            <span className="button button-small">
-              Ver perfil
-            </span>
-          ) : (
-            <span
-              className="button button-small button-unavailable"
-              aria-disabled="true"
-            >
-              Indisponível
-            </span>
-          )}
+          {!available && <small>Sem serviços disponíveis</small>}
+          <span className="button button-small">Ver perfil</span>
         </div>
       </div>
     </article>
   );
-
-  if (!available) return card;
 
   return (
     <Link

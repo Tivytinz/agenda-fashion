@@ -91,9 +91,13 @@ export function AppHeader() {
     event.preventDefault();
 
     const query = search.trim();
-    const destination = query
-      ? `/?busca=${encodeURIComponent(query)}#buscar-servicos`
-      : "/#buscar-servicos";
+    const params = homePage
+      ? new URLSearchParams(location.search)
+      : new URLSearchParams();
+    if (query) params.set("busca", query);
+    else params.delete("busca");
+    params.delete("pagina");
+    const destination = `/${params.size ? `?${params}` : ""}#buscar-servicos`;
 
     navigate(destination);
   }

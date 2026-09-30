@@ -2,10 +2,11 @@
 
 import {
   cleanup,
+  fireEvent,
   render,
   screen
 } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import {
   afterEach,
   beforeEach,
@@ -23,10 +24,16 @@ vi.mock("../auth/SessionContext", () => ({
 
 const logout = vi.fn();
 
+function LocationProbe() {
+  const location = useLocation();
+  return <output data-testid="location">{location.pathname}{location.search}{location.hash}</output>;
+}
+
 function renderHeader(pathname) {
   return render(
     <MemoryRouter initialEntries={[pathname]}>
       <AppHeader />
+      <LocationProbe />
     </MemoryRouter>
   );
 }
@@ -46,6 +53,22 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("cabeçalho por contexto", () => {
+  it.each(["manicure", ""])("preserva filtros ao buscar '%s' e reinicia paginação", (query) => {
+    renderHeader("/?categoria=unha&cidade=An%C3%A1polis&estado=GO&busca=antiga&pagina=3&utm_source=teste");
+    const input = screen.getByRole("searchbox");
+    fireEvent.change(input, { target: { value: query } });
+    fireEvent.submit(input.closest("form"));
+
+    const destination = new URL(screen.getByTestId("location").textContent, "https://af.test");
+    expect(destination.searchParams.get("categoria")).toBe("unha");
+    expect(destination.searchParams.get("cidade")).toBe("Anápolis");
+    expect(destination.searchParams.get("estado")).toBe("GO");
+    expect(destination.searchParams.get("busca")).toBe(query || null);
+    expect(destination.searchParams.get("pagina")).toBeNull();
+    expect(destination.searchParams.get("utm_source")).toBe("teste");
+    expect(destination.hash).toBe("#buscar-servicos");
+  });
+
   it("reproduz a navegação pública do protótipo", () => {
     useSession.mockReturnValue({
       authenticated: false,

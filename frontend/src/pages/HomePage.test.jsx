@@ -45,6 +45,24 @@ function renderHome(pathname = "/") {
 afterEach(cleanup);
 
 describe("home crítica", () => {
+  it("define os metadados da home mesmo após entrada direta em um perfil", () => {
+    const previousTitle = document.title;
+    const meta = document.createElement("meta");
+    meta.name = "description";
+    meta.content = "Descrição de RR Beauty";
+    document.head.append(meta);
+    document.title = "RR Beauty | Agenda Fashion";
+    try {
+      const view = renderHome();
+      expect(document.title).toBe("Agenda Fashion");
+      expect(meta.content).toContain("Encontre serviços de beleza");
+      view.unmount();
+    } finally {
+      document.title = previousTitle;
+      meta.remove();
+    }
+  });
+
   it("pinta o hero antes de carregar o catálogo abaixo da dobra", async () => {
     const { container } = renderHome();
 
