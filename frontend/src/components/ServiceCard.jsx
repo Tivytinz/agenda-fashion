@@ -58,7 +58,9 @@ export function ServiceCard({
   return (
     <article className="card service-discovery-card">
       <Link
-        className="service-discovery-image"
+        className={hasImage
+          ? "service-discovery-image"
+          : "service-discovery-image service-discovery-image-placeholder"}
         to={destinationUrl}
         aria-label={
           bookingAvailable

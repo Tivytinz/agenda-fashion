@@ -68,6 +68,33 @@ A experiência pública é a face mais acolhedora e visual do AF. Deve priorizar
 
 ## Estados públicos e confirmação de booking
 
+### Descoberta na home
+
+A busca do cabeçalho preserva categoria e localização já selecionadas na home.
+Os filtros ativos são representados na URL, inclusive quando a cidade é
+restaurada do armazenamento local. Voltar/avançar no histórico e limpar filtros
+devem atualizar consulta, seleção visível e preferência lembrada em conjunto.
+Limpar filtros preserva parâmetros de atribuição de origem.
+
+O seletor de localização fica antes das categorias e permanece disponível durante
+carregamento, erro e catálogo vazio. A busca por serviço considera também nome,
+descrição, setor, áreas e endereço do negócio, incluindo UF, para não descartar
+ofertas válidas retornadas pelo catálogo. Ela continua restringindo os cards aos
+serviços correspondentes aos termos pesquisados.
+
+O hero compartilhado por HomePage e ExplorePage pausa quando o foco entra em seu
+conteúdo ou o ponteiro entra na região. A retomada é explícita; o controle de
+rotação precede os links e botões de conteúdo na ordem de tabulação. A preferência
+por movimento reduzido inicia ou mantém a pausa. No mobile, a altura acompanha o
+texto para evitar cortes. Cards sem foto usam uma área de identificação compacta.
+
+A home define seus próprios metadados na navegação SPA, inclusive após entrada
+direta em um perfil com metadados renderizados pelo servidor. Cards de negócios
+publicados sem serviço continuam oferecendo acesso ao perfil e informam a
+ausência de oferta, sem prometer horários.
+
+### Disponibilidade
+
 O perfil de um negócio que já foi publicado pode continuar acessível mesmo
 quando perde o último serviço ativo. Nesse estado, a página mostra a identidade
 do negócio e um estado vazio de oferta, mas não permite iniciar ou concluir um

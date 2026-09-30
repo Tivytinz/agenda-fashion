@@ -128,7 +128,7 @@
 }
 
 .header-search input::placeholder {
-  color: #b695a3;
+  color: var(--public-muted, var(--muted));
 }
 
 .header-account-menu {
@@ -350,14 +350,14 @@
 
 .home-hero-primary {
   gap: 14px;
-  border-color: #ec2d7b;
-  background: #ec2d7b;
+  border-color: var(--public-brand, var(--pink-600));
+  background: var(--public-brand, var(--pink-600));
   box-shadow: 0 13px 28px rgb(236 45 123 / 24%);
 }
 
 .home-hero-primary:hover {
-  border-color: #f14189;
-  background: #f14189;
+  border-color: var(--public-brand-strong, var(--pink-700));
+  background: var(--public-brand-strong, var(--pink-700));
 }
 
 .home-hero-secondary {
@@ -691,6 +691,37 @@
   white-space: nowrap;
 }
 
+.home-discovery-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  padding-top: 20px;
+}
+
+.home-discovery-filters .home-location-pill {
+  max-width: 100%;
+  min-height: 48px;
+}
+
+.home-active-filters {
+  min-width: 0;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  color: var(--public-muted, var(--muted));
+  font-size: .9rem;
+  overflow-wrap: anywhere;
+}
+
+.home-active-filters .text-button {
+  min-height: 44px;
+  color: var(--public-brand-strong, var(--pink-700));
+  text-decoration: underline;
+}
+
 .home-location-pill select {
   min-width: 0;
   max-width: 220px;
@@ -701,6 +732,16 @@
   background: transparent;
   font: inherit;
   cursor: pointer;
+}
+
+.home-discovery-filters .home-location-pill select {
+  min-height: 44px;
+}
+
+.home-location-pill select:focus-visible {
+  outline: 3px solid var(--public-focus, var(--pink-600));
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 .home-businesses-section {
@@ -768,6 +809,33 @@
   aspect-ratio: 4 / 3;
 }
 
+.home-page .business-card .card-image.card-image-placeholder,
+.home-page .service-discovery-image.service-discovery-image-placeholder {
+  height: 100px;
+  min-height: 0;
+  aspect-ratio: auto;
+}
+
+.home-page .card-image-placeholder .card-placeholder,
+.home-page .service-discovery-image-placeholder .service-discovery-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-page .card-image-placeholder .business-specialty-emoji,
+.home-page .service-discovery-image-placeholder strong {
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  font-size: 1.7rem;
+}
+
+.home-page .business-card-unavailable .card-footer {
+  align-items: stretch;
+  flex-direction: column;
+}
+
 .home-page .service-discovery-description {
   display: none;
 }
@@ -795,14 +863,14 @@
 .home-page .business-card .button,
 .home-page .load-more-row .button {
   min-height: 43px;
-  border-color: #e3317d;
+  border-color: var(--public-brand, var(--pink-600));
   border-radius: 999px;
   color: #fff;
-  background: #e3317d;
+  background: var(--public-brand, var(--pink-600));
 }
 
 .home-page .load-more-row .button-secondary {
-  color: #d92f7f;
+  color: var(--public-brand, var(--pink-600));
   background: #fff;
 }
 
@@ -1009,8 +1077,18 @@
   }
 
   .home-hero-frame {
-    height: 440px;
+    height: auto;
     border-radius: 23px;
+  }
+
+  .home-hero-track {
+    height: auto;
+  }
+
+  .home-hero-slide {
+    height: auto;
+    min-height: 360px;
+    flex: 0 0 100%;
   }
 
   .home-hero-image {
@@ -1026,6 +1104,7 @@
   .home-hero-content {
     width: min(520px, calc(100% - 80px));
     margin-left: 40px;
+    padding-block: 28px 64px;
   }
 
   .home-hero h1 {
@@ -1110,6 +1189,16 @@
     text-overflow: ellipsis;
   }
 
+  .home-discovery-filters .home-location-pill {
+    width: 100%;
+    max-width: 100%;
+    font-size: .9rem;
+  }
+
+  .home-discovery-filters .home-location-pill select {
+    flex: 1;
+  }
+
   .home-location-pill select {
     max-width: 100%;
   }
@@ -1181,8 +1270,8 @@
     display: none;
   }
 
-  .home-hero-frame {
-    height: 420px;
+  .home-hero-slide {
+    min-height: 340px;
   }
 
   .home-hero-content {
@@ -1191,7 +1280,8 @@
   }
 
   .home-hero h1 {
-    font-size: clamp(2.25rem, 12vw, 3rem);
+    max-width: 14ch;
+    font-size: clamp(2rem, 9.5vw, 2.55rem);
   }
 
   .home-hero-secondary {

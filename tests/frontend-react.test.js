@@ -195,7 +195,7 @@ describe(
         expect(
           card
         ).toContain(
-          "Agenda em configuração"
+          "Sem serviços disponíveis"
         );
 
         expect(

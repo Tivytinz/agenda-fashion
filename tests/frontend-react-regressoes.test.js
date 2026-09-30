@@ -658,6 +658,9 @@ describe(
         const inicio = ler(
           "frontend/src/pages/ExplorePage.jsx"
         );
+        const hero = ler(
+          "frontend/src/components/HomeHero.jsx"
+        );
         const visual = ler(
           "frontend/src/styles/home-discovery.css"
         );
@@ -677,11 +680,14 @@ describe(
         expect(cabecalho).toContain(
           "header-account-avatar"
         );
-        expect(inicio).toContain(
+        expect(hero).toContain(
           "HERO_SLIDES"
         );
-        expect(inicio).toContain(
+        expect(hero).toContain(
           "home-hero-dots"
+        );
+        expect(inicio).toContain(
+          "<HomeHero onExploreCategory={exploreHeroCategory} />"
         );
         expect(inicio).not.toContain(
           "CATEGORY_CARD_IMAGES"
@@ -698,7 +704,7 @@ describe(
         expect(inicio).toContain(
           "Todo o Brasil"
         );
-        expect(inicio).toContain(
+        expect(hero).toContain(
           "maquiagemHero"
         );
         expect(inicio).toContain(

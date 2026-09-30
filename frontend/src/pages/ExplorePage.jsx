@@ -11,13 +11,8 @@ import { useSearchParams } from "react-router-dom";
 
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/trackEvent";
-import bronzeamentoHero from "../assets/home/bronzeamento-hero.webp";
 import sobrancelhasEmoji from "../assets/icons/sobrancelhas-emoji.png";
-import ciliosHero from "../assets/home/cilios-hero.webp";
-import manicureHero from "../assets/home/manicure-hero.webp";
-import maquiagemHero from "../assets/home/maquiagem-hero.webp";
-import skincareHero from "../assets/home/skincare-hero.webp";
-import sobrancelhasHero from "../assets/home/sobrancelhas-hero.webp";
+import { HomeHero } from "../components/HomeHero";
 import { BusinessCard } from "../components/BusinessCard";
 import { ServiceCard } from "../components/ServiceCard";
 
@@ -52,59 +47,6 @@ const CATEGORY_ORDER = new Map(
 );
 
 const LOCATION_STORAGE_KEY = "af_catalog_location";
-
-const HERO_SLIDES = [
-  {
-    image: "/assets/home/salon-hero-wide.webp",
-    mobileImage: "/assets/home/salon-hero-mobile.webp",
-    title: "Beleza para você",
-    subtitle: "Cabelos do seu jeito",
-    description: "Encontre cortes, tratamentos e profissionais para cuidar dos seus cabelos.",
-    category: "cabelo"
-  },
-  {
-    image: manicureHero,
-    title: "Unhas do seu jeito",
-    subtitle: "Cuidado em cada detalhe",
-    description: "Encontre manicures, veja opções e escolha o melhor horário para você.",
-    category: "unha"
-  },
-  {
-    image: skincareHero,
-    title: "Seu momento de cuidado",
-    subtitle: "Estética com praticidade",
-    description: "Conheça tratamentos, profissionais e horários disponíveis no Agenda Fashion.",
-    category: "estetica"
-  },
-  {
-    image: bronzeamentoHero,
-    title: "Seu brilho em destaque",
-    subtitle: "Bronzeamento com praticidade",
-    description: "Compare opções de bronzeamento e escolha o cuidado ideal para você.",
-    category: "bronzeamento"
-  },
-  {
-    image: ciliosHero,
-    title: "Um olhar que encanta",
-    subtitle: "Cílios feitos para você",
-    description: "Encontre especialistas em cílios e agende seu próximo atendimento.",
-    category: "cilio"
-  },
-  {
-    image: sobrancelhasHero,
-    title: "Expressão em cada detalhe",
-    subtitle: "Sobrancelhas que valorizam você",
-    description: "Descubra profissionais de design e encontre o melhor horário para você.",
-    category: "sobrancelha"
-  },
-  {
-    image: maquiagemHero,
-    title: "Pronta para seu momento",
-    subtitle: "Maquiagem para toda ocasião",
-    description: "Escolha sua produção, compare profissionais e agende em poucos passos.",
-    category: "maquiagem"
-  }
-];
 
 const PAGE_SIZE = 12;
 
@@ -364,33 +306,11 @@ export function ExplorePage({ renderHero = true }) {
   const [businesses, setBusinesses] =
     useState([]);
 
-  const [query, setQuery] =
-    useState(requestedQuery);
+  const query = requestedQuery;
+  const category = CATEGORY_CODES.has(requestedCategory) ? requestedCategory : "";
 
-  const [activeHero, setActiveHero] =
-    useState(0);
-
-  const [heroRotationPaused, setHeroRotationPaused] =
-    useState(() =>
-      Boolean(window.matchMedia?.(
-        "(prefers-reduced-motion: reduce)"
-      )?.matches)
-    );
-
-  const [category, setCategory] =
-    useState(
-      CATEGORY_CODES.has(requestedCategory)
-        ? requestedCategory
-        : ""
-    );
-
-  const [selectedLocationKey, setSelectedLocationKey] =
-    useState(() => {
-      if (requestedLocationKey) return requestedLocationKey;
-
-      const stored = parseLocationKey(storedLocationKey());
-      return locationKey(stored.city, stored.state);
-    });
+  const selectedLocationKey = requestedLocationKey;
+  const [locationRestored, setLocationRestored] = useState(false);
 
   const [locations, setLocations] =
     useState([]);
@@ -411,7 +331,6 @@ export function ExplorePage({ renderHero = true }) {
     useState(false);
 
   const latestRequest = useRef(0);
-  const heroTouchStart = useRef(null);
   const selectedLocation = parseLocationKey(selectedLocationKey);
 
   const loadBusinesses = useCallback(async ({
@@ -493,31 +412,27 @@ export function ExplorePage({ renderHero = true }) {
   }, [category, query, selectedLocation.city, selectedLocation.state]);
 
   useEffect(() => {
-    setQuery(requestedQuery);
-  }, [requestedQuery]);
-
-  useEffect(() => {
-    setCategory(
-      CATEGORY_CODES.has(requestedCategory)
-        ? requestedCategory
-        : ""
-    );
-  }, [requestedCategory]);
-
-  useEffect(() => {
-    if (requestedLocationKey) {
-      setSelectedLocationKey(requestedLocationKey);
-
-      try {
-        window.localStorage.setItem(
-          LOCATION_STORAGE_KEY,
-          requestedLocationKey
-        );
-      } catch {
-        // O filtro da URL continua funcionando sem armazenamento local.
+    if (!locationRestored) {
+      setLocationRestored(true);
+      const stored = parseLocationKey(storedLocationKey());
+      if (!requestedLocationKey && stored.city && stored.state) {
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.set("cidade", stored.city);
+        nextParams.set("estado", stored.state);
+        setSearchParams(nextParams, { replace: true });
+        return;
       }
     }
-  }, [requestedLocationKey]);
+    try {
+      if (requestedLocationKey) {
+        window.localStorage.setItem(LOCATION_STORAGE_KEY, requestedLocationKey);
+      } else {
+        window.localStorage.removeItem(LOCATION_STORAGE_KEY);
+      }
+    } catch {
+      // A URL é a fonte navegável mesmo quando o armazenamento está bloqueado.
+    }
+  }, [locationRestored, requestedLocationKey, searchParams, setSearchParams]);
 
   useEffect(() => {
     const controller =
@@ -547,19 +462,6 @@ export function ExplorePage({ renderHero = true }) {
     });
   }, []);
 
-  useEffect(() => {
-    if (heroRotationPaused) {
-      return undefined;
-    }
-
-    const interval = window.setInterval(() => {
-      setActiveHero((current) =>
-        (current + 1) % HERO_SLIDES.length);
-    }, 7000);
-
-    return () => window.clearInterval(interval);
-  }, [heroRotationPaused]);
-
   const services =
     useMemo(() => {
       return businesses.flatMap(
@@ -580,6 +482,9 @@ export function ExplorePage({ renderHero = true }) {
 
             negocio_setor:
               business.setor,
+
+            negocio_descricao: business.descricao,
+            negocio_areas: business.areas,
 
             negocio_cidade:
               business.cidade,
@@ -618,7 +523,10 @@ export function ExplorePage({ renderHero = true }) {
             service.descricao,
             service.negocio_nome,
             service.negocio_setor,
+            service.negocio_descricao,
+            service.negocio_areas?.join(" "),
             service.negocio_cidade,
+            service.negocio_estado,
             service.negocio_bairro
           ].join(" ")
         );
@@ -706,8 +614,6 @@ export function ExplorePage({ renderHero = true }) {
   }
 
   function chooseCategory(value) {
-    setCategory(value);
-
     const nextParams = new URLSearchParams(searchParams);
 
     if (value) {
@@ -715,6 +621,7 @@ export function ExplorePage({ renderHero = true }) {
     } else {
       nextParams.delete("categoria");
     }
+    nextParams.delete("pagina");
 
     setSearchParams(nextParams, { replace: true });
 
@@ -732,8 +639,6 @@ export function ExplorePage({ renderHero = true }) {
     const nextKey = locationKey(nextLocation.city, nextLocation.state);
     const nextParams = new URLSearchParams(searchParams);
 
-    setSelectedLocationKey(nextKey);
-
     if (nextKey) {
       nextParams.set("cidade", nextLocation.city);
       nextParams.set("estado", nextLocation.state);
@@ -741,50 +646,15 @@ export function ExplorePage({ renderHero = true }) {
       nextParams.delete("cidade");
       nextParams.delete("estado");
     }
+    nextParams.delete("pagina");
 
     setSearchParams(nextParams, { replace: true });
-
-    try {
-      if (nextKey) {
-        window.localStorage.setItem(LOCATION_STORAGE_KEY, nextKey);
-      } else {
-        window.localStorage.removeItem(LOCATION_STORAGE_KEY);
-      }
-    } catch {
-      // A seleção continua válida nesta sessão mesmo sem armazenamento local.
-    }
   }
 
-  function showHero(index) {
-    const nextIndex =
-      (index + HERO_SLIDES.length) %
-      HERO_SLIDES.length;
-
-    setHeroRotationPaused(true);
-    setActiveHero(nextIndex);
-  }
-
-  function handleHeroTouchStart(event) {
-    heroTouchStart.current =
-      event.touches[0]?.clientX ?? null;
-  }
-
-  function handleHeroTouchEnd(event) {
-    const start = heroTouchStart.current;
-    const end = event.changedTouches[0]?.clientX;
-    heroTouchStart.current = null;
-
-    if (
-      typeof start !== "number" ||
-      typeof end !== "number" ||
-      Math.abs(start - end) < 45
-    ) {
-      return;
-    }
-
-    showHero(
-      activeHero + (start > end ? 1 : -1)
-    );
+  function clearFilters() {
+    const nextParams = new URLSearchParams(searchParams);
+    ["busca", "categoria", "cidade", "estado", "pagina"].forEach((key) => nextParams.delete(key));
+    setSearchParams(nextParams, { replace: true });
   }
 
   function exploreHeroCategory(value) {
@@ -799,143 +669,39 @@ export function ExplorePage({ renderHero = true }) {
 
   return (
     <div className={renderHero ? "home-page" : "home-discovery-content"}>
-      {renderHero && (
+      {renderHero && <HomeHero onExploreCategory={exploreHeroCategory} />}
+
       <section
-        aria-label="Destaques do Agenda Fashion"
-        aria-roledescription="carrossel"
-        className="home-hero"
-        onTouchEnd={handleHeroTouchEnd}
-        onTouchStart={handleHeroTouchStart}
+        aria-label="Filtros de descoberta"
+        className="container home-discovery-filters"
+        id={renderHero ? "buscar-servicos" : undefined}
       >
-        <div className="container home-hero-frame">
-          <div
-            className="home-hero-track"
-            style={{
-              transform: `translateX(-${activeHero * 100}%)`
-            }}
+        <label className="home-location-pill">
+          <span aria-hidden="true">📍</span>
+          <span>Onde?</span>
+          <select
+            aria-label="Escolher localização"
+            onChange={(event) => chooseLocation(event.target.value)}
+            value={selectedLocationKey}
           >
-            {HERO_SLIDES.map((slide, index) => (
-              <article
-                aria-hidden={activeHero !== index}
-                aria-label={`${index + 1} de ${HERO_SLIDES.length}`}
-                className="home-hero-slide"
-                key={slide.title}
-              >
-                <picture>
-                  {slide.mobileImage && (
-                    <source
-                      media="(max-width: 767px)"
-                      srcSet={slide.mobileImage}
-                    />
-                  )}
-                  <img
-                    alt=""
-                    className="home-hero-image"
-                    decoding="async"
-                    fetchPriority={index === 0 ? "high" : "low"}
-                    loading={index === 0 ? "eager" : "lazy"}
-                    src={slide.image}
-                  />
-                </picture>
-
-                <div className="home-hero-overlay" />
-
-                <div className="home-hero-content">
-                  <h1>{slide.title}</h1>
-
-                  <p className="home-hero-subtitle">
-                    {slide.subtitle}
-                  </p>
-
-                  <p className="home-hero-description">
-                    {slide.description}
-                  </p>
-
-                  <div className="home-hero-actions">
-                    <button
-                      className="button home-hero-primary"
-                      onClick={() => exploreHeroCategory(slide.category)}
-                      tabIndex={activeHero === index ? 0 : -1}
-                      type="button"
-                    >
-                      Explorar serviços
-                      <span aria-hidden="true">→</span>
-                    </button>
-
-                    <a
-                      className="button home-hero-secondary"
-                      href="#como-funciona"
-                      tabIndex={activeHero === index ? 0 : -1}
-                    >
-                      Como funciona
-                      <span
-                        aria-hidden="true"
-                        className="home-hero-play"
-                      >
-                        ▷
-                      </span>
-                    </a>
-                  </div>
-                </div>
-              </article>
+            <option value="">Todo o Brasil</option>
+            {locationOptions.map(([key, location]) => (
+              <option key={key} value={key}>{location.cidade}, {location.estado}</option>
             ))}
+          </select>
+        </label>
+        {(query || category || selectedLocationKey) && (
+          <div className="home-active-filters">
+            {query && <span>Busca: <strong>{query}</strong></span>}
+            {category && <span>Categoria: <strong>{serviceCategoryLabel(category)}</strong></span>}
+            <button className="text-button" onClick={clearFilters} type="button">Limpar filtros</button>
           </div>
-
-          <button
-            aria-label="Destaque anterior"
-            className="home-hero-arrow previous"
-            onClick={() => showHero(activeHero - 1)}
-            type="button"
-          >
-            ‹
-          </button>
-
-          <button
-            aria-label="Próximo destaque"
-            className="home-hero-arrow next"
-            onClick={() => showHero(activeHero + 1)}
-            type="button"
-          >
-            ›
-          </button>
-
-          <div
-            aria-label="Escolher destaque"
-            className="home-hero-dots"
-          >
-            {HERO_SLIDES.map((slide, index) => (
-              <button
-                aria-label={`Mostrar destaque ${index + 1}: ${slide.title}`}
-                aria-pressed={activeHero === index}
-                key={slide.title}
-                onClick={() => showHero(index)}
-                type="button"
-              />
-            ))}
-          </div>
-
-          <button
-            aria-label={heroRotationPaused
-              ? "Retomar rotação automática dos destaques"
-              : "Pausar rotação automática dos destaques"}
-            aria-pressed={heroRotationPaused}
-            className="home-hero-rotation-toggle"
-            onClick={() =>
-              setHeroRotationPaused((current) => !current)}
-            type="button"
-          >
-            <span aria-hidden="true">
-              {heroRotationPaused ? "▶" : "⏸"}
-            </span>
-          </button>
-        </div>
+        )}
       </section>
-      )}
 
       <section
         aria-labelledby="categories-title"
         className="container home-category-section"
-        id={renderHero ? "buscar-servicos" : undefined}
       >
         <div className="home-section-heading">
           <div>
@@ -982,27 +748,11 @@ export function ExplorePage({ renderHero = true }) {
 
               <h2 id="businesses-title">
                 {selectedLocation.city
-                  ? `Profissionais em ${selectedLocation.city}`
-                  : "Profissionais no Agenda Fashion"}
+                  ? `Espaços e profissionais em ${selectedLocation.city}`
+                  : "Espaços e profissionais no Agenda Fashion"}
               </h2>
             </div>
 
-            <label className="home-location-pill">
-              <span aria-hidden="true">📍</span>
-              <span className="sr-only">Escolher localização</span>
-              <select
-                aria-label="Escolher localização"
-                onChange={(event) => chooseLocation(event.target.value)}
-                value={selectedLocationKey}
-              >
-                <option value="">Todo o Brasil</option>
-                {locationOptions.map(([key, location]) => (
-                  <option key={key} value={key}>
-                    {location.cidade}, {location.estado}
-                  </option>
-                ))}
-              </select>
-            </label>
           </div>
 
           {sortedBusinesses.length > 0 ? (

@@ -15,6 +15,18 @@ import { ServiceCard } from "./ServiceCard";
 afterEach(cleanup);
 
 describe("imagens dos cards do catálogo", () => {
+  it("permite abrir o perfil publicado sem oferecer agendamento quando não há serviços", () => {
+    render(
+      <MemoryRouter>
+        <BusinessCard business={{ id: 1, nome: "Studio Aurora", slug: "studio-aurora", servicos: [] }} />
+      </MemoryRouter>
+    );
+    expect(screen.getByRole("link", { name: "Ver perfil de Studio Aurora" })
+      .getAttribute("href")).toContain("/studio-aurora");
+    expect(screen.getByText("Sem serviços disponíveis")).not.toBeNull();
+    expect(screen.queryByText("Ver horários")).toBeNull();
+  });
+
   it("procura a capa em todos os serviços do negócio", () => {
     render(
       <MemoryRouter>

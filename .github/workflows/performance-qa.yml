@@ -22,6 +22,7 @@ on:
       - "frontend/public/assets/home/**"
       - "frontend/src/App.jsx"
       - "frontend/src/pages/HomePage.jsx"
+      - "frontend/src/components/HomeHero.jsx"
       - "frontend/src/pages/ExplorePage.jsx"
       - "frontend/src/pages/ProfilePage.jsx"
       - "frontend/src/components/profile/**"
