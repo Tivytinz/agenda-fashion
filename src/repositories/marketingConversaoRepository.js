@@ -105,12 +105,23 @@ async function buscarConversaoInicialConfirmada({
         ae.assinatura_id,
         ae.pagamento_id AS pagamento_interno_id,
         ae.ocorrido_em,
+        dono.usuario_id AS usuario_aquisicao_id,
         p.asaas_payment_id,
         p.valor,
         p.data_pagamento
       FROM assinatura_eventos ae
       INNER JOIN pagamentos p
         ON p.id = ae.pagamento_id
+      LEFT JOIN LATERAL (
+        SELECT un.usuario_id
+        FROM usuarios_negocios un
+        WHERE un.negocio_id = ae.negocio_id
+          AND un.papel = 'dono'
+        ORDER BY
+          un.created_at ASC,
+          un.id ASC
+        LIMIT 1
+      ) dono ON TRUE
       WHERE ae.tipo = 'CONVERSAO_INICIAL'
         AND ae.assinatura_id = $1
         AND p.asaas_payment_id = $2
