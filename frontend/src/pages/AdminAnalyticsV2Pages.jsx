@@ -1044,9 +1044,9 @@ export function AdminJourneyV2Page() {
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Reconciliação de receita × marketing</p>
-                  <h2>Pagamento → elegibilidade → Google / Meta</h2>
+                  <h2>Pagamento → entrega → Google / Meta</h2>
                   <p className="muted">
-                    Parte das conversões iniciais com pagamento confirmado. Diferenças legítimas de elegibilidade ficam separadas de perdas técnicas.
+                    Parte da primeira conversão paga canônica de cada negócio. Privacidade, indisponibilidade da integração e falhas técnicas aparecem separadamente.
                   </p>
                 </div>
               </div>
@@ -1059,13 +1059,14 @@ export function AdminJourneyV2Page() {
                       <tr>
                         <th>Provedor</th>
                         <th>Pagas</th>
-                        <th>Elegíveis observadas</th>
                         <th>Enviadas</th>
-                        <th>Inelegíveis legítimas</th>
+                        <th>Sem consentimento</th>
+                        <th>Integração indisponível</th>
+                        <th>Divergência financeira</th>
                         <th>Em processamento</th>
                         <th>Perdas técnicas</th>
                         <th>Sem entrega</th>
-                        <th>Cobertura técnica</th>
+                        <th>Cobertura sobre pagas</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1073,13 +1074,14 @@ export function AdminJourneyV2Page() {
                         <tr key={item.provedor}>
                           <td><strong>{item.provedor === "google" ? "Google" : item.provedor === "meta" ? "Meta" : item.provedor}</strong></td>
                           <td>{formatNumber(item.conversoesPagas)}</td>
-                          <td>{formatNumber(item.elegiveisObservadas)}</td>
                           <td>{formatNumber(item.enviadas)}</td>
                           <td>{formatNumber(item.inelegiveisLegitimas)}</td>
+                          <td>{formatNumber(item.integracaoIndisponivel)}</td>
+                          <td>{formatNumber(item.divergenciasFinanceiras)}</td>
                           <td>{formatNumber(item.emProcessamento)}</td>
                           <td>{formatNumber(item.perdasTecnicas)}</td>
                           <td>{formatNumber(item.semEntrega)}</td>
-                          <td>{formatPercent(item.coberturaTecnica)}</td>
+                          <td>{formatPercent(item.coberturaSobrePagas)}</td>
                         </tr>
                       ))}
                     </tbody>
