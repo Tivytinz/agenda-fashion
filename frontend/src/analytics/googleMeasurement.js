@@ -60,6 +60,7 @@ let currentUserId = null;
 let googleJsConfigured = false;
 let lastPageView = "";
 let defaultConsentApplied = false;
+let googleScriptPromise = null;
 
 function validMeasurementId(value) {
   const text = String(value || "")
@@ -298,26 +299,58 @@ export function updateGoogleConsent(status) {
   return granted;
 }
 
-function appendGoogleScript(measurementId) {
-  if (
-    document.getElementById(
-      GOOGLE_SCRIPT_ID
-    )
-  ) {
-    return;
+function loadGoogleScript(measurementId) {
+  if (googleScriptPromise) {
+    return googleScriptPromise;
   }
 
-  const script =
-    document.createElement("script");
+  const existing =
+    document.getElementById(
+      GOOGLE_SCRIPT_ID
+    );
 
-  script.async = true;
-  script.id = GOOGLE_SCRIPT_ID;
-  script.src =
-    `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
-  script.referrerPolicy =
-    "strict-origin-when-cross-origin";
+  if (existing?.dataset.loaded === "true") {
+    return Promise.resolve(true);
+  }
 
-  document.head.appendChild(script);
+  googleScriptPromise =
+    new Promise((resolve, reject) => {
+      const script =
+        existing ||
+        document.createElement("script");
+
+      script.addEventListener(
+        "load",
+        () => {
+          script.dataset.loaded = "true";
+          resolve(true);
+        },
+        { once: true }
+      );
+      script.addEventListener(
+        "error",
+        () => {
+          googleScriptPromise = null;
+          reject(new Error(
+            "Não foi possível carregar a tag do Google Analytics."
+          ));
+        },
+        { once: true }
+      );
+
+      if (!existing) {
+        script.async = true;
+        script.id = GOOGLE_SCRIPT_ID;
+        script.src =
+          `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
+        script.referrerPolicy =
+          "strict-origin-when-cross-origin";
+
+        document.head.appendChild(script);
+      }
+    });
+
+  return googleScriptPromise;
 }
 
 export async function initializeGoogleMeasurement(
@@ -406,7 +439,7 @@ export async function initializeGoogleMeasurement(
     initializedAdsId = config.adsId;
   }
 
-  appendGoogleScript(
+  await loadGoogleScript(
     config.measurementId
   );
 
@@ -874,4 +907,5 @@ export function resetGoogleMeasurementForTests() {
   googleJsConfigured = false;
   lastPageView = "";
   defaultConsentApplied = false;
+  googleScriptPromise = null;
 }
