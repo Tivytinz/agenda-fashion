@@ -501,6 +501,7 @@ async function reservarProximo() {
       status = 'PROCESSING',
       tentativas = entrega.tentativas + 1,
       bloqueado_em = NOW(),
+      resultado_codigo = NULL,
       ultimo_erro = NULL,
       proxima_tentativa_em = NULL,
       updated_at = NOW()
@@ -539,6 +540,7 @@ async function marcarEnviado(
     UPDATE marketing_conversoes_entregas
     SET
       status = 'SENT',
+      resultado_codigo = 'ENVIADO',
       ultimo_erro = NULL,
       proxima_tentativa_em = NULL,
       enviado_em = NOW(),
@@ -560,13 +562,15 @@ async function marcarEnviado(
 async function marcarIgnorado(
   id,
   leaseTentativa,
-  motivo
+  motivo,
+  resultadoCodigo = "IGNORADO"
 ) {
   const resultado = await db.query(
     `
     UPDATE marketing_conversoes_entregas
     SET
       status = 'IGNORED',
+      resultado_codigo = $4,
       ultimo_erro = $3,
       proxima_tentativa_em = NULL,
       updated_at = NOW()
@@ -579,7 +583,9 @@ async function marcarIgnorado(
       id,
       leaseTentativa,
       String(motivo || "Ignorado")
-        .slice(0, 1000)
+        .slice(0, 1000),
+      String(resultadoCodigo || "IGNORADO")
+        .slice(0, 80)
     ]
   );
 
@@ -596,6 +602,7 @@ async function marcarFalha(
     UPDATE marketing_conversoes_entregas
     SET
       status = 'FAILED',
+      resultado_codigo = 'FALHA_TEMPORARIA',
       ultimo_erro = $3,
       proxima_tentativa_em =
         CASE
@@ -629,13 +636,15 @@ async function marcarFalha(
 async function marcarFalhaTerminal(
   id,
   leaseTentativa,
-  erro
+  erro,
+  resultadoCodigo = "FALHA_TECNICA"
 ) {
   const resultado = await db.query(
     `
     UPDATE marketing_conversoes_entregas
     SET
       status = 'FAILED',
+      resultado_codigo = $4,
       ultimo_erro = $3,
       proxima_tentativa_em = NULL,
       updated_at = NOW()
@@ -648,7 +657,9 @@ async function marcarFalhaTerminal(
       id,
       leaseTentativa,
       String(erro || "Falha terminal")
-        .slice(0, 2000)
+        .slice(0, 2000),
+      String(resultadoCodigo || "FALHA_TECNICA")
+        .slice(0, 80)
     ]
   );
 
@@ -661,6 +672,7 @@ async function marcarProcessamentosEsgotados() {
     UPDATE marketing_conversoes_entregas
     SET
       status = 'FAILED',
+      resultado_codigo = 'FALHA_TECNICA',
       ultimo_erro = COALESCE(
         NULLIF(ultimo_erro, ''),
         'Limite máximo de tentativas atingido durante a entrega da conversão.'
