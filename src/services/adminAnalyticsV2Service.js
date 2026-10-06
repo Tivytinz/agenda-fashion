@@ -326,10 +326,11 @@ function mapearReconciliacaoPipelines(bruto = {}) {
 
 async function buscarJourney(periodo) {
   const periodoSeguro = repository.periodoSeguro(periodo);
-  const [jornada, reconciliacao, entregasConversao] = await Promise.all([
+  const [jornada, reconciliacao, entregasConversao, reconciliacaoConversoes] = await Promise.all([
     repository.buscarJornada(periodoSeguro),
     repository.buscarReconciliacaoPipelines(periodoSeguro),
     marketingConversionDeliveryRepository.buscarSaudeEntregas(periodoSeguro),
+    marketingConversionDeliveryRepository.buscarReconciliacaoConversoes(periodoSeguro),
   ]);
 
   const linhasEntrega = Array.isArray(entregasConversao?.linhas)
