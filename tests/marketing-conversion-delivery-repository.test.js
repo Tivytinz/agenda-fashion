@@ -262,7 +262,8 @@ describe(
         const resultado =
           await repository
             .rearmarIntegracaoDisponivel(
-              "google"
+              "google",
+              72
             );
 
         expect(resultado)
@@ -283,8 +284,33 @@ describe(
         expect(sql).toContain(
           "tentativas = 0"
         );
+        expect(sql).toContain(
+          "ocorrido_em IS NOT NULL"
+        );
+        expect(sql).toContain(
+          "$2::int * INTERVAL '1 hour'"
+        );
         expect(parametros)
-          .toEqual(["google"]);
+          .toEqual([
+            "google",
+            72
+          ]);
+      }
+    );
+
+    test(
+      "não rearma integração com janela inválida",
+      async () => {
+        await expect(
+          repository
+            .rearmarIntegracaoDisponivel(
+              "google",
+              0
+            )
+        ).resolves.toEqual([]);
+
+        expect(db.query)
+          .not.toHaveBeenCalled();
       }
     );
 
