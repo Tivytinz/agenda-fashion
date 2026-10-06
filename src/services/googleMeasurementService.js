@@ -1,10 +1,6 @@
 const googleMeasurementRepository = require(
   "../repositories/googleMeasurementRepository"
 );
-const registrador = require(
-  "../utils/registrador"
-);
-
 const DEFAULT_TIMEOUT_MS = 1800;
 const GOOGLE_CONSENT_SOURCE =
   "NAVEGADOR";
