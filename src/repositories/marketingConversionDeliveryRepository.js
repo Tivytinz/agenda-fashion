@@ -5,19 +5,34 @@ const MAX_TENTATIVAS = 5;
 async function enfileirar({
   provedor,
   tipoEvento,
-  payload
+  payload,
+  assinaturaEventoId = null,
+  ocorridoEm = null
 }) {
   const assinaturaId =
     Number(payload?.assinaturaId) || null;
+  const eventoId =
+    Number(
+      assinaturaEventoId ||
+      payload?.assinaturaEventoId
+    ) || null;
+  const pagamentoId =
+    String(
+      payload?.pagamentoId || ""
+    ).trim();
 
-  if (!assinaturaId) {
+  if (
+    !assinaturaId ||
+    !eventoId ||
+    !pagamentoId
+  ) {
     throw new Error(
-      "Entrega de conversão sem assinatura válida."
+      "Entrega de conversão sem lineage financeiro válido."
     );
   }
 
   const chaveCanonica =
-    `assinatura:${assinaturaId}`;
+    `assinatura-evento:${eventoId}`;
 
   return db.executarTransacao(
     async (client) => {
@@ -28,7 +43,7 @@ async function enfileirar({
         )
         `,
         [
-          `marketing-conversion:${provedor}:${tipoEvento}:${assinaturaId}`
+          `marketing-conversion:${provedor}:${tipoEvento}:${eventoId}`
         ]
       );
 
@@ -40,13 +55,17 @@ async function enfileirar({
           WHERE provedor = $1
             AND tipo_evento = $2
             AND (
-              chave_evento = $3
-              OR payload ->> 'assinaturaId' = $4
+              assinatura_evento_id = $3
+              OR (
+                assinatura_evento_id IS NULL
+                AND payload ->> 'assinaturaId' = $4
+                AND payload ->> 'pagamentoId' = $5
+              )
             )
           ORDER BY
             CASE
               WHEN status = 'SENT' THEN 0
-              WHEN chave_evento = $3 THEN 1
+              WHEN assinatura_evento_id = $3 THEN 1
               WHEN status = 'PROCESSING' THEN 2
               WHEN status = 'PENDING' THEN 3
               WHEN status = 'FAILED' THEN 4
@@ -58,8 +77,9 @@ async function enfileirar({
           [
             provedor,
             tipoEvento,
-            chaveCanonica,
-            String(assinaturaId)
+            eventoId,
+            String(assinaturaId),
+            pagamentoId
           ]
         );
 
@@ -68,13 +88,23 @@ async function enfileirar({
           (entrega) =>
             entrega.status === "SENT"
         );
+      const existente =
+        enviada ||
+        existentes.rows.find(
+          (entrega) =>
+            Number(
+              entrega.assinatura_evento_id
+            ) === eventoId
+        ) ||
+        existentes.rows[0] ||
+        null;
 
-      if (enviada) {
+      if (existente) {
         const idsIgnorar =
           existentes.rows
             .filter(
               (entrega) =>
-                entrega.id !== enviada.id &&
+                entrega.id !== existente.id &&
                 entrega.status !== "SENT"
             )
             .map((entrega) => entrega.id);
@@ -85,138 +115,62 @@ async function enfileirar({
             UPDATE marketing_conversoes_entregas
             SET
               status = 'IGNORED',
-              tentativas = tentativas + 1,
+              resultado_codigo =
+                'DUPLICADA_LEGADA',
               proxima_tentativa_em = NULL,
               bloqueado_em = NULL,
               ultimo_erro =
-                'Entrega substituída por conversão da mesma assinatura já enviada.',
+                'Entrega legada duplicada para a mesma conversão financeira canônica.',
               updated_at = NOW()
             WHERE id = ANY($1::bigint[])
+              AND status <> 'SENT'
             `,
             [idsIgnorar]
           );
+        }
+
+        if (
+          !existente.assinatura_evento_id &&
+          existente.status !== "PROCESSING"
+        ) {
+          const canonica =
+            await client.query(
+              `
+              UPDATE marketing_conversoes_entregas
+              SET
+                assinatura_evento_id = $2,
+                chave_evento = $3,
+                payload = $4::jsonb,
+                ocorrido_em =
+                  COALESCE(ocorrido_em, $5::timestamptz),
+                updated_at = NOW()
+              WHERE id = $1
+                AND assinatura_evento_id IS NULL
+                AND status <> 'PROCESSING'
+              RETURNING *
+              `,
+              [
+                existente.id,
+                eventoId,
+                chaveCanonica,
+                JSON.stringify(payload || {}),
+                ocorridoEm || null
+              ]
+            );
+
+          return {
+            novo: false,
+            rearmado: false,
+            entrega:
+              canonica.rows[0] ||
+              existente
+          };
         }
 
         return {
           novo: false,
           rearmado: false,
-          entrega: enviada
-        };
-      }
-
-      const existente =
-        existentes.rows.find(
-          (entrega) =>
-            entrega.chave_evento ===
-              chaveCanonica
-        ) ||
-        existentes.rows[0] ||
-        null;
-
-      if (existente) {
-        const idsIgnorar =
-          existentes.rows
-            .filter(
-              (entrega) =>
-                entrega.id !== existente.id
-            )
-            .map((entrega) => entrega.id);
-
-        if (idsIgnorar.length) {
-          await client.query(
-            `
-            UPDATE marketing_conversoes_entregas
-            SET
-              status = 'IGNORED',
-              tentativas = tentativas + 1,
-              proxima_tentativa_em = NULL,
-              bloqueado_em = NULL,
-              ultimo_erro =
-                'Entrega consolidada na identidade canônica da assinatura.',
-              updated_at = NOW()
-            WHERE id = ANY($1::bigint[])
-              AND status <> 'SENT'
-            `,
-            [idsIgnorar]
-          );
-        }
-
-        const mesmoPagamento =
-          String(
-            existente.payload?.pagamentoId || ""
-          ) ===
-          String(
-            payload?.pagamentoId || ""
-          );
-
-        if (mesmoPagamento) {
-          if (
-            existente.chave_evento !==
-              chaveCanonica
-          ) {
-            const canonica =
-              await client.query(
-                `
-                UPDATE marketing_conversoes_entregas
-                SET
-                  chave_evento = $2,
-                  updated_at = NOW()
-                WHERE id = $1
-                RETURNING *
-                `,
-                [
-                  existente.id,
-                  chaveCanonica
-                ]
-              );
-
-            return {
-              novo: false,
-              rearmado: false,
-              entrega:
-                canonica.rows[0] ||
-                existente
-            };
-          }
-
-          return {
-            novo: false,
-            rearmado: false,
-            entrega: existente
-          };
-        }
-
-        const atualizada =
-          await client.query(
-            `
-            UPDATE marketing_conversoes_entregas
-            SET
-              chave_evento = $2,
-              payload = $3::jsonb,
-              status = 'PENDING',
-              tentativas = 0,
-              proxima_tentativa_em = NOW(),
-              bloqueado_em = NULL,
-              enviado_em = NULL,
-              ultimo_erro = NULL,
-              updated_at = NOW()
-            WHERE id = $1
-              AND status <> 'SENT'
-            RETURNING *
-            `,
-            [
-              existente.id,
-              chaveCanonica,
-              JSON.stringify(payload || {})
-            ]
-          );
-
-        return {
-          novo: false,
-          rearmado: true,
-          entrega:
-            atualizada.rows[0] ||
-            existente
+          entrega: existente
         };
       }
 
@@ -228,12 +182,15 @@ async function enfileirar({
             tipo_evento,
             chave_evento,
             payload,
+            assinatura_evento_id,
+            ocorrido_em,
             status,
             tentativas,
             proxima_tentativa_em
           )
           VALUES (
             $1, $2, $3, $4::jsonb,
+            $5, $6::timestamptz,
             'PENDING', 0, NOW()
           )
           RETURNING *
@@ -242,7 +199,9 @@ async function enfileirar({
             provedor,
             tipoEvento,
             chaveCanonica,
-            JSON.stringify(payload || {})
+            JSON.stringify(payload || {}),
+            eventoId,
+            ocorridoEm || null
           ]
         );
 
