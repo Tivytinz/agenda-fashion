@@ -123,6 +123,29 @@ async function salvarConsentimentoUsuario({
   );
 }
 
+async function buscarPerfilPorUsuario(usuarioId) {
+  const resultado = await db.query(
+    `
+    SELECT
+      u.id AS usuario_id,
+      mua.gclid,
+      mua.google_consentimento_status,
+      mua.google_consentimento_atualizado_em,
+      mua.google_consentido_em,
+      mua.google_revogado_em,
+      mua.google_client_id
+    FROM usuarios u
+    LEFT JOIN marketing_usuario_atribuicoes mua
+      ON mua.usuario_id = u.id
+    WHERE u.id = $1
+    LIMIT 1
+    `,
+    [usuarioId]
+  );
+
+  return resultado.rows[0] || null;
+}
+
 async function buscarPerfilPorNegocio(negocioId) {
   const resultado = await db.query(
     `
@@ -157,6 +180,7 @@ async function buscarPerfilPorNegocio(negocioId) {
 
 module.exports = {
   salvarConsentimentoUsuario,
+  buscarPerfilPorUsuario,
   buscarPerfilPorNegocio,
   ehPrimeiroPagamentoAssinatura:
     marketingConversaoRepository
