@@ -278,6 +278,52 @@ describe("Google Measurement no navegador", () => {
     ).toBe("/pagina");
   });
 
+  it("contabiliza navegações reais diferentes sem expor identificadores no GA4", async () => {
+    setMarketingConsent(
+      MARKETING_CONSENT.GRANTED
+    );
+    apiRequest.mockResolvedValue(
+      enabledConfig()
+    );
+
+    expect(
+      await trackGooglePageView(
+        "/negocio/studio-aurora?origem=busca"
+      )
+    ).toBe(true);
+    expect(
+      await trackGooglePageView(
+        "/negocio/studio-bela?origem=favoritos"
+      )
+    ).toBe(true);
+    expect(
+      await trackGooglePageView(
+        "/negocio/studio-bela?outra=query"
+      )
+    ).toBe(false);
+
+    const pageViews = queue().filter(
+      ([command, name]) =>
+        command === "event" &&
+        name === "page_view"
+    );
+
+    expect(pageViews).toHaveLength(2);
+    expect(pageViews[0][2]).toEqual(
+      pageViews[1][2]
+    );
+    expect(pageViews[0][2].page_location)
+      .toBe(
+        `${window.location.origin}/negocio/:slug`
+      );
+    expect(JSON.stringify(pageViews))
+      .not.toContain("studio-aurora");
+    expect(JSON.stringify(pageViews))
+      .not.toContain("studio-bela");
+    expect(JSON.stringify(pageViews))
+      .not.toContain("origem");
+  });
+
   it("envia sign_up e conversão Google Ads quando o label existe", async () => {
     setMarketingConsent(
       MARKETING_CONSENT.GRANTED
