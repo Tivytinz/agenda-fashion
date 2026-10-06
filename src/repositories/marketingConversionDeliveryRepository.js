@@ -307,7 +307,7 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
     : "30";
   const intervalo = periodos[seguro];
   const filtroPeriodo = intervalo
-    ? `WHERE data_pagamento >=
+    ? `AND data_pagamento >=
         (NOW() - INTERVAL '${intervalo}')::date`
     : "";
 
@@ -322,7 +322,8 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
         ae.ocorrido_em,
         pg.asaas_payment_id,
         pg.data_pagamento,
-        pg.confirmacao_observada_em
+        pg.confirmacao_observada_em,
+        pg.status AS pagamento_status
       FROM assinatura_eventos ae
       INNER JOIN pagamentos pg
         ON pg.id = ae.pagamento_id
@@ -330,11 +331,6 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
         AND ae.assinatura_id IS NOT NULL
         AND ae.pagamento_id IS NOT NULL
         AND pg.data_pagamento IS NOT NULL
-        AND UPPER(COALESCE(pg.status, '')) IN (
-          'CONFIRMED',
-          'RECEIVED',
-          'RECEIVED_IN_CASH'
-        )
       ORDER BY
         ae.negocio_id,
         ae.ocorrido_em ASC,
@@ -343,6 +339,11 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
     conversoes AS (
       SELECT *
       FROM conversoes_canonicas
+      WHERE UPPER(COALESCE(pagamento_status, '')) IN (
+        'CONFIRMED',
+        'RECEIVED',
+        'RECEIVED_IN_CASH'
+      )
       ${filtroPeriodo}
     ),
     provedores AS (
