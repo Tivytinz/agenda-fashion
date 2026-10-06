@@ -7,6 +7,7 @@ jest.mock(
     marcarIgnorado: jest.fn(),
     marcarFalha: jest.fn(),
     marcarFalhaTerminal: jest.fn(),
+    rearmarIntegracaoDesabilitada: jest.fn(),
     marcarProcessamentosEsgotados: jest.fn()
   })
 );
@@ -54,14 +55,17 @@ jest.mock(
           "https://app.agendafashion.com.br/painel/assinatura"
       })
     ),
-    enviarEvento: jest.fn()
+    enviarEvento: jest.fn(),
+    capiHabilitada: jest.fn(() => false)
   })
 );
 
 jest.mock(
   "../src/services/googleMeasurementService",
   () => ({
-    enviarEventoMeasurementProtocol: jest.fn()
+    enviarEventoMeasurementProtocol: jest.fn(),
+    measurementProtocolHabilitado:
+      jest.fn(() => false)
   })
 );
 
@@ -107,6 +111,7 @@ const payload = {
   pagamentoInternoId: 30,
   assinaturaEventoId: 90,
   usuarioAquisicaoId: 3,
+  confirmadoEm: pagamentoData,
   ocorridoEm: pagamentoData,
   valor: 59.9
 };
@@ -117,6 +122,14 @@ beforeEach(() => {
   deliveryRepository
     .marcarProcessamentosEsgotados
     .mockResolvedValue([]);
+  deliveryRepository
+    .rearmarIntegracaoDesabilitada
+    .mockResolvedValue([]);
+  metaAdsService.capiHabilitada
+    .mockReturnValue(false);
+  googleMeasurementService
+    .measurementProtocolHabilitado
+    .mockReturnValue(false);
   deliveryRepository
     .marcarEnviado
     .mockResolvedValue({ id: 1 });
@@ -139,7 +152,8 @@ beforeEach(() => {
       pagamento_interno_id: 30,
       asaas_payment_id: "pay_123",
       valor: "59.90",
-      data_pagamento: pagamentoData
+      data_pagamento: "2026-10-06",
+      confirmado_em: pagamentoData
     });
   marketingConversaoRepository
     .buscarPagamentoConfirmado
@@ -148,7 +162,8 @@ beforeEach(() => {
       assinatura_id: 11,
       asaas_payment_id: "pay_123",
       valor: "59.90",
-      data_pagamento: pagamentoData
+      data_pagamento: "2026-10-06",
+      confirmado_em: pagamentoData
     });
 });
 
@@ -545,6 +560,92 @@ test(
     expect(
       metaAdsService.enviarEvento
     ).not.toHaveBeenCalled();
+  }
+);
+
+test(
+  "rearma falhas de integração quando o provedor volta a ficar disponível",
+  async () => {
+    metaAdsService.capiHabilitada
+      .mockReturnValue(true);
+    deliveryRepository
+      .rearmarIntegracaoDesabilitada
+      .mockResolvedValueOnce([
+        { id: 44 }
+      ]);
+    deliveryRepository.reservarProximo
+      .mockResolvedValue(null);
+
+    await service.processarFilaConversoes(1);
+
+    expect(
+      deliveryRepository
+        .rearmarIntegracaoDesabilitada
+    ).toHaveBeenCalledWith("meta");
+    expect(registrador.aviso)
+      .toHaveBeenCalledWith(
+        expect.stringContaining("rearmadas"),
+        expect.objectContaining({
+          provedor: "meta",
+          total: 1
+        })
+      );
+  }
+);
+
+test(
+  "usa o horário persistido da outbox quando o provedor não informou instante preciso",
+  async () => {
+    const criadoEm =
+      "2026-10-06T12:03:00.000Z";
+
+    marketingConversaoRepository
+      .buscarPagamentoConfirmado
+      .mockResolvedValueOnce({
+        id: 30,
+        assinatura_id: 11,
+        asaas_payment_id: "pay_123",
+        valor: "59.90",
+        data_pagamento: "2026-10-06",
+        confirmado_em: null
+      });
+    deliveryRepository.reservarProximo
+      .mockResolvedValueOnce({
+        id: 45,
+        provedor: "google",
+        payload: {
+          ...payload,
+          confirmadoEm: null,
+          ocorridoEm: null
+        },
+        created_at: criadoEm,
+        lease_tentativa: 1
+      });
+    googleMeasurementRepository
+      .buscarPerfilPorUsuario
+      .mockResolvedValue({
+        usuario_id: 3,
+        google_consentimento_status: true,
+        google_consentido_em: criadoEm,
+        google_revogado_em: null,
+        google_client_id: "123.456"
+      });
+    googleMeasurementService
+      .enviarEventoMeasurementProtocol
+      .mockResolvedValue({
+        enviado: true
+      });
+
+    await service.processarFilaConversoes(1);
+
+    expect(
+      googleMeasurementService
+        .enviarEventoMeasurementProtocol
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ocorridoEm: criadoEm
+      })
+    );
   }
 );
 
