@@ -22,6 +22,7 @@ const registrador = require(
 
 const TIPO_ASSINATURA_ATIVADA =
   "SUBSCRIPTION_ACTIVATED";
+const REPLAY_INTEGRACAO_MAX_HORAS = 72;
 
 let processamentoFilaAtual = null;
 
@@ -660,7 +661,8 @@ async function rearmarIntegracoesRestauradas() {
     const rearmadas =
       await marketingConversionDeliveryRepository
         .rearmarIntegracaoDisponivel(
-          provedor
+          provedor,
+          REPLAY_INTEGRACAO_MAX_HORAS
         );
 
     if (rearmadas?.length) {
