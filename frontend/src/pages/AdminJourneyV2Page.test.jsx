@@ -171,7 +171,7 @@ describe("jornada administrativa v2", () => {
         { name: "Pagamento → elegibilidade → Google / Meta" }
       )
     ).not.toBeNull();
-    expect(screen.getByText("66,67%")).not.toBeNull();
+    expect(screen.getByText("66,7%")).not.toBeNull();
 
     expect(screen.getByText("Atenção")).not.toBeNull();
     expect(screen.getByText("Falhas terminais")).not.toBeNull();
