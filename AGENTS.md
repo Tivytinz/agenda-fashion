@@ -527,9 +527,8 @@ Conversões financeiras server-side para Google/Meta seguem a mesma identidade
 canônica de aquisição: somente a primeira `CONVERSAO_INICIAL` do negócio pode
 originar `purchase`/ `Subscribe`. Renovação, mudança de plano e reativação não
 são novas aquisições e não podem rearmar ou substituir a entrega original. A
-outbox persiste o `assinatura_evento_id` como lineage imutável por provedor,
-preserva `data_pagamento` como instante da conversão e separa códigos
-estruturados de resultado de mensagens técnicas. A identidade usada em retries
+outbox persiste o `assinatura_evento_id` como lineage imutável por provedor e
+separa códigos estruturados de resultado de mensagens técnicas. A identidade usada em retries
 é a primeira conta dona observada para a aquisição; o consentimento continua
 sendo revalidado no momento da entrega, de modo que revogação posterior impede
 envio sem reatribuir a compra a uma nova proprietária. `sem_consentimento` é
