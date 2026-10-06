@@ -87,6 +87,32 @@ A leitura administrativa pela Data API também exclui sessões cuja `landingPage
 
 A exclusão é baseada no prefixo `/admin`, e não em uma lista fechada de páginas, para que novas rotas administrativas também fiquem fora da mensuração por padrão.
 
+## Conversões financeiras server-side
+
+A conversão de aquisição paga enviada aos provedores nasce somente da
+`CONVERSAO_INICIAL` canônica persistida em `assinatura_eventos`. O pagamento
+confirmado continua sendo a verdade financeira; Google e Meta recebem uma
+projeção desse fato, nunca um substituto.
+
+A outbox `marketing_conversoes_entregas` preserva o
+`assinatura_evento_id`, o horário `data_pagamento` e um código estruturado do
+resultado. O mesmo evento financeiro não pode ser substituído por renovação,
+troca de plano ou reativação. Retries preservam a identidade da aquisição e
+revalidam o consentimento antes do envio.
+
+Na observabilidade administrativa, distinguir:
+
+- `SEM_CONSENTIMENTO`: inelegibilidade por privacidade;
+- `INTEGRACAO_DESABILITADA`: integração indisponível ou não configurada;
+- `DIVERGENCIA_FINANCEIRA`: a entrega não corresponde mais a uma
+  `CONVERSAO_INICIAL`;
+- falhas temporárias/terminais: problemas técnicos de entrega;
+- `SENT`: entrega registrada pelo AF.
+
+A cobertura exibida não deve inferir elegibilidade ausente. Quando a pergunta é
+receita ou assinatura paga, usar o banco do AF; quando a pergunta é entrega de
+marketing, usar a outbox e sua reconciliação.
+
 ## Fonte de verdade
 
 GA4 explica **comportamento e navegação**. Ele não substitui o banco do Agenda Fashion como fonte canônica para resultado do produto.
