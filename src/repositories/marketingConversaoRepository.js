@@ -69,7 +69,8 @@ async function buscarPagamentoConfirmado({
         p.id,
         p.assinatura_id,
         p.asaas_payment_id,
-        p.valor
+        p.valor,
+        p.data_pagamento
       FROM pagamentos p
       WHERE p.assinatura_id = $1
         AND p.asaas_payment_id = $2
@@ -90,7 +91,49 @@ async function buscarPagamentoConfirmado({
   return resultado.rows[0] || null;
 }
 
+async function buscarConversaoInicialConfirmada({
+  assinaturaId,
+  pagamentoId,
+  client = null
+}) {
+  const resultado = await executorConsulta(client)
+    .query(
+      `
+      SELECT
+        ae.id AS assinatura_evento_id,
+        ae.negocio_id,
+        ae.assinatura_id,
+        ae.pagamento_id AS pagamento_interno_id,
+        ae.ocorrido_em,
+        p.asaas_payment_id,
+        p.valor,
+        p.data_pagamento
+      FROM assinatura_eventos ae
+      INNER JOIN pagamentos p
+        ON p.id = ae.pagamento_id
+      WHERE ae.tipo = 'CONVERSAO_INICIAL'
+        AND ae.assinatura_id = $1
+        AND p.asaas_payment_id = $2
+        AND p.data_pagamento IS NOT NULL
+        AND UPPER(p.status) IN (
+          'CONFIRMED',
+          'RECEIVED',
+          'RECEIVED_IN_CASH'
+        )
+      ORDER BY ae.id ASC
+      LIMIT 1
+      `,
+      [
+        assinaturaId,
+        pagamentoId
+      ]
+    );
+
+  return resultado.rows[0] || null;
+}
+
 module.exports = {
   ehPrimeiroPagamentoAssinatura,
-  buscarPagamentoConfirmado
+  buscarPagamentoConfirmado,
+  buscarConversaoInicialConfirmada
 };
