@@ -687,13 +687,28 @@ function normalizePagePath(pathname) {
   );
 }
 
+function pageViewDeduplicationKey(pathname) {
+  const rawPath = pathnameFrom(
+    pathname || window.location.pathname
+  )
+    .replace(/\/{2,}/g, "/");
+  const normalizedPath =
+    rawPath.length > 1
+      ? rawPath.replace(/\/$/, "")
+      : rawPath;
+
+  return normalizedPath;
+}
+
 export async function trackGooglePageView(
   pathname,
   userId
 ) {
   const key = normalizePagePath(pathname);
+  const deduplicationKey =
+    pageViewDeduplicationKey(pathname);
 
-  if (lastPageView === key) {
+  if (lastPageView === deduplicationKey) {
     return false;
   }
 
@@ -702,7 +717,10 @@ export async function trackGooglePageView(
       userId
     );
 
-  if (!ready || lastPageView === key) {
+  if (
+    !ready ||
+    lastPageView === deduplicationKey
+  ) {
     return false;
   }
 
@@ -717,7 +735,7 @@ export async function trackGooglePageView(
       page_referrer: ""
     }
   );
-  lastPageView = key;
+  lastPageView = deduplicationKey;
 
   return true;
 }
