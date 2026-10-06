@@ -307,17 +307,19 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
     : "30";
   const intervalo = periodos[seguro];
   const filtroPeriodo = intervalo
-    ? `AND ae.ocorrido_em >= NOW() - INTERVAL '${intervalo}'`
+    ? `AND pg.data_pagamento >= NOW() - INTERVAL '${intervalo}'`
     : "";
 
   const resultado = await db.query(
     `
     WITH conversoes AS (
-      SELECT DISTINCT ON (ae.assinatura_id)
+      SELECT DISTINCT ON (ae.negocio_id)
+        ae.id AS assinatura_evento_id,
         ae.assinatura_id,
         ae.negocio_id,
         ae.pagamento_id,
-        ae.ocorrido_em
+        pg.asaas_payment_id,
+        pg.data_pagamento
       FROM assinatura_eventos ae
       INNER JOIN pagamentos pg
         ON pg.id = ae.pagamento_id
@@ -332,8 +334,8 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
         )
         ${filtroPeriodo}
       ORDER BY
-        ae.assinatura_id,
-        ae.ocorrido_em ASC,
+        ae.negocio_id,
+        pg.data_pagamento ASC,
         ae.id ASC
     ),
     provedores AS (
@@ -343,15 +345,18 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
     ),
     base AS (
       SELECT
+        c.assinatura_evento_id,
         c.assinatura_id,
         c.negocio_id,
         c.pagamento_id,
-        c.ocorrido_em,
+        c.asaas_payment_id,
+        c.data_pagamento,
         p.provedor,
         e.id AS entrega_id,
         e.status,
         e.proxima_tentativa_em,
         e.bloqueado_em,
+        e.resultado_codigo,
         e.ultimo_erro
       FROM conversoes c
       CROSS JOIN provedores p
@@ -361,12 +366,23 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
         WHERE entrega.provedor = p.provedor
           AND entrega.tipo_evento = 'SUBSCRIPTION_ACTIVATED'
           AND (
-            entrega.chave_evento =
-              'assinatura:' || c.assinatura_id::TEXT
-            OR entrega.payload ->> 'assinaturaId' =
-              c.assinatura_id::TEXT
+            entrega.assinatura_evento_id =
+              c.assinatura_evento_id
+            OR (
+              entrega.assinatura_evento_id IS NULL
+              AND entrega.payload ->> 'assinaturaId' =
+                c.assinatura_id::TEXT
+              AND entrega.payload ->> 'pagamentoId' =
+                c.asaas_payment_id
+            )
           )
         ORDER BY
+          CASE
+            WHEN entrega.assinatura_evento_id =
+              c.assinatura_evento_id
+              THEN 0
+            ELSE 1
+          END,
           CASE entrega.status
             WHEN 'SENT' THEN 0
             WHEN 'PROCESSING' THEN 1
@@ -386,16 +402,33 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
         WHERE status = 'SENT'
       )::INT AS enviadas,
       COUNT(*) FILTER (
-        WHERE status = 'IGNORED'
-          AND ultimo_erro IN (
-            'sem_consentimento',
-            'desabilitado'
+        WHERE (
+          resultado_codigo = 'SEM_CONSENTIMENTO'
+          OR (
+            resultado_codigo IS NULL
+            AND status = 'IGNORED'
+            AND ultimo_erro = 'sem_consentimento'
           )
+        )
       )::INT AS inelegiveis_legitimas,
       COUNT(*) FILTER (
-        WHERE status = 'IGNORED'
-          AND ultimo_erro = 'renovacao'
-      )::INT AS ignoradas_renovacao,
+        WHERE (
+          resultado_codigo = 'INTEGRACAO_DESABILITADA'
+          OR (
+            resultado_codigo IS NULL
+            AND ultimo_erro = 'desabilitado'
+          )
+        )
+      )::INT AS integracao_indisponivel,
+      COUNT(*) FILTER (
+        WHERE (
+          resultado_codigo = 'DIVERGENCIA_FINANCEIRA'
+          OR (
+            resultado_codigo IS NULL
+            AND ultimo_erro = 'renovacao'
+          )
+        )
+      )::INT AS divergencias_financeiras,
       COUNT(*) FILTER (
         WHERE entrega_id IS NULL
       )::INT AS sem_entrega,
@@ -413,17 +446,27 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
       )::INT AS em_processamento,
       COUNT(*) FILTER (
         WHERE (
-          status = 'FAILED'
-          AND proxima_tentativa_em IS NULL
-        )
-        OR (
-          status = 'PROCESSING'
-          AND bloqueado_em <
-            NOW() - INTERVAL '5 minutes'
+          (
+            status = 'FAILED'
+            AND proxima_tentativa_em IS NULL
+            AND COALESCE(resultado_codigo, '') NOT IN (
+              'INTEGRACAO_DESABILITADA',
+              'DIVERGENCIA_FINANCEIRA'
+            )
+          )
+          OR (
+            status = 'PROCESSING'
+            AND bloqueado_em <
+              NOW() - INTERVAL '5 minutes'
+          )
         )
       )::INT AS perdas_tecnicas,
       COUNT(*) FILTER (
         WHERE status = 'IGNORED'
+          AND COALESCE(resultado_codigo, '') NOT IN (
+            'SEM_CONSENTIMENTO',
+            'DUPLICADA_LEGADA'
+          )
           AND COALESCE(ultimo_erro, '') NOT IN (
             'sem_consentimento',
             'desabilitado',
