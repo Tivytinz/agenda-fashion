@@ -10,6 +10,8 @@ function obterContentSecurityPolicy() {
         "https://www.facebook.com",
         "https://www.google-analytics.com",
         "https://region1.google-analytics.com",
+        "https://analytics.google.com",
+        "https://www.google.com",
       ],
       "font-src": ["'self'", "data:"],
       "form-action": ["'self'"],
