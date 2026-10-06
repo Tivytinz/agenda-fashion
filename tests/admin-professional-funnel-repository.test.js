@@ -61,7 +61,7 @@ describe(
     );
 
     test(
-      "usa somente agendamentos não cancelados como primeiro valor",
+      "exclui estados sem evidência de ativação do primeiro agendamento válido",
       async () => {
         await repository
           .listarPorCampanha("30");
@@ -70,10 +70,10 @@ describe(
           mockQuery.mock.calls[0];
 
         expect(sql).toMatch(
-          /MIN\(ag\.created_at\)[\s\S]*COALESCE\([\s\S]*ag\.status[\s\S]*'agendado'[\s\S]*\)\s*<>\s*'cancelado'/i
+          /MIN\(ag\.created_at\)[\s\S]*COALESCE\([\s\S]*ag\.status[\s\S]*'agendado'[\s\S]*\)\s*NOT IN\s*\([\s\S]*'cancelado'[\s\S]*'cancelamento_solicitado'[\s\S]*\)/i
         );
         expect(sql).toMatch(
-          /ag\.negocio_id = dono\.negocio_id[\s\S]*ag\.status[\s\S]*<>\s*'cancelado'/i
+          /ag\.negocio_id = dono\.negocio_id[\s\S]*NOT IN\s*\([\s\S]*'cancelado'[\s\S]*'cancelamento_solicitado'/i
         );
         expect(sql).not.toMatch(/ag_anterior/i);
       }
