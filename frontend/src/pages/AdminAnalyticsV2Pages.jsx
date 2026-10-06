@@ -762,6 +762,10 @@ export function AdminJourneyV2Page() {
         const reconciliation = data.reconciliacaoPipelines || {};
         const conversionHealth = data.saudeConversoesMarketing || {};
         const conversionSummary = conversionHealth.resumo || {};
+        const conversionReconciliation = data.reconciliacaoConversoesMarketing || {};
+        const reconciledProviders = Array.isArray(conversionReconciliation.provedores)
+          ? conversionReconciliation.provedores
+          : [];
         const conversionProviders = Array.isArray(conversionHealth.provedores)
           ? conversionHealth.provedores
           : [];
@@ -1033,6 +1037,58 @@ export function AdminJourneyV2Page() {
                 <p>{reconciliation.metodologia?.comparacao}</p>
                 <p>{reconciliation.metodologia?.eventos}</p>
                 <p>{reconciliation.metodologia?.decisao}</p>
+              </details>
+            </section>
+
+            <section className="panel admin-conversion-reconciliation-panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Reconciliação de receita × marketing</p>
+                  <h2>Pagamento → elegibilidade → Google / Meta</h2>
+                  <p className="muted">
+                    Parte das conversões iniciais com pagamento confirmado. Diferenças legítimas de elegibilidade ficam separadas de perdas técnicas.
+                  </p>
+                </div>
+              </div>
+              {reconciledProviders.length === 0 ? (
+                <p className="muted">Ainda não há conversões pagas no período para reconciliar.</p>
+              ) : (
+                <div className="table-wrapper">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Provedor</th>
+                        <th>Pagas</th>
+                        <th>Elegíveis observadas</th>
+                        <th>Enviadas</th>
+                        <th>Inelegíveis legítimas</th>
+                        <th>Em processamento</th>
+                        <th>Perdas técnicas</th>
+                        <th>Sem entrega</th>
+                        <th>Cobertura técnica</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reconciledProviders.map((item) => (
+                        <tr key={item.provedor}>
+                          <td><strong>{item.provedor === "google" ? "Google" : item.provedor === "meta" ? "Meta" : item.provedor}</strong></td>
+                          <td>{formatNumber(item.conversoesPagas)}</td>
+                          <td>{formatNumber(item.elegiveisObservadas)}</td>
+                          <td>{formatNumber(item.enviadas)}</td>
+                          <td>{formatNumber(item.inelegiveisLegitimas)}</td>
+                          <td>{formatNumber(item.emProcessamento)}</td>
+                          <td>{formatNumber(item.perdasTecnicas)}</td>
+                          <td>{formatNumber(item.semEntrega)}</td>
+                          <td>{formatPercent(item.coberturaTecnica)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <details className="admin-metric-definition">
+                <summary>Como interpretar a reconciliação</summary>
+                <p>{conversionReconciliation.metodologia}</p>
               </details>
             </section>
 

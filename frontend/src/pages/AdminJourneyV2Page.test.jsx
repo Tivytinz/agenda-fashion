@@ -42,6 +42,24 @@ beforeEach(() => {
     transicoes: [],
     eventos: [],
     dispositivos: [],
+    reconciliacaoConversoesMarketing: {
+      estado: "atencao",
+      periodo: "30",
+      provedores: [
+        {
+          provedor: "google",
+          conversoesPagas: 4,
+          elegiveisObservadas: 3,
+          enviadas: 2,
+          inelegiveisLegitimas: 1,
+          emProcessamento: 0,
+          perdasTecnicas: 0,
+          semEntrega: 1,
+          coberturaTecnica: 66.67
+        }
+      ],
+      metodologia: "Pagamento confirmado permanece a fonte de verdade."
+    },
     saudeConversoesMarketing: {
       estado: "atencao",
       periodoAtividade: "30",
@@ -147,6 +165,14 @@ describe("jornada administrativa v2", () => {
         { name: "Saúde da entrega Google × Meta" }
       )
     ).not.toBeNull();
+    expect(
+      screen.getByRole(
+        "heading",
+        { name: "Pagamento → elegibilidade → Google / Meta" }
+      )
+    ).not.toBeNull();
+    expect(screen.getByText("66,7%")).not.toBeNull();
+
     expect(screen.getByText("Atenção")).not.toBeNull();
     expect(screen.getByText("Falhas terminais")).not.toBeNull();
     expect(screen.getAllByText("Google").length).toBeGreaterThan(0);

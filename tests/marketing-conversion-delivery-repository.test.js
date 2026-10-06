@@ -220,6 +220,38 @@ describe(
     );
 
     test(
+      "reconcilia conversao inicial paga com Google e Meta sem reconstruir consentimento atual",
+      async () => {
+        db.query.mockResolvedValueOnce({
+          rows: [
+            {
+              provedor: "google",
+              conversoes_pagas: 4,
+              enviadas: 2,
+              inelegiveis_legitimas: 1,
+              sem_entrega: 1
+            }
+          ]
+        });
+
+        await expect(
+          repository.buscarReconciliacaoConversoes("30")
+        ).resolves.toEqual({
+          periodo: "30",
+          provedores: expect.any(Array)
+        });
+
+        const sql = db.query.mock.calls[0][0];
+        expect(sql).toContain("ae.tipo = 'CONVERSAO_INICIAL'");
+        expect(sql).toContain("pg.data_pagamento IS NOT NULL");
+        expect(sql).toContain("'CONFIRMED'");
+        expect(sql).toContain("'SUBSCRIPTION_ACTIVATED'");
+        expect(sql).toContain("'sem_consentimento'");
+        expect(sql).not.toContain("marketing_usuario_atribuicoes");
+      }
+    );
+
+    test(
       "reserva com SKIP LOCKED, limita a cinco tentativas e só repete FAILED agendado",
       async () => {
         db.query.mockResolvedValueOnce({

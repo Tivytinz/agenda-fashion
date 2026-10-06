@@ -326,10 +326,11 @@ function mapearReconciliacaoPipelines(bruto = {}) {
 
 async function buscarJourney(periodo) {
   const periodoSeguro = repository.periodoSeguro(periodo);
-  const [jornada, reconciliacao, entregasConversao] = await Promise.all([
+  const [jornada, reconciliacao, entregasConversao, reconciliacaoConversoes] = await Promise.all([
     repository.buscarJornada(periodoSeguro),
     repository.buscarReconciliacaoPipelines(periodoSeguro),
     marketingConversionDeliveryRepository.buscarSaudeEntregas(periodoSeguro),
+    marketingConversionDeliveryRepository.buscarReconciliacaoConversoes(periodoSeguro),
   ]);
 
   const linhasEntrega = Array.isArray(entregasConversao?.linhas)
@@ -364,10 +365,54 @@ async function buscarJourney(periodo) {
     }
   );
 
+  const provedoresReconciliacao = Array.isArray(reconciliacaoConversoes?.provedores)
+    ? reconciliacaoConversoes.provedores.map((linha) => {
+        const pagas = numero(linha.conversoes_pagas);
+        const enviadas = numero(linha.enviadas);
+        const inelegiveis = numero(linha.inelegiveis_legitimas);
+        const renovacoes = numero(linha.ignoradas_renovacao);
+        const semEntrega = numero(linha.sem_entrega);
+        const emProcessamento = numero(linha.em_processamento);
+        const perdasTecnicas = numero(linha.perdas_tecnicas);
+        const naoClassificadas = numero(linha.ignoradas_nao_classificadas);
+        const elegiveisObservadas = Math.max(pagas - inelegiveis - renovacoes, 0);
+        return {
+          provedor: linha.provedor,
+          conversoesPagas: pagas,
+          enviadas,
+          inelegiveisLegitimas: inelegiveis,
+          ignoradasRenovacao: renovacoes,
+          semEntrega,
+          emProcessamento,
+          perdasTecnicas,
+          ignoradasNaoClassificadas: naoClassificadas,
+          elegiveisObservadas,
+          coberturaTecnica: elegiveisObservadas > 0
+            ? Number(((enviadas / elegiveisObservadas) * 100).toFixed(2))
+            : null,
+        };
+      })
+    : [];
+  const perdasReconciliacao = provedoresReconciliacao.reduce(
+    (total, item) => total + item.perdasTecnicas + item.semEntrega + item.ignoradasNaoClassificadas,
+    0
+  );
+
   return {
     ...jornada,
     reconciliacaoPipelines:
       mapearReconciliacaoPipelines(reconciliacao),
+    reconciliacaoConversoesMarketing: {
+      periodo: reconciliacaoConversoes?.periodo || periodoSeguro,
+      estado: perdasReconciliacao > 0
+        ? "atencao"
+        : provedoresReconciliacao.some((item) => item.emProcessamento > 0)
+          ? "processando"
+          : "saudavel",
+      provedores: provedoresReconciliacao,
+      metodologia:
+        "Parte das conversoes iniciais com pagamento confirmado e reconcilia a entrega persistida por provedor. Inelegibilidade observada nao e perda tecnica. Falha terminal, processamento expirado, ausencia de entrega e motivo nao classificado exigem investigacao. O historico persistido evita reconstruir consentimento passado pelo estado atual. Pagamento confirmado permanece a fonte de verdade de receita.",
+    },
     saudeConversoesMarketing: {
       periodoAtividade: periodoEntregas,
       estado:
