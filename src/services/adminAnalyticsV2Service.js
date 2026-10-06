@@ -365,38 +365,60 @@ async function buscarJourney(periodo) {
     }
   );
 
-  const provedoresReconciliacao = Array.isArray(reconciliacaoConversoes?.provedores)
+  const provedoresReconciliacao = Array.isArray(
+    reconciliacaoConversoes?.provedores
+  )
     ? reconciliacaoConversoes.provedores.map((linha) => {
         const pagas = numero(linha.conversoes_pagas);
         const enviadas = numero(linha.enviadas);
         const inelegiveis = numero(linha.inelegiveis_legitimas);
-        const renovacoes = numero(linha.ignoradas_renovacao);
+        const integracaoIndisponivel = numero(
+          linha.integracao_indisponivel
+        );
+        const divergenciasFinanceiras = numero(
+          linha.divergencias_financeiras
+        );
         const semEntrega = numero(linha.sem_entrega);
         const emProcessamento = numero(linha.em_processamento);
         const perdasTecnicas = numero(linha.perdas_tecnicas);
-        const naoClassificadas = numero(linha.ignoradas_nao_classificadas);
-        const elegiveisObservadas = Math.max(pagas - inelegiveis - renovacoes, 0);
+        const naoClassificadas = numero(
+          linha.ignoradas_nao_classificadas
+        );
+
         return {
           provedor: linha.provedor,
           conversoesPagas: pagas,
           enviadas,
           inelegiveisLegitimas: inelegiveis,
-          ignoradasRenovacao: renovacoes,
+          integracaoIndisponivel,
+          divergenciasFinanceiras,
           semEntrega,
           emProcessamento,
           perdasTecnicas,
           ignoradasNaoClassificadas: naoClassificadas,
-          elegiveisObservadas,
-          coberturaTecnica: elegiveisObservadas > 0
-            ? Number(((enviadas / elegiveisObservadas) * 100).toFixed(2))
-            : null,
+          coberturaSobrePagas:
+            pagas > 0
+              ? Number(
+                  (
+                    (enviadas / pagas) *
+                    100
+                  ).toFixed(2)
+                )
+              : null,
         };
       })
     : [];
-  const perdasReconciliacao = provedoresReconciliacao.reduce(
-    (total, item) => total + item.perdasTecnicas + item.semEntrega + item.ignoradasNaoClassificadas,
-    0
-  );
+  const perdasReconciliacao =
+    provedoresReconciliacao.reduce(
+      (total, item) =>
+        total +
+        item.perdasTecnicas +
+        item.integracaoIndisponivel +
+        item.divergenciasFinanceiras +
+        item.semEntrega +
+        item.ignoradasNaoClassificadas,
+      0
+    );
 
   return {
     ...jornada,
@@ -411,7 +433,7 @@ async function buscarJourney(periodo) {
           : "saudavel",
       provedores: provedoresReconciliacao,
       metodologia:
-        "Parte das conversoes iniciais com pagamento confirmado e reconcilia a entrega persistida por provedor. Inelegibilidade observada nao e perda tecnica. Falha terminal, processamento expirado, ausencia de entrega e motivo nao classificado exigem investigacao. O historico persistido evita reconstruir consentimento passado pelo estado atual. Pagamento confirmado permanece a fonte de verdade de receita.",
+        "Parte da primeira CONVERSAO_INICIAL canônica por negócio, usa data_pagamento como relógio do recorte e reconcilia a entrega pelo assinatura_evento_id. Sem consentimento é inelegibilidade observada; integração desabilitada, divergência financeira, falha terminal, processamento expirado e ausência de entrega exigem investigação. A cobertura exibida é SENT sobre conversões pagas, sem inferir elegibilidade quando a evidência é desconhecida. Pagamento confirmado permanece a fonte de verdade de receita.",
     },
     saudeConversoesMarketing: {
       periodoAtividade: periodoEntregas,
