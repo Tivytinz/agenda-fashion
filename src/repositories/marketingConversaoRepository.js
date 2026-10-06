@@ -106,7 +106,10 @@ async function buscarConversaoInicialConfirmada({
         ae.assinatura_id,
         ae.pagamento_id AS pagamento_interno_id,
         ae.ocorrido_em,
-        dono.usuario_id AS usuario_aquisicao_id,
+        COALESCE(
+          mna.usuario_aquisicao_id,
+          dono.usuario_id
+        ) AS usuario_aquisicao_id,
         p.asaas_payment_id,
         p.valor,
         p.data_pagamento,
@@ -114,6 +117,8 @@ async function buscarConversaoInicialConfirmada({
       FROM assinatura_eventos ae
       INNER JOIN pagamentos p
         ON p.id = ae.pagamento_id
+      LEFT JOIN marketing_negocio_aquisicoes mna
+        ON mna.negocio_id = ae.negocio_id
       LEFT JOIN LATERAL (
         SELECT un.usuario_id
         FROM usuarios_negocios un
