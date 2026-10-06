@@ -14,7 +14,8 @@ jest.mock(
 jest.mock(
   "../src/repositories/marketingConversaoRepository",
   () => ({
-    buscarPagamentoConfirmado: jest.fn()
+    buscarPagamentoConfirmado: jest.fn(),
+    buscarConversaoInicialConfirmada: jest.fn()
   })
 );
 
@@ -94,11 +95,17 @@ const service = require(
   "../src/services/marketingConversionDeliveryService"
 );
 
+const pagamentoData =
+  "2026-10-06T12:00:00.000Z";
+
 const payload = {
   negocioId: 7,
   assinaturaId: 11,
   pagamentoId: "pay_123",
-  valor: 79.9
+  pagamentoInternoId: 30,
+  assinaturaEventoId: 90,
+  ocorridoEm: pagamentoData,
+  valor: 59.9
 };
 
 beforeEach(() => {
@@ -120,17 +127,29 @@ beforeEach(() => {
     .marcarFalhaTerminal
     .mockResolvedValue({ id: 1 });
   marketingConversaoRepository
+    .buscarConversaoInicialConfirmada
+    .mockResolvedValue({
+      assinatura_evento_id: 90,
+      negocio_id: 7,
+      assinatura_id: 11,
+      pagamento_interno_id: 30,
+      asaas_payment_id: "pay_123",
+      valor: "59.90",
+      data_pagamento: pagamentoData
+    });
+  marketingConversaoRepository
     .buscarPagamentoConfirmado
     .mockResolvedValue({
       id: 30,
       assinatura_id: 11,
       asaas_payment_id: "pay_123",
-      valor: "59.90"
+      valor: "59.90",
+      data_pagamento: pagamentoData
     });
 });
 
 test(
-  "enfileira pela identidade estável da assinatura",
+  "enfileira somente pela identidade do evento financeiro canônico",
   async () => {
     deliveryRepository
       .enfileirar
@@ -146,8 +165,13 @@ test(
         1,
         expect.objectContaining({
           provedor: "meta",
-          chaveEvento:
-            "assinatura:11"
+          assinaturaEventoId: 90,
+          ocorridoEm: pagamentoData,
+          payload: expect.objectContaining({
+            assinaturaEventoId: 90,
+            pagamentoId: "pay_123",
+            valor: 59.9
+          })
         })
       );
     expect(deliveryRepository.enfileirar)
@@ -155,8 +179,13 @@ test(
         2,
         expect.objectContaining({
           provedor: "google",
-          chaveEvento:
-            "assinatura:11"
+          assinaturaEventoId: 90,
+          ocorridoEm: pagamentoData,
+          payload: expect.objectContaining({
+            assinaturaEventoId: 90,
+            pagamentoId: "pay_123",
+            valor: 59.9
+          })
         })
       );
   }
@@ -212,7 +241,7 @@ test(
         expect.objectContaining({
           eventName: "Subscribe",
           eventId: "subscribe:11",
-          ocorridoEm: undefined,
+          ocorridoEm: pagamentoData,
           customData:
             expect.objectContaining({
               value: 59.9
@@ -265,7 +294,7 @@ test(
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         eventName: "purchase",
-        ocorridoEm: undefined,
+        ocorridoEm: pagamentoData,
         params: expect.objectContaining({
           transaction_id:
             "af-subscription-11",
@@ -360,7 +389,8 @@ test(
     ).toHaveBeenCalledWith(
       4,
       2,
-      "event_id_invalido"
+      "event_id_invalido",
+      "EVENT_ID_INVALIDO"
     );
     expect(
       deliveryRepository.marcarIgnorado
@@ -398,10 +428,109 @@ test(
     ).toHaveBeenCalledWith(
       5,
       1,
-      "sem_consentimento"
+      "sem_consentimento",
+      "SEM_CONSENTIMENTO"
     );
     expect(
       deliveryRepository.marcarFalhaTerminal
+    ).not.toHaveBeenCalled();
+  }
+);
+
+test(
+  "não enfileira renovação, troca de plano ou reativação sem CONVERSAO_INICIAL",
+  async () => {
+    marketingConversaoRepository
+      .buscarConversaoInicialConfirmada
+      .mockResolvedValueOnce(null);
+
+    await expect(
+      service.enfileirarAssinaturaAtivada({
+        negocioId: 7,
+        assinaturaId: 22,
+        pagamentoId: "pay_upgrade",
+        valor: 99.9
+      })
+    ).resolves.toEqual([]);
+
+    expect(
+      deliveryRepository.enfileirar
+    ).not.toHaveBeenCalled();
+  }
+);
+
+test(
+  "integração desabilitada vira falha operacional terminal",
+  async () => {
+    deliveryRepository
+      .reservarProximo
+      .mockResolvedValueOnce({
+        id: 6,
+        provedor: "google",
+        payload,
+        lease_tentativa: 1
+      });
+    googleMeasurementRepository
+      .buscarPerfilPorNegocio
+      .mockResolvedValue({
+        usuario_id: 3,
+        google_consentimento_status: true,
+        google_consentido_em: pagamentoData,
+        google_revogado_em: null,
+        google_client_id: "123.456"
+      });
+    googleMeasurementService
+      .enviarEventoMeasurementProtocol
+      .mockResolvedValue({
+        enviado: false,
+        motivo: "desabilitado"
+      });
+
+    await service
+      .processarFilaConversoes(1);
+
+    expect(
+      deliveryRepository.marcarFalhaTerminal
+    ).toHaveBeenCalledWith(
+      6,
+      1,
+      "desabilitado",
+      "INTEGRACAO_DESABILITADA"
+    );
+    expect(
+      deliveryRepository.marcarIgnorado
+    ).not.toHaveBeenCalled();
+  }
+);
+
+test(
+  "payload que não aponta mais para CONVERSAO_INICIAL vira divergência financeira",
+  async () => {
+    deliveryRepository
+      .reservarProximo
+      .mockResolvedValueOnce({
+        id: 7,
+        provedor: "meta",
+        payload,
+        lease_tentativa: 1
+      });
+    marketingConversaoRepository
+      .buscarConversaoInicialConfirmada
+      .mockResolvedValueOnce(null);
+
+    await service
+      .processarFilaConversoes(1);
+
+    expect(
+      deliveryRepository.marcarFalhaTerminal
+    ).toHaveBeenCalledWith(
+      7,
+      1,
+      "nao_conversao_inicial",
+      "DIVERGENCIA_FINANCEIRA"
+    );
+    expect(
+      metaAdsService.enviarEvento
     ).not.toHaveBeenCalled();
   }
 );
