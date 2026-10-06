@@ -673,13 +673,6 @@ test(
 
     expect(segunda).toBe(primeira);
 
-    await Promise.resolve();
-
-    expect(
-      deliveryRepository
-        .marcarProcessamentosEsgotados
-    ).toHaveBeenCalledTimes(1);
-
     liberar([]);
 
     await Promise.all([
@@ -687,6 +680,10 @@ test(
       segunda
     ]);
 
+    expect(
+      deliveryRepository
+        .marcarProcessamentosEsgotados
+    ).toHaveBeenCalledTimes(1);
     expect(
       deliveryRepository.reservarProximo
     ).toHaveBeenCalledTimes(1);
