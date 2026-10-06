@@ -152,6 +152,19 @@ describe(
         expect(sql).toContain(
           "p.data_pagamento IS NOT NULL"
         );
+        expect(sql).toContain(
+          "anterior.negocio_id"
+        );
+        expect(sql).toContain(
+          "anterior.tipo ="
+        );
+        expect(sql).toContain(
+          "'CONVERSAO_INICIAL'"
+        );
+        expect(sql).toContain(
+          "pagamento_anterior.data_pagamento <"
+        );
+
         expect(parametros).toEqual([
           11,
           "pay_1"
