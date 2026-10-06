@@ -184,5 +184,8 @@ module.exports = {
   buscarPerfilPorNegocio,
   ehPrimeiroPagamentoAssinatura:
     marketingConversaoRepository
-      .ehPrimeiroPagamentoAssinatura
+      .ehPrimeiroPagamentoAssinatura,
+  buscarConversaoInicialConfirmada:
+    marketingConversaoRepository
+      .buscarConversaoInicialConfirmada
 };
