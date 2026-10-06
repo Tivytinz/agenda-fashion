@@ -232,129 +232,15 @@ describe("Google Measurement service", () => {
       .not.toHaveBeenCalled();
   });
 
-  test("não transforma renovação em nova compra", async () => {
+  test("não expõe atalho legado de conversão financeira", () => {
     configurarGoogle();
-    repository
-      .ehPrimeiroPagamentoAssinatura
-      .mockResolvedValue(false);
-
-    service
-      .enviarAssinaturaAtivadaSeguro({
-        negocioId: 10,
-        assinaturaId: 20,
-        pagamentoId: "pay_renovacao",
-        valor: 49.9
-      });
-
-    await new Promise(
-      (resolve) => setImmediate(resolve)
-    );
 
     expect(
-      repository
-        .ehPrimeiroPagamentoAssinatura
-    ).toHaveBeenCalledWith({
-      assinaturaId: 20,
-      pagamentoId:
-        "pay_renovacao"
-    });
+      service.enviarAssinaturaAtivadaSeguro
+    ).toBeUndefined();
     expect(
-      repository.buscarPerfilPorNegocio
-    ).not.toHaveBeenCalled();
-    expect(global.fetch)
-      .not.toHaveBeenCalled();
+      service.measurementProtocolHabilitado()
+    ).toBe(true);
   });
 
-  test("envia primeira assinatura somente com consentimento e client id persistidos", async () => {
-    configurarGoogle();
-    repository
-      .ehPrimeiroPagamentoAssinatura
-      .mockResolvedValue(true);
-    repository
-      .buscarPerfilPorNegocio
-      .mockResolvedValue({
-        usuario_id: 77,
-        google_consentimento_status:
-          true,
-        google_consentido_em:
-          new Date().toISOString(),
-        google_revogado_em:
-          null,
-        google_client_id:
-          "123456.987654"
-      });
-    global.fetch.mockResolvedValue({
-      ok: true
-    });
-
-    service
-      .enviarAssinaturaAtivadaSeguro({
-        negocioId: 10,
-        assinaturaId: 20,
-        pagamentoId: "pay_primeiro",
-        valor: 49.9
-      });
-
-    await new Promise(
-      (resolve) => setImmediate(resolve)
-    );
-    await new Promise(
-      (resolve) => setImmediate(resolve)
-    );
-
-    expect(global.fetch)
-      .toHaveBeenCalledTimes(1);
-
-    const payload = JSON.parse(
-      global.fetch.mock.calls[0][1].body
-    );
-    expect(payload.events[0])
-      .toMatchObject({
-        name: "purchase",
-        params: {
-          transaction_id:
-            "af-subscription-20",
-          currency: "BRL",
-          value: 49.9
-        }
-      });
-  });
-
-  test("não envia compra quando a última escolha explícita é recusa", async () => {
-    configurarGoogle();
-    repository
-      .ehPrimeiroPagamentoAssinatura
-      .mockResolvedValue(true);
-    repository
-      .buscarPerfilPorNegocio
-      .mockResolvedValue({
-        usuario_id: 77,
-        google_consentimento_status:
-          false,
-        google_consentido_em:
-          new Date().toISOString(),
-        google_revogado_em:
-          new Date().toISOString(),
-        google_client_id:
-          "123456.987654"
-      });
-
-    service
-      .enviarAssinaturaAtivadaSeguro({
-        negocioId: 10,
-        assinaturaId: 20,
-        pagamentoId: "pay_recusado",
-        valor: 49.9
-      });
-
-    await new Promise(
-      (resolve) => setImmediate(resolve)
-    );
-    await new Promise(
-      (resolve) => setImmediate(resolve)
-    );
-
-    expect(global.fetch)
-      .not.toHaveBeenCalled();
-  });
 });
