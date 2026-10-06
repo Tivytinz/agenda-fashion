@@ -760,6 +760,11 @@ export function AdminJourneyV2Page() {
         const events = Array.isArray(data.eventos) ? data.eventos : [];
         const devices = Array.isArray(data.dispositivos) ? data.dispositivos : [];
         const reconciliation = data.reconciliacaoPipelines || {};
+        const conversionHealth = data.saudeConversoesMarketing || {};
+        const conversionSummary = conversionHealth.resumo || {};
+        const conversionProviders = Array.isArray(conversionHealth.provedores)
+          ? conversionHealth.provedores
+          : [];
         const decommissionEvidence =
           reconciliation.evidenciaRetirada || {};
         const pipelineEvents = Array.isArray(reconciliation.eventos)
@@ -1028,6 +1033,80 @@ export function AdminJourneyV2Page() {
                 <p>{reconciliation.metodologia?.comparacao}</p>
                 <p>{reconciliation.metodologia?.eventos}</p>
                 <p>{reconciliation.metodologia?.decisao}</p>
+              </details>
+            </section>
+
+            <section className="panel admin-conversion-health-panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Conversões de marketing</p>
+                  <h2>Saúde da entrega Google × Meta</h2>
+                  <p className="muted">
+                    Estado atual da fila persistente e atividade criada no período selecionado. Pagamentos confirmados continuam sendo a fonte de verdade de receita.
+                  </p>
+                </div>
+              </div>
+
+              <section className="admin-command-summary-grid is-period-summary">
+                <MetricCard
+                  label="Estado da fila"
+                  hint="falhas terminais ou leases expirados exigem investigação"
+                  tone={conversionHealth.estado === "atencao" ? "warning" : conversionHealth.estado === "saudavel" ? "success" : "neutral"}
+                  value={conversionHealth.estado === "atencao" ? "Atenção" : conversionHealth.estado === "saudavel" ? "Saudável" : "Processando"}
+                />
+                <MetricCard
+                  label="Atividade no período"
+                  hint="entregas criadas no recorte selecionado"
+                  value={formatNumber(conversionSummary.atividadePeriodo)}
+                />
+                <MetricCard
+                  label="Falhas terminais"
+                  hint="não possuem próxima tentativa automática"
+                  tone={number(conversionSummary.falhasTerminais) > 0 ? "warning" : "neutral"}
+                  value={formatNumber(conversionSummary.falhasTerminais)}
+                />
+                <MetricCard
+                  label="Leases expirados"
+                  hint="processamentos presos há mais de cinco minutos"
+                  tone={number(conversionSummary.processamentosExpirados) > 0 ? "warning" : "neutral"}
+                  value={formatNumber(conversionSummary.processamentosExpirados)}
+                />
+              </section>
+
+              {conversionProviders.length === 0 ? (
+                <p className="muted">Ainda não há entregas de conversão de assinatura registradas.</p>
+              ) : (
+                <div className="table-wrapper">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Provedor</th>
+                        <th>Status</th>
+                        <th>Estoque atual</th>
+                        <th>Atividade no período</th>
+                        <th>Pendência mais antiga</th>
+                        <th>Último envio</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {conversionProviders.map((item) => (
+                        <tr key={`${item.provedor}-${item.status}`}>
+                          <td><strong>{item.provedor === "google" ? "Google" : item.provedor === "meta" ? "Meta" : item.provedor}</strong></td>
+                          <td>{item.status}</td>
+                          <td>{formatNumber(item.total)}</td>
+                          <td>{formatNumber(item.atividade_periodo)}</td>
+                          <td>{formatDateTime(item.pendencia_mais_antiga_em)}</td>
+                          <td>{formatDateTime(item.ultimo_envio_em)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <details className="admin-metric-definition">
+                <summary>Como interpretar a saúde das conversões</summary>
+                <p>{conversionHealth.metodologia}</p>
               </details>
             </section>
 
