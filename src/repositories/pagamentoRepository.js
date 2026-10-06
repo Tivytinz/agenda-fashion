@@ -102,16 +102,16 @@ async function atualizarStatusPagamento(client, paymentId, dados) {
         ELSE asaas_ultimo_evento_em
       END,
       asaas_ultimo_evento_id = CASE
-        WHEN $4::timestamp IS NOT NULL
-          THEN $5
+        WHEN $5::timestamp IS NOT NULL
+          THEN $6
         ELSE asaas_ultimo_evento_id
       END,
       updated_at = NOW()
-    WHERE asaas_payment_id = $6
+    WHERE asaas_payment_id = $7
       AND (
-        $4::timestamp IS NULL
+        $5::timestamp IS NULL
         OR asaas_ultimo_evento_em IS NULL
-        OR $4::timestamp >=
+        OR $5::timestamp >=
           asaas_ultimo_evento_em
       )
     RETURNING *
