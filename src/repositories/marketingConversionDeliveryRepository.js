@@ -333,6 +333,156 @@ async function buscarSaudeEntregas(periodo = "30") {
   };
 }
 
+async function buscarReconciliacaoConversoes(periodo = "30") {
+  const periodos = {
+    "7": "7 days",
+    "30": "30 days",
+    "90": "90 days",
+    all: null
+  };
+  const seguro = Object.prototype.hasOwnProperty.call(
+    periodos,
+    String(periodo)
+  )
+    ? String(periodo)
+    : "30";
+  const intervalo = periodos[seguro];
+  const filtroPeriodo = intervalo
+    ? `AND ae.ocorrido_em >= NOW() - INTERVAL '${intervalo}'`
+    : "";
+
+  const resultado = await db.query(
+    `
+    WITH conversoes AS (
+      SELECT DISTINCT ON (ae.assinatura_id)
+        ae.assinatura_id,
+        ae.negocio_id,
+        ae.pagamento_id,
+        ae.ocorrido_em
+      FROM assinatura_eventos ae
+      INNER JOIN pagamentos pg
+        ON pg.id = ae.pagamento_id
+      WHERE ae.tipo = 'CONVERSAO_INICIAL'
+        AND ae.assinatura_id IS NOT NULL
+        AND ae.pagamento_id IS NOT NULL
+        AND pg.data_pagamento IS NOT NULL
+        AND UPPER(COALESCE(pg.status, '')) IN (
+          'CONFIRMED',
+          'RECEIVED',
+          'RECEIVED_IN_CASH'
+        )
+        ${filtroPeriodo}
+      ORDER BY
+        ae.assinatura_id,
+        ae.ocorrido_em ASC,
+        ae.id ASC
+    ),
+    provedores AS (
+      SELECT 'google'::TEXT AS provedor
+      UNION ALL
+      SELECT 'meta'::TEXT
+    ),
+    base AS (
+      SELECT
+        c.assinatura_id,
+        c.negocio_id,
+        c.pagamento_id,
+        c.ocorrido_em,
+        p.provedor,
+        e.id AS entrega_id,
+        e.status,
+        e.proxima_tentativa_em,
+        e.bloqueado_em,
+        e.ultimo_erro
+      FROM conversoes c
+      CROSS JOIN provedores p
+      LEFT JOIN LATERAL (
+        SELECT entrega.*
+        FROM marketing_conversoes_entregas entrega
+        WHERE entrega.provedor = p.provedor
+          AND entrega.tipo_evento = 'SUBSCRIPTION_ACTIVATED'
+          AND (
+            entrega.chave_evento =
+              'assinatura:' || c.assinatura_id::TEXT
+            OR entrega.payload ->> 'assinaturaId' =
+              c.assinatura_id::TEXT
+          )
+        ORDER BY
+          CASE entrega.status
+            WHEN 'SENT' THEN 0
+            WHEN 'PROCESSING' THEN 1
+            WHEN 'PENDING' THEN 2
+            WHEN 'FAILED' THEN 3
+            WHEN 'IGNORED' THEN 4
+            ELSE 5
+          END,
+          entrega.id ASC
+        LIMIT 1
+      ) e ON TRUE
+    )
+    SELECT
+      provedor,
+      COUNT(*)::INT AS conversoes_pagas,
+      COUNT(*) FILTER (
+        WHERE status = 'SENT'
+      )::INT AS enviadas,
+      COUNT(*) FILTER (
+        WHERE status = 'IGNORED'
+          AND ultimo_erro IN (
+            'sem_consentimento',
+            'desabilitado'
+          )
+      )::INT AS inelegiveis_legitimas,
+      COUNT(*) FILTER (
+        WHERE status = 'IGNORED'
+          AND ultimo_erro = 'renovacao'
+      )::INT AS ignoradas_renovacao,
+      COUNT(*) FILTER (
+        WHERE entrega_id IS NULL
+      )::INT AS sem_entrega,
+      COUNT(*) FILTER (
+        WHERE status = 'PENDING'
+          OR (
+            status = 'PROCESSING'
+            AND bloqueado_em >=
+              NOW() - INTERVAL '5 minutes'
+          )
+          OR (
+            status = 'FAILED'
+            AND proxima_tentativa_em IS NOT NULL
+          )
+      )::INT AS em_processamento,
+      COUNT(*) FILTER (
+        WHERE (
+          status = 'FAILED'
+          AND proxima_tentativa_em IS NULL
+        )
+        OR (
+          status = 'PROCESSING'
+          AND bloqueado_em <
+            NOW() - INTERVAL '5 minutes'
+        )
+      )::INT AS perdas_tecnicas,
+      COUNT(*) FILTER (
+        WHERE status = 'IGNORED'
+          AND COALESCE(ultimo_erro, '') NOT IN (
+            'sem_consentimento',
+            'desabilitado',
+            'renovacao'
+          )
+      )::INT AS ignoradas_nao_classificadas
+    FROM base
+    GROUP BY provedor
+    ORDER BY provedor
+    `
+  );
+
+  return {
+    periodo: seguro,
+    provedores: resultado.rows
+  };
+}
+
 async function reservarProximo() {
   const resultado = await db.query(
     `
@@ -529,6 +679,7 @@ async function marcarProcessamentosEsgotados() {
 module.exports = {
   enfileirar,
   buscarSaudeEntregas,
+  buscarReconciliacaoConversoes,
   reservarProximo,
   marcarEnviado,
   marcarIgnorado,
