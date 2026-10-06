@@ -42,6 +42,35 @@ beforeEach(() => {
     transicoes: [],
     eventos: [],
     dispositivos: [],
+    saudeConversoesMarketing: {
+      estado: "atencao",
+      periodoAtividade: "30",
+      resumo: {
+        total: 5,
+        atividadePeriodo: 2,
+        falhasTerminais: 1,
+        processamentosExpirados: 0
+      },
+      provedores: [
+        {
+          provedor: "google",
+          status: "SENT",
+          total: 4,
+          atividade_periodo: 1,
+          pendencia_mais_antiga_em: null,
+          ultimo_envio_em: "2026-10-06T12:00:00.000Z"
+        },
+        {
+          provedor: "meta",
+          status: "FAILED",
+          total: 1,
+          atividade_periodo: 1,
+          pendencia_mais_antiga_em: "2026-10-06T11:00:00.000Z",
+          ultimo_envio_em: null
+        }
+      ],
+      metodologia: "Diagnóstico operacional da fila persistente."
+    },
     reconciliacaoPipelines: {
       estado: "divergencia_observada",
       inicioComparavel:
@@ -111,6 +140,19 @@ describe("jornada administrativa v2", () => {
     expect(
       screen.getByText(/Divergência observada/)
     ).not.toBeNull();
+
+    expect(
+      screen.getByRole(
+        "heading",
+        { name: "Saúde da entrega Google × Meta" }
+      )
+    ).not.toBeNull();
+    expect(screen.getByText("Atenção")).not.toBeNull();
+    expect(screen.getByText("Falhas terminais")).not.toBeNull();
+    expect(screen.getAllByText("Google").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Meta").length).toBeGreaterThan(0);
+
+
 
     const profileRow =
       screen.getByText(
