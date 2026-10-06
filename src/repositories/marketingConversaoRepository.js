@@ -69,7 +69,8 @@ async function buscarPagamentoConfirmado({
         p.id,
         p.assinatura_id,
         p.asaas_payment_id,
-        p.valor
+        p.valor,
+        p.data_pagamento
       FROM pagamentos p
       WHERE p.assinatura_id = $1
         AND p.asaas_payment_id = $2
@@ -90,7 +91,82 @@ async function buscarPagamentoConfirmado({
   return resultado.rows[0] || null;
 }
 
+async function buscarConversaoInicialConfirmada({
+  assinaturaId,
+  pagamentoId,
+  client = null
+}) {
+  const resultado = await executorConsulta(client)
+    .query(
+      `
+      SELECT
+        ae.id AS assinatura_evento_id,
+        ae.negocio_id,
+        ae.assinatura_id,
+        ae.pagamento_id AS pagamento_interno_id,
+        ae.ocorrido_em,
+        dono.usuario_id AS usuario_aquisicao_id,
+        p.asaas_payment_id,
+        p.valor,
+        p.data_pagamento
+      FROM assinatura_eventos ae
+      INNER JOIN pagamentos p
+        ON p.id = ae.pagamento_id
+      LEFT JOIN LATERAL (
+        SELECT un.usuario_id
+        FROM usuarios_negocios un
+        WHERE un.negocio_id = ae.negocio_id
+          AND un.papel = 'dono'
+        ORDER BY
+          un.created_at ASC,
+          un.id ASC
+        LIMIT 1
+      ) dono ON TRUE
+      WHERE ae.tipo = 'CONVERSAO_INICIAL'
+        AND ae.assinatura_id = $1
+        AND p.asaas_payment_id = $2
+        AND p.data_pagamento IS NOT NULL
+        AND UPPER(p.status) IN (
+          'CONFIRMED',
+          'RECEIVED',
+          'RECEIVED_IN_CASH'
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM assinatura_eventos anterior
+          INNER JOIN pagamentos pagamento_anterior
+            ON pagamento_anterior.id =
+              anterior.pagamento_id
+          WHERE anterior.negocio_id =
+              ae.negocio_id
+            AND anterior.tipo =
+              'CONVERSAO_INICIAL'
+            AND pagamento_anterior.data_pagamento
+              IS NOT NULL
+            AND (
+              pagamento_anterior.data_pagamento <
+                p.data_pagamento
+              OR (
+                pagamento_anterior.data_pagamento =
+                  p.data_pagamento
+                AND anterior.id < ae.id
+              )
+            )
+        )
+      ORDER BY ae.id ASC
+      LIMIT 1
+      `,
+      [
+        assinaturaId,
+        pagamentoId
+      ]
+    );
+
+  return resultado.rows[0] || null;
+}
+
 module.exports = {
   ehPrimeiroPagamentoAssinatura,
-  buscarPagamentoConfirmado
+  buscarPagamentoConfirmado,
+  buscarConversaoInicialConfirmada
 };

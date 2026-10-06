@@ -213,7 +213,8 @@ test(
         plano_id: 3
       }),
       pagamentoId: 31,
-      asaasPaymentId: "pay_1"
+      asaasPaymentId: "pay_1",
+      ocorridoEm: "2026-09-13"
     });
     expect(criarAssinaturaAsaas)
       .toHaveBeenCalledTimes(1);

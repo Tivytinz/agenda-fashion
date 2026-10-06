@@ -5,19 +5,34 @@ const MAX_TENTATIVAS = 5;
 async function enfileirar({
   provedor,
   tipoEvento,
-  payload
+  payload,
+  assinaturaEventoId = null,
+  ocorridoEm = null
 }) {
   const assinaturaId =
     Number(payload?.assinaturaId) || null;
+  const eventoId =
+    Number(
+      assinaturaEventoId ||
+      payload?.assinaturaEventoId
+    ) || null;
+  const pagamentoId =
+    String(
+      payload?.pagamentoId || ""
+    ).trim();
 
-  if (!assinaturaId) {
+  if (
+    !assinaturaId ||
+    !eventoId ||
+    !pagamentoId
+  ) {
     throw new Error(
-      "Entrega de conversão sem assinatura válida."
+      "Entrega de conversão sem lineage financeiro válido."
     );
   }
 
   const chaveCanonica =
-    `assinatura:${assinaturaId}`;
+    `assinatura-evento:${eventoId}`;
 
   return db.executarTransacao(
     async (client) => {
@@ -28,7 +43,7 @@ async function enfileirar({
         )
         `,
         [
-          `marketing-conversion:${provedor}:${tipoEvento}:${assinaturaId}`
+          `marketing-conversion:${provedor}:${tipoEvento}:${eventoId}`
         ]
       );
 
@@ -40,13 +55,17 @@ async function enfileirar({
           WHERE provedor = $1
             AND tipo_evento = $2
             AND (
-              chave_evento = $3
-              OR payload ->> 'assinaturaId' = $4
+              assinatura_evento_id = $3
+              OR (
+                assinatura_evento_id IS NULL
+                AND payload ->> 'assinaturaId' = $4
+                AND payload ->> 'pagamentoId' = $5
+              )
             )
           ORDER BY
             CASE
               WHEN status = 'SENT' THEN 0
-              WHEN chave_evento = $3 THEN 1
+              WHEN assinatura_evento_id = $3 THEN 1
               WHEN status = 'PROCESSING' THEN 2
               WHEN status = 'PENDING' THEN 3
               WHEN status = 'FAILED' THEN 4
@@ -58,8 +77,9 @@ async function enfileirar({
           [
             provedor,
             tipoEvento,
-            chaveCanonica,
-            String(assinaturaId)
+            eventoId,
+            String(assinaturaId),
+            pagamentoId
           ]
         );
 
@@ -68,13 +88,23 @@ async function enfileirar({
           (entrega) =>
             entrega.status === "SENT"
         );
+      const existente =
+        enviada ||
+        existentes.rows.find(
+          (entrega) =>
+            Number(
+              entrega.assinatura_evento_id
+            ) === eventoId
+        ) ||
+        existentes.rows[0] ||
+        null;
 
-      if (enviada) {
+      if (existente) {
         const idsIgnorar =
           existentes.rows
             .filter(
               (entrega) =>
-                entrega.id !== enviada.id &&
+                entrega.id !== existente.id &&
                 entrega.status !== "SENT"
             )
             .map((entrega) => entrega.id);
@@ -85,138 +115,62 @@ async function enfileirar({
             UPDATE marketing_conversoes_entregas
             SET
               status = 'IGNORED',
-              tentativas = tentativas + 1,
+              resultado_codigo =
+                'DUPLICADA_LEGADA',
               proxima_tentativa_em = NULL,
               bloqueado_em = NULL,
               ultimo_erro =
-                'Entrega substituída por conversão da mesma assinatura já enviada.',
+                'Entrega legada duplicada para a mesma conversão financeira canônica.',
               updated_at = NOW()
             WHERE id = ANY($1::bigint[])
+              AND status <> 'SENT'
             `,
             [idsIgnorar]
           );
+        }
+
+        if (
+          !existente.assinatura_evento_id &&
+          existente.status !== "PROCESSING"
+        ) {
+          const canonica =
+            await client.query(
+              `
+              UPDATE marketing_conversoes_entregas
+              SET
+                assinatura_evento_id = $2,
+                chave_evento = $3,
+                payload = $4::jsonb,
+                ocorrido_em =
+                  COALESCE(ocorrido_em, $5::timestamptz),
+                updated_at = NOW()
+              WHERE id = $1
+                AND assinatura_evento_id IS NULL
+                AND status <> 'PROCESSING'
+              RETURNING *
+              `,
+              [
+                existente.id,
+                eventoId,
+                chaveCanonica,
+                JSON.stringify(payload || {}),
+                ocorridoEm || null
+              ]
+            );
+
+          return {
+            novo: false,
+            rearmado: false,
+            entrega:
+              canonica.rows[0] ||
+              existente
+          };
         }
 
         return {
           novo: false,
           rearmado: false,
-          entrega: enviada
-        };
-      }
-
-      const existente =
-        existentes.rows.find(
-          (entrega) =>
-            entrega.chave_evento ===
-              chaveCanonica
-        ) ||
-        existentes.rows[0] ||
-        null;
-
-      if (existente) {
-        const idsIgnorar =
-          existentes.rows
-            .filter(
-              (entrega) =>
-                entrega.id !== existente.id
-            )
-            .map((entrega) => entrega.id);
-
-        if (idsIgnorar.length) {
-          await client.query(
-            `
-            UPDATE marketing_conversoes_entregas
-            SET
-              status = 'IGNORED',
-              tentativas = tentativas + 1,
-              proxima_tentativa_em = NULL,
-              bloqueado_em = NULL,
-              ultimo_erro =
-                'Entrega consolidada na identidade canônica da assinatura.',
-              updated_at = NOW()
-            WHERE id = ANY($1::bigint[])
-              AND status <> 'SENT'
-            `,
-            [idsIgnorar]
-          );
-        }
-
-        const mesmoPagamento =
-          String(
-            existente.payload?.pagamentoId || ""
-          ) ===
-          String(
-            payload?.pagamentoId || ""
-          );
-
-        if (mesmoPagamento) {
-          if (
-            existente.chave_evento !==
-              chaveCanonica
-          ) {
-            const canonica =
-              await client.query(
-                `
-                UPDATE marketing_conversoes_entregas
-                SET
-                  chave_evento = $2,
-                  updated_at = NOW()
-                WHERE id = $1
-                RETURNING *
-                `,
-                [
-                  existente.id,
-                  chaveCanonica
-                ]
-              );
-
-            return {
-              novo: false,
-              rearmado: false,
-              entrega:
-                canonica.rows[0] ||
-                existente
-            };
-          }
-
-          return {
-            novo: false,
-            rearmado: false,
-            entrega: existente
-          };
-        }
-
-        const atualizada =
-          await client.query(
-            `
-            UPDATE marketing_conversoes_entregas
-            SET
-              chave_evento = $2,
-              payload = $3::jsonb,
-              status = 'PENDING',
-              tentativas = 0,
-              proxima_tentativa_em = NOW(),
-              bloqueado_em = NULL,
-              enviado_em = NULL,
-              ultimo_erro = NULL,
-              updated_at = NOW()
-            WHERE id = $1
-              AND status <> 'SENT'
-            RETURNING *
-            `,
-            [
-              existente.id,
-              chaveCanonica,
-              JSON.stringify(payload || {})
-            ]
-          );
-
-        return {
-          novo: false,
-          rearmado: true,
-          entrega:
-            atualizada.rows[0] ||
-            existente
+          entrega: existente
         };
       }
 
@@ -228,12 +182,15 @@ async function enfileirar({
             tipo_evento,
             chave_evento,
             payload,
+            assinatura_evento_id,
+            ocorrido_em,
             status,
             tentativas,
             proxima_tentativa_em
           )
           VALUES (
             $1, $2, $3, $4::jsonb,
+            $5, $6::timestamptz,
             'PENDING', 0, NOW()
           )
           RETURNING *
@@ -242,7 +199,9 @@ async function enfileirar({
             provedor,
             tipoEvento,
             chaveCanonica,
-            JSON.stringify(payload || {})
+            JSON.stringify(payload || {}),
+            eventoId,
+            ocorridoEm || null
           ]
         );
 
@@ -348,17 +307,19 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
     : "30";
   const intervalo = periodos[seguro];
   const filtroPeriodo = intervalo
-    ? `AND ae.ocorrido_em >= NOW() - INTERVAL '${intervalo}'`
+    ? `AND pg.data_pagamento >= NOW() - INTERVAL '${intervalo}'`
     : "";
 
   const resultado = await db.query(
     `
     WITH conversoes AS (
-      SELECT DISTINCT ON (ae.assinatura_id)
+      SELECT DISTINCT ON (ae.negocio_id)
+        ae.id AS assinatura_evento_id,
         ae.assinatura_id,
         ae.negocio_id,
         ae.pagamento_id,
-        ae.ocorrido_em
+        pg.asaas_payment_id,
+        pg.data_pagamento
       FROM assinatura_eventos ae
       INNER JOIN pagamentos pg
         ON pg.id = ae.pagamento_id
@@ -373,8 +334,8 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
         )
         ${filtroPeriodo}
       ORDER BY
-        ae.assinatura_id,
-        ae.ocorrido_em ASC,
+        ae.negocio_id,
+        pg.data_pagamento ASC,
         ae.id ASC
     ),
     provedores AS (
@@ -384,15 +345,18 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
     ),
     base AS (
       SELECT
+        c.assinatura_evento_id,
         c.assinatura_id,
         c.negocio_id,
         c.pagamento_id,
-        c.ocorrido_em,
+        c.asaas_payment_id,
+        c.data_pagamento,
         p.provedor,
         e.id AS entrega_id,
         e.status,
         e.proxima_tentativa_em,
         e.bloqueado_em,
+        e.resultado_codigo,
         e.ultimo_erro
       FROM conversoes c
       CROSS JOIN provedores p
@@ -402,12 +366,23 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
         WHERE entrega.provedor = p.provedor
           AND entrega.tipo_evento = 'SUBSCRIPTION_ACTIVATED'
           AND (
-            entrega.chave_evento =
-              'assinatura:' || c.assinatura_id::TEXT
-            OR entrega.payload ->> 'assinaturaId' =
-              c.assinatura_id::TEXT
+            entrega.assinatura_evento_id =
+              c.assinatura_evento_id
+            OR (
+              entrega.assinatura_evento_id IS NULL
+              AND entrega.payload ->> 'assinaturaId' =
+                c.assinatura_id::TEXT
+              AND entrega.payload ->> 'pagamentoId' =
+                c.asaas_payment_id
+            )
           )
         ORDER BY
+          CASE
+            WHEN entrega.assinatura_evento_id =
+              c.assinatura_evento_id
+              THEN 0
+            ELSE 1
+          END,
           CASE entrega.status
             WHEN 'SENT' THEN 0
             WHEN 'PROCESSING' THEN 1
@@ -427,16 +402,33 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
         WHERE status = 'SENT'
       )::INT AS enviadas,
       COUNT(*) FILTER (
-        WHERE status = 'IGNORED'
-          AND ultimo_erro IN (
-            'sem_consentimento',
-            'desabilitado'
+        WHERE (
+          resultado_codigo = 'SEM_CONSENTIMENTO'
+          OR (
+            resultado_codigo IS NULL
+            AND status = 'IGNORED'
+            AND ultimo_erro = 'sem_consentimento'
           )
+        )
       )::INT AS inelegiveis_legitimas,
       COUNT(*) FILTER (
-        WHERE status = 'IGNORED'
-          AND ultimo_erro = 'renovacao'
-      )::INT AS ignoradas_renovacao,
+        WHERE (
+          resultado_codigo = 'INTEGRACAO_DESABILITADA'
+          OR (
+            resultado_codigo IS NULL
+            AND ultimo_erro = 'desabilitado'
+          )
+        )
+      )::INT AS integracao_indisponivel,
+      COUNT(*) FILTER (
+        WHERE (
+          resultado_codigo = 'DIVERGENCIA_FINANCEIRA'
+          OR (
+            resultado_codigo IS NULL
+            AND ultimo_erro = 'renovacao'
+          )
+        )
+      )::INT AS divergencias_financeiras,
       COUNT(*) FILTER (
         WHERE entrega_id IS NULL
       )::INT AS sem_entrega,
@@ -454,17 +446,27 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
       )::INT AS em_processamento,
       COUNT(*) FILTER (
         WHERE (
-          status = 'FAILED'
-          AND proxima_tentativa_em IS NULL
-        )
-        OR (
-          status = 'PROCESSING'
-          AND bloqueado_em <
-            NOW() - INTERVAL '5 minutes'
+          (
+            status = 'FAILED'
+            AND proxima_tentativa_em IS NULL
+            AND COALESCE(resultado_codigo, '') NOT IN (
+              'INTEGRACAO_DESABILITADA',
+              'DIVERGENCIA_FINANCEIRA'
+            )
+          )
+          OR (
+            status = 'PROCESSING'
+            AND bloqueado_em <
+              NOW() - INTERVAL '5 minutes'
+          )
         )
       )::INT AS perdas_tecnicas,
       COUNT(*) FILTER (
         WHERE status = 'IGNORED'
+          AND COALESCE(resultado_codigo, '') NOT IN (
+            'SEM_CONSENTIMENTO',
+            'DUPLICADA_LEGADA'
+          )
           AND COALESCE(ultimo_erro, '') NOT IN (
             'sem_consentimento',
             'desabilitado',
@@ -499,6 +501,7 @@ async function reservarProximo() {
       status = 'PROCESSING',
       tentativas = entrega.tentativas + 1,
       bloqueado_em = NOW(),
+      resultado_codigo = NULL,
       ultimo_erro = NULL,
       proxima_tentativa_em = NULL,
       updated_at = NOW()
@@ -537,6 +540,7 @@ async function marcarEnviado(
     UPDATE marketing_conversoes_entregas
     SET
       status = 'SENT',
+      resultado_codigo = 'ENVIADO',
       ultimo_erro = NULL,
       proxima_tentativa_em = NULL,
       enviado_em = NOW(),
@@ -558,13 +562,15 @@ async function marcarEnviado(
 async function marcarIgnorado(
   id,
   leaseTentativa,
-  motivo
+  motivo,
+  resultadoCodigo = "IGNORADO"
 ) {
   const resultado = await db.query(
     `
     UPDATE marketing_conversoes_entregas
     SET
       status = 'IGNORED',
+      resultado_codigo = $4,
       ultimo_erro = $3,
       proxima_tentativa_em = NULL,
       updated_at = NOW()
@@ -577,7 +583,9 @@ async function marcarIgnorado(
       id,
       leaseTentativa,
       String(motivo || "Ignorado")
-        .slice(0, 1000)
+        .slice(0, 1000),
+      String(resultadoCodigo || "IGNORADO")
+        .slice(0, 80)
     ]
   );
 
@@ -594,6 +602,7 @@ async function marcarFalha(
     UPDATE marketing_conversoes_entregas
     SET
       status = 'FAILED',
+      resultado_codigo = 'FALHA_TEMPORARIA',
       ultimo_erro = $3,
       proxima_tentativa_em =
         CASE
@@ -627,13 +636,15 @@ async function marcarFalha(
 async function marcarFalhaTerminal(
   id,
   leaseTentativa,
-  erro
+  erro,
+  resultadoCodigo = "FALHA_TECNICA"
 ) {
   const resultado = await db.query(
     `
     UPDATE marketing_conversoes_entregas
     SET
       status = 'FAILED',
+      resultado_codigo = $4,
       ultimo_erro = $3,
       proxima_tentativa_em = NULL,
       updated_at = NOW()
@@ -646,7 +657,9 @@ async function marcarFalhaTerminal(
       id,
       leaseTentativa,
       String(erro || "Falha terminal")
-        .slice(0, 2000)
+        .slice(0, 2000),
+      String(resultadoCodigo || "FALHA_TECNICA")
+        .slice(0, 80)
     ]
   );
 
@@ -659,6 +672,7 @@ async function marcarProcessamentosEsgotados() {
     UPDATE marketing_conversoes_entregas
     SET
       status = 'FAILED',
+      resultado_codigo = 'FALHA_TECNICA',
       ultimo_erro = COALESCE(
         NULLIF(ultimo_erro, ''),
         'Limite máximo de tentativas atingido durante a entrega da conversão.'

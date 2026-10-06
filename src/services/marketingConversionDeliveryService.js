@@ -25,6 +25,21 @@ const TIPO_ASSINATURA_ATIVADA =
 
 let processamentoFilaAtual = null;
 
+function normalizarTimestamp(valor) {
+  if (!valor) {
+    return null;
+  }
+
+  const data =
+    valor instanceof Date
+      ? valor
+      : new Date(valor);
+
+  return Number.isFinite(data.getTime())
+    ? data.toISOString()
+    : null;
+}
+
 function normalizarPayload(dados = {}) {
   return {
     negocioId:
@@ -33,6 +48,14 @@ function normalizarPayload(dados = {}) {
       Number(dados.assinaturaId) || null,
     pagamentoId:
       String(dados.pagamentoId || "").trim() || null,
+    pagamentoInternoId:
+      Number(dados.pagamentoInternoId) || null,
+    assinaturaEventoId:
+      Number(dados.assinaturaEventoId) || null,
+    usuarioAquisicaoId:
+      Number(dados.usuarioAquisicaoId) || null,
+    ocorridoEm:
+      normalizarTimestamp(dados.ocorridoEm),
     valor:
       Number.isFinite(Number(dados.valor))
         ? Number(dados.valor)
@@ -51,17 +74,47 @@ function validarPayload(payload) {
 async function enfileirarAssinaturaAtivada(
   dados
 ) {
-  const payload =
+  const entrada =
     normalizarPayload(dados);
 
-  if (!validarPayload(payload)) {
+  if (!validarPayload(entrada)) {
     throw new Error(
       "Conversão de assinatura sem identificadores obrigatórios."
     );
   }
 
-  const chaveEvento =
-    `assinatura:${payload.assinaturaId}`;
+  const conversao =
+    await marketingConversaoRepository
+      .buscarConversaoInicialConfirmada({
+        assinaturaId:
+          entrada.assinaturaId,
+        pagamentoId:
+          entrada.pagamentoId
+      });
+
+  if (!conversao) {
+    return [];
+  }
+
+  const payload =
+    normalizarPayload({
+      negocioId:
+        conversao.negocio_id,
+      assinaturaId:
+        conversao.assinatura_id,
+      pagamentoId:
+        conversao.asaas_payment_id,
+      pagamentoInternoId:
+        conversao.pagamento_interno_id,
+      assinaturaEventoId:
+        conversao.assinatura_evento_id,
+      usuarioAquisicaoId:
+        conversao.usuario_aquisicao_id,
+      ocorridoEm:
+        conversao.data_pagamento,
+      valor:
+        conversao.valor
+    });
 
   return Promise.all([
     marketingConversionDeliveryRepository
@@ -69,7 +122,10 @@ async function enfileirarAssinaturaAtivada(
         provedor: "meta",
         tipoEvento:
           TIPO_ASSINATURA_ATIVADA,
-        chaveEvento,
+        assinaturaEventoId:
+          payload.assinaturaEventoId,
+        ocorridoEm:
+          payload.ocorridoEm,
         payload
       }),
     marketingConversionDeliveryRepository
@@ -77,7 +133,10 @@ async function enfileirarAssinaturaAtivada(
         provedor: "google",
         tipoEvento:
           TIPO_ASSINATURA_ATIVADA,
-        chaveEvento,
+        assinaturaEventoId:
+          payload.assinaturaEventoId,
+        ocorridoEm:
+          payload.ocorridoEm,
         payload
       })
   ]);
@@ -138,20 +197,51 @@ async function buscarPagamentoConfirmado(
   };
 }
 
-async function entregarMeta(payload) {
-  const primeiroPagamento =
-    await metaAdsRepository
-      .ehPrimeiroPagamentoAssinatura({
+async function validarConversaoInicial(
+  payload
+) {
+  const conversao =
+    await marketingConversaoRepository
+      .buscarConversaoInicialConfirmada({
         assinaturaId:
           payload.assinaturaId,
         pagamentoId:
           payload.pagamentoId
       });
 
-  if (!primeiroPagamento) {
+  if (!conversao) {
+    return null;
+  }
+
+  if (
+    payload.assinaturaEventoId &&
+    Number(conversao.assinatura_evento_id) !==
+      Number(payload.assinaturaEventoId)
+  ) {
+    return null;
+  }
+
+  if (
+    payload.negocioId &&
+    Number(conversao.negocio_id) !==
+      Number(payload.negocioId)
+  ) {
+    return null;
+  }
+
+  return conversao;
+}
+
+async function entregarMeta(payload) {
+  const conversao =
+    await validarConversaoInicial(
+      payload
+    );
+
+  if (!conversao) {
     return {
       enviado: false,
-      motivo: "renovacao"
+      motivo: "nao_conversao_inicial"
     };
   }
 
@@ -161,10 +251,15 @@ async function entregarMeta(payload) {
     );
 
   const perfil =
-    await metaAdsRepository
-      .buscarPerfilPorNegocio(
-        payload.negocioId
-      );
+    payload.usuarioAquisicaoId
+      ? await metaAdsRepository
+          .buscarPerfilPorUsuario(
+            payload.usuarioAquisicaoId
+          )
+      : await metaAdsRepository
+          .buscarPerfilPorNegocio(
+            payload.negocioId
+          );
 
   if (!perfil?.meta_consentido_em) {
     return {
@@ -215,19 +310,15 @@ async function entregarMeta(payload) {
 }
 
 async function entregarGoogle(payload) {
-  const primeiroPagamento =
-    await googleMeasurementRepository
-      .ehPrimeiroPagamentoAssinatura({
-        assinaturaId:
-          payload.assinaturaId,
-        pagamentoId:
-          payload.pagamentoId
-      });
+  const conversao =
+    await validarConversaoInicial(
+      payload
+    );
 
-  if (!primeiroPagamento) {
+  if (!conversao) {
     return {
       enviado: false,
-      motivo: "renovacao"
+      motivo: "nao_conversao_inicial"
     };
   }
 
@@ -237,10 +328,15 @@ async function entregarGoogle(payload) {
     );
 
   const perfil =
-    await googleMeasurementRepository
-      .buscarPerfilPorNegocio(
-        payload.negocioId
-      );
+    payload.usuarioAquisicaoId
+      ? await googleMeasurementRepository
+          .buscarPerfilPorUsuario(
+            payload.usuarioAquisicaoId
+          )
+      : await googleMeasurementRepository
+          .buscarPerfilPorNegocio(
+            payload.negocioId
+          );
 
   if (
     perfil?.google_consentimento_status !== true ||
@@ -296,15 +392,34 @@ function executorProvedor(provedor) {
   return null;
 }
 
-const MOTIVOS_IGNORADOS = new Set([
-  "renovacao",
-  "sem_consentimento",
-  "desabilitado"
+const MOTIVOS_IGNORADOS = new Map([
+  [
+    "sem_consentimento",
+    "SEM_CONSENTIMENTO"
+  ]
 ]);
 
-const MOTIVOS_FALHA_TERMINAL = new Set([
-  "event_id_invalido",
-  "client_id_invalido"
+const MOTIVOS_FALHA_TERMINAL = new Map([
+  [
+    "desabilitado",
+    "INTEGRACAO_DESABILITADA"
+  ],
+  [
+    "nao_conversao_inicial",
+    "DIVERGENCIA_FINANCEIRA"
+  ],
+  [
+    "event_id_invalido",
+    "EVENT_ID_INVALIDO"
+  ],
+  [
+    "client_id_invalido",
+    "CLIENT_ID_INVALIDO"
+  ],
+  [
+    "provedor_desconhecido",
+    "PROVEDOR_DESCONHECIDO"
+  ]
 ]);
 
 function criarErroLeasePerdido(entrega) {
@@ -349,7 +464,9 @@ function contextoLog(entrega) {
 
 async function registrarFalhaTerminal(
   entrega,
-  motivo
+  motivo,
+  resultadoCodigo =
+    "FALHA_TECNICA"
 ) {
   await finalizarComLease(
     () =>
@@ -357,7 +474,8 @@ async function registrarFalhaTerminal(
         .marcarFalhaTerminal(
           entrega.id,
           entrega.lease_tentativa,
-          motivo
+          motivo,
+          resultadoCodigo
         ),
     entrega
   );
@@ -380,7 +498,8 @@ async function processarRegistro(entrega) {
   if (!executor) {
     await registrarFalhaTerminal(
       entrega,
-      "provedor_desconhecido"
+      "provedor_desconhecido",
+      "PROVEDOR_DESCONHECIDO"
     );
 
     return {
@@ -426,7 +545,8 @@ async function processarRegistro(entrega) {
             .marcarIgnorado(
               entrega.id,
               entrega.lease_tentativa,
-              motivo
+              motivo,
+              MOTIVOS_IGNORADOS.get(motivo)
             ),
         entrega
       );
@@ -444,7 +564,9 @@ async function processarRegistro(entrega) {
     ) {
       await registrarFalhaTerminal(
         entrega,
-        motivo
+        motivo,
+        MOTIVOS_FALHA_TERMINAL
+          .get(motivo)
       );
 
       return {

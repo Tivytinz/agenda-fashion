@@ -49,13 +49,14 @@ beforeEach(() => {
         {
           provedor: "google",
           conversoesPagas: 4,
-          elegiveisObservadas: 3,
           enviadas: 2,
           inelegiveisLegitimas: 1,
+          integracaoIndisponivel: 0,
+          divergenciasFinanceiras: 0,
           emProcessamento: 0,
           perdasTecnicas: 0,
           semEntrega: 1,
-          coberturaTecnica: 66.67
+          coberturaSobrePagas: 50
         }
       ],
       metodologia: "Pagamento confirmado permanece a fonte de verdade."
@@ -168,10 +169,10 @@ describe("jornada administrativa v2", () => {
     expect(
       screen.getByRole(
         "heading",
-        { name: "Pagamento → elegibilidade → Google / Meta" }
+        { name: "Pagamento → entrega → Google / Meta" }
       )
     ).not.toBeNull();
-    expect(screen.getByText("66,7%")).not.toBeNull();
+    expect(screen.getByText("50%")).not.toBeNull();
 
     expect(screen.getByText("Atenção")).not.toBeNull();
     expect(screen.getByText("Falhas terminais")).not.toBeNull();

@@ -320,7 +320,11 @@ async function finalizarAtivacao({
           client,
           assinatura,
           pagamentoId: assinatura.pagamento_id,
-          asaasPaymentId: paymentId
+          asaasPaymentId: paymentId,
+          ocorridoEm:
+            pagamentoAtualizado.data_pagamento ||
+            assinatura.data_pagamento ||
+            null
         });
 
       const asaasSubscriptionId =

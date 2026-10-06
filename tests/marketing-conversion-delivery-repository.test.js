@@ -30,7 +30,7 @@ describe(
     });
 
     test(
-      "não cria nova entrega quando a assinatura já foi enviada",
+      "não cria nova entrega quando o evento financeiro já foi enviado",
       async () => {
         mockClient.query
           .mockResolvedValueOnce({
@@ -44,12 +44,13 @@ describe(
                 tipo_evento:
                   "SUBSCRIPTION_ACTIVATED",
                 chave_evento:
-                  "assinatura:11",
+                  "assinatura-evento:90",
+                assinatura_evento_id: 90,
                 status: "SENT",
                 payload: {
                   assinaturaId: 11,
-                  pagamentoId:
-                    "pay_antigo"
+                  pagamentoId: "pay_1",
+                  assinaturaEventoId: 90
                 }
               },
               {
@@ -58,12 +59,12 @@ describe(
                 tipo_evento:
                   "SUBSCRIPTION_ACTIVATED",
                 chave_evento:
-                  "assinatura:11;pagamento:pay_novo",
+                  "assinatura:11",
+                assinatura_evento_id: null,
                 status: "PENDING",
                 payload: {
                   assinaturaId: 11,
-                  pagamentoId:
-                    "pay_novo"
+                  pagamentoId: "pay_1"
                 }
               }
             ]
@@ -77,33 +78,36 @@ describe(
             provedor: "google",
             tipoEvento:
               "SUBSCRIPTION_ACTIVATED",
-            chaveEvento:
-              "assinatura:11",
+            assinaturaEventoId: 90,
+            ocorridoEm:
+              "2026-10-06T12:00:00.000Z",
             payload: {
               negocioId: 7,
               assinaturaId: 11,
-              pagamentoId:
-                "pay_novo",
+              pagamentoId: "pay_1",
+              assinaturaEventoId: 90,
               valor: 59.9
             }
           });
 
-        expect(resultado.novo)
-          .toBe(false);
-        expect(resultado.rearmado)
-          .toBe(false);
-        expect(resultado.entrega.id)
-          .toBe(7);
+        expect(resultado).toMatchObject({
+          novo: false,
+          rearmado: false,
+          entrega: {
+            id: 7,
+            status: "SENT"
+          }
+        });
         expect(
           mockClient.query.mock.calls[2][0]
         ).toContain(
-          "status = 'IGNORED'"
+          "DUPLICADA_LEGADA"
         );
       }
     );
 
     test(
-      "rearma a mesma entrega com pagamento válido mais recente",
+      "não substitui o payload de um evento financeiro por outro pagamento",
       async () => {
         mockClient.query
           .mockResolvedValueOnce({
@@ -114,28 +118,14 @@ describe(
               {
                 id: 9,
                 chave_evento:
-                  "assinatura:11;pagamento:pay_antigo",
+                  "assinatura-evento:90",
+                assinatura_evento_id: 90,
                 status: "FAILED",
+                tentativas: 5,
                 payload: {
                   assinaturaId: 11,
-                  pagamentoId:
-                    "pay_antigo"
-                }
-              }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 9,
-                chave_evento:
-                  "assinatura:11",
-                status: "PENDING",
-                tentativas: 0,
-                payload: {
-                  assinaturaId: 11,
-                  pagamentoId:
-                    "pay_novo"
+                  pagamentoId: "pay_original",
+                  assinaturaEventoId: 90
                 }
               }
             ]
@@ -146,34 +136,33 @@ describe(
             provedor: "meta",
             tipoEvento:
               "SUBSCRIPTION_ACTIVATED",
-            chaveEvento:
-              "assinatura:11",
+            assinaturaEventoId: 90,
+            ocorridoEm:
+              "2026-10-06T12:00:00.000Z",
             payload: {
               negocioId: 7,
               assinaturaId: 11,
-              pagamentoId:
-                "pay_novo",
+              pagamentoId: "pay_novo",
+              assinaturaEventoId: 90,
               valor: 59.9
             }
           });
 
-        expect(resultado.novo)
-          .toBe(false);
-        expect(resultado.rearmado)
-          .toBe(true);
-        expect(resultado.entrega)
-          .toMatchObject({
+        expect(resultado).toMatchObject({
+          novo: false,
+          rearmado: false,
+          entrega: {
             id: 9,
-            chave_evento:
-              "assinatura:11",
-            status: "PENDING",
-            tentativas: 0
-          });
+            status: "FAILED",
+            payload: {
+              pagamentoId:
+                "pay_original"
+            }
+          }
+        });
         expect(
-          mockClient.query.mock.calls[2][0]
-        ).toContain(
-          "tentativas = 0"
-        );
+          mockClient.query
+        ).toHaveBeenCalledTimes(2);
       }
     );
 
@@ -244,9 +233,11 @@ describe(
         const sql = db.query.mock.calls[0][0];
         expect(sql).toContain("ae.tipo = 'CONVERSAO_INICIAL'");
         expect(sql).toContain("pg.data_pagamento IS NOT NULL");
-        expect(sql).toContain("'CONFIRMED'");
-        expect(sql).toContain("'SUBSCRIPTION_ACTIVATED'");
-        expect(sql).toContain("'sem_consentimento'");
+        expect(sql).toContain("pg.data_pagamento >= NOW() - INTERVAL '30 days'");
+        expect(sql).toContain("entrega.assinatura_evento_id");
+        expect(sql).toContain("'SEM_CONSENTIMENTO'");
+        expect(sql).toContain("'INTEGRACAO_DESABILITADA'");
+        expect(sql).toContain("'DIVERGENCIA_FINANCEIRA'");
         expect(sql).not.toContain("marketing_usuario_atribuicoes");
       }
     );
@@ -337,7 +328,8 @@ describe(
         expect(parametros).toEqual([
           9,
           5,
-          "sem_consentimento"
+          "sem_consentimento",
+          "IGNORADO"
         ]);
       }
     );
@@ -400,7 +392,8 @@ describe(
         expect(parametros).toEqual([
           9,
           2,
-          "event_id_invalido"
+          "event_id_invalido",
+          "FALHA_TECNICA"
         ]);
       }
     );
