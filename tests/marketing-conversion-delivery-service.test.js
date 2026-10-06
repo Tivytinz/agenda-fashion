@@ -23,6 +23,7 @@ jest.mock(
   "../src/repositories/metaAdsRepository",
   () => ({
     ehPrimeiroPagamentoAssinatura: jest.fn(),
+    buscarPerfilPorUsuario: jest.fn(),
     buscarPerfilPorNegocio: jest.fn()
   })
 );
@@ -31,6 +32,7 @@ jest.mock(
   "../src/repositories/googleMeasurementRepository",
   () => ({
     ehPrimeiroPagamentoAssinatura: jest.fn(),
+    buscarPerfilPorUsuario: jest.fn(),
     buscarPerfilPorNegocio: jest.fn()
   })
 );
@@ -104,6 +106,7 @@ const payload = {
   pagamentoId: "pay_123",
   pagamentoInternoId: 30,
   assinaturaEventoId: 90,
+  usuarioAquisicaoId: 3,
   ocorridoEm: pagamentoData,
   valor: 59.9
 };
@@ -131,6 +134,7 @@ beforeEach(() => {
     .mockResolvedValue({
       assinatura_evento_id: 90,
       negocio_id: 7,
+      usuario_aquisicao_id: 3,
       assinatura_id: 11,
       pagamento_interno_id: 30,
       asaas_payment_id: "pay_123",
@@ -169,6 +173,7 @@ test(
           ocorridoEm: pagamentoData,
           payload: expect.objectContaining({
             assinaturaEventoId: 90,
+            usuarioAquisicaoId: 3,
             pagamentoId: "pay_123",
             valor: 59.9
           })
@@ -183,6 +188,7 @@ test(
           ocorridoEm: pagamentoData,
           payload: expect.objectContaining({
             assinaturaEventoId: 90,
+            usuarioAquisicaoId: 3,
             pagamentoId: "pay_123",
             valor: 59.9
           })
@@ -207,7 +213,7 @@ test(
       .ehPrimeiroPagamentoAssinatura
       .mockResolvedValue(true);
     metaAdsRepository
-      .buscarPerfilPorNegocio
+      .buscarPerfilPorUsuario
       .mockResolvedValue({
         usuario_id: 3,
         email: "teste@example.com",
@@ -226,6 +232,9 @@ test(
     await service
       .processarFilaConversoes(1);
 
+    expect(
+      metaAdsRepository.buscarPerfilPorUsuario
+    ).toHaveBeenCalledWith(3);
     expect(
       metaAdsService.sanitizarContextoCliente
     ).toHaveBeenCalledWith(
@@ -270,7 +279,7 @@ test(
       .ehPrimeiroPagamentoAssinatura
       .mockResolvedValue(true);
     googleMeasurementRepository
-      .buscarPerfilPorNegocio
+      .buscarPerfilPorUsuario
       .mockResolvedValue({
         usuario_id: 3,
         google_consentimento_status: true,
@@ -288,6 +297,10 @@ test(
     await service
       .processarFilaConversoes(1);
 
+    expect(
+      googleMeasurementRepository
+        .buscarPerfilPorUsuario
+    ).toHaveBeenCalledWith(3);
     expect(
       googleMeasurementService
         .enviarEventoMeasurementProtocol
@@ -324,7 +337,7 @@ test(
       .ehPrimeiroPagamentoAssinatura
       .mockResolvedValue(true);
     metaAdsRepository
-      .buscarPerfilPorNegocio
+      .buscarPerfilPorUsuario
       .mockResolvedValue({
         usuario_id: 3,
         meta_consentido_em:
@@ -368,7 +381,7 @@ test(
       .ehPrimeiroPagamentoAssinatura
       .mockResolvedValue(true);
     metaAdsRepository
-      .buscarPerfilPorNegocio
+      .buscarPerfilPorUsuario
       .mockResolvedValue({
         usuario_id: 3,
         meta_consentido_em:
@@ -414,7 +427,7 @@ test(
       .ehPrimeiroPagamentoAssinatura
       .mockResolvedValue(true);
     metaAdsRepository
-      .buscarPerfilPorNegocio
+      .buscarPerfilPorUsuario
       .mockResolvedValue({
         usuario_id: 3,
         meta_consentido_em: null
@@ -471,7 +484,7 @@ test(
         lease_tentativa: 1
       });
     googleMeasurementRepository
-      .buscarPerfilPorNegocio
+      .buscarPerfilPorUsuario
       .mockResolvedValue({
         usuario_id: 3,
         google_consentimento_status: true,
