@@ -113,9 +113,6 @@ describe(
         expect(sql).toContain(
           "p.confirmado_em"
         );
-        expect(sql).toContain(
-          "marketing_negocio_aquisicoes"
-        );
       }
     );
     test(
@@ -173,6 +170,12 @@ describe(
         );
         expect(sql).toContain(
           "pagamento_anterior.data_pagamento <"
+        );
+        expect(sql).toContain(
+          "marketing_negocio_aquisicoes"
+        );
+        expect(sql).toContain(
+          "p.confirmado_em"
         );
 
         expect(parametros).toEqual([
