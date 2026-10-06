@@ -65,7 +65,7 @@ describe(
     );
 
     test(
-      "carrega valor e horário canônico do pagamento confirmado",
+      "separa data contábil do instante preciso do pagamento confirmado",
       async () => {
         db.query.mockResolvedValueOnce({
           rows: [
@@ -75,6 +75,8 @@ describe(
               asaas_payment_id: "pay_1",
               valor: "49.90",
               data_pagamento:
+                "2026-10-06",
+              confirmado_em:
                 "2026-10-06T12:00:00.000Z"
             }
           ]
@@ -94,6 +96,8 @@ describe(
             asaas_payment_id: "pay_1",
             valor: "49.90",
             data_pagamento:
+              "2026-10-06",
+            confirmado_em:
               "2026-10-06T12:00:00.000Z"
           });
 
@@ -105,6 +109,9 @@ describe(
         );
         expect(sql).toContain(
           "p.data_pagamento"
+        );
+        expect(sql).toContain(
+          "p.confirmado_em"
         );
       }
     );
