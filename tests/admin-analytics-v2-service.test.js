@@ -70,6 +70,8 @@ describe("adminAnalyticsV2Service", () => {
     jest.clearAllMocks();
     marketingConversionDeliveryRepository.buscarSaudeEntregas
       .mockResolvedValue({ periodo: "30", linhas: [] });
+    marketingConversionDeliveryRepository.buscarReconciliacaoConversoes
+      .mockResolvedValue({ periodo: "30", provedores: [] });
   });
 
   test("usa a coorte profissional nas taxas e preserva receita como fato do período", async () => {
@@ -357,7 +359,60 @@ describe("adminAnalyticsV2Service", () => {
       ]
       });
 
+    marketingConversionDeliveryRepository.buscarReconciliacaoConversoes
+      .mockResolvedValue({
+        periodo: "30",
+        provedores: [
+          {
+            provedor: "google",
+            conversoes_pagas: 4,
+            enviadas: 2,
+            inelegiveis_legitimas: 1,
+            ignoradas_renovacao: 0,
+            sem_entrega: 1,
+            em_processamento: 0,
+            perdas_tecnicas: 0,
+            ignoradas_nao_classificadas: 0
+          },
+          {
+            provedor: "meta",
+            conversoes_pagas: 4,
+            enviadas: 3,
+            inelegiveis_legitimas: 1,
+            ignoradas_renovacao: 0,
+            sem_entrega: 0,
+            em_processamento: 0,
+            perdas_tecnicas: 0,
+            ignoradas_nao_classificadas: 0
+          }
+        ]
+      });
+
     const resultado = await buscarJourney("30");
+
+    expect(resultado.reconciliacaoConversoesMarketing).toMatchObject({
+      estado: "atencao",
+      periodo: "30",
+      provedores: [
+        {
+          provedor: "google",
+          conversoesPagas: 4,
+          elegiveisObservadas: 3,
+          enviadas: 2,
+          inelegiveisLegitimas: 1,
+          semEntrega: 1,
+          coberturaTecnica: 66.67
+        },
+        {
+          provedor: "meta",
+          conversoesPagas: 4,
+          elegiveisObservadas: 3,
+          enviadas: 3,
+          inelegiveisLegitimas: 1,
+          coberturaTecnica: 100
+        }
+      ]
+    });
 
     expect(resultado.saudeConversoesMarketing).toMatchObject({
       estado: "atencao",
