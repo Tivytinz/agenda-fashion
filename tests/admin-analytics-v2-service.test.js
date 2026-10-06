@@ -31,6 +31,13 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/repositories/marketingConversionDeliveryRepository",
+  () => ({
+    buscarSaudeEntregas: jest.fn(),
+  })
+);
+
 const repository = require(
   "../src/repositories/adminAnalyticsV2Repository"
 );
@@ -42,6 +49,9 @@ const professionalRecurrenceAnalysisService = require(
 );
 const adminAcquisitionFinancialService = require(
   "../src/services/adminAcquisitionFinancialService"
+);
+const marketingConversionDeliveryRepository = require(
+  "../src/repositories/marketingConversionDeliveryRepository"
 );
 const {
   buscar,
@@ -58,6 +68,8 @@ const {
 describe("adminAnalyticsV2Service", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    marketingConversionDeliveryRepository.buscarSaudeEntregas
+      .mockResolvedValue([]);
   });
 
   test("usa a coorte profissional nas taxas e preserva receita como fato do período", async () => {
@@ -323,7 +335,35 @@ describe("adminAnalyticsV2Service", () => {
       ],
     });
 
+    marketingConversionDeliveryRepository.buscarSaudeEntregas
+      .mockResolvedValue([
+        {
+          provedor: "google",
+          status: "SENT",
+          total: 3,
+          falhas_terminais: 0,
+          processamentos_expirados: 0,
+        },
+        {
+          provedor: "meta",
+          status: "FAILED",
+          total: 1,
+          falhas_terminais: 1,
+          processamentos_expirados: 0,
+        },
+      ]);
+
     const resultado = await buscarJourney("30");
+
+    expect(resultado.saudeConversoesMarketing).toMatchObject({
+      estado: "atencao",
+      resumo: {
+        total: 4,
+        enviadas: 3,
+        falhas: 1,
+        falhasTerminais: 1,
+      },
+    });
 
     expect(resultado.reconciliacaoPipelines).toMatchObject({
       estado: "divergencia_observada",
