@@ -29,6 +29,24 @@ describe("Content Security Policy", () => {
     );
   });
 
+  test("permite endpoints de coleta usados pelo GA4", () => {
+    const policy =
+      obterContentSecurityPolicy();
+    const connections =
+      policy.directives["connect-src"];
+
+    expect(connections).toContain("'self'");
+    expect(connections).toContain(
+      "https://www.google-analytics.com"
+    );
+    expect(connections).toContain(
+      "https://region1.google-analytics.com"
+    );
+    expect(connections).toContain(
+      "https://analytics.google.com"
+    );
+  });
+
   test("bloqueia plugins e enquadramento externo", () => {
     const directives =
       obterContentSecurityPolicy()
