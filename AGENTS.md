@@ -529,7 +529,9 @@ originar `purchase`/ `Subscribe`. Renovação, mudança de plano e reativação 
 são novas aquisições e não podem rearmar ou substituir a entrega original. A
 outbox persiste o `assinatura_evento_id` como lineage imutável por provedor e
 separa códigos estruturados de resultado de mensagens técnicas. A identidade usada em retries
-é a primeira conta dona observada para a aquisição; o consentimento continua
+prioriza o snapshot imutável `marketing_negocio_aquisicoes.usuario_aquisicao_id`
+e só usa a primeira conta dona observada como fallback enquanto esse snapshot
+ainda não estiver materializado; o consentimento continua
 sendo revalidado no momento da entrega, de modo que revogação posterior impede
 envio sem reatribuir a compra a uma nova proprietária. `sem_consentimento` é
 regra de privacidade; integração desabilitada e divergência financeira são
