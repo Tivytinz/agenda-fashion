@@ -307,12 +307,12 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
     : "30";
   const intervalo = periodos[seguro];
   const filtroPeriodo = intervalo
-    ? `AND pg.data_pagamento >= NOW() - INTERVAL '${intervalo}'`
+    ? `WHERE data_pagamento >= NOW() - INTERVAL '${intervalo}'`
     : "";
 
   const resultado = await db.query(
     `
-    WITH conversoes AS (
+    WITH conversoes_canonicas AS (
       SELECT DISTINCT ON (ae.negocio_id)
         ae.id AS assinatura_evento_id,
         ae.assinatura_id,
@@ -332,11 +332,15 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
           'RECEIVED',
           'RECEIVED_IN_CASH'
         )
-        ${filtroPeriodo}
       ORDER BY
         ae.negocio_id,
         pg.data_pagamento ASC,
         ae.id ASC
+    ),
+    conversoes AS (
+      SELECT *
+      FROM conversoes_canonicas
+      ${filtroPeriodo}
     ),
     provedores AS (
       SELECT 'google'::TEXT AS provedor
@@ -602,7 +606,12 @@ async function marcarFalha(
     UPDATE marketing_conversoes_entregas
     SET
       status = 'FAILED',
-      resultado_codigo = 'FALHA_TEMPORARIA',
+      resultado_codigo =
+        CASE
+          WHEN tentativas < ${MAX_TENTATIVAS}
+            THEN 'FALHA_TEMPORARIA'
+          ELSE 'FALHA_TECNICA'
+        END,
       ultimo_erro = $3,
       proxima_tentativa_em =
         CASE
@@ -666,6 +675,34 @@ async function marcarFalhaTerminal(
   return resultado.rows[0] || null;
 }
 
+async function rearmarIntegracaoDesabilitada(
+  provedor
+) {
+  const resultado = await db.query(
+    `
+    UPDATE marketing_conversoes_entregas
+    SET
+      status = 'PENDING',
+      tentativas = 0,
+      bloqueado_em = NULL,
+      resultado_codigo = NULL,
+      ultimo_erro = NULL,
+      proxima_tentativa_em = NOW(),
+      updated_at = NOW()
+    WHERE provedor = $1
+      AND tipo_evento = 'SUBSCRIPTION_ACTIVATED'
+      AND status = 'FAILED'
+      AND resultado_codigo =
+        'INTEGRACAO_DESABILITADA'
+      AND proxima_tentativa_em IS NULL
+    RETURNING id
+    `,
+    [provedor]
+  );
+
+  return resultado.rows;
+}
+
 async function marcarProcessamentosEsgotados() {
   const resultado = await db.query(
     `
@@ -699,5 +736,6 @@ module.exports = {
   marcarIgnorado,
   marcarFalha,
   marcarFalhaTerminal,
+  rearmarIntegracaoDesabilitada,
   marcarProcessamentosEsgotados
 };
