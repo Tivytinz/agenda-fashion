@@ -537,6 +537,18 @@ regra de privacidade; integração desabilitada e divergência financeira são
 falhas operacionais observáveis e não devem ser classificadas como
 inelegibilidade legítima.
 
+`pagamentos.data_pagamento` continua sendo a data contábil (`DATE`) e não deve
+ser tratada como instante. Quando o provedor fornece um timestamp completo com
+fuso, ele é persistido em `pagamentos.confirmado_em` (`TIMESTAMPTZ`). Histórico
+sem essa precisão não recebe horário inventado. Entregas server-side usam
+`confirmado_em` quando disponível e, caso contrário, o instante persistido de
+criação da outbox como observação estável. Falhas
+`INTEGRACAO_DESABILITADA` podem ser rearmadas apenas quando o runtime confirmar
+que o respectivo provedor voltou a estar habilitado; o replay preserva
+`assinatura_evento_id`, payload e demais campos imutáveis. Os atalhos legados
+de `Subscribe`/`purchase` fora da outbox canônica não fazem parte da API
+interna suportada.
+
 A leitura de **CAC de mídia observado v1** reutiliza o custo diário canônico por
 campanha já protegido pela migration 037: existe uma única fonte efetiva por
 campanha/dia e a fonte gravada por último substitui a anterior. A Wave 27 não
