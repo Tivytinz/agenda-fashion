@@ -249,36 +249,16 @@ describe("Meta Ads service", () => {
       .not.toHaveBeenCalled();
   });
 
-  test("não transforma renovação em nova assinatura", async () => {
+  test("não expõe atalho legado de conversão financeira", () => {
     configurarMeta();
-    metaAdsRepository
-      .ehPrimeiroPagamentoAssinatura
-      .mockResolvedValue(false);
-
-    metaAdsService
-      .enviarAssinaturaAtivadaSeguro({
-        negocioId: 10,
-        assinaturaId: 20,
-        pagamentoId: "pay_renovacao",
-        valor: 49.9
-      });
-
-    await new Promise(
-      (resolve) => setImmediate(resolve)
-    );
 
     expect(
-      metaAdsRepository
-        .ehPrimeiroPagamentoAssinatura
-    ).toHaveBeenCalledWith({
-      assinaturaId: 20,
-      pagamentoId: "pay_renovacao"
-    });
+      metaAdsService
+        .enviarAssinaturaAtivadaSeguro
+    ).toBeUndefined();
     expect(
-      metaAdsRepository
-        .buscarPerfilPorNegocio
-    ).not.toHaveBeenCalled();
-    expect(global.fetch)
-      .not.toHaveBeenCalled();
+      metaAdsService.capiHabilitada()
+    ).toBe(true);
   });
+
 });
