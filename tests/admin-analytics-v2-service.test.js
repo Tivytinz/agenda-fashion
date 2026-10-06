@@ -35,6 +35,7 @@ jest.mock(
   "../src/repositories/marketingConversionDeliveryRepository",
   () => ({
     buscarSaudeEntregas: jest.fn(),
+    buscarReconciliacaoConversoes: jest.fn(),
   })
 );
 
