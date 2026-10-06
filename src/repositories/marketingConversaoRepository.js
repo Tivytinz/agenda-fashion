@@ -109,7 +109,8 @@ async function buscarConversaoInicialConfirmada({
         dono.usuario_id AS usuario_aquisicao_id,
         p.asaas_payment_id,
         p.valor,
-        p.data_pagamento
+        p.data_pagamento,
+        p.confirmado_em
       FROM assinatura_eventos ae
       INNER JOIN pagamentos p
         ON p.id = ae.pagamento_id
