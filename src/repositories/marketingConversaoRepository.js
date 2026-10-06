@@ -131,6 +131,28 @@ async function buscarConversaoInicialConfirmada({
           'RECEIVED',
           'RECEIVED_IN_CASH'
         )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM assinatura_eventos anterior
+          INNER JOIN pagamentos pagamento_anterior
+            ON pagamento_anterior.id =
+              anterior.pagamento_id
+          WHERE anterior.negocio_id =
+              ae.negocio_id
+            AND anterior.tipo =
+              'CONVERSAO_INICIAL'
+            AND pagamento_anterior.data_pagamento
+              IS NOT NULL
+            AND (
+              pagamento_anterior.data_pagamento <
+                p.data_pagamento
+              OR (
+                pagamento_anterior.data_pagamento =
+                  p.data_pagamento
+                AND anterior.id < ae.id
+              )
+            )
+        )
       ORDER BY ae.id ASC
       LIMIT 1
       `,
