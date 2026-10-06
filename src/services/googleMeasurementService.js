@@ -314,96 +314,10 @@ function dispararSeguro(evento, tarefa) {
     });
 }
 
-function enviarAssinaturaAtivadaSeguro({
-  negocioId,
-  assinaturaId,
-  pagamentoId,
-  valor
-}) {
-  if (
-    !measurementProtocolHabilitado() ||
-    !negocioId ||
-    !assinaturaId ||
-    !pagamentoId
-  ) {
-    return;
-  }
-
-  dispararSeguro(
-    "purchase",
-    async () => {
-      const primeiroPagamento =
-        await googleMeasurementRepository
-          .ehPrimeiroPagamentoAssinatura({
-            assinaturaId,
-            pagamentoId
-          });
-
-      if (!primeiroPagamento) {
-        return {
-          enviado: false,
-          motivo: "renovacao"
-        };
-      }
-
-      const perfil =
-        await googleMeasurementRepository
-          .buscarPerfilPorNegocio(
-            negocioId
-          );
-
-      if (
-        perfil?.google_consentimento_status !== true ||
-        !perfil?.google_consentido_em ||
-        perfil?.google_revogado_em ||
-        !perfil?.google_client_id
-      ) {
-        return {
-          enviado: false,
-          motivo: "sem_consentimento"
-        };
-      }
-
-      const valorNumerico =
-        Number(valor || 0);
-
-      return enviarEventoMeasurementProtocol({
-        clientId:
-          perfil.google_client_id,
-        userId:
-          perfil.usuario_id,
-        eventName: "purchase",
-        params: {
-          transaction_id:
-            `af-subscription-${assinaturaId}`,
-          currency: "BRL",
-          value:
-            Number.isFinite(valorNumerico)
-              ? valorNumerico
-              : 0,
-          items: [
-            {
-              item_id:
-                "agenda-fashion-subscription",
-              item_name:
-                "Assinatura Agenda Fashion",
-              price:
-                Number.isFinite(valorNumerico)
-                  ? valorNumerico
-                  : 0,
-              quantity: 1
-            }
-          ]
-        }
-      });
-    }
-  );
-}
-
 module.exports = {
+  measurementProtocolHabilitado,
   obterConfiguracaoPublica,
   sanitizarContextoCliente,
   salvarConsentimento,
-  enviarEventoMeasurementProtocol,
-  enviarAssinaturaAtivadaSeguro
+  enviarEventoMeasurementProtocol
 };
