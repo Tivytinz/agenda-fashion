@@ -95,10 +95,21 @@ confirmado continua sendo a verdade financeira; Google e Meta recebem uma
 projeção desse fato, nunca um substituto.
 
 A outbox `marketing_conversoes_entregas` preserva o
-`assinatura_evento_id`, o horário `data_pagamento` e um código estruturado do
-resultado. O mesmo evento financeiro não pode ser substituído por renovação,
-troca de plano ou reativação. Retries preservam a identidade da aquisição e
-revalidam o consentimento antes do envio.
+`assinatura_evento_id` e um código estruturado do resultado. A data contábil
+continua em `pagamentos.data_pagamento` (`DATE`). Quando o provedor fornece um
+timestamp com fuso, o instante preciso é persistido separadamente em
+`pagamentos.confirmado_em` (`TIMESTAMPTZ`) e usado por Google/Meta. Não existe
+backfill que invente horário para pagamentos históricos. Quando o instante
+preciso não existe, a entrega usa o `created_at` persistido da própria outbox
+como instante de observação, evitando converter uma data sem horário em
+meia-noite e evitando que um retry mude silenciosamente o tempo do evento.
+
+O mesmo evento financeiro não pode ser substituído por renovação, troca de plano
+ou reativação. Retries preservam a identidade da aquisição e revalidam o
+consentimento antes do envio. Uma falha `INTEGRACAO_DESABILITADA` é terminal
+enquanto a configuração está indisponível, mas o worker rearma essas entregas
+automaticamente quando detectar que o respectivo provedor voltou a estar
+habilitado, sem alterar o lineage ou o payload financeiro.
 
 Na observabilidade administrativa, distinguir:
 
