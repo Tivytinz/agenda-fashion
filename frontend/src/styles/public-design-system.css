@@ -1,4 +1,5 @@
 html.public-context-active {
+  --public-page-width: min(1280px, calc(100% - 64px));
   --public-brand: #c5246b;
   --public-brand-strong: #a91d59;
   --public-brand-soft: #fff1f6;
@@ -13,4 +14,10 @@ html.public-context-active {
   --public-radius-lg: 20px;
   --public-shadow: 0 10px 30px rgb(72 22 43 / 7%);
   --public-shadow-hover: 0 16px 36px rgb(72 22 43 / 13%);
+}
+
+@media (max-width: 800px) {
+  html.public-context-active {
+    --public-page-width: calc(100% - 24px);
+  }
 }

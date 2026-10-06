@@ -450,11 +450,6 @@ select:focus {
   letter-spacing: -0.05em;
 }
 
-.plans-page .center-heading {
-  max-width: 860px;
-  margin-top: 0;
-}
-
 .plans-grid {
   gap: 20px;
 }

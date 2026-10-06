@@ -209,8 +209,8 @@
     background: var(--pink-50);
   }
 
-  .site-header:not(.home-site-header):not(.admin-site-header) .header-main-link:not(.mobile-home-link),
-  .site-header:not(.home-site-header):not(.admin-site-header) .header-search {
+  .site-header:not(.discovery-site-header):not(.admin-site-header) .header-main-link:not(.mobile-home-link),
+  .site-header:not(.discovery-site-header):not(.admin-site-header) .header-search {
     display: none;
   }
 
