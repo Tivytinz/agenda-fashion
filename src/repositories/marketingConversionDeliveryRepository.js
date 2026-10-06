@@ -278,7 +278,24 @@ function condicaoDisponivel() {
   `;
 }
 
-async function buscarSaudeEntregas() {
+async function buscarSaudeEntregas(periodo = "30") {
+  const periodos = {
+    "7": "7 days",
+    "30": "30 days",
+    "90": "90 days",
+    all: null
+  };
+  const seguro = Object.prototype.hasOwnProperty.call(
+    periodos,
+    String(periodo)
+  )
+    ? String(periodo)
+    : "30";
+  const intervalo = periodos[seguro];
+  const filtroPeriodo = intervalo
+    ? `AND created_at >= NOW() - INTERVAL '${intervalo}'`
+    : "";
+
   const resultado = await db.query(
     `
     SELECT
@@ -298,7 +315,11 @@ async function buscarSaudeEntregas() {
       ) AS pendencia_mais_antiga_em,
       MAX(enviado_em) FILTER (
         WHERE status = 'SENT'
-      ) AS ultimo_envio_em
+      ) AS ultimo_envio_em,
+      COUNT(*) FILTER (
+        WHERE 1 = 1
+          ${filtroPeriodo}
+      )::INT AS atividade_periodo
     FROM marketing_conversoes_entregas
     WHERE tipo_evento = 'SUBSCRIPTION_ACTIVATED'
     GROUP BY provedor, status
@@ -306,7 +327,10 @@ async function buscarSaudeEntregas() {
     `
   );
 
-  return resultado.rows;
+  return {
+    periodo: seguro,
+    linhas: resultado.rows
+  };
 }
 
 async function reservarProximo() {
