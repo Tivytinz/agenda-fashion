@@ -193,8 +193,11 @@ describe(
         });
 
         await expect(
-          repository.buscarSaudeEntregas()
-        ).resolves.toHaveLength(1);
+          repository.buscarSaudeEntregas("7")
+        ).resolves.toEqual({
+          periodo: "7",
+          linhas: expect.any(Array)
+        });
 
         const sql = db.query.mock.calls[0][0];
 
@@ -209,6 +212,9 @@ describe(
         );
         expect(sql).toContain(
           "GROUP BY provedor, status"
+        );
+        expect(sql).toContain(
+          "created_at >= NOW() - INTERVAL '7 days'"
         );
       }
     );
