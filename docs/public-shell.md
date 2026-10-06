@@ -53,6 +53,14 @@ O contexto público possui tokens `--public-*` para:
 
 A evolução deve migrar componentes tocados para tokens sem duplicar estilos nem quebrar páginas já estáveis.
 
+O cabeçalho com navegação de descoberta usa a mesma escala de marca, altura e
+busca em todas as rotas públicas, inclusive home, planos e área da cliente.
+`discovery-site-header` identifica esse modo; os fluxos focados de booking e
+entrada profissional mantêm sua composição própria. O token `--public-page-width`
+alinha o cabeçalho, a home e a comparação de planos. Nesta última, a apresentação
+é compacta para que os preços apareçam cedo, com quatro colunas no desktop,
+duas no tablet e uma no celular.
+
 ## UX
 
 A experiência pública é a face mais acolhedora e visual do AF. Deve priorizar:
@@ -85,7 +93,7 @@ serviços correspondentes aos termos pesquisados.
 O hero compartilhado por HomePage e ExplorePage pausa quando o foco entra em seu
 conteúdo ou o ponteiro entra na região. A retomada é explícita; o controle de
 rotação precede os links e botões de conteúdo na ordem de tabulação. A preferência
-por movimento reduzido inicia ou mantém a pausa. No mobile, a altura acompanha o
+por movimento reduzido inicia ou mantém a pausa. A altura acompanha o
 texto para evitar cortes. Cards sem foto usam uma área de identificação compacta.
 
 A home define seus próprios metadados na navegação SPA, inclusive após entrada

@@ -116,6 +116,7 @@ export function AppHeader() {
 
   const headerClassName = [
     "site-header",
+    showDiscoveryNavigation ? "discovery-site-header" : "",
     homePage ? "home-site-header" : "",
     adminArea ? "admin-site-header" : "",
     focusedBooking ? "booking-focus-header" : "",

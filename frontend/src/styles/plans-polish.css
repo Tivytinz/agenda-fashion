@@ -1,4 +1,52 @@
-/* Refinos de estado para comparação de planos. */
+/* Comparação de planos: apresentação compacta e estados da assinatura. */
+
+.plans-page {
+  width: var(--public-page-width);
+  padding-block: 24px 48px;
+}
+
+.plans-page .center-heading {
+  max-width: 860px;
+  margin: 4px auto 32px;
+  border: 0;
+  border-radius: 0;
+  padding: 0 16px;
+  background: none;
+  box-shadow: none;
+}
+
+.plans-page .center-heading h1 {
+  margin-bottom: 12px;
+  font-size: clamp(1.8rem, 3.1vw, 2.625rem);
+  line-height: 1.12;
+}
+
+.plans-page .center-heading p:last-child {
+  margin-bottom: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.plans-page .plan-card {
+  padding: 24px;
+}
+
+.plans-page .plan-card h2 {
+  margin-bottom: 16px;
+  font-size: 1.6rem;
+}
+
+.plans-page .plan-price {
+  flex-wrap: wrap;
+  margin-bottom: 0;
+}
+
+@media (min-width: 621px) and (max-width: 1100px) {
+  .plans-page .plans-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 20px;
+  }
+}
 
 .plans-page .plan-card.selected-pending {
   border-color: #efbfd2;
@@ -26,6 +74,20 @@
 }
 
 @media (max-width: 620px) {
+  .plans-page {
+    padding-top: 16px;
+  }
+
+  .plans-page .center-heading {
+    margin-block: 8px 28px;
+    padding: 0;
+    text-align: left;
+  }
+
+  .plans-page .plan-card {
+    padding: 20px;
+  }
+
   .plans-page .plan-selected-badge {
     left: 16px;
   }
