@@ -299,6 +299,19 @@ describe(
         );
 
         expect(
+          assinaturaLifecycleService
+            .registrarConfirmacaoPagamento
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            client: mockClient,
+            asaasPaymentId:
+              "pay_renovacao",
+            ocorridoEm:
+              "2026-08-28"
+          })
+        );
+
+        expect(
           mockClient.query
         ).toHaveBeenCalledWith(
           expect.stringContaining(
