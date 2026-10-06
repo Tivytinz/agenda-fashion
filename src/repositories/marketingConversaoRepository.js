@@ -70,7 +70,8 @@ async function buscarPagamentoConfirmado({
         p.assinatura_id,
         p.asaas_payment_id,
         p.valor,
-        p.data_pagamento
+        p.data_pagamento,
+        p.confirmacao_observada_em
       FROM pagamentos p
       WHERE p.assinatura_id = $1
         AND p.asaas_payment_id = $2
@@ -105,10 +106,14 @@ async function buscarConversaoInicialConfirmada({
         ae.assinatura_id,
         ae.pagamento_id AS pagamento_interno_id,
         ae.ocorrido_em,
-        dono.usuario_id AS usuario_aquisicao_id,
+        COALESCE(
+          aquisicao.usuario_aquisicao_id,
+          dono.usuario_id
+        ) AS usuario_aquisicao_id,
         p.asaas_payment_id,
         p.valor,
-        p.data_pagamento
+        p.data_pagamento,
+        p.confirmacao_observada_em
       FROM assinatura_eventos ae
       INNER JOIN pagamentos p
         ON p.id = ae.pagamento_id
@@ -122,6 +127,8 @@ async function buscarConversaoInicialConfirmada({
           un.id ASC
         LIMIT 1
       ) dono ON TRUE
+      LEFT JOIN marketing_negocio_aquisicoes aquisicao
+        ON aquisicao.negocio_id = ae.negocio_id
       WHERE ae.tipo = 'CONVERSAO_INICIAL'
         AND ae.assinatura_id = $1
         AND p.asaas_payment_id = $2
@@ -144,11 +151,11 @@ async function buscarConversaoInicialConfirmada({
             AND pagamento_anterior.data_pagamento
               IS NOT NULL
             AND (
-              pagamento_anterior.data_pagamento <
-                p.data_pagamento
+              anterior.ocorrido_em <
+                ae.ocorrido_em
               OR (
-                pagamento_anterior.data_pagamento =
-                  p.data_pagamento
+                anterior.ocorrido_em =
+                  ae.ocorrido_em
                 AND anterior.id < ae.id
               )
             )
