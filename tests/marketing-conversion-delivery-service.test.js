@@ -590,11 +590,17 @@ test(
     expect(
       deliveryRepository
         .rearmarIntegracaoDisponivel
-    ).toHaveBeenCalledWith("google");
+    ).toHaveBeenCalledWith(
+      "google",
+      72
+    );
     expect(
       deliveryRepository
         .rearmarIntegracaoDisponivel
-    ).not.toHaveBeenCalledWith("meta");
+    ).not.toHaveBeenCalledWith(
+      "meta",
+      72
+    );
     expect(registrador.informacao)
       .toHaveBeenCalledWith(
         expect.stringContaining(
@@ -666,6 +672,9 @@ test(
       service.processarFilaConversoes(1);
 
     expect(segunda).toBe(primeira);
+
+    await Promise.resolve();
+
     expect(
       deliveryRepository
         .marcarProcessamentosEsgotados
