@@ -12,9 +12,21 @@ WITH primeira_confirmacao AS (
   INNER JOIN webhook_eventos we
     ON we.provedor = 'asaas'
    AND we.recurso_id = p.asaas_payment_id
-   AND we.tipo_evento IN (
-     'PAYMENT_CONFIRMED',
-     'PAYMENT_RECEIVED'
+   AND (
+     we.tipo_evento IN (
+       'PAYMENT_CONFIRMED',
+       'PAYMENT_RECEIVED'
+     )
+     OR UPPER(
+       COALESCE(
+         we.payload -> 'payment' ->> 'status',
+         ''
+       )
+     ) IN (
+       'CONFIRMED',
+       'RECEIVED',
+       'RECEIVED_IN_CASH'
+     )
    )
    AND we.status = 'PROCESSED'
   WHERE p.confirmacao_observada_em IS NULL
