@@ -347,7 +347,9 @@ async function processarRegistro(evento) {
     webhookEventoCriadoEm:
       evento.evento_criado_em ||
       evento.payload?.dateCreated ||
-      null
+      null,
+    webhookRecebidoEm:
+      evento.recebido_em || null
   };
 
   try {

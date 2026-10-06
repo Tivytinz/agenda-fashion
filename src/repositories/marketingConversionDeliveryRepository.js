@@ -307,19 +307,23 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
     : "30";
   const intervalo = periodos[seguro];
   const filtroPeriodo = intervalo
-    ? `AND pg.data_pagamento >= NOW() - INTERVAL '${intervalo}'`
+    ? `AND data_pagamento >=
+        (NOW() - INTERVAL '${intervalo}')::date`
     : "";
 
   const resultado = await db.query(
     `
-    WITH conversoes AS (
+    WITH conversoes_canonicas AS (
       SELECT DISTINCT ON (ae.negocio_id)
         ae.id AS assinatura_evento_id,
         ae.assinatura_id,
         ae.negocio_id,
         ae.pagamento_id,
+        ae.ocorrido_em,
         pg.asaas_payment_id,
-        pg.data_pagamento
+        pg.data_pagamento,
+        pg.confirmacao_observada_em,
+        pg.status AS pagamento_status
       FROM assinatura_eventos ae
       INNER JOIN pagamentos pg
         ON pg.id = ae.pagamento_id
@@ -327,16 +331,20 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
         AND ae.assinatura_id IS NOT NULL
         AND ae.pagamento_id IS NOT NULL
         AND pg.data_pagamento IS NOT NULL
-        AND UPPER(COALESCE(pg.status, '')) IN (
-          'CONFIRMED',
-          'RECEIVED',
-          'RECEIVED_IN_CASH'
-        )
-        ${filtroPeriodo}
       ORDER BY
         ae.negocio_id,
-        pg.data_pagamento ASC,
+        ae.ocorrido_em ASC,
         ae.id ASC
+    ),
+    conversoes AS (
+      SELECT *
+      FROM conversoes_canonicas
+      WHERE UPPER(COALESCE(pagamento_status, '')) IN (
+        'CONFIRMED',
+        'RECEIVED',
+        'RECEIVED_IN_CASH'
+      )
+      ${filtroPeriodo}
     ),
     provedores AS (
       SELECT 'google'::TEXT AS provedor
@@ -351,6 +359,7 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
         c.pagamento_id,
         c.asaas_payment_id,
         c.data_pagamento,
+        c.confirmacao_observada_em,
         p.provedor,
         e.id AS entrega_id,
         e.status,
@@ -485,6 +494,64 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
   };
 }
 
+async function rearmarIntegracaoDisponivel(
+  provedor,
+  limiteHoras = 72
+) {
+  const normalizado =
+    String(provedor || "")
+      .trim()
+      .toLowerCase();
+  const horas =
+    Number(limiteHoras);
+
+  if (
+    !["google", "meta"].includes(normalizado) ||
+    !Number.isInteger(horas) ||
+    horas < 1 ||
+    horas > 168
+  ) {
+    return [];
+  }
+
+  const resultado = await db.query(
+    `
+    UPDATE marketing_conversoes_entregas
+    SET
+      status = 'PENDING',
+      tentativas = 0,
+      resultado_codigo = NULL,
+      ultimo_erro = NULL,
+      proxima_tentativa_em = NOW(),
+      bloqueado_em = NULL,
+      updated_at = NOW()
+    WHERE provedor = $1
+      AND tipo_evento =
+        'SUBSCRIPTION_ACTIVATED'
+      AND status = 'FAILED'
+      AND proxima_tentativa_em IS NULL
+      AND ocorrido_em IS NOT NULL
+      AND ocorrido_em >=
+        NOW() - ($2::int * INTERVAL '1 hour')
+      AND (
+        resultado_codigo =
+          'INTEGRACAO_DESABILITADA'
+        OR (
+          resultado_codigo IS NULL
+          AND ultimo_erro = 'desabilitado'
+        )
+      )
+    RETURNING *
+    `,
+    [
+      normalizado,
+      horas
+    ]
+  );
+
+  return resultado.rows;
+}
+
 async function reservarProximo() {
   const resultado = await db.query(
     `
@@ -602,7 +669,12 @@ async function marcarFalha(
     UPDATE marketing_conversoes_entregas
     SET
       status = 'FAILED',
-      resultado_codigo = 'FALHA_TEMPORARIA',
+      resultado_codigo =
+        CASE
+          WHEN tentativas < ${MAX_TENTATIVAS}
+            THEN 'FALHA_TEMPORARIA'
+          ELSE 'FALHA_TECNICA'
+        END,
       ultimo_erro = $3,
       proxima_tentativa_em =
         CASE
@@ -694,6 +766,7 @@ module.exports = {
   enfileirar,
   buscarSaudeEntregas,
   buscarReconciliacaoConversoes,
+  rearmarIntegracaoDisponivel,
   reservarProximo,
   marcarEnviado,
   marcarIgnorado,

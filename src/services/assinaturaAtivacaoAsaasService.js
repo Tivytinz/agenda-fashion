@@ -71,6 +71,9 @@ function dadosEvento(
       dadosPagamento.paymentDate ||
       dadosPagamento.confirmedDate ||
       new Date(),
+    confirmacao_observada_em:
+      dadosPagamento.webhookRecebidoEm ||
+      null,
     evento_criado_em:
       dadosPagamento
         .webhookEventoCriadoEm ||
@@ -322,7 +325,10 @@ async function finalizarAtivacao({
           pagamentoId: assinatura.pagamento_id,
           asaasPaymentId: paymentId,
           ocorridoEm:
-            pagamentoAtualizado.data_pagamento ||
+            pagamentoAtualizado
+              .confirmacao_observada_em ||
+            pagamentoAtualizado
+              .data_pagamento ||
             assinatura.data_pagamento ||
             null
         });

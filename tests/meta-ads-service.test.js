@@ -9,6 +9,8 @@ jest.mock(
       jest.fn(),
     buscarPerfilPorNegocio:
       jest.fn(),
+    buscarConversaoInicialConfirmada:
+      jest.fn(),
     ehPrimeiroPagamentoAssinatura:
       jest.fn()
   })
@@ -252,8 +254,8 @@ describe("Meta Ads service", () => {
   test("não transforma renovação em nova assinatura", async () => {
     configurarMeta();
     metaAdsRepository
-      .ehPrimeiroPagamentoAssinatura
-      .mockResolvedValue(false);
+      .buscarConversaoInicialConfirmada
+      .mockResolvedValue(null);
 
     metaAdsService
       .enviarAssinaturaAtivadaSeguro({
@@ -269,7 +271,7 @@ describe("Meta Ads service", () => {
 
     expect(
       metaAdsRepository
-        .ehPrimeiroPagamentoAssinatura
+        .buscarConversaoInicialConfirmada
     ).toHaveBeenCalledWith({
       assinaturaId: 20,
       pagamentoId: "pay_renovacao"

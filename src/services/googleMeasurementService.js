@@ -332,25 +332,30 @@ function enviarAssinaturaAtivadaSeguro({
   dispararSeguro(
     "purchase",
     async () => {
-      const primeiroPagamento =
+      const conversao =
         await googleMeasurementRepository
-          .ehPrimeiroPagamentoAssinatura({
+          .buscarConversaoInicialConfirmada({
             assinaturaId,
             pagamentoId
           });
 
-      if (!primeiroPagamento) {
+      if (!conversao) {
         return {
           enviado: false,
-          motivo: "renovacao"
+          motivo: "nao_conversao_inicial"
         };
       }
 
       const perfil =
-        await googleMeasurementRepository
-          .buscarPerfilPorNegocio(
-            negocioId
-          );
+        conversao.usuario_aquisicao_id
+          ? await googleMeasurementRepository
+              .buscarPerfilPorUsuario(
+                conversao.usuario_aquisicao_id
+              )
+          : await googleMeasurementRepository
+              .buscarPerfilPorNegocio(
+                conversao.negocio_id
+              );
 
       if (
         perfil?.google_consentimento_status !== true ||
@@ -365,7 +370,17 @@ function enviarAssinaturaAtivadaSeguro({
       }
 
       const valorNumerico =
-        Number(valor || 0);
+        Number(
+          conversao.valor ??
+          valor ??
+          0
+        );
+      const ocorridoEm =
+        conversao
+          .confirmacao_observada_em ||
+        conversao.ocorrido_em ||
+        conversao.data_pagamento ||
+        null;
 
       return enviarEventoMeasurementProtocol({
         clientId:
@@ -373,6 +388,7 @@ function enviarAssinaturaAtivadaSeguro({
         userId:
           perfil.usuario_id,
         eventName: "purchase",
+        ocorridoEm,
         params: {
           transaction_id:
             `af-subscription-${assinaturaId}`,
@@ -402,6 +418,8 @@ function enviarAssinaturaAtivadaSeguro({
 
 module.exports = {
   obterConfiguracaoPublica,
+  serverSideHabilitado:
+    measurementProtocolHabilitado,
   sanitizarContextoCliente,
   salvarConsentimento,
   enviarEventoMeasurementProtocol,

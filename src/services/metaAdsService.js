@@ -620,25 +620,30 @@ function enviarAssinaturaAtivadaSeguro({
   dispararSeguro(
     "Subscribe",
     async () => {
-      const primeiroPagamento =
+      const conversao =
         await metaAdsRepository
-          .ehPrimeiroPagamentoAssinatura({
+          .buscarConversaoInicialConfirmada({
             assinaturaId,
             pagamentoId
           });
 
-      if (!primeiroPagamento) {
+      if (!conversao) {
         return {
           enviado: false,
-          motivo: "renovacao"
+          motivo: "nao_conversao_inicial"
         };
       }
 
       const perfil =
-        await metaAdsRepository
-          .buscarPerfilPorNegocio(
-            negocioId
-          );
+        conversao.usuario_aquisicao_id
+          ? await metaAdsRepository
+              .buscarPerfilPorUsuario(
+                conversao.usuario_aquisicao_id
+              )
+          : await metaAdsRepository
+              .buscarPerfilPorNegocio(
+                conversao.negocio_id
+              );
 
       if (!perfil?.meta_consentido_em) {
         return {
@@ -660,6 +665,18 @@ function enviarAssinaturaAtivadaSeguro({
         clientIp: null,
         userAgent: null
       };
+      const valorNumerico =
+        Number(
+          conversao.valor ??
+          valor ??
+          0
+        );
+      const ocorridoEm =
+        conversao
+          .confirmacao_observada_em ||
+        conversao.ocorrido_em ||
+        conversao.data_pagamento ||
+        null;
 
       return enviarEvento({
         eventName: "Subscribe",
@@ -670,9 +687,13 @@ function enviarAssinaturaAtivadaSeguro({
         whatsapp: perfil.whatsapp,
         contexto,
         perfil,
+        ocorridoEm,
         customData: {
           currency: "BRL",
-          value: Number(valor || 0),
+          value:
+            Number.isFinite(valorNumerico)
+              ? valorNumerico
+              : 0,
           content_name:
             "Assinatura Agenda Fashion"
         }
@@ -683,6 +704,8 @@ function enviarAssinaturaAtivadaSeguro({
 
 module.exports = {
   obterConfiguracaoPublica,
+  serverSideHabilitado:
+    capiHabilitada,
   sanitizarContextoCliente,
   criarContextoRequisicao,
   salvarConsentimento,

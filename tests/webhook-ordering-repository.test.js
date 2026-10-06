@@ -99,12 +99,13 @@ describe(
           );
         expect(sql)
           .toContain(
-            "$4::timestamp >="
+            "$5::timestamp >="
           );
         expect(parametros)
           .toEqual([
             "RECEIVED",
             "2026-09-13",
+            null,
             null,
             "2026-09-13 20:10:11",
             "evt_received",

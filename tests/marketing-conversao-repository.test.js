@@ -75,7 +75,9 @@ describe(
               asaas_payment_id: "pay_1",
               valor: "49.90",
               data_pagamento:
-                "2026-10-06T12:00:00.000Z"
+                "2026-10-06",
+              confirmacao_observada_em:
+                "2026-10-06T12:34:56.000Z"
             }
           ]
         });
@@ -94,7 +96,9 @@ describe(
             asaas_payment_id: "pay_1",
             valor: "49.90",
             data_pagamento:
-              "2026-10-06T12:00:00.000Z"
+              "2026-10-06",
+            confirmacao_observada_em:
+              "2026-10-06T12:34:56.000Z"
           });
 
         const sql =
@@ -105,6 +109,9 @@ describe(
         );
         expect(sql).toContain(
           "p.data_pagamento"
+        );
+        expect(sql).toContain(
+          "p.confirmacao_observada_em"
         );
       }
     );
@@ -118,10 +125,15 @@ describe(
               negocio_id: 7,
               assinatura_id: 11,
               pagamento_interno_id: 30,
+              ocorrido_em:
+                "2026-10-06T12:34:56.000Z",
+              usuario_aquisicao_id: 4,
               asaas_payment_id: "pay_1",
               valor: "49.90",
               data_pagamento:
-                "2026-10-06T12:00:00.000Z"
+                "2026-10-06",
+              confirmacao_observada_em:
+                "2026-10-06T12:34:56.000Z"
             }
           ]
         });
@@ -162,7 +174,13 @@ describe(
           "'CONVERSAO_INICIAL'"
         );
         expect(sql).toContain(
-          "pagamento_anterior.data_pagamento <"
+          "anterior.ocorrido_em <"
+        );
+        expect(sql).toContain(
+          "marketing_negocio_aquisicoes"
+        );
+        expect(sql).toContain(
+          "aquisicao.usuario_aquisicao_id"
         );
 
         expect(parametros).toEqual([

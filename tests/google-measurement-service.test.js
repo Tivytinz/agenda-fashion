@@ -3,7 +3,11 @@ jest.mock(
   () => ({
     salvarConsentimentoUsuario:
       jest.fn(),
+    buscarPerfilPorUsuario:
+      jest.fn(),
     buscarPerfilPorNegocio:
+      jest.fn(),
+    buscarConversaoInicialConfirmada:
       jest.fn(),
     ehPrimeiroPagamentoAssinatura:
       jest.fn()
@@ -235,8 +239,8 @@ describe("Google Measurement service", () => {
   test("não transforma renovação em nova compra", async () => {
     configurarGoogle();
     repository
-      .ehPrimeiroPagamentoAssinatura
-      .mockResolvedValue(false);
+      .buscarConversaoInicialConfirmada
+      .mockResolvedValue(null);
 
     service
       .enviarAssinaturaAtivadaSeguro({
@@ -252,7 +256,7 @@ describe("Google Measurement service", () => {
 
     expect(
       repository
-        .ehPrimeiroPagamentoAssinatura
+        .buscarConversaoInicialConfirmada
     ).toHaveBeenCalledWith({
       assinaturaId: 20,
       pagamentoId:
@@ -268,10 +272,19 @@ describe("Google Measurement service", () => {
   test("envia primeira assinatura somente com consentimento e client id persistidos", async () => {
     configurarGoogle();
     repository
-      .ehPrimeiroPagamentoAssinatura
-      .mockResolvedValue(true);
+      .buscarConversaoInicialConfirmada
+      .mockResolvedValue({
+        assinatura_evento_id: 90,
+        negocio_id: 10,
+        assinatura_id: 20,
+        usuario_aquisicao_id: 77,
+        valor: "49.90",
+        data_pagamento: "2026-10-06",
+        confirmacao_observada_em:
+          "2026-10-06T22:15:04.000Z"
+      });
     repository
-      .buscarPerfilPorNegocio
+      .buscarPerfilPorUsuario
       .mockResolvedValue({
         usuario_id: 77,
         google_consentimento_status:
@@ -323,10 +336,19 @@ describe("Google Measurement service", () => {
   test("não envia compra quando a última escolha explícita é recusa", async () => {
     configurarGoogle();
     repository
-      .ehPrimeiroPagamentoAssinatura
-      .mockResolvedValue(true);
+      .buscarConversaoInicialConfirmada
+      .mockResolvedValue({
+        assinatura_evento_id: 91,
+        negocio_id: 10,
+        assinatura_id: 20,
+        usuario_aquisicao_id: 77,
+        valor: "49.90",
+        data_pagamento: "2026-10-06",
+        confirmacao_observada_em:
+          "2026-10-06T22:15:04.000Z"
+      });
     repository
-      .buscarPerfilPorNegocio
+      .buscarPerfilPorUsuario
       .mockResolvedValue({
         usuario_id: 77,
         google_consentimento_status:

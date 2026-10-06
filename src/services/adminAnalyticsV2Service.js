@@ -433,7 +433,7 @@ async function buscarJourney(periodo) {
           : "saudavel",
       provedores: provedoresReconciliacao,
       metodologia:
-        "Parte da primeira CONVERSAO_INICIAL canônica por negócio, usa data_pagamento como relógio do recorte e reconcilia a entrega pelo assinatura_evento_id. Sem consentimento é inelegibilidade observada; integração desabilitada, divergência financeira, falha terminal, processamento expirado e ausência de entrega exigem investigação. A cobertura exibida é SENT sobre conversões pagas, sem inferir elegibilidade quando a evidência é desconhecida. Pagamento confirmado permanece a fonte de verdade de receita.",
+        "Seleciona primeiro a primeira CONVERSAO_INICIAL canônica de toda a história de cada negócio e só depois aplica o recorte financeiro por data_pagamento. A entrega é reconciliada pelo assinatura_evento_id; confirmacao_observada_em preserva o instante preciso observado pelo AF quando essa evidência existe. Sem consentimento é inelegibilidade observada; integração desabilitada, divergência financeira, falha terminal, processamento expirado e ausência de entrega exigem investigação. A cobertura exibida é SENT sobre conversões pagas, sem inferir elegibilidade quando a evidência é desconhecida. Pagamento confirmado permanece a fonte de verdade de receita.",
     },
     saudeConversoesMarketing: {
       periodoAtividade: periodoEntregas,

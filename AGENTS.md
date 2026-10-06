@@ -526,16 +526,35 @@ aquisição nem reescrevem a campanha histórica.
 Conversões financeiras server-side para Google/Meta seguem a mesma identidade
 canônica de aquisição: somente a primeira `CONVERSAO_INICIAL` do negócio pode
 originar `purchase`/ `Subscribe`. Renovação, mudança de plano e reativação não
-são novas aquisições e não podem rearmar ou substituir a entrega original. A
-outbox persiste o `assinatura_evento_id` como lineage imutável por provedor,
-preserva `data_pagamento` como instante da conversão e separa códigos
-estruturados de resultado de mensagens técnicas. A identidade usada em retries
-é a primeira conta dona observada para a aquisição; o consentimento continua
-sendo revalidado no momento da entrega, de modo que revogação posterior impede
-envio sem reatribuir a compra a uma nova proprietária. `sem_consentimento` é
-regra de privacidade; integração desabilitada e divergência financeira são
-falhas operacionais observáveis e não devem ser classificadas como
-inelegibilidade legítima.
+são novas aquisições e não podem substituir a entrega original. A outbox persiste
+o `assinatura_evento_id` como lineage imutável por provedor e separa códigos
+estruturados de resultado de mensagens técnicas.
+
+`pagamentos.data_pagamento` continua sendo a **data financeira** informada pelo
+provedor. Para precisão temporal de integrações, o AF usa
+`pagamentos.confirmacao_observada_em`, um `TIMESTAMPTZ` que registra o primeiro
+instante em que o AF observou via webhook um estado confirmado/recebido. Esse
+campo pode ser nulo em histórico sem evidência suficiente e não deve receber
+backfill inventado; quando existe webhook processado, a migration pode reconstruir
+somente a observação factual a partir de `webhook_eventos.recebido_em`.
+`assinatura_eventos.ocorrido_em` e a outbox usam esse instante observado quando
+disponível, com fallback histórico explícito.
+
+A identidade usada em retries é a identidade canônica da aquisição quando o
+snapshot já existe, com fallback para a primeira conta dona histórica do negócio;
+o consentimento continua sendo revalidado no momento da entrega, de modo que
+revogação posterior impede envio sem reatribuir a compra a uma nova proprietária.
+`sem_consentimento` é regra de privacidade; integração desabilitada e divergência
+financeira são falhas operacionais observáveis e não devem ser classificadas como
+inelegibilidade legítima. Falhas `INTEGRACAO_DESABILITADA` podem ser rearmadas
+automaticamente somente quando o runtime volta a comprovar que a integração
+server-side daquele provedor está habilitada e a conversão possui no máximo
+72 horas. Essa janela comum é conservadora e impede que o replay automático
+reescreva temporalmente conversões antigas; casos mais antigos permanecem
+terminais e visíveis para investigação. O replay preserva o mesmo
+`assinatura_evento_id`, pagamento e payload imutáveis. A reconciliação
+administrativa deve selecionar a primeira `CONVERSAO_INICIAL` global do negócio
+antes de aplicar qualquer filtro de período.
 
 A leitura de **CAC de mídia observado v1** reutiliza o custo diário canônico por
 campanha já protegido pela migration 037: existe uma única fonte efetiva por
