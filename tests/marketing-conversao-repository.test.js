@@ -113,6 +113,9 @@ describe(
         expect(sql).toContain(
           "p.confirmado_em"
         );
+        expect(sql).toContain(
+          "marketing_negocio_aquisicoes"
+        );
       }
     );
     test(
