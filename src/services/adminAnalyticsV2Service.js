@@ -402,6 +402,17 @@ async function buscarJourney(periodo) {
     ...jornada,
     reconciliacaoPipelines:
       mapearReconciliacaoPipelines(reconciliacao),
+    reconciliacaoConversoesMarketing: {
+      periodo: reconciliacaoConversoes?.periodo || periodoSeguro,
+      estado: perdasReconciliacao > 0
+        ? "atencao"
+        : provedoresReconciliacao.some((item) => item.emProcessamento > 0)
+          ? "processando"
+          : "saudavel",
+      provedores: provedoresReconciliacao,
+      metodologia:
+        "Parte das conversoes iniciais com pagamento confirmado e reconcilia a entrega persistida por provedor. Inelegibilidade observada nao e perda tecnica. Falha terminal, processamento expirado, ausencia de entrega e motivo nao classificado exigem investigacao. O historico persistido evita reconstruir consentimento passado pelo estado atual. Pagamento confirmado permanece a fonte de verdade de receita.",
+    },
     saudeConversoesMarketing: {
       periodoAtividade: periodoEntregas,
       estado:
