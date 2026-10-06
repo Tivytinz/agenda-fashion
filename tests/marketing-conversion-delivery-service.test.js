@@ -2,6 +2,8 @@ jest.mock(
   "../src/repositories/marketingConversionDeliveryRepository",
   () => ({
     enfileirar: jest.fn(),
+    rearmarIntegracaoDisponivel:
+      jest.fn(),
     reservarProximo: jest.fn(),
     marcarEnviado: jest.fn(),
     marcarIgnorado: jest.fn(),
@@ -54,21 +56,26 @@ jest.mock(
           "https://app.agendafashion.com.br/painel/assinatura"
       })
     ),
-    enviarEvento: jest.fn()
+    enviarEvento: jest.fn(),
+    serverSideHabilitado:
+      jest.fn().mockReturnValue(false)
   })
 );
 
 jest.mock(
   "../src/services/googleMeasurementService",
   () => ({
-    enviarEventoMeasurementProtocol: jest.fn()
+    enviarEventoMeasurementProtocol: jest.fn(),
+    serverSideHabilitado:
+      jest.fn().mockReturnValue(false)
   })
 );
 
 jest.mock(
   "../src/utils/registrador",
   () => ({
-    aviso: jest.fn()
+    aviso: jest.fn(),
+    informacao: jest.fn()
   })
 );
 
@@ -98,7 +105,9 @@ const service = require(
 );
 
 const pagamentoData =
-  "2026-10-06T12:00:00.000Z";
+  "2026-10-06";
+const confirmacaoObservadaEm =
+  "2026-10-06T12:34:56.000Z";
 
 const payload = {
   negocioId: 7,
@@ -107,13 +116,16 @@ const payload = {
   pagamentoInternoId: 30,
   assinaturaEventoId: 90,
   usuarioAquisicaoId: 3,
-  ocorridoEm: pagamentoData,
+  ocorridoEm: confirmacaoObservadaEm,
   valor: 59.9
 };
 
 beforeEach(() => {
   jest.clearAllMocks();
 
+  deliveryRepository
+    .rearmarIntegracaoDisponivel
+    .mockResolvedValue([]);
   deliveryRepository
     .marcarProcessamentosEsgotados
     .mockResolvedValue([]);
@@ -139,7 +151,11 @@ beforeEach(() => {
       pagamento_interno_id: 30,
       asaas_payment_id: "pay_123",
       valor: "59.90",
-      data_pagamento: pagamentoData
+      data_pagamento: pagamentoData,
+      confirmacao_observada_em:
+        confirmacaoObservadaEm,
+      ocorrido_em:
+        confirmacaoObservadaEm
     });
   marketingConversaoRepository
     .buscarPagamentoConfirmado
@@ -148,7 +164,9 @@ beforeEach(() => {
       assinatura_id: 11,
       asaas_payment_id: "pay_123",
       valor: "59.90",
-      data_pagamento: pagamentoData
+      data_pagamento: pagamentoData,
+      confirmacao_observada_em:
+        confirmacaoObservadaEm
     });
 });
 
@@ -170,7 +188,7 @@ test(
         expect.objectContaining({
           provedor: "meta",
           assinaturaEventoId: 90,
-          ocorridoEm: pagamentoData,
+          ocorridoEm: confirmacaoObservadaEm,
           payload: expect.objectContaining({
             assinaturaEventoId: 90,
             usuarioAquisicaoId: 3,
@@ -185,7 +203,7 @@ test(
         expect.objectContaining({
           provedor: "google",
           assinaturaEventoId: 90,
-          ocorridoEm: pagamentoData,
+          ocorridoEm: confirmacaoObservadaEm,
           payload: expect.objectContaining({
             assinaturaEventoId: 90,
             usuarioAquisicaoId: 3,
@@ -250,7 +268,7 @@ test(
         expect.objectContaining({
           eventName: "Subscribe",
           eventId: "subscribe:11",
-          ocorridoEm: pagamentoData,
+          ocorridoEm: confirmacaoObservadaEm,
           customData:
             expect.objectContaining({
               value: 59.9
@@ -307,7 +325,7 @@ test(
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         eventName: "purchase",
-        ocorridoEm: pagamentoData,
+        ocorridoEm: confirmacaoObservadaEm,
         params: expect.objectContaining({
           transaction_id:
             "af-subscription-11",
@@ -545,6 +563,48 @@ test(
     expect(
       metaAdsService.enviarEvento
     ).not.toHaveBeenCalled();
+  }
+);
+
+test(
+  "rearmazena falhas de integração quando a configuração volta a ficar disponível",
+  async () => {
+    googleMeasurementService
+      .serverSideHabilitado
+      .mockReturnValue(true);
+    deliveryRepository
+      .rearmarIntegracaoDisponivel
+      .mockResolvedValueOnce([
+        {
+          id: 8,
+          provedor: "google"
+        }
+      ]);
+    deliveryRepository
+      .reservarProximo
+      .mockResolvedValueOnce(null);
+
+    await service
+      .processarFilaConversoes(1);
+
+    expect(
+      deliveryRepository
+        .rearmarIntegracaoDisponivel
+    ).toHaveBeenCalledWith("google");
+    expect(
+      deliveryRepository
+        .rearmarIntegracaoDisponivel
+    ).not.toHaveBeenCalledWith("meta");
+    expect(registrador.informacao)
+      .toHaveBeenCalledWith(
+        expect.stringContaining(
+          "rearmadas"
+        ),
+        {
+          provedor: "google",
+          entregas: 1
+        }
+      );
   }
 );
 
