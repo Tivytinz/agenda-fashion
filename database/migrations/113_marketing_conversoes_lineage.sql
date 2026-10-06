@@ -70,6 +70,49 @@ FROM candidatos
 WHERE entrega.id = candidatos.entrega_id
   AND candidatos.ordem = 1;
 
+CREATE OR REPLACE FUNCTION
+  proteger_lineage_marketing_conversao()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $
+BEGIN
+  IF OLD.assinatura_evento_id IS NOT NULL
+    AND (
+      NEW.assinatura_evento_id IS DISTINCT FROM
+        OLD.assinatura_evento_id
+      OR NEW.provedor IS DISTINCT FROM OLD.provedor
+      OR NEW.tipo_evento IS DISTINCT FROM OLD.tipo_evento
+      OR NEW.chave_evento IS DISTINCT FROM OLD.chave_evento
+      OR NEW.payload IS DISTINCT FROM OLD.payload
+      OR NEW.ocorrido_em IS DISTINCT FROM OLD.ocorrido_em
+    )
+  THEN
+    RAISE EXCEPTION
+      'Lineage financeiro da conversão de marketing é imutável.';
+  END IF;
+
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS
+  marketing_conversoes_lineage_imutavel
+ON marketing_conversoes_entregas;
+
+CREATE TRIGGER
+  marketing_conversoes_lineage_imutavel
+BEFORE UPDATE OF
+  assinatura_evento_id,
+  provedor,
+  tipo_evento,
+  chave_evento,
+  payload,
+  ocorrido_em
+ON marketing_conversoes_entregas
+FOR EACH ROW
+EXECUTE FUNCTION
+  proteger_lineage_marketing_conversao();
+
 CREATE UNIQUE INDEX
   marketing_conversoes_provedor_evento_financeiro_unique
 ON marketing_conversoes_entregas (
