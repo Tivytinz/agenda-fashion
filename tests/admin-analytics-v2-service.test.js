@@ -369,7 +369,8 @@ describe("adminAnalyticsV2Service", () => {
             conversoes_pagas: 4,
             enviadas: 2,
             inelegiveis_legitimas: 1,
-            ignoradas_renovacao: 0,
+            integracao_indisponivel: 0,
+            divergencias_financeiras: 0,
             sem_entrega: 1,
             em_processamento: 0,
             perdas_tecnicas: 0,
@@ -380,7 +381,8 @@ describe("adminAnalyticsV2Service", () => {
             conversoes_pagas: 4,
             enviadas: 3,
             inelegiveis_legitimas: 1,
-            ignoradas_renovacao: 0,
+            integracao_indisponivel: 0,
+            divergencias_financeiras: 0,
             sem_entrega: 0,
             em_processamento: 0,
             perdas_tecnicas: 0,
@@ -398,19 +400,21 @@ describe("adminAnalyticsV2Service", () => {
         {
           provedor: "google",
           conversoesPagas: 4,
-          elegiveisObservadas: 3,
           enviadas: 2,
           inelegiveisLegitimas: 1,
+          integracaoIndisponivel: 0,
+          divergenciasFinanceiras: 0,
           semEntrega: 1,
-          coberturaTecnica: 66.67
+          coberturaSobrePagas: 50
         },
         {
           provedor: "meta",
           conversoesPagas: 4,
-          elegiveisObservadas: 3,
           enviadas: 3,
           inelegiveisLegitimas: 1,
-          coberturaTecnica: 100
+          integracaoIndisponivel: 0,
+          divergenciasFinanceiras: 0,
+          coberturaSobrePagas: 75
         }
       ]
     });
