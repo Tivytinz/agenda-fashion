@@ -292,28 +292,6 @@ async function enviarEventoMeasurementProtocol({
   }
 }
 
-function registrarFalha(evento, erro) {
-  registrador.aviso(
-    "[Google Measurement] Falha ao enviar evento. O fluxo do produto foi preservado.",
-    {
-      evento,
-      status: erro?.status || null,
-      erro:
-        erro?.name === "AbortError"
-          ? "timeout"
-          : erro?.message
-    }
-  );
-}
-
-function dispararSeguro(evento, tarefa) {
-  void Promise.resolve()
-    .then(tarefa)
-    .catch((erro) => {
-      registrarFalha(evento, erro);
-    });
-}
-
 module.exports = {
   measurementProtocolHabilitado,
   obterConfiguracaoPublica,
