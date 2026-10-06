@@ -234,6 +234,24 @@ describe(
             status: "PENDING",
             tentativas: 0
           });
+
+        await expect(
+          db.query(
+            `
+            UPDATE marketing_conversoes_entregas
+            SET payload =
+              jsonb_set(
+                payload,
+                '{pagamentoId}',
+                '"pay_mutado"'::jsonb
+              )
+            WHERE id = $1
+            `,
+            [primeira.entrega.id]
+          )
+        ).rejects.toThrow(
+          /lineage financeiro.*imutável/i
+        );
       }
     );
   }
