@@ -69,7 +69,7 @@ describe("adminAnalyticsV2Service", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     marketingConversionDeliveryRepository.buscarSaudeEntregas
-      .mockResolvedValue([]);
+      .mockResolvedValue({ periodo: "30", linhas: [] });
   });
 
   test("usa a coorte profissional nas taxas e preserva receita como fato do período", async () => {
@@ -336,7 +336,9 @@ describe("adminAnalyticsV2Service", () => {
     });
 
     marketingConversionDeliveryRepository.buscarSaudeEntregas
-      .mockResolvedValue([
+      .mockResolvedValue({
+        periodo: "30",
+        linhas: [
         {
           provedor: "google",
           status: "SENT",
@@ -350,8 +352,10 @@ describe("adminAnalyticsV2Service", () => {
           total: 1,
           falhas_terminais: 1,
           processamentos_expirados: 0,
+          atividade_periodo: 1,
         },
-      ]);
+      ]
+      });
 
     const resultado = await buscarJourney("30");
 
@@ -362,6 +366,7 @@ describe("adminAnalyticsV2Service", () => {
         enviadas: 3,
         falhas: 1,
         falhasTerminais: 1,
+        atividadePeriodo: 1,
       },
     });
 
