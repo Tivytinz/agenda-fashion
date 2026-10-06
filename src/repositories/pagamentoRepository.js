@@ -81,23 +81,27 @@ async function atualizarStatusPagamento(client, paymentId, dados) {
     SET
       status = $1,
       data_pagamento = COALESCE($2, data_pagamento),
-      invoice_url = COALESCE($3, invoice_url),
+      confirmacao_observada_em = COALESCE(
+        confirmacao_observada_em,
+        $3::timestamptz
+      ),
+      invoice_url = COALESCE($4, invoice_url),
       asaas_ultimo_evento_em = CASE
-        WHEN $4::timestamp IS NOT NULL
-          THEN $4::timestamp
+        WHEN $5::timestamp IS NOT NULL
+          THEN $5::timestamp
         ELSE asaas_ultimo_evento_em
       END,
       asaas_ultimo_evento_id = CASE
-        WHEN $4::timestamp IS NOT NULL
-          THEN $5
+        WHEN $5::timestamp IS NOT NULL
+          THEN $6
         ELSE asaas_ultimo_evento_id
       END,
       updated_at = NOW()
-    WHERE asaas_payment_id = $6
+    WHERE asaas_payment_id = $7
       AND (
-        $4::timestamp IS NULL
+        $5::timestamp IS NULL
         OR asaas_ultimo_evento_em IS NULL
-        OR $4::timestamp >=
+        OR $5::timestamp >=
           asaas_ultimo_evento_em
       )
     RETURNING *
@@ -105,6 +109,7 @@ async function atualizarStatusPagamento(client, paymentId, dados) {
         [
             dados.status,
             dados.data_pagamento || null,
+            dados.confirmacao_observada_em || null,
             dados.invoice_url || null,
             dados.evento_criado_em || null,
             dados.evento_id || null,
@@ -126,6 +131,7 @@ async function listarPorAssinatura(assinaturaId, limite = 12) {
             status,
             data_vencimento,
             data_pagamento,
+            confirmacao_observada_em,
             invoice_url,
             created_at
         FROM pagamentos
