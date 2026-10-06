@@ -548,7 +548,10 @@ revogação posterior impede envio sem reatribuir a compra a uma nova proprietá
 financeira são falhas operacionais observáveis e não devem ser classificadas como
 inelegibilidade legítima. Falhas `INTEGRACAO_DESABILITADA` podem ser rearmadas
 automaticamente somente quando o runtime volta a comprovar que a integração
-server-side daquele provedor está habilitada; esse replay preserva o mesmo
+server-side daquele provedor está habilitada e a conversão possui no máximo
+72 horas. Essa janela comum é conservadora e impede que o replay automático
+reescreva temporalmente conversões antigas; casos mais antigos permanecem
+terminais e visíveis para investigação. O replay preserva o mesmo
 `assinatura_evento_id`, pagamento e payload imutáveis. A reconciliação
 administrativa deve selecionar a primeira `CONVERSAO_INICIAL` global do negócio
 antes de aplicar qualquer filtro de período.
