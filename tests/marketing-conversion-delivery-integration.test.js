@@ -230,7 +230,7 @@ describe(
             chave_evento:
               `assinatura-evento:${assinaturaEventoId}`,
             assinatura_evento_id:
-              assinaturaEventoId,
+              String(assinaturaEventoId),
             status: "PENDING",
             tentativas: 0
           });
