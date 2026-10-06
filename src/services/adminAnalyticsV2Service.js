@@ -16,6 +16,9 @@ const paymentEconomicsRepository = require(
 const contributionEconomicsRepository = require(
   "../repositories/adminContributionEconomicsRepository"
 );
+const marketingConversionDeliveryRepository = require(
+  "../repositories/marketingConversionDeliveryRepository"
+);
 
 const SECOES = new Set([
   "overview",
@@ -323,15 +326,57 @@ function mapearReconciliacaoPipelines(bruto = {}) {
 
 async function buscarJourney(periodo) {
   const periodoSeguro = repository.periodoSeguro(periodo);
-  const [jornada, reconciliacao] = await Promise.all([
+  const [jornada, reconciliacao, entregasConversao] = await Promise.all([
     repository.buscarJornada(periodoSeguro),
     repository.buscarReconciliacaoPipelines(periodoSeguro),
+    marketingConversionDeliveryRepository.buscarSaudeEntregas(),
   ]);
+
+  const linhasEntrega = Array.isArray(entregasConversao)
+    ? entregasConversao
+    : [];
+  const resumoEntrega = linhasEntrega.reduce(
+    (resumo, linha) => {
+      const total = numero(linha.total);
+      resumo.total += total;
+      if (linha.status === "SENT") resumo.enviadas += total;
+      if (linha.status === "PENDING") resumo.pendentes += total;
+      if (linha.status === "PROCESSING") resumo.processando += total;
+      if (linha.status === "FAILED") resumo.falhas += total;
+      if (linha.status === "IGNORED") resumo.ignoradas += total;
+      resumo.falhasTerminais += numero(linha.falhas_terminais);
+      resumo.processamentosExpirados += numero(linha.processamentos_expirados);
+      return resumo;
+    },
+    {
+      total: 0,
+      enviadas: 0,
+      pendentes: 0,
+      processando: 0,
+      falhas: 0,
+      ignoradas: 0,
+      falhasTerminais: 0,
+      processamentosExpirados: 0,
+    }
+  );
 
   return {
     ...jornada,
     reconciliacaoPipelines:
       mapearReconciliacaoPipelines(reconciliacao),
+    saudeConversoesMarketing: {
+      estado:
+        resumoEntrega.falhasTerminais > 0 ||
+        resumoEntrega.processamentosExpirados > 0
+          ? "atencao"
+          : resumoEntrega.falhas > 0 || resumoEntrega.pendentes > 0
+            ? "processando"
+            : "saudavel",
+      resumo: resumoEntrega,
+      provedores: linhasEntrega,
+      metodologia:
+        "Diagnóstico operacional da fila persistente de conversões de assinatura. SENT confirma entrega registrada pelo AF; PENDING/PROCESSING indicam trabalho em curso; FAILED terminal ou lease expirado exigem investigação. Este painel não substitui pagamentos confirmados como fonte de verdade de receita.",
+    },
   };
 }
 

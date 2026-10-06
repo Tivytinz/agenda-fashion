@@ -278,6 +278,37 @@ function condicaoDisponivel() {
   `;
 }
 
+async function buscarSaudeEntregas() {
+  const resultado = await db.query(
+    `
+    SELECT
+      provedor,
+      status,
+      COUNT(*)::INT AS total,
+      COUNT(*) FILTER (
+        WHERE status = 'FAILED'
+          AND proxima_tentativa_em IS NULL
+      )::INT AS falhas_terminais,
+      COUNT(*) FILTER (
+        WHERE status = 'PROCESSING'
+          AND bloqueado_em < NOW() - INTERVAL '5 minutes'
+      )::INT AS processamentos_expirados,
+      MIN(created_at) FILTER (
+        WHERE status IN ('PENDING', 'FAILED', 'PROCESSING')
+      ) AS pendencia_mais_antiga_em,
+      MAX(enviado_em) FILTER (
+        WHERE status = 'SENT'
+      ) AS ultimo_envio_em
+    FROM marketing_conversoes_entregas
+    WHERE tipo_evento = 'SUBSCRIPTION_ACTIVATED'
+    GROUP BY provedor, status
+    ORDER BY provedor, status
+    `
+  );
+
+  return resultado.rows;
+}
+
 async function reservarProximo() {
   const resultado = await db.query(
     `
@@ -473,6 +504,7 @@ async function marcarProcessamentosEsgotados() {
 
 module.exports = {
   enfileirar,
+  buscarSaudeEntregas,
   reservarProximo,
   marcarEnviado,
   marcarIgnorado,
