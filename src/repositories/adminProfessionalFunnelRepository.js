@@ -173,7 +173,10 @@ async function listarPorCampanha(periodo = "30", maturidade = {}) {
         SELECT MIN(ag.created_at) AS primeiro_agendamento_em
         FROM agendamentos ag
         WHERE ag.negocio_id = dono.negocio_id
-          AND COALESCE(ag.status, 'agendado') <> 'cancelado'
+          AND COALESCE(ag.status, 'agendado') NOT IN (
+            'cancelado',
+            'cancelamento_solicitado'
+          )
       ) primeiro_agendamento ON TRUE
       LEFT JOIN LATERAL (
         SELECT
