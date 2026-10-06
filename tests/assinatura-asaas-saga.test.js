@@ -241,6 +241,56 @@ test(
 );
 
 test(
+  "preserva timestamp preciso do provedor sem inferir horário da data contábil",
+  async () => {
+    const confirmadoEm =
+      "2026-09-13T20:15:30.000Z";
+
+    pagamentoRepository
+      .atualizarStatusPagamento
+      .mockResolvedValueOnce({
+        id: 31,
+        status: "CONFIRMED",
+        data_pagamento: "2026-09-13",
+        confirmado_em: confirmadoEm
+      });
+
+    await ativarAssinaturaPorPagamento(
+      "pay_preciso",
+      "CONFIRMED",
+      {
+        paymentDate: confirmadoEm,
+        webhookEventoId: "evt_preciso",
+        webhookEventoCriadoEm:
+          "2026-09-13 20:15:31"
+      }
+    );
+
+    expect(
+      pagamentoRepository
+        .atualizarStatusPagamento
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      "pay_preciso",
+      expect.objectContaining({
+        data_pagamento: confirmadoEm,
+        confirmado_em: confirmadoEm
+      })
+    );
+
+    expect(
+      assinaturaLifecycleService
+        .registrarConfirmacaoPagamento
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        asaasPaymentId: "pay_preciso",
+        ocorridoEm: confirmadoEm
+      })
+    );
+  }
+);
+
+test(
   "CA-PLN-04: pagamento recuperado reativa assinatura suspensa",
   async () => {
     assinaturaAtivacaoRepository
