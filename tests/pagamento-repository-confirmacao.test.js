@@ -57,7 +57,9 @@ describe(
         expect(sql).toContain(
           "WHERE asaas_payment_id = $7"
         );
-        expect(sql).toContain(
+        expect(
+          String(sql).replace(/\s+/g, " ")
+        ).toContain(
           "$5::timestamp >= asaas_ultimo_evento_em"
         );
         expect(parametros).toEqual([
