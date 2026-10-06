@@ -54,6 +54,8 @@ function normalizarPayload(dados = {}) {
       Number(dados.assinaturaEventoId) || null,
     usuarioAquisicaoId:
       Number(dados.usuarioAquisicaoId) || null,
+    confirmadoEm:
+      normalizarTimestamp(dados.confirmadoEm),
     ocorridoEm:
       normalizarTimestamp(dados.ocorridoEm),
     valor:
@@ -110,8 +112,10 @@ async function enfileirarAssinaturaAtivada(
         conversao.assinatura_evento_id,
       usuarioAquisicaoId:
         conversao.usuario_aquisicao_id,
+      confirmadoEm:
+        conversao.confirmado_em,
       ocorridoEm:
-        conversao.data_pagamento,
+        conversao.confirmado_em,
       valor:
         conversao.valor
     });
@@ -232,7 +236,7 @@ async function validarConversaoInicial(
   return conversao;
 }
 
-async function entregarMeta(payload) {
+async function entregarMeta(payload, entrega = null) {
   const conversao =
     await validarConversaoInicial(
       payload
@@ -298,7 +302,10 @@ async function entregarMeta(payload) {
     contexto,
     perfil,
     ocorridoEm:
-      pagamento.data_pagamento,
+      pagamento.confirmado_em ||
+      payload.confirmadoEm ||
+      entrega?.created_at ||
+      null,
     customData: {
       currency: "BRL",
       value:
@@ -309,7 +316,7 @@ async function entregarMeta(payload) {
   });
 }
 
-async function entregarGoogle(payload) {
+async function entregarGoogle(payload, entrega = null) {
   const conversao =
     await validarConversaoInicial(
       payload
@@ -358,7 +365,10 @@ async function entregarGoogle(payload) {
         perfil.usuario_id,
       eventName: "purchase",
       ocorridoEm:
-        pagamento.data_pagamento,
+        pagamento.confirmado_em ||
+        payload.confirmadoEm ||
+        entrega?.created_at ||
+        null,
       params: {
         transaction_id:
           `af-subscription-${payload.assinaturaId}`,
@@ -513,7 +523,8 @@ async function processarRegistro(entrega) {
   try {
     const resultado =
       await executor(
-        entrega.payload || {}
+        entrega.payload || {},
+        entrega
       );
 
     if (resultado?.enviado === true) {
@@ -624,10 +635,50 @@ async function processarRegistro(entrega) {
   }
 }
 
+async function rearmarIntegracoesDisponiveis() {
+  const provedores = [];
+
+  if (
+    typeof metaAdsService.capiHabilitada === "function" &&
+    metaAdsService.capiHabilitada()
+  ) {
+    provedores.push("meta");
+  }
+
+  if (
+    typeof googleMeasurementService
+      .measurementProtocolHabilitado === "function" &&
+    googleMeasurementService
+      .measurementProtocolHabilitado()
+  ) {
+    provedores.push("google");
+  }
+
+  for (const provedor of provedores) {
+    const rearmadas =
+      await marketingConversionDeliveryRepository
+        .rearmarIntegracaoDesabilitada(
+          provedor
+        );
+
+    if ((rearmadas || []).length > 0) {
+      registrador.aviso(
+        "Conversões de assinatura: entregas rearmadas após recuperação da integração.",
+        {
+          provedor,
+          total: rearmadas.length
+        }
+      );
+    }
+  }
+}
+
 async function executarFilaConversoes(
   limite
 ) {
   let processados = 0;
+
+  await rearmarIntegracoesDisponiveis();
 
   const esgotados =
     await marketingConversionDeliveryRepository
