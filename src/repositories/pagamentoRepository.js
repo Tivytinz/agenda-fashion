@@ -27,14 +27,6 @@ async function criarPagamento(client, dados) {
     DO UPDATE SET
       status = EXCLUDED.status,
       data_vencimento = EXCLUDED.data_vencimento,
-      data_pagamento = COALESCE(
-        EXCLUDED.data_pagamento,
-        pagamentos.data_pagamento
-      ),
-      confirmado_em = COALESCE(
-        pagamentos.confirmado_em,
-        EXCLUDED.confirmado_em
-      ),
       invoice_url = COALESCE(
         EXCLUDED.invoice_url,
         pagamentos.invoice_url
