@@ -178,6 +178,42 @@ describe(
     );
 
     test(
+      "resume a saúde operacional das entregas por provedor e status",
+      async () => {
+        db.query.mockResolvedValueOnce({
+          rows: [
+            {
+              provedor: "google",
+              status: "FAILED",
+              total: 2,
+              falhas_terminais: 1,
+              processamentos_expirados: 0
+            }
+          ]
+        });
+
+        await expect(
+          repository.buscarSaudeEntregas()
+        ).resolves.toHaveLength(1);
+
+        const sql = db.query.mock.calls[0][0];
+
+        expect(sql).toContain(
+          "tipo_evento = 'SUBSCRIPTION_ACTIVATED'"
+        );
+        expect(sql).toContain(
+          "proxima_tentativa_em IS NULL"
+        );
+        expect(sql).toContain(
+          "bloqueado_em < NOW() - INTERVAL '5 minutes'"
+        );
+        expect(sql).toContain(
+          "GROUP BY provedor, status"
+        );
+      }
+    );
+
+    test(
       "reserva com SKIP LOCKED, limita a cinco tentativas e só repete FAILED agendado",
       async () => {
         db.query.mockResolvedValueOnce({
