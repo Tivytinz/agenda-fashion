@@ -57,6 +57,22 @@ function enabledConfig() {
 
 beforeEach(() => {
   apiRequest.mockReset();
+
+  const originalAppendChild =
+    document.head.appendChild.bind(document.head);
+
+  vi.spyOn(document.head, "appendChild")
+    .mockImplementation((node) => {
+      const appended = originalAppendChild(node);
+
+      if (node?.id === "af-google-tag-script") {
+        queueMicrotask(() => {
+          node.dispatchEvent(new Event("load"));
+        });
+      }
+
+      return appended;
+    });
   localStorage.clear();
   clearGoogle();
   resetGoogleMeasurementForTests();
@@ -115,6 +131,31 @@ describe("Google Measurement no navegador", () => {
         "af-google-tag-script"
       )
     ).toBeNull();
+  });
+
+  it("só conclui a inicialização depois que a tag Google carrega", async () => {
+    setMarketingConsent(
+      MARKETING_CONSENT.GRANTED
+    );
+    apiRequest.mockResolvedValue(
+      enabledConfig()
+    );
+
+    let resolved = false;
+    const initialization =
+      initializeGoogleMeasurement()
+        .then((value) => {
+          resolved = true;
+          return value;
+        });
+
+    await Promise.resolve();
+    expect(resolved).toBe(false);
+
+    expect(
+      await initialization
+    ).toBe(true);
+    expect(resolved).toBe(true);
   });
 
   it("carrega GA4 depois do aceite com page view automático desativado", async () => {
