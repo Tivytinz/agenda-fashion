@@ -495,14 +495,22 @@ async function buscarReconciliacaoConversoes(periodo = "30") {
 }
 
 async function rearmarIntegracaoDisponivel(
-  provedor
+  provedor,
+  limiteHoras = 72
 ) {
   const normalizado =
     String(provedor || "")
       .trim()
       .toLowerCase();
+  const horas =
+    Number(limiteHoras);
 
-  if (!["google", "meta"].includes(normalizado)) {
+  if (
+    !["google", "meta"].includes(normalizado) ||
+    !Number.isInteger(horas) ||
+    horas < 1 ||
+    horas > 168
+  ) {
     return [];
   }
 
@@ -522,6 +530,9 @@ async function rearmarIntegracaoDisponivel(
         'SUBSCRIPTION_ACTIVATED'
       AND status = 'FAILED'
       AND proxima_tentativa_em IS NULL
+      AND ocorrido_em IS NOT NULL
+      AND ocorrido_em >=
+        NOW() - ($2::int * INTERVAL '1 hour')
       AND (
         resultado_codigo =
           'INTEGRACAO_DESABILITADA'
@@ -532,7 +543,10 @@ async function rearmarIntegracaoDisponivel(
       )
     RETURNING *
     `,
-    [normalizado]
+    [
+      normalizado,
+      horas
+    ]
   );
 
   return resultado.rows;
