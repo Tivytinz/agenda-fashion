@@ -365,6 +365,39 @@ async function buscarJourney(periodo) {
     }
   );
 
+  const provedoresReconciliacao = Array.isArray(reconciliacaoConversoes?.provedores)
+    ? reconciliacaoConversoes.provedores.map((linha) => {
+        const pagas = numero(linha.conversoes_pagas);
+        const enviadas = numero(linha.enviadas);
+        const inelegiveis = numero(linha.inelegiveis_legitimas);
+        const renovacoes = numero(linha.ignoradas_renovacao);
+        const semEntrega = numero(linha.sem_entrega);
+        const emProcessamento = numero(linha.em_processamento);
+        const perdasTecnicas = numero(linha.perdas_tecnicas);
+        const naoClassificadas = numero(linha.ignoradas_nao_classificadas);
+        const elegiveisObservadas = Math.max(pagas - inelegiveis - renovacoes, 0);
+        return {
+          provedor: linha.provedor,
+          conversoesPagas: pagas,
+          enviadas,
+          inelegiveisLegitimas: inelegiveis,
+          ignoradasRenovacao: renovacoes,
+          semEntrega,
+          emProcessamento,
+          perdasTecnicas,
+          ignoradasNaoClassificadas: naoClassificadas,
+          elegiveisObservadas,
+          coberturaTecnica: elegiveisObservadas > 0
+            ? Number(((enviadas / elegiveisObservadas) * 100).toFixed(2))
+            : null,
+        };
+      })
+    : [];
+  const perdasReconciliacao = provedoresReconciliacao.reduce(
+    (total, item) => total + item.perdasTecnicas + item.semEntrega + item.ignoradasNaoClassificadas,
+    0
+  );
+
   return {
     ...jornada,
     reconciliacaoPipelines:
