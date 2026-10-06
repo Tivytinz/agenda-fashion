@@ -58,12 +58,16 @@ function enabledConfig() {
 beforeEach(() => {
   apiRequest.mockReset();
 
-  const originalAppendChild =
-    document.head.appendChild.bind(document.head);
+  const nativeAppendChild =
+    Node.prototype.appendChild;
 
   vi.spyOn(document.head, "appendChild")
     .mockImplementation((node) => {
-      const appended = originalAppendChild(node);
+      const appended =
+        nativeAppendChild.call(
+          document.head,
+          node
+        );
 
       if (node?.id === "af-google-tag-script") {
         queueMicrotask(() => {
