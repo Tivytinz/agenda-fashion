@@ -1,4 +1,5 @@
 jest.mock("../src/db/db", () => ({
+  query: jest.fn(),
   executarTransacao: jest.fn()
 }));
 
@@ -18,6 +19,28 @@ const repository = require(
 describe("Google Measurement repository", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  test("busca o perfil Google pela identidade da aquisição", async () => {
+    db.query.mockResolvedValueOnce({
+      rows: [{
+        usuario_id: 7,
+        google_consentimento_status: true,
+        google_client_id: "123.456"
+      }]
+    });
+
+    const perfil = await repository
+      .buscarPerfilPorUsuario(7);
+
+    expect(perfil).toMatchObject({
+      usuario_id: 7,
+      google_client_id: "123.456"
+    });
+    expect(db.query.mock.calls[0][0])
+      .toContain("WHERE u.id = $1");
+    expect(db.query.mock.calls[0][1])
+      .toEqual([7]);
   });
 
   test("grava a escolha atual e o evento de auditoria na mesma transação", async () => {
