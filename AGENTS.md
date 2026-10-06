@@ -523,6 +523,20 @@ resolução, primeiro pagamento e plano de entrada. Transferência futura de
 propriedade, mudança de plano, nova assinatura ou reativação não criam uma nova
 aquisição nem reescrevem a campanha histórica.
 
+Conversões financeiras server-side para Google/Meta seguem a mesma identidade
+canônica de aquisição: somente a primeira `CONVERSAO_INICIAL` do negócio pode
+originar `purchase`/ `Subscribe`. Renovação, mudança de plano e reativação não
+são novas aquisições e não podem rearmar ou substituir a entrega original. A
+outbox persiste o `assinatura_evento_id` como lineage imutável por provedor,
+preserva `data_pagamento` como instante da conversão e separa códigos
+estruturados de resultado de mensagens técnicas. A identidade usada em retries
+é a primeira conta dona observada para a aquisição; o consentimento continua
+sendo revalidado no momento da entrega, de modo que revogação posterior impede
+envio sem reatribuir a compra a uma nova proprietária. `sem_consentimento` é
+regra de privacidade; integração desabilitada e divergência financeira são
+falhas operacionais observáveis e não devem ser classificadas como
+inelegibilidade legítima.
+
 A leitura de **CAC de mídia observado v1** reutiliza o custo diário canônico por
 campanha já protegido pela migration 037: existe uma única fonte efetiva por
 campanha/dia e a fonte gravada por último substitui a anterior. A Wave 27 não
