@@ -177,6 +177,7 @@ describe("repositories financeiros críticos", () => {
       expect(client.query.mock.calls[0][1]).toEqual([
         "CONFIRMED",
         "2026-09-26",
+        null,
         "https://www.asaas.com/i/1",
         "2026-09-26T12:00:00Z",
         "evt_1",
