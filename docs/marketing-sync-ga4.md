@@ -107,8 +107,10 @@ ou reativação. Retries preservam a identidade da aquisição e revalidam o
 consentimento antes do envio. Entregas com
 `INTEGRACAO_DESABILITADA` ficam terminais enquanto a configuração estiver
 indisponível e são rearmadas de forma controlada quando o runtime volta a
-comprovar que o provedor server-side está habilitado; o replay reutiliza o mesmo
-lineage e não altera o payload financeiro.
+comprovar que o provedor server-side está habilitado. O replay automático é
+limitado a conversões com no máximo 72 horas; casos mais antigos permanecem
+terminais e observáveis, evitando retimestamping silencioso de histórico. O
+replay reutiliza o mesmo lineage e não altera o payload financeiro.
 
 Na observabilidade administrativa, distinguir:
 
