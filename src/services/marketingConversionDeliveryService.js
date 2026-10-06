@@ -52,6 +52,8 @@ function normalizarPayload(dados = {}) {
       Number(dados.pagamentoInternoId) || null,
     assinaturaEventoId:
       Number(dados.assinaturaEventoId) || null,
+    usuarioAquisicaoId:
+      Number(dados.usuarioAquisicaoId) || null,
     ocorridoEm:
       normalizarTimestamp(dados.ocorridoEm),
     valor:
@@ -106,6 +108,8 @@ async function enfileirarAssinaturaAtivada(
         conversao.pagamento_interno_id,
       assinaturaEventoId:
         conversao.assinatura_evento_id,
+      usuarioAquisicaoId:
+        conversao.usuario_aquisicao_id,
       ocorridoEm:
         conversao.data_pagamento,
       valor:
@@ -247,10 +251,15 @@ async function entregarMeta(payload) {
     );
 
   const perfil =
-    await metaAdsRepository
-      .buscarPerfilPorNegocio(
-        payload.negocioId
-      );
+    payload.usuarioAquisicaoId
+      ? await metaAdsRepository
+          .buscarPerfilPorUsuario(
+            payload.usuarioAquisicaoId
+          )
+      : await metaAdsRepository
+          .buscarPerfilPorNegocio(
+            payload.negocioId
+          );
 
   if (!perfil?.meta_consentido_em) {
     return {
@@ -319,10 +328,15 @@ async function entregarGoogle(payload) {
     );
 
   const perfil =
-    await googleMeasurementRepository
-      .buscarPerfilPorNegocio(
-        payload.negocioId
-      );
+    payload.usuarioAquisicaoId
+      ? await googleMeasurementRepository
+          .buscarPerfilPorUsuario(
+            payload.usuarioAquisicaoId
+          )
+      : await googleMeasurementRepository
+          .buscarPerfilPorNegocio(
+            payload.negocioId
+          );
 
   if (
     perfil?.google_consentimento_status !== true ||
