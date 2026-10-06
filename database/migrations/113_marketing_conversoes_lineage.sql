@@ -74,7 +74,7 @@ CREATE OR REPLACE FUNCTION
   proteger_lineage_marketing_conversao()
 RETURNS TRIGGER
 LANGUAGE plpgsql
-AS $
+AS $body$
 BEGIN
   IF OLD.assinatura_evento_id IS NOT NULL
     AND (
@@ -93,7 +93,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$;
+$body$;
 
 DROP TRIGGER IF EXISTS
   marketing_conversoes_lineage_imutavel
