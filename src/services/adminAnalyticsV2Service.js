@@ -329,16 +329,19 @@ async function buscarJourney(periodo) {
   const [jornada, reconciliacao, entregasConversao] = await Promise.all([
     repository.buscarJornada(periodoSeguro),
     repository.buscarReconciliacaoPipelines(periodoSeguro),
-    marketingConversionDeliveryRepository.buscarSaudeEntregas(),
+    marketingConversionDeliveryRepository.buscarSaudeEntregas(periodoSeguro),
   ]);
 
-  const linhasEntrega = Array.isArray(entregasConversao)
-    ? entregasConversao
+  const linhasEntrega = Array.isArray(entregasConversao?.linhas)
+    ? entregasConversao.linhas
     : [];
+  const periodoEntregas =
+    entregasConversao?.periodo || periodoSeguro;
   const resumoEntrega = linhasEntrega.reduce(
     (resumo, linha) => {
       const total = numero(linha.total);
       resumo.total += total;
+      resumo.atividadePeriodo += numero(linha.atividade_periodo);
       if (linha.status === "SENT") resumo.enviadas += total;
       if (linha.status === "PENDING") resumo.pendentes += total;
       if (linha.status === "PROCESSING") resumo.processando += total;
@@ -350,6 +353,7 @@ async function buscarJourney(periodo) {
     },
     {
       total: 0,
+      atividadePeriodo: 0,
       enviadas: 0,
       pendentes: 0,
       processando: 0,
@@ -365,6 +369,7 @@ async function buscarJourney(periodo) {
     reconciliacaoPipelines:
       mapearReconciliacaoPipelines(reconciliacao),
     saudeConversoesMarketing: {
+      periodoAtividade: periodoEntregas,
       estado:
         resumoEntrega.falhasTerminais > 0 ||
         resumoEntrega.processamentosExpirados > 0
@@ -375,7 +380,7 @@ async function buscarJourney(periodo) {
       resumo: resumoEntrega,
       provedores: linhasEntrega,
       metodologia:
-        "Diagnóstico operacional da fila persistente de conversões de assinatura. SENT confirma entrega registrada pelo AF; PENDING/PROCESSING indicam trabalho em curso; FAILED terminal ou lease expirado exigem investigação. Este painel não substitui pagamentos confirmados como fonte de verdade de receita.",
+        "O estado atual usa todo o estoque persistente da fila para não esconder pendências antigas ainda abertas. Atividade no período usa a criação das entregas no recorte selecionado. SENT confirma entrega registrada pelo AF; PENDING/PROCESSING indicam trabalho em curso; FAILED terminal ou lease expirado exigem investigação. Este painel não substitui pagamentos confirmados como fonte de verdade de receita.",
     },
   };
 }
