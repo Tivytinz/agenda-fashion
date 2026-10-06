@@ -602,86 +602,8 @@ function enviarCheckoutSeguro({
   );
 }
 
-function enviarAssinaturaAtivadaSeguro({
-  negocioId,
-  assinaturaId,
-  pagamentoId,
-  valor
-}) {
-  if (
-    !capiHabilitada() ||
-    !negocioId ||
-    !assinaturaId ||
-    !pagamentoId
-  ) {
-    return;
-  }
-
-  dispararSeguro(
-    "Subscribe",
-    async () => {
-      const primeiroPagamento =
-        await metaAdsRepository
-          .ehPrimeiroPagamentoAssinatura({
-            assinaturaId,
-            pagamentoId
-          });
-
-      if (!primeiroPagamento) {
-        return {
-          enviado: false,
-          motivo: "renovacao"
-        };
-      }
-
-      const perfil =
-        await metaAdsRepository
-          .buscarPerfilPorNegocio(
-            negocioId
-          );
-
-      if (!perfil?.meta_consentido_em) {
-        return {
-          enviado: false,
-          motivo: "sem_consentimento"
-        };
-      }
-
-      const contexto = {
-        consentimento: true,
-        eventId:
-          `subscribe:${assinaturaId}`,
-        fbp:
-          perfil.meta_fbp || null,
-        fbc:
-          perfil.meta_fbc || null,
-        sourceUrl:
-          `${obterOrigemPublica()}/painel/assinatura`,
-        clientIp: null,
-        userAgent: null
-      };
-
-      return enviarEvento({
-        eventName: "Subscribe",
-        eventId: contexto.eventId,
-        usuarioId:
-          perfil.usuario_id,
-        email: perfil.email,
-        whatsapp: perfil.whatsapp,
-        contexto,
-        perfil,
-        customData: {
-          currency: "BRL",
-          value: Number(valor || 0),
-          content_name:
-            "Assinatura Agenda Fashion"
-        }
-      });
-    }
-  );
-}
-
 module.exports = {
+  capiHabilitada,
   obterConfiguracaoPublica,
   sanitizarContextoCliente,
   criarContextoRequisicao,
@@ -689,6 +611,5 @@ module.exports = {
   salvarConsentimentoSeguro,
   enviarEvento,
   enviarCadastroProfissionalSeguro,
-  enviarCheckoutSeguro,
-  enviarAssinaturaAtivadaSeguro
+  enviarCheckoutSeguro
 };
