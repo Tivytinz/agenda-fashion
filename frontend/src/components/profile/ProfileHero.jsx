@@ -178,6 +178,7 @@ export function ProfileHero({
         className="profile-image"
         fetchPriority="high"
         loading="eager"
+        width={128}
       />
       <div className="profile-copy">
         <p className="eyebrow">{specialties[0] || "Beleza"}</p>
