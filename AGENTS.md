@@ -83,6 +83,13 @@ URLs públicas estáveis, sem depender de caminhos internos de `src/`. O sitemap
 continua refletindo somente oferta pública real, e páginas sem oferta válida não
 devem ser criadas apenas para capturar palavras-chave.
 
+`robots.txt` controla rastreamento, não deve ser usado como substituto de
+`noindex`. Rotas HTML que precisam ficar fora do índice e são acessíveis sem
+autenticação devem permanecer rastreáveis o suficiente para o crawler observar
+a diretiva `noindex`. Áreas operacionais e URLs sensíveis sem valor para busca
+podem continuar bloqueadas de rastreamento, mantendo autorização real no
+backend como controle de segurança.
+
 ## Entidades e contextos
 
 Não tratar como equivalentes:
