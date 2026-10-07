@@ -170,6 +170,8 @@ describe(
             evento_id: "evt_updated_received",
             evento_criado_em:
               "2026-09-13 20:05:00",
+            recebido_em:
+              "2026-09-13T23:05:04.000Z",
             tipo_evento: "PAYMENT_UPDATED",
             recurso_id: "pay_1",
             tentativas: 1,
@@ -203,7 +205,9 @@ describe(
             webhookEventoId:
               "evt_updated_received",
             webhookEventoCriadoEm:
-              "2026-09-13 20:05:00"
+              "2026-09-13 20:05:00",
+            webhookRecebidoEm:
+              "2026-09-13T23:05:04.000Z"
           })
         );
 

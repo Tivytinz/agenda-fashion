@@ -94,22 +94,31 @@ A conversão de aquisição paga enviada aos provedores nasce somente da
 confirmado continua sendo a verdade financeira; Google e Meta recebem uma
 projeção desse fato, nunca um substituto.
 
+O caminho suportado é webhook financeiro → outbox persistente → worker →
+Google/Meta. Os antigos helpers `enviarAssinaturaAtivadaSeguro` dos serviços dos
+provedores foram removidos: conversões de assinatura devem passar por
+`marketingConversionDeliveryService.enfileirarAssinaturaAtivadaSeguro`, que
+preserva retries, reconciliação e revalidação do consentimento. Os transportes
+dos provedores continuam disponíveis para o worker; cadastro profissional e
+checkout mantêm seus fluxos próprios.
+
 A outbox `marketing_conversoes_entregas` preserva o
-`assinatura_evento_id` e um código estruturado do resultado. A data contábil
-continua em `pagamentos.data_pagamento` (`DATE`). Quando o provedor fornece um
-timestamp com fuso, o instante preciso é persistido separadamente em
-`pagamentos.confirmado_em` (`TIMESTAMPTZ`) e usado por Google/Meta. Não existe
-backfill que invente horário para pagamentos históricos. Quando o instante
-preciso não existe, a entrega usa o `created_at` persistido da própria outbox
-como instante de observação, evitando converter uma data sem horário em
-meia-noite e evitando que um retry mude silenciosamente o tempo do evento.
+`assinatura_evento_id`, o instante observado da conversão quando disponível e
+um código estruturado do resultado. `pagamentos.data_pagamento` permanece a
+data financeira do provedor; precisão de hora usa
+`pagamentos.confirmacao_observada_em`, derivado do primeiro
+`webhook_eventos.recebido_em` que comprovou estado confirmado/recebido. Histórico
+sem essa evidência não recebe horário inventado.
 
 O mesmo evento financeiro não pode ser substituído por renovação, troca de plano
 ou reativação. Retries preservam a identidade da aquisição e revalidam o
-consentimento antes do envio. Uma falha `INTEGRACAO_DESABILITADA` é terminal
-enquanto a configuração está indisponível, mas o worker rearma essas entregas
-automaticamente quando detectar que o respectivo provedor voltou a estar
-habilitado, sem alterar o lineage ou o payload financeiro.
+consentimento antes do envio. Entregas com
+`INTEGRACAO_DESABILITADA` ficam terminais enquanto a configuração estiver
+indisponível e são rearmadas de forma controlada quando o runtime volta a
+comprovar que o provedor server-side está habilitado. O replay automático é
+limitado a conversões com no máximo 72 horas; casos mais antigos permanecem
+terminais e observáveis, evitando retimestamping silencioso de histórico. O
+replay reutiliza o mesmo lineage e não altera o payload financeiro.
 
 Na observabilidade administrativa, distinguir:
 
@@ -119,6 +128,11 @@ Na observabilidade administrativa, distinguir:
   `CONVERSAO_INICIAL`;
 - falhas temporárias/terminais: problemas técnicos de entrega;
 - `SENT`: entrega registrada pelo AF.
+
+A reconciliação administrativa escolhe primeiro a primeira
+`CONVERSAO_INICIAL` de toda a história do negócio e só depois aplica o recorte
+por `data_pagamento`. Isso evita que uma segunda conversão anômala dentro da
+janela seja promovida artificialmente a aquisição canônica.
 
 A cobertura exibida não deve inferir elegibilidade ausente. Quando a pergunta é
 receita ou assinatura paga, usar o banco do AF; quando a pergunta é entrega de

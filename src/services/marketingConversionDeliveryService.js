@@ -22,6 +22,7 @@ const registrador = require(
 
 const TIPO_ASSINATURA_ATIVADA =
   "SUBSCRIPTION_ACTIVATED";
+const REPLAY_INTEGRACAO_MAX_HORAS = 72;
 
 let processamentoFilaAtual = null;
 
@@ -54,8 +55,6 @@ function normalizarPayload(dados = {}) {
       Number(dados.assinaturaEventoId) || null,
     usuarioAquisicaoId:
       Number(dados.usuarioAquisicaoId) || null,
-    confirmadoEm:
-      normalizarTimestamp(dados.confirmadoEm),
     ocorridoEm:
       normalizarTimestamp(dados.ocorridoEm),
     valor:
@@ -112,10 +111,11 @@ async function enfileirarAssinaturaAtivada(
         conversao.assinatura_evento_id,
       usuarioAquisicaoId:
         conversao.usuario_aquisicao_id,
-      confirmadoEm:
-        conversao.confirmado_em,
       ocorridoEm:
-        conversao.confirmado_em,
+        conversao
+          .confirmacao_observada_em ||
+        conversao.ocorrido_em ||
+        conversao.data_pagamento,
       valor:
         conversao.valor
     });
@@ -236,7 +236,7 @@ async function validarConversaoInicial(
   return conversao;
 }
 
-async function entregarMeta(payload, entrega = null) {
+async function entregarMeta(payload) {
   const conversao =
     await validarConversaoInicial(
       payload
@@ -302,10 +302,10 @@ async function entregarMeta(payload, entrega = null) {
     contexto,
     perfil,
     ocorridoEm:
-      pagamento.confirmado_em ||
-      payload.confirmadoEm ||
-      entrega?.created_at ||
-      null,
+      pagamento
+        .confirmacao_observada_em ||
+      payload.ocorridoEm ||
+      pagamento.data_pagamento,
     customData: {
       currency: "BRL",
       value:
@@ -316,7 +316,7 @@ async function entregarMeta(payload, entrega = null) {
   });
 }
 
-async function entregarGoogle(payload, entrega = null) {
+async function entregarGoogle(payload) {
   const conversao =
     await validarConversaoInicial(
       payload
@@ -365,10 +365,10 @@ async function entregarGoogle(payload, entrega = null) {
         perfil.usuario_id,
       eventName: "purchase",
       ocorridoEm:
-        pagamento.confirmado_em ||
-        payload.confirmadoEm ||
-        entrega?.created_at ||
-        null,
+        pagamento
+          .confirmacao_observada_em ||
+        payload.ocorridoEm ||
+        pagamento.data_pagamento,
       params: {
         transaction_id:
           `af-subscription-${payload.assinaturaId}`,
@@ -523,8 +523,7 @@ async function processarRegistro(entrega) {
   try {
     const resultado =
       await executor(
-        entrega.payload || {},
-        entrega
+        entrega.payload || {}
       );
 
     if (resultado?.enviado === true) {
@@ -635,42 +634,52 @@ async function processarRegistro(entrega) {
   }
 }
 
-async function rearmarIntegracoesDisponiveis() {
+async function rearmarIntegracoesRestauradas() {
   const provedores = [];
 
   if (
-    typeof metaAdsService.capiHabilitada === "function" &&
-    metaAdsService.capiHabilitada()
+    typeof metaAdsService
+      .serverSideHabilitado === "function" &&
+    metaAdsService
+      .serverSideHabilitado()
   ) {
     provedores.push("meta");
   }
 
   if (
     typeof googleMeasurementService
-      .measurementProtocolHabilitado === "function" &&
+      .serverSideHabilitado === "function" &&
     googleMeasurementService
-      .measurementProtocolHabilitado()
+      .serverSideHabilitado()
   ) {
     provedores.push("google");
   }
 
+  let total = 0;
+
   for (const provedor of provedores) {
     const rearmadas =
       await marketingConversionDeliveryRepository
-        .rearmarIntegracaoDesabilitada(
-          provedor
+        .rearmarIntegracaoDisponivel(
+          provedor,
+          REPLAY_INTEGRACAO_MAX_HORAS
         );
 
-    if ((rearmadas || []).length > 0) {
-      registrador.aviso(
-        "Conversões de assinatura: entregas rearmadas após recuperação da integração.",
+    if (rearmadas?.length) {
+      total += rearmadas.length;
+
+      registrador.informacao(
+        "Conversões de marketing: entregas rearmadas após restauração da integração.",
         {
           provedor,
-          total: rearmadas.length
+          entregas:
+            rearmadas.length
         }
       );
     }
   }
+
+  return total;
 }
 
 async function executarFilaConversoes(
@@ -678,7 +687,7 @@ async function executarFilaConversoes(
 ) {
   let processados = 0;
 
-  await rearmarIntegracoesDisponiveis();
+  await rearmarIntegracoesRestauradas();
 
   const esgotados =
     await marketingConversionDeliveryRepository

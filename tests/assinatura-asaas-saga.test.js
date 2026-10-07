@@ -191,6 +191,16 @@ beforeEach(() => {
 test(
   "CA-PLN-03: pagamento aprovado ativa assinatura e troca o plano sem segurar lock externo",
   async () => {
+    pagamentoRepository
+      .atualizarStatusPagamento
+      .mockResolvedValueOnce({
+        id: 31,
+        status: "CONFIRMED",
+        data_pagamento:
+          "2026-09-13",
+        confirmacao_observada_em:
+          "2026-09-13T23:00:05.000Z"
+      });
     const resultado =
       await ativarAssinaturaPorPagamento(
         "pay_1",
@@ -198,9 +208,23 @@ test(
         {
           webhookEventoId: "evt_1",
           webhookEventoCriadoEm:
-            "2026-09-13 20:00:00"
+            "2026-09-13 20:00:00",
+          webhookRecebidoEm:
+            "2026-09-13T23:00:05.000Z"
         }
       );
+
+    expect(
+      pagamentoRepository
+        .atualizarStatusPagamento
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      "pay_1",
+      expect.objectContaining({
+        confirmacao_observada_em:
+          "2026-09-13T23:00:05.000Z"
+      })
+    );
 
     expect(
       assinaturaLifecycleService
@@ -214,7 +238,8 @@ test(
       }),
       pagamentoId: 31,
       asaasPaymentId: "pay_1",
-      ocorridoEm: "2026-09-13"
+      ocorridoEm:
+        "2026-09-13T23:00:05.000Z"
     });
     expect(criarAssinaturaAsaas)
       .toHaveBeenCalledTimes(1);
@@ -237,56 +262,6 @@ test(
             "sub_new"
         })
       );
-  }
-);
-
-test(
-  "preserva timestamp preciso do provedor sem inferir horário da data contábil",
-  async () => {
-    const confirmadoEm =
-      "2026-09-13T20:15:30.000Z";
-
-    pagamentoRepository
-      .atualizarStatusPagamento
-      .mockResolvedValueOnce({
-        id: 31,
-        status: "CONFIRMED",
-        data_pagamento: "2026-09-13",
-        confirmado_em: confirmadoEm
-      });
-
-    await ativarAssinaturaPorPagamento(
-      "pay_preciso",
-      "CONFIRMED",
-      {
-        paymentDate: confirmadoEm,
-        webhookEventoId: "evt_preciso",
-        webhookEventoCriadoEm:
-          "2026-09-13 20:15:31"
-      }
-    );
-
-    expect(
-      pagamentoRepository
-        .atualizarStatusPagamento
-    ).toHaveBeenCalledWith(
-      expect.anything(),
-      "pay_preciso",
-      expect.objectContaining({
-        data_pagamento: confirmadoEm,
-        confirmado_em: confirmadoEm
-      })
-    );
-
-    expect(
-      assinaturaLifecycleService
-        .registrarConfirmacaoPagamento
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        asaasPaymentId: "pay_preciso",
-        ocorridoEm: confirmadoEm
-      })
-    );
   }
 );
 

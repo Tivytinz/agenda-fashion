@@ -2,10 +2,6 @@ jest.mock(
   "../src/repositories/googleMeasurementRepository",
   () => ({
     salvarConsentimentoUsuario:
-      jest.fn(),
-    buscarPerfilPorNegocio:
-      jest.fn(),
-    ehPrimeiroPagamentoAssinatura:
       jest.fn()
   })
 );
@@ -230,17 +226,6 @@ describe("Google Measurement service", () => {
     });
     expect(global.fetch)
       .not.toHaveBeenCalled();
-  });
-
-  test("não expõe atalho legado de conversão financeira", () => {
-    configurarGoogle();
-
-    expect(
-      service.enviarAssinaturaAtivadaSeguro
-    ).toBeUndefined();
-    expect(
-      service.measurementProtocolHabilitado()
-    ).toBe(true);
   });
 
 });

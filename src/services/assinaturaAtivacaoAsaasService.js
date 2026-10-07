@@ -58,31 +58,6 @@ function calcularProximaCobranca(
     .slice(0, 10);
 }
 
-function normalizarInstantePreciso(valor) {
-  if (valor instanceof Date) {
-    return Number.isFinite(valor.getTime())
-      ? valor.toISOString()
-      : null;
-  }
-
-  const texto = String(valor || "").trim();
-
-  if (
-    !/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/
-      .test(texto)
-  ) {
-    return null;
-  }
-
-  const data = new Date(
-    texto.replace(" ", "T")
-  );
-
-  return Number.isFinite(data.getTime())
-    ? data.toISOString()
-    : null;
-}
-
 function dadosEvento(
   dadosPagamento,
   statusPagamento
@@ -96,13 +71,8 @@ function dadosEvento(
       dadosPagamento.paymentDate ||
       dadosPagamento.confirmedDate ||
       new Date(),
-    confirmado_em:
-      normalizarInstantePreciso(
-        dadosPagamento.paymentDate
-      ) ||
-      normalizarInstantePreciso(
-        dadosPagamento.confirmedDate
-      ) ||
+    confirmacao_observada_em:
+      dadosPagamento.webhookRecebidoEm ||
       null,
     evento_criado_em:
       dadosPagamento
@@ -355,8 +325,10 @@ async function finalizarAtivacao({
           pagamentoId: assinatura.pagamento_id,
           asaasPaymentId: paymentId,
           ocorridoEm:
-            pagamentoAtualizado.confirmado_em ||
-            pagamentoAtualizado.data_pagamento ||
+            pagamentoAtualizado
+              .confirmacao_observada_em ||
+            pagamentoAtualizado
+              .data_pagamento ||
             assinatura.data_pagamento ||
             null
         });

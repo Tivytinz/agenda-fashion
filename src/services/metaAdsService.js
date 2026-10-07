@@ -603,8 +603,9 @@ function enviarCheckoutSeguro({
 }
 
 module.exports = {
-  capiHabilitada,
   obterConfiguracaoPublica,
+  serverSideHabilitado:
+    capiHabilitada,
   sanitizarContextoCliente,
   criarContextoRequisicao,
   salvarConsentimento,

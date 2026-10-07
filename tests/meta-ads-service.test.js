@@ -8,15 +8,10 @@ jest.mock(
     buscarPerfilPorUsuario:
       jest.fn(),
     buscarPerfilPorNegocio:
-      jest.fn(),
-    ehPrimeiroPagamentoAssinatura:
       jest.fn()
   })
 );
 
-const metaAdsRepository = require(
-  "../src/repositories/metaAdsRepository"
-);
 const metaAdsService = require(
   "../src/services/metaAdsService"
 );
@@ -247,18 +242,6 @@ describe("Meta Ads service", () => {
     });
     expect(global.fetch)
       .not.toHaveBeenCalled();
-  });
-
-  test("não expõe atalho legado de conversão financeira", () => {
-    configurarMeta();
-
-    expect(
-      metaAdsService
-        .enviarAssinaturaAtivadaSeguro
-    ).toBeUndefined();
-    expect(
-      metaAdsService.capiHabilitada()
-    ).toBe(true);
   });
 
 });

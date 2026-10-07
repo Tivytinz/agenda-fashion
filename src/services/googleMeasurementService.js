@@ -1,6 +1,7 @@
 const googleMeasurementRepository = require(
   "../repositories/googleMeasurementRepository"
 );
+
 const DEFAULT_TIMEOUT_MS = 1800;
 const GOOGLE_CONSENT_SOURCE =
   "NAVEGADOR";
@@ -289,8 +290,9 @@ async function enviarEventoMeasurementProtocol({
 }
 
 module.exports = {
-  measurementProtocolHabilitado,
   obterConfiguracaoPublica,
+  serverSideHabilitado:
+    measurementProtocolHabilitado,
   sanitizarContextoCliente,
   salvarConsentimento,
   enviarEventoMeasurementProtocol

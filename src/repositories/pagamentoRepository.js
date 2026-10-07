@@ -13,14 +13,13 @@ async function criarPagamento(client, dados) {
       status,
       data_vencimento,
       data_pagamento,
-      confirmado_em,
       invoice_url,
       pix_copia_cola,
       pix_qrcode
     )
     VALUES (
       $1, $2, $3, $4, $5,
-      $6, $7, $8, $9, $10, $11
+      $6, $7, $8, $9, $10
     )
     ON CONFLICT (asaas_payment_id)
       WHERE asaas_payment_id IS NOT NULL
@@ -50,7 +49,6 @@ async function criarPagamento(client, dados) {
             dados.status || "PENDING",
             dados.data_vencimento || null,
             dados.data_pagamento || null,
-            dados.confirmado_em || null,
             dados.invoice_url || null,
             dados.pix_copia_cola || null,
             dados.pix_qrcode || null
@@ -83,8 +81,8 @@ async function atualizarStatusPagamento(client, paymentId, dados) {
     SET
       status = $1,
       data_pagamento = COALESCE($2, data_pagamento),
-      confirmado_em = COALESCE(
-        confirmado_em,
+      confirmacao_observada_em = COALESCE(
+        confirmacao_observada_em,
         $3::timestamptz
       ),
       invoice_url = COALESCE($4, invoice_url),
@@ -111,7 +109,7 @@ async function atualizarStatusPagamento(client, paymentId, dados) {
         [
             dados.status,
             dados.data_pagamento || null,
-            dados.confirmado_em || null,
+            dados.confirmacao_observada_em || null,
             dados.invoice_url || null,
             dados.evento_criado_em || null,
             dados.evento_id || null,
@@ -133,7 +131,7 @@ async function listarPorAssinatura(assinaturaId, limite = 12) {
             status,
             data_vencimento,
             data_pagamento,
-            confirmado_em,
+            confirmacao_observada_em,
             invoice_url,
             created_at
         FROM pagamentos

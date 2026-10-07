@@ -2,12 +2,13 @@ jest.mock(
   "../src/repositories/marketingConversionDeliveryRepository",
   () => ({
     enfileirar: jest.fn(),
+    rearmarIntegracaoDisponivel:
+      jest.fn(),
     reservarProximo: jest.fn(),
     marcarEnviado: jest.fn(),
     marcarIgnorado: jest.fn(),
     marcarFalha: jest.fn(),
     marcarFalhaTerminal: jest.fn(),
-    rearmarIntegracaoDesabilitada: jest.fn(),
     marcarProcessamentosEsgotados: jest.fn()
   })
 );
@@ -56,7 +57,8 @@ jest.mock(
       })
     ),
     enviarEvento: jest.fn(),
-    capiHabilitada: jest.fn(() => false)
+    serverSideHabilitado:
+      jest.fn().mockReturnValue(false)
   })
 );
 
@@ -64,15 +66,16 @@ jest.mock(
   "../src/services/googleMeasurementService",
   () => ({
     enviarEventoMeasurementProtocol: jest.fn(),
-    measurementProtocolHabilitado:
-      jest.fn(() => false)
+    serverSideHabilitado:
+      jest.fn().mockReturnValue(false)
   })
 );
 
 jest.mock(
   "../src/utils/registrador",
   () => ({
-    aviso: jest.fn()
+    aviso: jest.fn(),
+    informacao: jest.fn()
   })
 );
 
@@ -102,7 +105,9 @@ const service = require(
 );
 
 const pagamentoData =
-  "2026-10-06T12:00:00.000Z";
+  "2026-10-06";
+const confirmacaoObservadaEm =
+  "2026-10-06T12:34:56.000Z";
 
 const payload = {
   negocioId: 7,
@@ -111,8 +116,7 @@ const payload = {
   pagamentoInternoId: 30,
   assinaturaEventoId: 90,
   usuarioAquisicaoId: 3,
-  confirmadoEm: pagamentoData,
-  ocorridoEm: pagamentoData,
+  ocorridoEm: confirmacaoObservadaEm,
   valor: 59.9
 };
 
@@ -120,16 +124,11 @@ beforeEach(() => {
   jest.clearAllMocks();
 
   deliveryRepository
-    .marcarProcessamentosEsgotados
+    .rearmarIntegracaoDisponivel
     .mockResolvedValue([]);
   deliveryRepository
-    .rearmarIntegracaoDesabilitada
+    .marcarProcessamentosEsgotados
     .mockResolvedValue([]);
-  metaAdsService.capiHabilitada
-    .mockReturnValue(false);
-  googleMeasurementService
-    .measurementProtocolHabilitado
-    .mockReturnValue(false);
   deliveryRepository
     .marcarEnviado
     .mockResolvedValue({ id: 1 });
@@ -152,8 +151,11 @@ beforeEach(() => {
       pagamento_interno_id: 30,
       asaas_payment_id: "pay_123",
       valor: "59.90",
-      data_pagamento: "2026-10-06",
-      confirmado_em: pagamentoData
+      data_pagamento: pagamentoData,
+      confirmacao_observada_em:
+        confirmacaoObservadaEm,
+      ocorrido_em:
+        confirmacaoObservadaEm
     });
   marketingConversaoRepository
     .buscarPagamentoConfirmado
@@ -162,8 +164,9 @@ beforeEach(() => {
       assinatura_id: 11,
       asaas_payment_id: "pay_123",
       valor: "59.90",
-      data_pagamento: "2026-10-06",
-      confirmado_em: pagamentoData
+      data_pagamento: pagamentoData,
+      confirmacao_observada_em:
+        confirmacaoObservadaEm
     });
 });
 
@@ -179,13 +182,20 @@ test(
 
     await service.enfileirarAssinaturaAtivada(payload);
 
+    expect(metaAdsService.enviarEvento)
+      .not.toHaveBeenCalled();
+    expect(
+      googleMeasurementService
+        .enviarEventoMeasurementProtocol
+    ).not.toHaveBeenCalled();
+
     expect(deliveryRepository.enfileirar)
       .toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
           provedor: "meta",
           assinaturaEventoId: 90,
-          ocorridoEm: pagamentoData,
+          ocorridoEm: confirmacaoObservadaEm,
           payload: expect.objectContaining({
             assinaturaEventoId: 90,
             usuarioAquisicaoId: 3,
@@ -200,7 +210,7 @@ test(
         expect.objectContaining({
           provedor: "google",
           assinaturaEventoId: 90,
-          ocorridoEm: pagamentoData,
+          ocorridoEm: confirmacaoObservadaEm,
           payload: expect.objectContaining({
             assinaturaEventoId: 90,
             usuarioAquisicaoId: 3,
@@ -265,7 +275,7 @@ test(
         expect.objectContaining({
           eventName: "Subscribe",
           eventId: "subscribe:11",
-          ocorridoEm: pagamentoData,
+          ocorridoEm: confirmacaoObservadaEm,
           customData:
             expect.objectContaining({
               value: 59.9
@@ -322,7 +332,7 @@ test(
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         eventName: "purchase",
-        ocorridoEm: pagamentoData,
+        ocorridoEm: confirmacaoObservadaEm,
         params: expect.objectContaining({
           transaction_id:
             "af-subscription-11",
@@ -465,6 +475,56 @@ test(
   }
 );
 
+test.each([
+  {
+    caso: "recusa explícita",
+    consentimento: false,
+    revogadoEm: null
+  },
+  {
+    caso: "revogação posterior ao enfileiramento",
+    consentimento: true,
+    revogadoEm: "2026-10-06T12:40:00.000Z"
+  }
+])(
+  "Google revalida $caso antes de entregar a conversão",
+  async ({ consentimento, revogadoEm }) => {
+    deliveryRepository.reservarProximo
+      .mockResolvedValueOnce({
+        id: 8,
+        provedor: "google",
+        payload,
+        lease_tentativa: 2
+      });
+    googleMeasurementRepository.buscarPerfilPorUsuario
+      .mockResolvedValueOnce({
+        usuario_id: 3,
+        google_consentimento_status: consentimento,
+        google_consentido_em: pagamentoData,
+        google_revogado_em: revogadoEm,
+        google_client_id: "123.456"
+      });
+
+    await service.processarFilaConversoes(1);
+
+    expect(
+      googleMeasurementRepository.buscarPerfilPorUsuario
+    ).toHaveBeenCalledWith(3);
+    expect(
+      googleMeasurementService.enviarEventoMeasurementProtocol
+    ).not.toHaveBeenCalled();
+    expect(deliveryRepository.marcarIgnorado)
+      .toHaveBeenCalledWith(
+        8,
+        2,
+        "sem_consentimento",
+        "SEM_CONSENTIMENTO"
+      );
+    expect(deliveryRepository.marcarEnviado)
+      .not.toHaveBeenCalled();
+  }
+);
+
 test(
   "não enfileira renovação, troca de plano ou reativação sem CONVERSAO_INICIAL",
   async () => {
@@ -564,88 +624,50 @@ test(
 );
 
 test(
-  "rearma falhas de integração quando o provedor volta a ficar disponível",
+  "rearmazena falhas de integração quando a configuração volta a ficar disponível",
   async () => {
-    metaAdsService.capiHabilitada
+    googleMeasurementService
+      .serverSideHabilitado
       .mockReturnValue(true);
     deliveryRepository
-      .rearmarIntegracaoDesabilitada
+      .rearmarIntegracaoDisponivel
       .mockResolvedValueOnce([
-        { id: 44 }
+        {
+          id: 8,
+          provedor: "google"
+        }
       ]);
-    deliveryRepository.reservarProximo
-      .mockResolvedValue(null);
+    deliveryRepository
+      .reservarProximo
+      .mockResolvedValueOnce(null);
 
-    await service.processarFilaConversoes(1);
+    await service
+      .processarFilaConversoes(1);
 
     expect(
       deliveryRepository
-        .rearmarIntegracaoDesabilitada
-    ).toHaveBeenCalledWith("meta");
-    expect(registrador.aviso)
-      .toHaveBeenCalledWith(
-        expect.stringContaining("rearmadas"),
-        expect.objectContaining({
-          provedor: "meta",
-          total: 1
-        })
-      );
-  }
-);
-
-test(
-  "usa o horário persistido da outbox quando o provedor não informou instante preciso",
-  async () => {
-    const criadoEm =
-      "2026-10-06T12:03:00.000Z";
-
-    marketingConversaoRepository
-      .buscarPagamentoConfirmado
-      .mockResolvedValueOnce({
-        id: 30,
-        assinatura_id: 11,
-        asaas_payment_id: "pay_123",
-        valor: "59.90",
-        data_pagamento: "2026-10-06",
-        confirmado_em: null
-      });
-    deliveryRepository.reservarProximo
-      .mockResolvedValueOnce({
-        id: 45,
-        provedor: "google",
-        payload: {
-          ...payload,
-          confirmadoEm: null,
-          ocorridoEm: null
-        },
-        created_at: criadoEm,
-        lease_tentativa: 1
-      });
-    googleMeasurementRepository
-      .buscarPerfilPorUsuario
-      .mockResolvedValue({
-        usuario_id: 3,
-        google_consentimento_status: true,
-        google_consentido_em: criadoEm,
-        google_revogado_em: null,
-        google_client_id: "123.456"
-      });
-    googleMeasurementService
-      .enviarEventoMeasurementProtocol
-      .mockResolvedValue({
-        enviado: true
-      });
-
-    await service.processarFilaConversoes(1);
-
-    expect(
-      googleMeasurementService
-        .enviarEventoMeasurementProtocol
+        .rearmarIntegracaoDisponivel
     ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ocorridoEm: criadoEm
-      })
+      "google",
+      72
     );
+    expect(
+      deliveryRepository
+        .rearmarIntegracaoDisponivel
+    ).not.toHaveBeenCalledWith(
+      "meta",
+      72
+    );
+    expect(registrador.informacao)
+      .toHaveBeenCalledWith(
+        expect.stringContaining(
+          "rearmadas"
+        ),
+        {
+          provedor: "google",
+          entregas: 1
+        }
+      );
   }
 );
 
@@ -707,10 +729,6 @@ test(
       service.processarFilaConversoes(1);
 
     expect(segunda).toBe(primeira);
-    expect(
-      deliveryRepository
-        .marcarProcessamentosEsgotados
-    ).toHaveBeenCalledTimes(1);
 
     liberar([]);
 
@@ -719,6 +737,10 @@ test(
       segunda
     ]);
 
+    expect(
+      deliveryRepository
+        .marcarProcessamentosEsgotados
+    ).toHaveBeenCalledTimes(1);
     expect(
       deliveryRepository.reservarProximo
     ).toHaveBeenCalledTimes(1);

@@ -231,16 +231,86 @@ describe(
         });
 
         const sql = db.query.mock.calls[0][0];
+        expect(sql).toContain("WITH conversoes_canonicas AS");
         expect(sql).toContain("ae.tipo = 'CONVERSAO_INICIAL'");
         expect(sql).toContain("pg.data_pagamento IS NOT NULL");
-        expect(sql).toContain("WITH conversoes_canonicas AS");
         expect(sql).toContain("FROM conversoes_canonicas");
-        expect(sql).toContain("WHERE data_pagamento >= NOW() - INTERVAL '30 days'");
+        expect(sql).toContain("(NOW() - INTERVAL '30 days')::date");
+        expect(sql).toContain("pg.confirmacao_observada_em");
         expect(sql).toContain("entrega.assinatura_evento_id");
         expect(sql).toContain("'SEM_CONSENTIMENTO'");
         expect(sql).toContain("'INTEGRACAO_DESABILITADA'");
         expect(sql).toContain("'DIVERGENCIA_FINANCEIRA'");
         expect(sql).not.toContain("marketing_usuario_atribuicoes");
+      }
+    );
+
+    test(
+      "rearmazena somente falha terminal de integração do provedor restaurado",
+      async () => {
+        db.query.mockResolvedValueOnce({
+          rows: [
+            {
+              id: 12,
+              provedor: "google",
+              status: "PENDING",
+              tentativas: 0
+            }
+          ]
+        });
+
+        const resultado =
+          await repository
+            .rearmarIntegracaoDisponivel(
+              "google",
+              72
+            );
+
+        expect(resultado)
+          .toHaveLength(1);
+
+        const [sql, parametros] =
+          db.query.mock.calls[0];
+
+        expect(sql).toContain(
+          "resultado_codigo ="
+        );
+        expect(sql).toContain(
+          "'INTEGRACAO_DESABILITADA'"
+        );
+        expect(sql).toContain(
+          "status = 'PENDING'"
+        );
+        expect(sql).toContain(
+          "tentativas = 0"
+        );
+        expect(sql).toContain(
+          "ocorrido_em IS NOT NULL"
+        );
+        expect(sql).toContain(
+          "$2::int * INTERVAL '1 hour'"
+        );
+        expect(parametros)
+          .toEqual([
+            "google",
+            72
+          ]);
+      }
+    );
+
+    test(
+      "não rearma integração com janela inválida",
+      async () => {
+        await expect(
+          repository
+            .rearmarIntegracaoDisponivel(
+              "google",
+              0
+            )
+        ).resolves.toEqual([]);
+
+        expect(db.query)
+          .not.toHaveBeenCalled();
       }
     );
 
@@ -357,50 +427,14 @@ describe(
           "WHEN tentativas < 5"
         );
         expect(sql).toContain(
+          "THEN 'FALHA_TEMPORARIA'"
+        );
+        expect(sql).toContain(
           "ELSE 'FALHA_TECNICA'"
         );
         expect(sql).toContain(
           "ELSE NULL"
         );
-      }
-    );
-
-    test(
-      "rearma somente falhas terminais de integração desabilitada",
-      async () => {
-        db.query.mockResolvedValueOnce({
-          rows: [
-            { id: 12 }
-          ]
-        });
-
-        await expect(
-          repository
-            .rearmarIntegracaoDesabilitada(
-              "google"
-            )
-        ).resolves.toEqual([
-          { id: 12 }
-        ]);
-
-        const [sql, parametros] =
-          db.query.mock.calls[0];
-
-        expect(sql).toContain(
-          "resultado_codigo ="
-        );
-        expect(sql).toContain(
-          "'INTEGRACAO_DESABILITADA'"
-        );
-        expect(sql).toContain(
-          "status = 'PENDING'"
-        );
-        expect(sql).toContain(
-          "tentativas = 0"
-        );
-        expect(parametros).toEqual([
-          "google"
-        ]);
       }
     );
 
