@@ -6,13 +6,14 @@ export function MediaThumb({
   className = "",
   emoji = "💅",
   loading = "lazy",
-  fetchPriority = "auto"
+  fetchPriority = "auto",
+  width = 320
 }) {
   const {
     handleError,
     hasImage,
     imageUrl
-  } = useRetryingMedia(src, { width: 320 });
+  } = useRetryingMedia(src, { width });
 
   return (
     <span className={`af-media-thumb ${className}`.trim()}>
