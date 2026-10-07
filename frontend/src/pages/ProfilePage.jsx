@@ -85,7 +85,9 @@ export function ProfilePage() {
   const profileOriginRef = useRef(
     resolveProfileOrigin(searchParams)
   );
-  const hasInitialProfileRef = useRef(Boolean(profile));
+  const renderedProfileSlugRef = useRef(
+    profile?.negocio?.slug || null
+  );
   searchQueryRef.current = searchParams.toString();
 
   const business = profile?.negocio;
@@ -123,7 +125,12 @@ export function ProfilePage() {
     const controller = new AbortController();
 
     async function loadProfile() {
-      if (!hasInitialProfileRef.current) {
+      const hasProfileForCurrentSlug =
+        String(renderedProfileSlugRef.current || "") ===
+        String(slug || "");
+
+      if (!hasProfileForCurrentSlug) {
+        setProfile(null);
         setStatus("loading");
       }
       setError("");
@@ -152,7 +159,8 @@ export function ProfilePage() {
         }
 
         setProfile(data);
-        hasInitialProfileRef.current = true;
+        renderedProfileSlugRef.current =
+          data.negocio?.slug || canonicalSlug || slug;
         setStatus("ready");
         track("perfil_visualizado", {
           page: "perfil_negocio",
