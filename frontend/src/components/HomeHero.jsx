@@ -1,10 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import bronzeamentoHero from "../assets/home/bronzeamento-hero.webp";
-import ciliosHero from "../assets/home/cilios-hero.webp";
-import manicureHero from "../assets/home/manicure-hero.webp";
-import maquiagemHero from "../assets/home/maquiagem-hero.webp";
-import skincareHero from "../assets/home/skincare-hero.webp";
-import sobrancelhasHero from "../assets/home/sobrancelhas-hero.webp";
 
 const HERO_SLIDES = [
   {
@@ -16,42 +10,42 @@ const HERO_SLIDES = [
     category: "cabelo"
   },
   {
-    image: manicureHero,
+    image: "/assets/home/salon-hero-mobile.webp",
     title: "Unhas do seu jeito",
     subtitle: "Cuidado em cada detalhe",
     description: "Encontre manicures, veja opções e escolha o melhor horário para você.",
     category: "unha"
   },
   {
-    image: skincareHero,
+    image: "/assets/home/salon-hero-mobile.webp",
     title: "Seu momento de cuidado",
     subtitle: "Estética com praticidade",
     description: "Conheça tratamentos, profissionais e horários disponíveis no Agenda Fashion.",
     category: "estetica"
   },
   {
-    image: bronzeamentoHero,
+    image: "/assets/home/salon-hero-mobile.webp",
     title: "Seu brilho em destaque",
     subtitle: "Bronzeamento com praticidade",
     description: "Compare opções de bronzeamento e escolha o cuidado ideal para você.",
     category: "bronzeamento"
   },
   {
-    image: ciliosHero,
+    image: "/assets/home/salon-hero-mobile.webp",
     title: "Um olhar que encanta",
     subtitle: "Cílios feitos para você",
     description: "Encontre especialistas em cílios e agende seu próximo atendimento.",
     category: "cilio"
   },
   {
-    image: sobrancelhasHero,
+    image: "/assets/home/salon-hero-mobile.webp",
     title: "Expressão em cada detalhe",
     subtitle: "Sobrancelhas que valorizam você",
     description: "Descubra profissionais de design e encontre o melhor horário para você.",
     category: "sobrancelha"
   },
   {
-    image: maquiagemHero,
+    image: "/assets/home/salon-hero-mobile.webp",
     title: "Pronta para seu momento",
     subtitle: "Maquiagem para toda ocasião",
     description: "Escolha sua produção, compare profissionais e agende em poucos passos.",
