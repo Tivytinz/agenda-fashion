@@ -70,6 +70,19 @@ A sessão de produção usa cookie `__Host-` host-only. Por isso, a migração d
 host legado para o domínio raiz pode exigir uma autenticação única novamente;
 não ampliar o `Domain` do cookie apenas para compartilhar sessão entre hosts.
 
+## SEO e descoberta pública
+
+A home e as páginas públicas deliberadamente indexáveis devem entregar no HTML
+server-side título, descrição, canonical e metadados sociais apontando para a
+origem pública canônica. A home também publica dados estruturados factuais de
+`Organization` e `WebSite`; não adicionar avaliações, preços ou outros dados
+estruturados que não existam como fatos confiáveis do produto.
+
+Favicons e ícones de instalação usados por navegadores e crawlers devem possuir
+URLs públicas estáveis, sem depender de caminhos internos de `src/`. O sitemap
+continua refletindo somente oferta pública real, e páginas sem oferta válida não
+devem ser criadas apenas para capturar palavras-chave.
+
 ## Entidades e contextos
 
 Não tratar como equivalentes:
