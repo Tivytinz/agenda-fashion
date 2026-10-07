@@ -30,7 +30,18 @@ describe("prévia social dos links públicos", () => {
           descricao: "Cuidado completo",
           valor: "55.00",
           duracao_minutos: 60,
+          categoria: "unhas",
           foto_url: "https://cdn.teste/servico.jpg"
+        }
+      ]);
+    perfilNegocioRepository.buscarProfissionais
+      .mockResolvedValue([
+        {
+          id: 21,
+          nome: "Ana </script><script>alert(1)</script>",
+          foto_url: null,
+          papel: "profissional",
+          servico_ids: [11]
         }
       ]);
   });
@@ -132,6 +143,17 @@ describe("prévia social dos links públicos", () => {
       'rel="canonical" href="https://agendafashion.com.br/negocio/beauty-vanessa?servico=11"'
     );
     expect(resposta.text).not.toContain("utm_source");
+    expect(resposta.text).toContain(
+      'id="af-profile-initial-data" type="application/json"'
+    );
+    expect(resposta.text).toContain('"slug":"beauty-vanessa"');
+    expect(resposta.text).toContain('"servicos":[{"id":11');
+    expect(resposta.text).toContain('"profissionais":[{"id":21');
+    expect(resposta.text).toContain("Beauty \\u003cVanessa\\u003e");
+    expect(resposta.text).toContain(
+      "Ana \\u003c/script\\u003e\\u003cscript\\u003ealert(1)\\u003c/script\\u003e"
+    );
+    expect(resposta.text).not.toContain("<script>alert(1)</script>");
   });
 
   test("entrega uma imagem PNG padrão com cache", async () => {
