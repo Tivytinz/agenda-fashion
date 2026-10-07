@@ -8,17 +8,10 @@ jest.mock(
     buscarPerfilPorUsuario:
       jest.fn(),
     buscarPerfilPorNegocio:
-      jest.fn(),
-    buscarConversaoInicialConfirmada:
-      jest.fn(),
-    ehPrimeiroPagamentoAssinatura:
       jest.fn()
   })
 );
 
-const metaAdsRepository = require(
-  "../src/repositories/metaAdsRepository"
-);
 const metaAdsService = require(
   "../src/services/metaAdsService"
 );
@@ -251,36 +244,4 @@ describe("Meta Ads service", () => {
       .not.toHaveBeenCalled();
   });
 
-  test("não transforma renovação em nova assinatura", async () => {
-    configurarMeta();
-    metaAdsRepository
-      .buscarConversaoInicialConfirmada
-      .mockResolvedValue(null);
-
-    metaAdsService
-      .enviarAssinaturaAtivadaSeguro({
-        negocioId: 10,
-        assinaturaId: 20,
-        pagamentoId: "pay_renovacao",
-        valor: 49.9
-      });
-
-    await new Promise(
-      (resolve) => setImmediate(resolve)
-    );
-
-    expect(
-      metaAdsRepository
-        .buscarConversaoInicialConfirmada
-    ).toHaveBeenCalledWith({
-      assinaturaId: 20,
-      pagamentoId: "pay_renovacao"
-    });
-    expect(
-      metaAdsRepository
-        .buscarPerfilPorNegocio
-    ).not.toHaveBeenCalled();
-    expect(global.fetch)
-      .not.toHaveBeenCalled();
-  });
 });

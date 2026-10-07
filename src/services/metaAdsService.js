@@ -602,106 +602,6 @@ function enviarCheckoutSeguro({
   );
 }
 
-function enviarAssinaturaAtivadaSeguro({
-  negocioId,
-  assinaturaId,
-  pagamentoId,
-  valor
-}) {
-  if (
-    !capiHabilitada() ||
-    !negocioId ||
-    !assinaturaId ||
-    !pagamentoId
-  ) {
-    return;
-  }
-
-  dispararSeguro(
-    "Subscribe",
-    async () => {
-      const conversao =
-        await metaAdsRepository
-          .buscarConversaoInicialConfirmada({
-            assinaturaId,
-            pagamentoId
-          });
-
-      if (!conversao) {
-        return {
-          enviado: false,
-          motivo: "nao_conversao_inicial"
-        };
-      }
-
-      const perfil =
-        conversao.usuario_aquisicao_id
-          ? await metaAdsRepository
-              .buscarPerfilPorUsuario(
-                conversao.usuario_aquisicao_id
-              )
-          : await metaAdsRepository
-              .buscarPerfilPorNegocio(
-                conversao.negocio_id
-              );
-
-      if (!perfil?.meta_consentido_em) {
-        return {
-          enviado: false,
-          motivo: "sem_consentimento"
-        };
-      }
-
-      const contexto = {
-        consentimento: true,
-        eventId:
-          `subscribe:${assinaturaId}`,
-        fbp:
-          perfil.meta_fbp || null,
-        fbc:
-          perfil.meta_fbc || null,
-        sourceUrl:
-          `${obterOrigemPublica()}/painel/assinatura`,
-        clientIp: null,
-        userAgent: null
-      };
-      const valorNumerico =
-        Number(
-          conversao.valor ??
-          valor ??
-          0
-        );
-      const ocorridoEm =
-        conversao
-          .confirmacao_observada_em ||
-        conversao.ocorrido_em ||
-        conversao.data_pagamento ||
-        null;
-
-      return enviarEvento({
-        eventName: "Subscribe",
-        eventId: contexto.eventId,
-        usuarioId:
-          perfil.usuario_id,
-        email: perfil.email,
-        whatsapp: perfil.whatsapp,
-        contexto,
-        perfil,
-        ocorridoEm,
-        customData: {
-          currency: "BRL",
-          value:
-            Number.isFinite(valorNumerico)
-              ? valorNumerico
-              : 0,
-          content_name:
-            "Assinatura Agenda Fashion"
-        }
-      });
-    }
-  );
-}
-
 module.exports = {
   obterConfiguracaoPublica,
   serverSideHabilitado:
@@ -712,6 +612,5 @@ module.exports = {
   salvarConsentimentoSeguro,
   enviarEvento,
   enviarCadastroProfissionalSeguro,
-  enviarCheckoutSeguro,
-  enviarAssinaturaAtivadaSeguro
+  enviarCheckoutSeguro
 };

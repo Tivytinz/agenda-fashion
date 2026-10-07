@@ -94,6 +94,14 @@ A conversão de aquisição paga enviada aos provedores nasce somente da
 confirmado continua sendo a verdade financeira; Google e Meta recebem uma
 projeção desse fato, nunca um substituto.
 
+O caminho suportado é webhook financeiro → outbox persistente → worker →
+Google/Meta. Os antigos helpers `enviarAssinaturaAtivadaSeguro` dos serviços dos
+provedores foram removidos: conversões de assinatura devem passar por
+`marketingConversionDeliveryService.enfileirarAssinaturaAtivadaSeguro`, que
+preserva retries, reconciliação e revalidação do consentimento. Os transportes
+dos provedores continuam disponíveis para o worker; cadastro profissional e
+checkout mantêm seus fluxos próprios.
+
 A outbox `marketing_conversoes_entregas` preserva o
 `assinatura_evento_id`, o instante observado da conversão quando disponível e
 um código estruturado do resultado. `pagamentos.data_pagamento` permanece a

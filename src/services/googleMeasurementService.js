@@ -1,9 +1,6 @@
 const googleMeasurementRepository = require(
   "../repositories/googleMeasurementRepository"
 );
-const registrador = require(
-  "../utils/registrador"
-);
 
 const DEFAULT_TIMEOUT_MS = 1800;
 const GOOGLE_CONSENT_SOURCE =
@@ -292,136 +289,11 @@ async function enviarEventoMeasurementProtocol({
   }
 }
 
-function registrarFalha(evento, erro) {
-  registrador.aviso(
-    "[Google Measurement] Falha ao enviar evento. O fluxo do produto foi preservado.",
-    {
-      evento,
-      status: erro?.status || null,
-      erro:
-        erro?.name === "AbortError"
-          ? "timeout"
-          : erro?.message
-    }
-  );
-}
-
-function dispararSeguro(evento, tarefa) {
-  void Promise.resolve()
-    .then(tarefa)
-    .catch((erro) => {
-      registrarFalha(evento, erro);
-    });
-}
-
-function enviarAssinaturaAtivadaSeguro({
-  negocioId,
-  assinaturaId,
-  pagamentoId,
-  valor
-}) {
-  if (
-    !measurementProtocolHabilitado() ||
-    !negocioId ||
-    !assinaturaId ||
-    !pagamentoId
-  ) {
-    return;
-  }
-
-  dispararSeguro(
-    "purchase",
-    async () => {
-      const conversao =
-        await googleMeasurementRepository
-          .buscarConversaoInicialConfirmada({
-            assinaturaId,
-            pagamentoId
-          });
-
-      if (!conversao) {
-        return {
-          enviado: false,
-          motivo: "nao_conversao_inicial"
-        };
-      }
-
-      const perfil =
-        conversao.usuario_aquisicao_id
-          ? await googleMeasurementRepository
-              .buscarPerfilPorUsuario(
-                conversao.usuario_aquisicao_id
-              )
-          : await googleMeasurementRepository
-              .buscarPerfilPorNegocio(
-                conversao.negocio_id
-              );
-
-      if (
-        perfil?.google_consentimento_status !== true ||
-        !perfil?.google_consentido_em ||
-        perfil?.google_revogado_em ||
-        !perfil?.google_client_id
-      ) {
-        return {
-          enviado: false,
-          motivo: "sem_consentimento"
-        };
-      }
-
-      const valorNumerico =
-        Number(
-          conversao.valor ??
-          valor ??
-          0
-        );
-      const ocorridoEm =
-        conversao
-          .confirmacao_observada_em ||
-        conversao.ocorrido_em ||
-        conversao.data_pagamento ||
-        null;
-
-      return enviarEventoMeasurementProtocol({
-        clientId:
-          perfil.google_client_id,
-        userId:
-          perfil.usuario_id,
-        eventName: "purchase",
-        ocorridoEm,
-        params: {
-          transaction_id:
-            `af-subscription-${assinaturaId}`,
-          currency: "BRL",
-          value:
-            Number.isFinite(valorNumerico)
-              ? valorNumerico
-              : 0,
-          items: [
-            {
-              item_id:
-                "agenda-fashion-subscription",
-              item_name:
-                "Assinatura Agenda Fashion",
-              price:
-                Number.isFinite(valorNumerico)
-                  ? valorNumerico
-                  : 0,
-              quantity: 1
-            }
-          ]
-        }
-      });
-    }
-  );
-}
-
 module.exports = {
   obterConfiguracaoPublica,
   serverSideHabilitado:
     measurementProtocolHabilitado,
   sanitizarContextoCliente,
   salvarConsentimento,
-  enviarEventoMeasurementProtocol,
-  enviarAssinaturaAtivadaSeguro
+  enviarEventoMeasurementProtocol
 };

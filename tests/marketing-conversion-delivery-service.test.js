@@ -182,6 +182,13 @@ test(
 
     await service.enfileirarAssinaturaAtivada(payload);
 
+    expect(metaAdsService.enviarEvento)
+      .not.toHaveBeenCalled();
+    expect(
+      googleMeasurementService
+        .enviarEventoMeasurementProtocol
+    ).not.toHaveBeenCalled();
+
     expect(deliveryRepository.enfileirar)
       .toHaveBeenNthCalledWith(
         1,
@@ -465,6 +472,56 @@ test(
     expect(
       deliveryRepository.marcarFalhaTerminal
     ).not.toHaveBeenCalled();
+  }
+);
+
+test.each([
+  {
+    caso: "recusa explícita",
+    consentimento: false,
+    revogadoEm: null
+  },
+  {
+    caso: "revogação posterior ao enfileiramento",
+    consentimento: true,
+    revogadoEm: "2026-10-06T12:40:00.000Z"
+  }
+])(
+  "Google revalida $caso antes de entregar a conversão",
+  async ({ consentimento, revogadoEm }) => {
+    deliveryRepository.reservarProximo
+      .mockResolvedValueOnce({
+        id: 8,
+        provedor: "google",
+        payload,
+        lease_tentativa: 2
+      });
+    googleMeasurementRepository.buscarPerfilPorUsuario
+      .mockResolvedValueOnce({
+        usuario_id: 3,
+        google_consentimento_status: consentimento,
+        google_consentido_em: pagamentoData,
+        google_revogado_em: revogadoEm,
+        google_client_id: "123.456"
+      });
+
+    await service.processarFilaConversoes(1);
+
+    expect(
+      googleMeasurementRepository.buscarPerfilPorUsuario
+    ).toHaveBeenCalledWith(3);
+    expect(
+      googleMeasurementService.enviarEventoMeasurementProtocol
+    ).not.toHaveBeenCalled();
+    expect(deliveryRepository.marcarIgnorado)
+      .toHaveBeenCalledWith(
+        8,
+        2,
+        "sem_consentimento",
+        "SEM_CONSENTIMENTO"
+      );
+    expect(deliveryRepository.marcarEnviado)
+      .not.toHaveBeenCalled();
   }
 );
 

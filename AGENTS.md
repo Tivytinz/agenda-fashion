@@ -530,6 +530,11 @@ são novas aquisições e não podem substituir a entrega original. A outbox per
 o `assinatura_evento_id` como lineage imutável por provedor e separa códigos
 estruturados de resultado de mensagens técnicas.
 
+O webhook financeiro enfileira conversões exclusivamente por
+`marketingConversionDeliveryService`. Os serviços de Google e Meta oferecem o
+transporte usado pelo worker, mas não expõem atalhos de assinatura que enviem
+`purchase`/`Subscribe` diretamente, fora da outbox persistente.
+
 `pagamentos.data_pagamento` continua sendo a **data financeira** informada pelo
 provedor. Para precisão temporal de integrações, o AF usa
 `pagamentos.confirmacao_observada_em`, um `TIMESTAMPTZ` que registra o primeiro
