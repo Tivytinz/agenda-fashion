@@ -29,6 +29,38 @@ describe("SEO e 404 das rotas React", () => {
     );
   });
 
+  test("entrega metadata server-side e dados estruturados na home", async () => {
+    const resposta = await request(app)
+      .get("/?utm_source=bing")
+      .set("Accept", "text/html");
+
+    expect(resposta.status).toBe(200);
+    expect(resposta.text).toContain(
+      "<title>Agenda Fashion | Agendamento de beleza online</title>"
+    );
+    expect(resposta.text).toContain(
+      'rel="canonical" href="https://agendafashion.com.br/"'
+    );
+    expect(resposta.text).toContain(
+      'property="og:url" content="https://agendafashion.com.br/"'
+    );
+    expect(resposta.text).toContain(
+      '<script type="application/ld+json">'
+    );
+    expect(resposta.text).toContain(
+      '"@type":"Organization"'
+    );
+    expect(resposta.text).toContain(
+      '"@type":"WebSite"'
+    );
+    expect(resposta.text).toContain(
+      'href="/favicon.png"'
+    );
+    expect(resposta.text).not.toContain(
+      "utm_source=bing"
+    );
+  });
+
   test("robots bloqueia rotas privadas e sensíveis", async () => {
     const resposta = await request(app)
       .get("/robots.txt")
