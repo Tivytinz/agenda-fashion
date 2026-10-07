@@ -291,6 +291,22 @@ function injetarMetadados(html, metadados) {
   );
 }
 
+function injetarDadosIniciaisPerfil(html, previa) {
+  const dados = JSON.stringify({
+    slug: previa.negocio.slug,
+    negocio: previa.negocio,
+    servicos: previa.servicos
+  })
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+
+  return String(html).replace(
+    /<\/body>/i,
+    `    <script id="af-profile-initial-data" type="application/json">${dados}</script>\n  </body>`
+  );
+}
+
 async function buscarPrevia({ slug, servicoId }) {
   const slugSolicitado = textoSeguro(slug, 120).toLowerCase();
   const negocio =
@@ -310,6 +326,7 @@ async function buscarPrevia({ slug, servicoId }) {
   return {
     negocio,
     servico,
+    servicos,
     slugSolicitado,
     metadados: montarMetadados({ negocio, servico })
   };
@@ -318,6 +335,7 @@ async function buscarPrevia({ slug, servicoId }) {
 module.exports = {
   buscarPrevia,
   escaparHtml,
+  injetarDadosIniciaisPerfil,
   injetarMetadados,
   lerHtmlReact,
   montarMetadados,
