@@ -29,16 +29,19 @@ describe(
       };
     }
 
-    test(
-      "redireciona navegação HTML do subdomínio legado preservando rota e query",
-      () => {
+    test.each([
+      ["app.agendafashion.com.br", "GET"],
+      ["www.agendafashion.com.br", "GET"],
+      ["www.agendafashion.com.br", "HEAD"],
+    ])(
+      "redireciona HTML de %s via %s preservando rota e query",
+      (hostname, method) => {
         process.env.PUBLIC_APP_URL =
           "https://agendafashion.com.br";
 
         const req = {
-          method: "GET",
-          hostname:
-            "app.agendafashion.com.br",
+          method,
+          hostname,
           originalUrl:
             "/painel/agenda?utm_source=legado",
           headers: {
@@ -69,21 +72,24 @@ describe(
       }
     );
 
-    test(
-      "não redireciona chamadas de API no host legado",
-      () => {
+    test.each([
+      ["app.agendafashion.com.br", "GET", "application/json"],
+      ["www.agendafashion.com.br", "GET", "application/json"],
+      ["www.agendafashion.com.br", "POST", "text/html"],
+      ["app.agendafashion.com.br", "POST", "text/html"],
+    ])(
+      "preserva API/mutação de %s via %s com Accept %s",
+      (hostname, method, accept) => {
         process.env.PUBLIC_APP_URL =
           "https://agendafashion.com.br";
 
         const req = {
-          method: "GET",
-          hostname:
-            "app.agendafashion.com.br",
+          method,
+          hostname,
           originalUrl:
             "/perfil-negocio/studio",
           headers: {
-            accept:
-              "application/json",
+            accept,
           },
         };
         const res =

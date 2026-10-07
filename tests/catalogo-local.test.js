@@ -230,4 +230,48 @@ describe("catálogo local SEO", () => {
       "Sitemap: https://app.agendafashion.com.br/sitemap.xml"
     );
   });
+
+  test.each([null, undefined, "", "   ", "data-invalida"])(
+    "omite lastmod sem data factual (%p), mantendo as URLs públicas",
+    async (updated_at) => {
+      repository.listarEntradasSitemap.mockResolvedValue([
+        {
+          slug: "studio-sem-data",
+          cidade: "Goiânia",
+          estado: "GO",
+          categoria: "cabelo",
+          updated_at
+        }
+      ]);
+
+      const xml = await service.gerarSitemap();
+
+      expect(xml).toContain("/negocio/studio-sem-data");
+      expect(xml).toContain("/servicos/cabelo/em/goiania-go");
+      expect(xml).toContain("/para-profissionais");
+      expect(xml).not.toContain("<lastmod>");
+    }
+  );
+
+  test("preserva a data válida mais recente de uma URL ao combinar entradas", async () => {
+    repository.listarEntradasSitemap.mockResolvedValue([
+      "2026-08-11T10:00:00.000Z",
+      new Date("2026-08-13T10:00:00.000Z"),
+      null,
+      "2026-08-12T10:00:00.000Z"
+    ].map((updated_at) => ({
+      slug: "studio-rosa",
+      cidade: "Goiânia",
+      estado: "GO",
+      categoria: "cabelo",
+      updated_at
+    })));
+
+    const xml = await service.gerarSitemap();
+
+    expect(xml.match(/<lastmod>2026-08-13<\/lastmod>/g)).toHaveLength(2);
+    expect(xml.match(/<lastmod>/g)).toHaveLength(2);
+    expect(xml.match(/\/negocio\/studio-rosa/g)).toHaveLength(1);
+    expect(xml.match(/\/servicos\/cabelo\/em\/goiania-go/g)).toHaveLength(1);
+  });
 });
