@@ -61,17 +61,36 @@ describe("SEO e 404 das rotas React", () => {
     );
   });
 
-  test("robots bloqueia rotas privadas e sensíveis", async () => {
+  test("robots permite observar noindex e bloqueia apenas áreas sem valor de busca", async () => {
     const resposta = await request(app)
       .get("/robots.txt")
       .set("Accept", "text/plain");
 
     expect(resposta.status).toBe(200);
-    expect(resposta.text).toContain("Disallow: /esqueci-senha");
-    expect(resposta.text).toContain("Disallow: /redefinir-senha");
-    expect(resposta.text).toContain("Disallow: /convites");
+    expect(resposta.text).toContain("User-agent: *");
+    expect(resposta.text).toContain("Allow: /");
+    expect(resposta.text).toContain("Disallow: /admin/");
+    expect(resposta.text).toContain("Disallow: /painel/");
+    expect(resposta.text).toContain("Disallow: /profissional/");
     expect(resposta.text).toContain("Disallow: /agendamento-acesso/");
     expect(resposta.text).toContain("Disallow: /agendamento-visitante/");
+    expect(resposta.text).toContain(
+      "Sitemap: https://agendafashion.com.br/sitemap.xml"
+    );
+
+    for (const rotaNoindex of [
+      "/checkout",
+      "/conta",
+      "/favoritos",
+      "/minha-agenda",
+      "/esqueci-senha",
+      "/redefinir-senha",
+      "/convites"
+    ]) {
+      expect(resposta.text).not.toContain(
+        `Disallow: ${rotaNoindex}`
+      );
+    }
   });
 
   test("entrega metadata server-side da landing profissional sem UTM no canonical", async () => {
