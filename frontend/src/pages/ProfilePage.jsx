@@ -20,6 +20,24 @@ export { normalizeProfileOrigin } from "../utils/profileOrigin";
 
 const EMPTY_LIST = [];
 
+function readInitialProfile(slug) {
+  const element = document.getElementById("af-profile-initial-data");
+  if (!element?.textContent) return null;
+
+  try {
+    const data = JSON.parse(element.textContent);
+    if (String(data.slug || "") !== String(slug || "")) return null;
+
+    return {
+      negocio: data.negocio || null,
+      servicos: Array.isArray(data.servicos) ? data.servicos : [],
+      profissionais: []
+    };
+  } catch {
+    return null;
+  }
+}
+
 function professionalCanDoService(professional, serviceId) {
   if (!serviceId) return true;
 
@@ -35,7 +53,7 @@ export function ProfilePage() {
   const { slug } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState(() => readInitialProfile(slug));
   const [serviceId, setServiceId] = useState(searchParams.get("servico") || "");
   const [professionalId, setProfessionalId] = useState(
     searchParams.get("profissional") || ""
@@ -43,7 +61,7 @@ export function ProfilePage() {
   const [day, setDay] = useState("");
   const [time, setTime] = useState("");
   const [availability, setAvailability] = useState([]);
-  const [status, setStatus] = useState("loading");
+  const [status, setStatus] = useState(() => profile ? "preview" : "loading");
   const [scheduleStatus, setScheduleStatus] = useState("idle");
   const [scheduleMessage, setScheduleMessage] = useState("");
   const [scheduleReload, setScheduleReload] = useState(0);
@@ -60,6 +78,7 @@ export function ProfilePage() {
   const profileOriginRef = useRef(
     resolveProfileOrigin(searchParams)
   );
+  const hasInitialProfileRef = useRef(Boolean(profile));
   searchQueryRef.current = searchParams.toString();
 
   const business = profile?.negocio;
@@ -97,7 +116,9 @@ export function ProfilePage() {
     const controller = new AbortController();
 
     async function loadProfile() {
-      setStatus("loading");
+      if (!hasInitialProfileRef.current) {
+        setStatus("loading");
+      }
       setError("");
 
       try {
@@ -124,6 +145,7 @@ export function ProfilePage() {
         }
 
         setProfile(data);
+        hasInitialProfileRef.current = true;
         setStatus("ready");
         track("perfil_visualizado", {
           page: "perfil_negocio",
@@ -439,11 +461,11 @@ export function ProfilePage() {
     }
   }
 
-  if (status === "loading") {
+  if (status === "loading" && !profile) {
     return <main className="container page-content public-profile-page"><LoadingState>Carregando o perfil...</LoadingState></main>;
   }
 
-  if (status === "error") {
+  if (status === "error" && !profile) {
     return (
       <main className="container page-content public-profile-page">
         <ErrorState
