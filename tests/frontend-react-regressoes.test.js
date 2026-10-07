@@ -705,7 +705,7 @@ describe(
           "Todo o Brasil"
         );
         expect(hero).toContain(
-          "maquiagemHero"
+          "HERO_SLIDES"
         );
         expect(inicio).toContain(
           "serviceCategoryEmoji"
