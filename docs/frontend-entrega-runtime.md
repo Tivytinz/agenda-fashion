@@ -1068,6 +1068,12 @@ normalizado para data ISO YYYY-MM-DD.
 
 Quando a mesma URL aparece mais de uma vez, o gerador preserva a data mais nova.
 
+Valores nulos, ausentes, vazios ou inválidos não geram `lastmod`. As páginas
+estáticas sem data factual continuam no sitemap, sem esse elemento; não usar
+`new Date(null)` (época Unix), o instante da requisição ou o horário de deploy
+para preencher uma informação inexistente. Uma entrada sem data não remove a
+data válida de outra entrada da mesma URL.
+
 ## 64. robots.txt
 
 O arquivo gerado atualmente permite crawl geral e bloqueia explicitamente
@@ -1076,15 +1082,13 @@ prefixos/rotas como:
 - Admin;
 - painel;
 - profissional;
-- checkout;
-- conta;
-- favoritos;
-- minha agenda;
-- recuperação/redefinição de senha;
-- convites;
 - acessos de booking por capability.
 
 Também aponta para `/sitemap.xml`.
+
+Rotas acessíveis sem autenticação que precisam sair do índice, como checkout,
+recuperação de senha e convites, permanecem rastreáveis para o crawler observar
+o `noindex` no HTML. `robots.txt` não substitui autorização nem `noindex`.
 
 ## 65. noindex server-side
 
@@ -1727,6 +1731,15 @@ agendafashion.com.br
 
 como domínio canônico atual. `app.agendafashion.com.br` é host legado de
 compatibilidade e o domínio `.up.railway.app` é apenas infraestrutura.
+
+`www.agendafashion.com.br` é alias de entrada, não uma segunda origem pública.
+O middleware `canonicalHostRedirect` redireciona GET/HEAD com `Accept: text/html`
+desses hosts para a origem canônica com HTTP 308, preservando caminho e query.
+Requests JSON, webhooks e mutações continuam seguindo o fluxo original.
+
+Os aliases precisam resolver no DNS, possuir HTTPS válido e estar vinculados ao
+serviço correto para a requisição alcançar o middleware. A configuração e os
+smoke tests estão em [Deploy seguro — domínios públicos](./deploy-seguro.md#dominios-publicos).
 
 Mudança de domínio exige revalidar SEO, cache, CORS, cookies e medição antes de
 considerar a transição concluída.

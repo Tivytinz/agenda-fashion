@@ -74,6 +74,63 @@ CI iniciado -> CI concluído com sucesso -> deploy iniciado
 
 Não basta confiar apenas no valor salvo da configuração.
 
+<a id="dominios-publicos"></a>
+
+### Domínios públicos e migração
+
+| Host | Contrato |
+| --- | --- |
+| `agendafashion.com.br` | Origem pública canônica; HTML, APIs e assets no mesmo serviço. |
+| `app.agendafashion.com.br` | Compatibilidade com links antigos; GET/HEAD HTML redirecionam para a mesma rota e query na origem canônica. |
+| `www.agendafashion.com.br` | Alias de entrada; mesmo contrato de redirecionamento HTML. |
+
+A configuração abaixo é externa ao Git e deve ser aplicada somente na etapa
+operacional autorizada. Preparar o patch não cadastra domínios nem altera DNS.
+
+1. No serviço `agenda-fashion`, ambiente `production`, manter o domínio raiz e
+   cadastrar/restaurar cada alias em **Networking / Custom Domain**, apontando
+   para a porta do serviço (8080 na configuração atual).
+2. No DNS da zona `agendafashion.com.br`, criar ou ajustar os registros de `app`
+   e `www` com os destinos e registros de verificação fornecidos pelo Railway
+   para cada host. Conferir conflitos A/AAAA/CNAME antes de substituir um
+   registro. Não deduzir o destino DNS apenas pelo nome do serviço.
+3. Confirmar provisionamento de HTTPS e vínculo de ambos os aliases com esse
+   serviço. DNS resolvendo, sozinho, não prova que o Railway reconhece o host;
+   `x-railway-fallback: true` com 404 indica que o Express não foi alcançado.
+4. Publicar o patch aprovado pelo fluxo normal de CI/merge/deploy. Manter
+   `PUBLIC_APP_URL` e `VITE_PUBLIC_APP_URL` em `https://agendafashion.com.br`.
+   Não ampliar cookies ou CORS apenas para compartilhar sessão entre aliases.
+5. Verificar os redirects com `Accept: text/html`, sem seguir redirecionamentos
+   no primeiro request, para conferir status e `Location`:
+
+   ```bash
+   curl -sS -o /dev/null -D - -H 'Accept: text/html' 'https://app.agendafashion.com.br/para-profissionais?utm_source=seo-check'
+   curl -sS -o /dev/null -D - -H 'Accept: text/html' 'https://www.agendafashion.com.br/para-profissionais?utm_source=seo-check'
+   ```
+
+   Ambos devem responder 308 para
+   `https://agendafashion.com.br/para-profissionais?utm_source=seo-check`.
+   Verificar também HEAD, a home e um perfil público existente. A resposta final
+   deve ser 200 com canonical no domínio raiz, sem UTM. APIs JSON e webhooks
+   devem preservar o contrato, sem redirects HTML indiscriminados no CDN.
+6. Conferir `/sitemap.xml` e `/robots.txt` nas URLs exatas após expirar ou invalidar
+   seus caches (TTL atual: 1 hora e 24 horas, respectivamente). O sitemap deve
+   apontar para o domínio raiz e omitir `lastmod` quando não há data factual.
+7. No Search Console, conferir o sitemap, a inspeção da home e de páginas públicas
+   importantes, o último rastreamento e a canonical escolhida pelo Google.
+   Solicitar novo rastreamento das páginas alteradas quando necessário. Se houver
+   propriedade de prefixo de URL do subdomínio antigo, avaliar a ferramenta de
+   mudança de endereço depois de validar os redirects. Manter os redirects
+   legados por pelo menos um ano, preferencialmente enquanto houver links antigos.
+
+“URL está no Google” comprova indexação, não posição para uma consulta específica.
+Para investigar a marca, usar **Desempenho** com filtro de consulta e comparar
+impressões, posição, país e dispositivo em períodos equivalentes. Não atribuir
+variações de ranking ao sitemap ou prometer prazo/posição sem essa evidência.
+
+Referências: [migração de URLs](https://developers.google.com/search/docs/crawling-indexing/site-move-with-url-changes?hl=pt-BR)
+e [datas no sitemap](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap?hl=pt-BR).
+
 ## Migrations e startup
 
 O comando de produção continua responsável por aplicar migrations antes de iniciar o servidor. Migrations aplicadas nunca devem ser reescritas.

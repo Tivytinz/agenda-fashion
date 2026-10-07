@@ -58,6 +58,12 @@ e query no domínio canônico quando `PUBLIC_APP_URL` estiver apontando para a
 origem oficial. APIs, webhooks e chamadas não HTML não devem ser forçados por
 esse redirect para não quebrar integrações durante a transição.
 
+`www.agendafashion.com.br` é alias de entrada e segue o mesmo redirecionamento
+HTML para o domínio raiz. DNS, certificado e vínculo dos aliases com o serviço
+de produção precisam permanecer funcionais: um redirect no Express não resolve
+um host que retorna erro antes de alcançar a aplicação. Mudanças nesses vínculos
+seguem o runbook de domínios em `docs/deploy-seguro.md`.
+
 `agenda-fashion-production.up.railway.app` é endereço de infraestrutura e não
 deve ser divulgado como URL de produto.
 
@@ -82,6 +88,11 @@ Favicons e ícones de instalação usados por navegadores e crawlers devem possu
 URLs públicas estáveis, sem depender de caminhos internos de `src/`. O sitemap
 continua refletindo somente oferta pública real, e páginas sem oferta válida não
 devem ser criadas apenas para capturar palavras-chave.
+
+`lastmod` do sitemap só deve ser emitido quando houver uma data válida e factual
+de atualização. Ausência de data não vira época Unix nem data do request/deploy;
+a URL continua no sitemap, sem esse campo. Entradas repetidas preservam a data
+válida mais recente.
 
 `robots.txt` controla rastreamento, não deve ser usado como substituto de
 `noindex`. Rotas HTML que precisam ficar fora do índice e são acessíveis sem

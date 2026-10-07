@@ -182,6 +182,10 @@ function escaparXml(valor) {
 }
 
 function dataSitemap(valor) {
+  if (valor === null || valor === undefined) {
+    return null;
+  }
+
   const data = new Date(valor);
 
   if (Number.isNaN(data.getTime())) {

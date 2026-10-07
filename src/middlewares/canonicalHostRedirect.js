@@ -4,6 +4,7 @@ const ORIGEM_CANONICA_PADRAO =
 const HOSTS_NAO_CANONICOS =
   new Set([
     "app.agendafashion.com.br",
+    "www.agendafashion.com.br",
     "agenda-fashion-production.up.railway.app",
   ]);
 
