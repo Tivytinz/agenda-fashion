@@ -9,6 +9,13 @@ const ORIGEM_PUBLICA_PADRAO =
   "https://agendafashion.com.br";
 
 const PAGINAS_ESTATICAS = Object.freeze({
+  "/": {
+    titulo:
+      "Agenda Fashion | Agendamento de beleza online",
+    descricao:
+      "Encontre profissionais e negócios de beleza, compare serviços e agende seu horário online pelo Agenda Fashion.",
+    dadosEstruturados: true,
+  },
   "/para-profissionais": {
     titulo:
       "Agenda online grátis para profissionais | Agenda Fashion",
@@ -166,6 +173,8 @@ function montarMetadadosPaginaEstatica(caminho) {
       `${origem}/social-preview.png`,
     url:
       url.href,
+    dadosEstruturados:
+      Boolean(configuracao.dadosEstruturados),
   };
 }
 
@@ -204,6 +213,27 @@ function tagMeta(propriedade, conteudo, tipo = "property") {
   return `<meta ${tipo}="${propriedade}" content="${escaparHtml(conteudo)}" />`;
 }
 
+function montarDadosEstruturadosHome(origem) {
+  const dados = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "Agenda Fashion",
+      url: `${origem}/`,
+      logo: `${origem}/favicon.png`,
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "Agenda Fashion",
+      url: `${origem}/`,
+      inLanguage: "pt-BR",
+    },
+  ];
+
+  return JSON.stringify(dados).replace(/</g, "\\u003c");
+}
+
 function montarTags(metadados) {
   return [
     `<title>${escaparHtml(metadados.titulo)}</title>`,
@@ -223,7 +253,12 @@ function montarTags(metadados) {
     tagMeta("twitter:card", "summary_large_image", "name"),
     tagMeta("twitter:title", metadados.titulo, "name"),
     tagMeta("twitter:description", metadados.descricao, "name"),
-    tagMeta("twitter:image", metadados.imagem, "name")
+    tagMeta("twitter:image", metadados.imagem, "name"),
+    metadados.dadosEstruturados
+      ? `<script type="application/ld+json">${montarDadosEstruturadosHome(
+          origemPublica()
+        )}</script>`
+      : null
   ].filter(Boolean).join("\n    ");
 }
 
