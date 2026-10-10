@@ -164,6 +164,18 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("dashboard", () => {
+  it("exibe a visão geral antes da origem dos clientes terminar de carregar", async () => {
+    let resolveOrigin;
+    const pendingOrigin = new Promise((resolve) => { resolveOrigin = resolve; });
+    mockDashboardRequests({ origin: pendingOrigin });
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+    expect(await screen.findByRole("heading", { name: "Visão geral" })).not.toBeNull();
+    expect(screen.getByText("Carregando origem dos clientes...")).not.toBeNull();
+    resolveOrigin(CUSTOMER_ORIGIN);
+    await screen.findByText("Google Ads");
+    expect(screen.queryByText("Carregando origem dos clientes...")).toBeNull();
+  });
+
   it("não deixa convites de WhatsApp competir com a ativação antes da publicação", () => {
     expect(getWhatsappConsentVisibility({
       activation: {

@@ -111,8 +111,23 @@ describe(
           rotulo: "Gerenciar serviços",
           destino: "/painel/servicos",
         });
+        expect(resultado.titulo).toBe("Ative um serviço para receber agendamentos");
+        expect(resultado.mensagem).toContain("Reative ou cadastre");
       }
     );
+
+    test("não pede o primeiro cadastro nem republicação quando o perfil publicado perde serviços ativos", () => {
+      const resultado = resolverProximaAcaoAtivacao({
+        possui_servico: true,
+        possui_servico_ativo: false,
+        negocio_publicado: true,
+        primeiro_agendamento_recebido: true,
+      });
+      expect(resultado.titulo).toBe("Ative um serviço para receber agendamentos");
+      expect(resultado.mensagem).toContain("Seu perfil continua publicado.");
+      expect(resultado.acao.destino).toBe("/painel/servicos");
+      expect(resultado.concluido).toBe(false);
+    });
 
     test(
       "leva diretamente ao cadastro do primeiro serviço quando a ativação ainda não começou",

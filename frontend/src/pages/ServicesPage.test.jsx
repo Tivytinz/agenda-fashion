@@ -335,6 +335,18 @@ describe("editor de serviços", () => {
 });
 
 describe("lista profissional de serviços", () => {
+  it("mostra os serviços enquanto a assinatura ainda está pendente", async () => {
+    let resolveSubscription;
+    const pendingSubscription = new Promise((resolve) => { resolveSubscription = resolve; });
+    apiRequest.mockImplementation((path) => path === "/minha-assinatura"
+      ? pendingSubscription
+      : Promise.resolve([{ id: 11, nome: "Manicure", valor: 50, duracao_minutos: 60, ativo: true }]));
+    renderServices();
+    expect(await screen.findByText("Manicure")).not.toBeNull();
+    resolveSubscription({ uso: { limite_servicos: 1 } });
+    await screen.findByText("1 de 1 serviços ativos");
+  });
+
   it("mostra a falha de remoção dentro do diálogo", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/servicos" && !options.method) {

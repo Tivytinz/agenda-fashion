@@ -74,6 +74,8 @@ export function DashboardPage() {
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [refreshing, setRefreshing] = useState(true);
+  const [customerOrigin, setCustomerOrigin] = useState(null);
+  const [originLoading, setOriginLoading] = useState(true);
   const [planContext, setPlanContext] = useState(null);
   const [whatsappReminders, setWhatsappReminders] = useState({
     enabled: null,
@@ -89,24 +91,14 @@ export function DashboardPage() {
     setError("");
     setRefreshing(true);
 
-    Promise.all([
-      apiRequest(`/dashboard-dono?periodo=${period}`, {
-        signal: controller.signal
-      }),
-      apiRequest(`/dashboard-dono/origem-clientes?periodo=${period}`, {
-        signal: controller.signal
-      }).catch((requestError) => {
-        if (requestError.name === "AbortError") throw requestError;
-        return null;
-      })
-    ])
-      .then(([result, customerOrigin]) => {
-        if (active) {
-          setData({
-            ...result,
-            origem_clientes: customerOrigin
-          });
-        }
+    setCustomerOrigin(null);
+    setOriginLoading(true);
+
+    apiRequest(`/dashboard-dono?periodo=${period}`, {
+      signal: controller.signal
+    })
+      .then((result) => {
+        if (active) setData(result);
       })
       .catch((requestError) => {
         if (active && requestError.name !== "AbortError") {
@@ -115,6 +107,19 @@ export function DashboardPage() {
       })
       .finally(() => {
         if (active) setRefreshing(false);
+      });
+
+    apiRequest(`/dashboard-dono/origem-clientes?periodo=${period}`, {
+      signal: controller.signal
+    })
+      .then((result) => {
+        if (active) setCustomerOrigin(result);
+      })
+      .catch(() => {
+        if (active) setCustomerOrigin(null);
+      })
+      .finally(() => {
+        if (active) setOriginLoading(false);
       });
 
     return () => {
@@ -257,10 +262,9 @@ export function DashboardPage() {
 
   const summary = data.resumo || {};
   const performance = data.performance || {};
-  const hasCustomerOrigin = Boolean(data.origem_clientes);
-  const customerOrigin = data.origem_clientes || {};
-  const customerOriginSummary = customerOrigin.resumo || {};
-  const customerOrigins = Array.isArray(customerOrigin.origens)
+  const hasCustomerOrigin = Boolean(customerOrigin);
+  const customerOriginSummary = customerOrigin?.resumo || {};
+  const customerOrigins = Array.isArray(customerOrigin?.origens)
     ? customerOrigin.origens
     : [];
   const whatsappConsentVisibility = getWhatsappConsentVisibility({
@@ -502,7 +506,9 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {hasCustomerOrigin ? (
+        {originLoading ? (
+          <p className="muted" role="status">Carregando origem dos clientes...</p>
+        ) : hasCustomerOrigin ? (
           <>
             <dl className="data-list">
               <div>

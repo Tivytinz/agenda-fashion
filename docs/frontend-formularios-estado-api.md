@@ -73,6 +73,7 @@ AccountPage
 ScheduleSettingsPage
   → config
   → days
+  → savedSchedule
   → expandedPauses
   → saving
   → firstScheduleMode
@@ -147,24 +148,40 @@ baseline apenas depois de resposta bem-sucedida.
 
 ## 6. Saída com alterações não salvas
 
-`BusinessPage` usa `beforeunload` quando:
+`BusinessPage` (criação e edição), `ServiceEditorPage` e
+`ScheduleSettingsPage` usam `UnsavedChangesGuard` quando os valores editados
+diferem do baseline salvo. Capa e fotos ainda pendentes de upload também
+contam como alterações no editor de serviços; operações de mídia já
+persistidas não criam um rascunho artificial.
 
-- existe diferença entre `form` e `savedForm`;
-- a tela não está no meio do salvamento.
+O componente usa `useBlocker` no data router da aplicação para interceptar
+mudanças de pathname ou query, inclusive voltar/avançar no histórico. O diálogo
+oferece continuar editando ou sair sem salvar. Mudanças apenas em state ou hash
+não descartam o formulário e não exigem confirmação.
 
-Isso protege fechamento/reload acidental do navegador.
+`beforeunload` protege reload/fechamento conforme o suporte do navegador;
+Safari mobile pode não emitir esse evento em encerramentos do aplicativo. Não
+há persistência automática de rascunhos. O bloqueio permanece durante o
+salvamento até a confirmação da API, e o baseline é atualizado antes da
+navegação de sucesso. Falha de atualização secundária da sessão não transforma
+um salvamento confirmado em erro.
 
-Esse mecanismo não protege toda navegação interna do React Router.
-
-Antes de expandir a proteção para outras telas, avaliar:
-
-- risco de perda real;
-- frequência de edição;
-- se há autosave;
-- se o router oferece blocker compatível com a versão atual;
-- impacto em mobile/Safari.
+Testes isolados com `MemoryRouter` exercitam a proteção de unload; testes de
+navegação usam `createMemoryRouter` e o E2E usa o router real.
 
 Não adicionar confirmação de saída em formulários triviais sem necessidade.
+
+Durante o salvamento de negócio, serviço e horários, os campos editáveis ficam
+desabilitados até a resposta da operação. No serviço, esse bloqueio cobre
+também a seleção e as ações de fotos até o fim dos uploads. Falhas liberam os
+campos mantendo os valores e os arquivos pendentes para correção ou nova
+tentativa. A consulta de CEP em andamento também precisa terminar antes de
+enviar o endereço do negócio.
+
+O editor de horários é reiniciado quando muda o papel ou a profissional alvo.
+A nova agenda precisa carregar antes de permitir edição ou salvamento; falhas
+oferecem repetir a leitura. Requisições anteriores são canceladas e suas
+respostas não atualizam o novo contexto, inclusive após um salvamento.
 
 ## 7. Validação em três camadas
 
@@ -618,6 +635,11 @@ O código atual também usa refs/IDs para alguns casos concorrentes.
 Cada consulta recebe um número. A resposta só atualiza a tela quando o ID ainda
 é o mais recente e o CEP do form continua o mesmo.
 
+Endereço, bairro, cidade e estado também possuem revisões de edição por campo.
+O preenchimento automático só aplica campos que a usuária não alterou desde o
+início daquela consulta. Campos preenchidos manualmente continuam como rascunho,
+inclusive quando o lookup foi iniciado como complemento da carga do perfil.
+
 Isso impede:
 
 ```text
@@ -673,12 +695,9 @@ conteúdo e mostrar erro local costuma ser melhor do que substituir toda a tela.
 Use `Promise.all` quando a tela só faz sentido se as leituras necessárias forem
 tratadas como um conjunto.
 
-Exemplos atuais:
-
-- serviço + galeria no editor;
-- planos + plano atual no checkout, com fallback explícito para 404;
-- lista de serviços + uso da assinatura, onde a leitura de assinatura possui
-  fallback próprio.
+Exemplo atual: planos + plano atual no checkout, com fallback explícito para 404.
+Serviço e galeria, assim como catálogo e uso da assinatura, carregam
+independentemente para que uma leitura auxiliar não bloqueie o recurso principal.
 
 O importante é decidir explicitamente se uma dependência é obrigatória ou
 opcional.
@@ -778,6 +797,35 @@ Se o serviço salva e depois mídia falha, a UI informa explicitamente que:
 Esse é o padrão correto de **sucesso parcial**: não mentir que tudo falhou e não
 mentir que tudo concluiu.
 
+Cada upload confirmado atualiza imediatamente a capa ou a galeria e remove
+somente aquele arquivo da fila pendente. Uma falha posterior mantém as imagens
+já persistidas visíveis e a nova tentativa envia apenas os arquivos restantes.
+Uma leitura de galeria em andamento preserva as fotos enviadas após seu início.
+
+Adicionar outro lote acumula os arquivos pendentes, sem substituir a seleção
+anterior. Repetir o mesmo arquivo (nome, tamanho, tipo e última modificação iguais)
+não cria uma segunda entrada pendente. O input nativo é limpo após a seleção,
+mas os arquivos continuam no estado do editor até serem enviados ou descartados.
+
+Salvar o serviço, escolher capa e remover fotos são operações mutuamente
+exclusivas no editor. Enquanto uma delas estiver pendente, as outras ações de
+mídia e a seleção de arquivos ficam desabilitadas. A escolha de uma foto da
+galeria só substitui a capa e libera o arquivo previamente selecionado depois
+da confirmação da API; uma falha preserva essa seleção e seu guard de saída.
+
+Sair ou trocar de serviço invalida as continuações assíncronas do editor.
+Uma resposta antiga não muda o rascunho, a fila de fotos, os estados ocupados
+nem a navegação da tela atual. Depois de sair durante um upload, sua resposta
+não inicia o envio dos arquivos restantes; uma operação já enviada pode ter
+sido persistida pelo backend.
+
+Na edição, os dados essenciais do serviço carregam independentemente da
+galeria. Lentidão ou falha das fotos não bloqueia nome, categoria, valor e
+duração; o erro e a tentativa da galeria ficam na seção de mídia e não recarregam
+o formulário. Falha dos dados essenciais apresenta erro com nova tentativa,
+sem abrir um cadastro vazio. As duas leituras são canceladas na saída ou troca
+de serviço e ignoram respostas obsoletas.
+
 ## 35. Upload e estado do input file
 
 Depois de upload/tentativa, o código pode limpar:
@@ -797,9 +845,9 @@ URLs criadas com `URL.createObjectURL` devem ser revogadas no cleanup.
 
 Atualização otimista só deve ser usada quando rollback é simples e seguro.
 
-Exemplo atual: seleção de capa de galeria atualiza visualmente o form enquanto a
-request está em andamento, preservando estado anterior para rollback se
-necessário.
+Na escolha de capa da galeria, o editor aguarda a resposta da API antes de mudar
+a imagem. Isso preserva uma capa pendente de upload se a escolha falhar e evita
+indicar como atual uma foto que ainda não foi confirmada.
 
 Para operações críticas ou com regra complexa, preferir aguardar a resposta
 autoritativa.
@@ -964,6 +1012,21 @@ Ao alterá-la, evitar adicionar mais responsabilidade sem avaliar extração de
 blocos específicos.
 
 Regra de publicação continua backend-authoritative.
+
+Salvamento dos dados, upload de foto, publicação/despublicação e encerramento
+compartilham um lock síncrono. Enquanto uma mutação estiver pendente, os controles
+das demais ficam desabilitados e seus handlers também recusam ações concorrentes.
+Isso impede uma resposta de salvamento ou foto de sobrescrever na tela o estado
+de publicação confirmado por uma ação posterior. Falhas liberam os controles e
+preservam o rascunho e as pendências retornadas pela API.
+
+O contexto da página é invalidado ao sair ou mudar entre criação e edição. Uma
+resposta antiga não altera a interface, não adota negócio na sessão, não inicia
+refresh de sessão e não navega para serviço, horários ou outro destino. Se o
+refresh do encerramento já começou antes de sair, sua conclusão também não
+redireciona. A leitura inicial usa AbortSignal e o lookup de CEP invalida respostas
+pendentes no cleanup. Escritas já enviadas podem concluir no backend; sair da
+interface não desfaz uma operação persistida.
 
 ## 45. ScheduleSettingsPage
 

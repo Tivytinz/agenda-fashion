@@ -147,10 +147,28 @@ test("onboarding de horários confirma a sugestão e segue para divulgação no 
   await expect(confirm).toBeVisible();
   await expect(skip).toHaveCount(0);
   await expect(adjust).toBeVisible();
+  expect((await adjust.boundingBox()).height).toBeGreaterThanOrEqual(44);
 
   await expect.poll(() => page.evaluate(() => (
     document.documentElement.scrollWidth === document.documentElement.clientWidth
   ))).toBe(true);
+
+  await adjust.click();
+  const dayToggle = page.locator(".day-toggle").filter({ hasText: "Segunda" });
+  await expect(dayToggle).toBeVisible();
+  expect((await dayToggle.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  await expect(page.getByRole("heading", { name: "Quando você recebe clientes" })).toHaveCount(1);
+  await expect(page.locator(".schedule-row").first()).toContainText("Segunda");
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await expect.poll(async () => {
+    const [opening, saveBar] = await Promise.all([
+      page.getByLabel("Início do atendimento de Segunda").boundingBox(),
+      page.locator(".schedule-save-bar").boundingBox()
+    ]);
+    return Boolean(opening && saveBar && opening.y >= 0 && opening.y + opening.height <= saveBar.y);
+  }).toBe(true);
+  await page.reload();
+  await expect(confirm).toBeVisible();
 
   await confirm.click();
   await expect(page).toHaveURL(
@@ -160,6 +178,14 @@ test("onboarding de horários confirma a sugestão e segue para divulgação no 
     .toBeVisible();
   await expect(page.getByRole("button", { name: "Compartilhar perfil" }))
     .toBeVisible();
+  const confirmationIcon = await page.locator(".onboarding-complete-icon").boundingBox();
+  expect(confirmationIcon.width).toBe(24);
+  expect(confirmationIcon.height).toBe(24);
+  const share = page.getByRole("button", { name: "Compartilhar perfil" });
+  const shareBox = await share.boundingBox();
+  const navigationBox = await page.locator(".owner-shell > .workspace-mobile-nav").boundingBox();
+  expect(shareBox.height).toBeGreaterThanOrEqual(44);
+  expect(shareBox.y + shareBox.height).toBeLessThanOrEqual(navigationBox.y);
   await expect(page.getByRole("link", { name: "Concluir plano escolhido" }))
     .toHaveCount(0);
 

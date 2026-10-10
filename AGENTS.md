@@ -715,6 +715,27 @@ profissional são delegados para `ProfessionalShell` com design system
 apenas primitives neutras quando isso reduz duplicação. `/admin/*` usa
 `AdminLayout` + `AdminShell` próprios.
 
+O bootstrap usa `createBrowserRouter`/`RouterProvider`, mantendo as rotas de
+`App.jsx`. Criação/edição do negócio, editor de serviços e horários protegem
+alterações não salvas com um blocker de navegação e diálogo explícito; o
+baseline só é liberado após a confirmação da API.
+Os campos desses formulários ficam desabilitados durante o salvamento; no editor
+de serviços, o bloqueio inclui a seleção de fotos durante os uploads. Dados
+essenciais do serviço e galeria possuem leituras e novas tentativas independentes.
+Trocar a pessoa ou o papel da agenda reinicia o editor e cancela leituras antigas;
+nenhum horário anterior pode ser salvo enquanto o novo contexto carrega.
+O lookup de CEP preserva edições manuais feitas durante a consulta. Uploads
+parcialmente concluídos mantêm a capa e as fotos já salvas visíveis no editor.
+Novos lotes de fotos acumulam arquivos pendentes. Salvamento, escolha de capa e
+remoção de fotos são coordenados para não ocorrerem simultaneamente no editor.
+A escolha de capa aguarda a API e preserva a seleção anterior em caso de falha.
+Sair ou trocar de serviço invalida respostas antigas, redirecionamentos e o
+envio dos arquivos restantes de uma operação encerrada na interface.
+Em Meu negócio, salvamento, foto, publicação e encerramento são mutuamente
+exclusivos. Ao sair da criação ou edição, respostas antigas não atualizam a
+interface nem a sessão e não redirecionam a dona. A leitura inicial é cancelada
+ao sair; uma escrita já enviada pode concluir no backend.
+
 Detalhes técnicos: `docs/arquitetura.md`, `docs/frontend-estilos.md` e
 `docs/ux-contextos-visuais.md`.
 

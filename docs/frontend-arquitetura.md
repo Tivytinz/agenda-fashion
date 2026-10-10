@@ -95,20 +95,24 @@ A composição atual é:
 createRoot
   └─ StrictMode
       └─ ErrorBoundary
-          └─ BrowserRouter
-              └─ SessionProvider
-                  └─ PublicShell
-                      └─ App
+          └─ RouterProvider (createBrowserRouter)
+              └─ ErrorBoundary
+                  └─ SessionProvider
+                      └─ PublicShell
+                          └─ App
 ```
 
 Consequências desse desenho:
 
-- `BrowserRouter` existe antes de sessão e shells, portanto esses componentes
-  podem resolver contexto pela rota;
+- `createBrowserRouter` fornece o data router antes de sessão e shells, para
+  resolução de contexto e bloqueio de saída com alterações não salvas;
 - `SessionProvider` é a fonte React compartilhada da sessão carregada;
 - `PublicShell` decide se a composição visual pública deve estar ativa;
 - `ErrorBoundary` protege falhas de renderização no topo da árvore;
 - `App.jsx` concentra a composição das rotas e o lazy loading principal.
+
+O data router contém uma rota `*` com a composição existente. A árvore de
+`Routes` de `App.jsx` mantém os destinos e guards; não há loaders adicionais.
 
 `main.jsx` também instala a recuperação de runtime e importa as fundações CSS
 realmente globais. CSS específico de shell ou feature deve preferir carregamento

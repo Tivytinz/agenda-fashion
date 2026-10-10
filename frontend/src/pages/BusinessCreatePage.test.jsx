@@ -166,6 +166,10 @@ describe("criação do negócio", () => {
       }
     );
 
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Criar negócio" }).disabled).toBe(false);
+    });
+
     fireEvent.submit(
       screen
         .getByRole(

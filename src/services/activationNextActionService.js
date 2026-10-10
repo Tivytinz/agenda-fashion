@@ -30,9 +30,14 @@ function resolverProximaAcaoAtivacao(ativacao = {}) {
     return {
       estado: ESTADOS_PROXIMA_ACAO_ATIVACAO.GARANTIR_SERVICO_ATIVO,
       concluido: false,
-      titulo: "Cadastre seu primeiro serviço",
-      mensagem:
-        "Adicione pelo menos um serviço ativo para publicar seu perfil e começar a receber agendamentos.",
+      titulo: primeiraInclusao
+        ? "Cadastre seu primeiro serviço"
+        : "Ative um serviço para receber agendamentos",
+      mensagem: negocioPublicado
+        ? "Seu perfil continua publicado. Mantenha pelo menos um serviço ativo para receber novos agendamentos."
+        : primeiraInclusao
+          ? "Adicione pelo menos um serviço ativo para publicar seu perfil e começar a receber agendamentos."
+          : "Reative ou cadastre um serviço ativo para continuar a publicação do perfil e receber agendamentos.",
       acao: acaoNavegacao(
         primeiraInclusao
           ? "Cadastrar primeiro serviço"

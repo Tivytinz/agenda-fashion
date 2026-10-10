@@ -127,7 +127,7 @@
   left: 50%;
   z-index: 2;
   display: inline-flex;
-  min-height: 30px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   border: 1px solid rgb(217 47 127 / 24%);
@@ -146,6 +146,15 @@
 .services-management-page .service-cover-empty-action:hover {
   border-color: var(--pink-500);
   background: #fff;
+}
+
+.services-management-page .card-actions .text-button {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
 }
 
 /* Fallback próprio para cílios: evita a estrela genérica no catálogo. */
@@ -232,6 +241,16 @@
     height: 165px;
     min-height: 165px;
   }
+}
+
+.service-editor-page .service-gallery-error {
+  display: grid;
+  gap: 10px;
+}
+
+.service-editor-page .service-gallery-error .button {
+  min-height: 44px;
+  justify-self: start;
 }
 
 @media (max-width: 680px) {

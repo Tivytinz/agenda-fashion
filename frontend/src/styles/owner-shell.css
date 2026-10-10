@@ -209,6 +209,10 @@ html.owner-context-active body {
   box-shadow: inset 3px 0 0 var(--owner-brand);
 }
 
+.owner-sidebar .workspace-link.active > span {
+  color: inherit;
+}
+
 .owner-sidebar-footer {
   display: flex;
   align-items: center;
@@ -372,6 +376,7 @@ html.owner-context-active body {
 
   .owner-shell > .workspace-mobile-nav {
     position: fixed;
+    width: auto;
     right: 10px;
     bottom: max(10px, env(safe-area-inset-bottom));
     left: 10px;
