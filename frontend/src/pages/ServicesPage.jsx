@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   Link,
   useLocation,
@@ -14,6 +15,7 @@ import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { FlowSteps } from "../components/FlowSteps";
 import { PlanUpgradeOpportunity } from "../components/PlanUpgradeOpportunity";
 import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
+import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatCurrency } from "../utils/format";
 
@@ -83,6 +85,7 @@ export function ServicesPage() {
   const [togglingId, setTogglingId] = useState(null);
   const [visibilityMessage, setVisibilityMessage] = useState("");
   const [message] = useState(() => location.state?.message || "");
+  const loadRequestRef = useRef(0);
 
   const activeCount = services?.filter((service) => service.ativo !== false).length || 0;
   const serviceLimit = serviceUsage?.limite_servicos === null || serviceUsage?.limite_servicos === undefined
@@ -91,20 +94,28 @@ export function ServicesPage() {
   const atServiceLimit = serviceLimit !== null && activeCount >= serviceLimit;
 
   const load = useCallback(() => {
+    const requestId = ++loadRequestRef.current;
     setError("");
-    Promise.all([
-      apiRequest("/servicos"),
-      apiRequest("/minha-assinatura").catch(() => null)
-    ])
-      .then(([servicesResult, subscriptionResult]) => {
-        setServices(extractServices(servicesResult));
-        setServiceUsage(subscriptionResult?.uso || null);
-        setUpgradeContextual(subscriptionResult?.upgrade_contextual || null);
+    apiRequest("/servicos")
+      .then((result) => {
+        if (requestId === loadRequestRef.current) setServices(extractServices(result));
       })
-      .catch((requestError) => setError(requestError.message));
+      .catch((requestError) => {
+        if (requestId === loadRequestRef.current) setError(requestError.message);
+      });
+    apiRequest("/minha-assinatura")
+      .then((result) => {
+        if (requestId !== loadRequestRef.current) return;
+        setServiceUsage(result?.uso || null);
+        setUpgradeContextual(result?.upgrade_contextual || null);
+      })
+      .catch(() => {});
   }, []);
 
-  useEffect(load, [load]);
+  useEffect(() => {
+    load();
+    return () => { loadRequestRef.current += 1; };
+  }, [load]);
 
   useEffect(() => {
     if (location.state?.message) {
@@ -313,6 +324,9 @@ export function ServiceEditorPage() {
   const [searchParams] = useSearchParams();
   const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
   const galleryRef = useRef(null);
+  const galleryResourceRef = useRef(id);
+  const editorContextRef = useRef(null);
+  const operationRef = useRef(null);
   const editing = Boolean(id);
   const firstServiceOnboarding =
     !editing
@@ -324,16 +338,29 @@ export function ServiceEditorPage() {
       )
     );
   const [form, setForm] = useState(EMPTY_FORM);
+  const [savedForm, setSavedForm] = useState(EMPTY_FORM);
   const [cover, setCover] = useState(null);
   const [galleryFiles, setGalleryFiles] = useState([]);
   const [gallery, setGallery] = useState([]);
   const [persistedId, setPersistedId] = useState(id || "");
   const [loading, setLoading] = useState(editing);
+  const [loadError, setLoadError] = useState("");
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [galleryLoading, setGalleryLoading] = useState(editing);
+  const [galleryError, setGalleryError] = useState("");
+  const [galleryLoadAttempt, setGalleryLoadAttempt] = useState(0);
   const [saving, setSaving] = useState(false);
   const [removingPhotoId, setRemovingPhotoId] = useState(null);
   const [definingCoverId, setDefiningCoverId] = useState(null);
   const [mediaMessage, setMediaMessage] = useState("");
   const [error, setError] = useState("");
+  const mediaBusy = saving || Boolean(removingPhotoId) || Boolean(definingCoverId);
+  const hasChanges = !loading && (
+    JSON.stringify({ ...form, foto_url: "", foto_public_id: "" })
+      !== JSON.stringify({ ...savedForm, foto_url: "", foto_public_id: "" })
+    || Boolean(cover)
+    || galleryFiles.length > 0
+  );
   const coverPreview = useMemo(() => cover ? URL.createObjectURL(cover) : "", [cover]);
   const galleryItems = useMemo(() => {
     if (!form.foto_url || gallery.some((photo) => samePhoto(photo, form.foto_url, form.foto_public_id))) {
@@ -351,6 +378,35 @@ export function ServiceEditorPage() {
     ];
   }, [form.foto_public_id, form.foto_url, gallery]);
 
+  useEffect(() => {
+    const context = { id };
+    editorContextRef.current = context;
+    operationRef.current = null;
+    setSaving(false);
+    setRemovingPhotoId(null);
+    setDefiningCoverId(null);
+
+    return () => {
+      if (editorContextRef.current === context) editorContextRef.current = null;
+    };
+  }, [id]);
+
+  function beginOperation() {
+    // O lock vale antes de o React renderizar os controles desabilitados.
+    if (operationRef.current || !editorContextRef.current) return null;
+    const operation = { context: editorContextRef.current };
+    operationRef.current = operation;
+    return operation;
+  }
+
+  function isCurrentOperation(operation) {
+    return editorContextRef.current === operation.context;
+  }
+
+  function finishOperation(operation) {
+    if (operationRef.current === operation) operationRef.current = null;
+  }
+
   useEffect(() => () => {
     if (coverPreview) URL.revokeObjectURL(coverPreview);
   }, [coverPreview]);
@@ -362,16 +418,28 @@ export function ServiceEditorPage() {
   }, [mediaMessage]);
 
   useEffect(() => {
-    if (!editing) return;
+    if (!editing) {
+      setLoading(false);
+      setLoadError("");
+      setForm(EMPTY_FORM);
+      setSavedForm(EMPTY_FORM);
+      setPersistedId("");
+      setCover(null);
+      setGalleryFiles([]);
+      setError("");
+      return undefined;
+    }
 
-    Promise.all([
-      apiRequest("/servicos"),
-      apiRequest(`/servicos/${encodeURIComponent(id)}/fotos`)
-    ])
-      .then(([servicesResult, galleryResult]) => {
+    const controller = new AbortController();
+    let active = true;
+    setLoading(true);
+    setLoadError("");
+    apiRequest("/servicos", { signal: controller.signal })
+      .then((servicesResult) => {
+        if (!active) return;
         const service = extractServices(servicesResult).find((item) => Number(item.id) === Number(id));
         if (!service) throw new Error("Serviço não encontrado.");
-        setForm({
+        const loadedForm = {
           nome: service.nome || "",
           descricao: service.descricao || "",
           categoria: service.categoria || "",
@@ -380,12 +448,66 @@ export function ServiceEditorPage() {
           ativo: service.ativo !== false,
           foto_url: service.foto_url || "",
           foto_public_id: service.foto_public_id || ""
-        });
-        setGallery(Array.isArray(galleryResult) ? galleryResult : galleryResult?.fotos || []);
+        };
+        setForm(loadedForm);
+        setSavedForm(loadedForm);
+        setPersistedId(id);
+        setCover(null);
+        setGalleryFiles([]);
+        setError("");
       })
-      .catch((requestError) => setError(requestError.message))
-      .finally(() => setLoading(false));
-  }, [editing, id]);
+      .catch((requestError) => {
+        if (active) setLoadError(requestError.message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [editing, id, loadAttempt]);
+
+  useEffect(() => {
+    if (galleryResourceRef.current !== id) {
+      galleryResourceRef.current = id;
+      setGallery([]);
+    }
+    if (!editing) {
+      setGalleryLoading(false);
+      setGalleryError("");
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+    const photosAtRequest = new Set(gallery.map((photo) => photo.id));
+    setGalleryLoading(true);
+    setGalleryError("");
+    apiRequest(`/servicos/${encodeURIComponent(id)}/fotos`, { signal: controller.signal })
+      .then((result) => {
+        if (!active) return;
+        const photos = Array.isArray(result) ? result : result?.fotos || [];
+        const receivedIds = new Set(photos.map((photo) => photo.id));
+        // Um upload pode terminar enquanto esta leitura opcional ainda está pendente.
+        setGallery((current) => [
+          ...photos,
+          ...current.filter((photo) => !photosAtRequest.has(photo.id) && !receivedIds.has(photo.id))
+        ]);
+      })
+      .catch((requestError) => {
+        if (active) setGalleryError(requestError.message);
+      })
+      .finally(() => {
+        if (active) setGalleryLoading(false);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [editing, id, galleryLoadAttempt]);
 
   function isGalleryCover(photo) {
     return samePhoto(photo, form.foto_url, form.foto_public_id);
@@ -399,6 +521,7 @@ export function ServiceEditorPage() {
   }
 
   function selectCover(event) {
+    if (operationRef.current) return;
     const file = event.target.files?.[0];
     if (!file) return;
     const validationError = validateImage(file);
@@ -410,9 +533,11 @@ export function ServiceEditorPage() {
     setError("");
     setMediaMessage("");
     setCover(file);
+    event.target.value = "";
   }
 
   function selectGallery(event) {
+    if (operationRef.current) return;
     const files = Array.from(event.target.files || []);
     const validationError = files.map(validateImage).find(Boolean);
     if (validationError) {
@@ -422,7 +547,19 @@ export function ServiceEditorPage() {
     }
     setError("");
     setMediaMessage("");
-    setGalleryFiles(files);
+    setGalleryFiles((current) => {
+      const pending = [...current];
+      for (const file of files) {
+        if (!pending.some((item) => item.name === file.name
+          && item.size === file.size
+          && item.type === file.type
+          && item.lastModified === file.lastModified)) {
+          pending.push(file);
+        }
+      }
+      return pending;
+    });
+    event.target.value = "";
   }
 
   function continueFirstServiceOnboarding(saveResult) {
@@ -457,141 +594,162 @@ export function ServiceEditorPage() {
 
   async function submit(event) {
     event.preventDefault();
+    const operation = beginOperation();
+    if (!operation) return;
     setSaving(true);
     setError("");
     setMediaMessage("");
-    let savedId = persistedId;
-    let saveResult = null;
     try {
-      saveResult = await apiRequest(savedId ? `/servicos/${savedId}` : "/servicos", {
-        method: savedId ? "PUT" : "POST",
-        body: {
-          nome: form.nome.trim(),
-          descricao: form.descricao.trim(),
-          categoria: form.categoria,
-          valor: Number(form.valor),
-          duracao_minutos: Number(form.duracao_minutos),
-          ativo: form.ativo
+      let savedId = persistedId;
+      let saveResult;
+      try {
+        saveResult = await apiRequest(savedId ? `/servicos/${savedId}` : "/servicos", {
+          method: savedId ? "PUT" : "POST",
+          body: {
+            nome: form.nome.trim(),
+            descricao: form.descricao.trim(),
+            categoria: form.categoria,
+            valor: Number(form.valor),
+            duracao_minutos: Number(form.duracao_minutos),
+            ativo: form.ativo
+          }
+        });
+        if (!isCurrentOperation(operation)) return;
+        savedId = saveResult.servico?.id || savedId;
+        if (!savedId) {
+          throw new Error("O serviço foi salvo, mas não foi possível identificar o cadastro.");
+        }
+        setPersistedId(String(savedId));
+        flushSync(() => setSavedForm(form));
+      } catch (requestError) {
+        if (isCurrentOperation(operation)) setError(requestError.message);
+        return;
+      }
+
+      // A primeira missão não exibe mídia. O serviço salvo já permite continuar.
+      if (firstServiceOnboarding) {
+        continueFirstServiceOnboarding(saveResult);
+        return;
+      }
+
+      try {
+        if (cover) {
+          const uploaded = await uploadImage(`/servicos/${savedId}/foto`, cover);
+          if (!isCurrentOperation(operation)) return;
+          if (uploaded.servico) {
+            const coverPatch = {
+              foto_url: uploaded.servico.foto_url || "",
+              foto_public_id: uploaded.servico.foto_public_id || ""
+            };
+            setForm((current) => ({ ...current, ...coverPatch }));
+            setSavedForm((current) => ({ ...current, ...coverPatch }));
+          }
+          setCover(null);
+        }
+        for (const file of galleryFiles) {
+          const uploaded = await uploadImage(`/servicos/${savedId}/fotos`, file);
+          if (!isCurrentOperation(operation)) return;
+          if (uploaded.foto) {
+            setGallery((current) => [...current.filter((photo) => photo.id !== uploaded.foto.id), uploaded.foto]);
+          }
+          setGalleryFiles((current) => current.filter((item) => item !== file));
+        }
+      } catch (requestError) {
+        if (isCurrentOperation(operation)) {
+          setError(`O serviço foi salvo, mas algumas fotos não foram enviadas. ${requestError.message} Tente novamente para enviar apenas as fotos pendentes.`);
+        }
+        return;
+      }
+
+      flushSync(() => {
+        setCover(null);
+        setGalleryFiles([]);
+      });
+      navigate("/painel/servicos", {
+        replace: true,
+        state: {
+          message: editing
+            ? "Serviço atualizado."
+            : "Serviço criado."
         }
       });
-      savedId = saveResult.servico?.id || savedId;
-      if (!savedId) {
-        throw new Error("O serviço foi salvo, mas não foi possível identificar o cadastro.");
+    } finally {
+      if (isCurrentOperation(operation)) {
+        finishOperation(operation);
+        setSaving(false);
       }
-      setPersistedId(String(savedId));
-    } catch (requestError) {
-      setError(requestError.message);
-      setSaving(false);
-      return;
     }
-
-    // A primeira missão não exibe mídia. Assim que o serviço principal é
-    // persistido, a jornada segue sem criar uma dependência artificial de upload.
-    if (firstServiceOnboarding) {
-      continueFirstServiceOnboarding(saveResult);
-      return;
-    }
-
-    let mediaUploadError = null;
-
-    try {
-      if (cover) {
-        await uploadImage(`/servicos/${savedId}/foto`, cover);
-        setCover(null);
-      }
-      for (const file of galleryFiles) {
-        await uploadImage(`/servicos/${savedId}/fotos`, file);
-        setGalleryFiles((current) => current.filter((item) => item !== file));
-      }
-    } catch (requestError) {
-      mediaUploadError = requestError;
-    }
-
-    if (mediaUploadError) {
-      setError(`O serviço foi salvo, mas algumas fotos não foram enviadas. ${mediaUploadError.message} Tente novamente para enviar apenas as fotos pendentes.`);
-      setSaving(false);
-      return;
-    }
-
-    navigate("/painel/servicos", {
-      replace: true,
-      state: {
-        message: editing
-          ? "Serviço atualizado."
-          : "Serviço criado."
-      }
-    });
-    setSaving(false);
   }
 
   async function chooseGalleryCover(photo) {
-    if (!persistedId || definingCoverId || isGalleryCover(photo) || photo.virtualCover) return;
-
-    const previousCover = {
-      foto_url: form.foto_url,
-      foto_public_id: form.foto_public_id
-    };
+    if (!persistedId || galleryLoading || isGalleryCover(photo) || photo.virtualCover) return;
+    const operation = beginOperation();
+    if (!operation) return;
 
     setDefiningCoverId(photo.id);
     setError("");
     setMediaMessage("");
-    setCover(null);
-    setForm((current) => ({
-      ...current,
-      foto_url: photo.foto_url || "",
-      foto_public_id: photo.foto_public_id || ""
-    }));
 
     try {
       const result = await apiRequest(`/servicos/${persistedId}/capa`, {
         method: "PUT",
         body: { foto_id: photo.id }
       });
+      if (!isCurrentOperation(operation)) return;
       const service = result.servico || {};
-      setForm((current) => ({
-        ...current,
+      const coverPatch = {
         foto_url: service.foto_url || photo.foto_url || "",
         foto_public_id: service.foto_public_id || photo.foto_public_id || ""
-      }));
+      };
+      setCover(null);
+      setForm((current) => ({ ...current, ...coverPatch }));
+      setSavedForm((current) => ({ ...current, ...coverPatch }));
       setMediaMessage("Foto escolhida como capa do serviço.");
     } catch (requestError) {
-      setForm((current) => ({
-        ...current,
-        foto_url: previousCover.foto_url,
-        foto_public_id: previousCover.foto_public_id
-      }));
-      setError(requestError.message);
+      if (isCurrentOperation(operation)) setError(requestError.message);
     } finally {
-      setDefiningCoverId(null);
+      if (isCurrentOperation(operation)) {
+        finishOperation(operation);
+        setDefiningCoverId(null);
+      }
     }
   }
 
   async function removeGalleryPhoto(photo) {
-    if (photo.virtualCover) return;
+    if (galleryLoading || photo.virtualCover) return;
+    const operation = beginOperation();
+    if (!operation) return;
     const wasCover = isGalleryCover(photo);
     setRemovingPhotoId(photo.id);
     setError("");
     setMediaMessage("");
     try {
       const result = await apiRequest(`/servicos/fotos/${photo.id}`, { method: "DELETE" });
+      if (!isCurrentOperation(operation)) return;
       setGallery((current) => current.filter((item) => item.id !== photo.id));
       if (wasCover || result.capa_removida) {
         setForm((current) => ({ ...current, foto_url: "", foto_public_id: "" }));
+        setSavedForm((current) => ({ ...current, foto_url: "", foto_public_id: "" }));
         setMediaMessage("A foto foi removida. Escolha outra imagem para a capa.");
       } else {
         setMediaMessage("Foto removida da galeria.");
       }
     } catch (requestError) {
-      setError(requestError.message);
+      if (isCurrentOperation(operation)) setError(requestError.message);
     } finally {
-      setRemovingPhotoId(null);
+      if (isCurrentOperation(operation)) {
+        finishOperation(operation);
+        setRemovingPhotoId(null);
+      }
     }
   }
 
   if (loading) return <main className="workspace-page"><LoadingState>Carregando serviço...</LoadingState></main>;
+  if (loadError) return <main className="workspace-page"><ErrorState message={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} /></main>;
 
   return (
     <main className="workspace-page service-editor-page">
+      <UnsavedChangesGuard when={hasChanges} />
       <div>
         <BackLink to="/painel/servicos">Voltar aos serviços</BackLink>
         {firstServiceOnboarding && (
@@ -614,16 +772,17 @@ export function ServiceEditorPage() {
         </header>
       </div>
 
-      <form className="service-editor-grid" onSubmit={submit}>
+      <form aria-busy={saving} className="service-editor-grid" onSubmit={submit}>
         <section className="panel stack-form">
           <div><p className="eyebrow">Informações</p><h2>Detalhes do serviço</h2></div>
           <label>
             Nome do serviço
-            <input minLength="2" onChange={(event) => setForm({ ...form, nome: event.target.value })} required value={form.nome} />
+            <input disabled={saving} minLength="2" onChange={(event) => setForm({ ...form, nome: event.target.value })} required value={form.nome} />
           </label>
           <label>
             Categoria
             <select
+              disabled={saving}
               onChange={(event) => setForm({ ...form, categoria: event.target.value })}
               required
               value={form.categoria}
@@ -639,6 +798,7 @@ export function ServiceEditorPage() {
             <label>
               Descrição
               <textarea
+                disabled={saving}
                 maxLength="1200"
                 onChange={(event) => setForm({ ...form, descricao: event.target.value })}
                 placeholder="Explique o resultado, materiais ou diferenciais."
@@ -651,16 +811,16 @@ export function ServiceEditorPage() {
           <div className="form-grid">
             <label>
               Valor
-              <input min="0" onChange={(event) => setForm({ ...form, valor: event.target.value })} required step="0.01" type="number" value={form.valor} />
+              <input disabled={saving} min="0" onChange={(event) => setForm({ ...form, valor: event.target.value })} required step="0.01" type="number" value={form.valor} />
             </label>
             <label>
               Duração em minutos
-              <input min="5" onChange={(event) => setForm({ ...form, duracao_minutos: event.target.value })} required step="5" type="number" value={form.duracao_minutos} />
+              <input disabled={saving} min="5" onChange={(event) => setForm({ ...form, duracao_minutos: event.target.value })} required step="5" type="number" value={form.duracao_minutos} />
             </label>
           </div>
           {!firstServiceOnboarding && (
             <label className="switch-field">
-              <input checked={form.ativo} onChange={(event) => setForm({ ...form, ativo: event.target.checked })} type="checkbox" />
+              <input checked={form.ativo} disabled={saving} onChange={(event) => setForm({ ...form, ativo: event.target.checked })} type="checkbox" />
               <span><strong>Serviço disponível</strong><small>Quando inativo, ele não aparece para novos agendamentos.</small></span>
             </label>
           )}
@@ -689,7 +849,7 @@ export function ServiceEditorPage() {
                 </div>
                 <label className="button button-secondary button-small">
                   {cover ? "Trocar imagem escolhida" : form.foto_url ? "Trocar capa" : "Escolher capa"}
-                  <input accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectCover} type="file" />
+                  <input accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={mediaBusy} onChange={selectCover} type="file" />
                 </label>
               </div>
             </div>
@@ -705,6 +865,7 @@ export function ServiceEditorPage() {
                   accept="image/jpeg,image/png,image/webp"
                   aria-label="Adicionar fotos à galeria"
                   className="sr-only"
+                  disabled={mediaBusy}
                   multiple
                   onChange={selectGallery}
                   type="file"
@@ -715,6 +876,15 @@ export function ServiceEditorPage() {
               <p className="upload-selection">{galleryFiles.length} {galleryFiles.length === 1 ? "foto selecionada" : "fotos selecionadas"}.</p>
             )}
             {mediaMessage && <p className="service-media-success" role="status">{mediaMessage}</p>}
+            {galleryLoading && <p className="muted" role="status">Carregando fotos...</p>}
+            {galleryError && (
+              <div className="service-gallery-error">
+                <p className="form-error" role="alert">Não foi possível carregar a galeria. {galleryError}</p>
+                <button className="button button-secondary button-small" disabled={mediaBusy} onClick={() => setGalleryLoadAttempt((attempt) => attempt + 1)} type="button">
+                  Tentar carregar fotos novamente
+                </button>
+              </div>
+            )}
             {galleryItems.length > 0 && (
               <div className="service-gallery-picker-wrap">
                 <div className="service-gallery-heading">
@@ -741,7 +911,7 @@ export function ServiceEditorPage() {
                             <button
                               aria-label="Remover foto da galeria"
                               className="service-gallery-remove"
-                              disabled={removingPhotoId === photo.id || choosing}
+                              disabled={mediaBusy || galleryLoading}
                               onClick={() => removeGalleryPhoto(photo)}
                               title="Remover foto"
                               type="button"
@@ -759,7 +929,7 @@ export function ServiceEditorPage() {
                           ) : (
                             <button
                               className="service-cover-choice"
-                              disabled={choosing || removingPhotoId === photo.id}
+                              disabled={mediaBusy || galleryLoading}
                               onClick={() => chooseGalleryCover(photo)}
                               type="button"
                             >
@@ -779,7 +949,7 @@ export function ServiceEditorPage() {
         {error && <p className="form-error service-editor-message" role="alert">{error}</p>}
         <div className="form-actions service-editor-actions">
           <Link className="button button-secondary" to="/painel/servicos">Cancelar</Link>
-          <button className="button" disabled={saving} type="submit">
+          <button className="button" disabled={mediaBusy} type="submit">
             {saving
               ? "Salvando..."
               : firstServiceOnboarding

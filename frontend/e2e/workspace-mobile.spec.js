@@ -119,6 +119,9 @@ test("ações do negócio ficam acima da navegação e mantêm foco visível", a
 
   await expect(save).toBeVisible();
   await expect(navigation).toBeVisible();
+  const navigationBox = await navigation.boundingBox();
+  expect(navigationBox.x).toBeGreaterThanOrEqual(0);
+  expect(navigationBox.x + navigationBox.width).toBeLessThanOrEqual(page.viewportSize().width);
   await save.scrollIntoViewIfNeeded();
 
   await expect.poll(async () => {
@@ -150,6 +153,34 @@ test("ações do negócio ficam acima da navegação e mantêm foco visível", a
       `${error.message}\n\nHorizontal overflow diagnostics:\n${JSON.stringify(diagnostics, null, 2)}`
     );
   }
+
+  await page.route("**/servicos", (route) => json(route, []));
+  await page.route("**/minha-assinatura", (route) => json(route, {}));
+  await navigation.getByRole("link", { name: /Serviços/ }).click();
+  const leaveDialog = page.getByRole("dialog", { name: "Sair sem salvar?" });
+  await expect(leaveDialog).toBeVisible();
+  await expect(leaveDialog.getByRole("button", { name: "Continuar editando" })).toBeFocused();
+  await leaveDialog.getByRole("button", { name: "Continuar editando" }).click();
+  await expect(page.getByLabel("Nome do negócio")).toHaveValue("Studio Aurora atualizado");
+  await navigation.getByRole("link", { name: /Serviços/ }).click();
+  await expect(leaveDialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(leaveDialog).not.toBeVisible();
+  await navigation.getByRole("link", { name: /Serviços/ }).click();
+  await leaveDialog.getByRole("button", { name: "Sair sem salvar" }).click();
+  await expect(page).toHaveURL(/\/painel\/servicos$/);
+  await navigation.getByRole("button", { name: "Abrir mais opções da área de trabalho" }).click();
+  await navigation.getByRole("link", { name: /Meu negócio/ }).click();
+  await page.getByLabel("Nome do negócio").fill("Edição no histórico");
+  await page.evaluate(() => history.back());
+  await expect(leaveDialog).toBeVisible();
+  await leaveDialog.getByRole("button", { name: "Continuar editando" }).click();
+  await expect(page).toHaveURL(/\/painel\/negocio$/);
+  await expect(page.getByLabel("Nome do negócio")).toHaveValue("Edição no histórico");
+  await page.evaluate(() => history.back());
+  await expect(leaveDialog).toBeVisible();
+  await leaveDialog.getByRole("button", { name: "Sair sem salvar" }).click();
+  await expect(page).toHaveURL(/\/painel\/servicos$/);
 });
 
 test("próxima ação de ativação cabe no celular e mostra somente a missão atual", async ({ page }) => {
@@ -362,13 +393,16 @@ test("sessão expirada sai do workspace sem manter conteúdo operacional obsolet
     enabled: false,
     measurementId: null
   }));
-  await page.route("**/configuracoes", (route) => json(route, {
-    erro: "Sessão expirada"
-  }, 401));
+  await page.route("**/configuracoes", (route) => route.request().method() === "PUT"
+    ? json(route, { erro: "Sessão expirada" }, 401)
+    : json(route, { negocio: BUSINESS, publicacao: { publicado: true, pode_publicar: true, pendencias: [] } }));
 
   await page.goto("/painel/negocio");
+  await page.getByLabel("Nome do negócio").fill("Edição com sessão expirada");
+  await page.getByRole("button", { name: "Salvar alterações" }).click();
 
   await expect(page).toHaveURL(/\/entrar$/);
+  await expect(page.getByRole("dialog", { name: "Sair sem salvar?" })).toHaveCount(0);
   await expect(page.locator('[data-frontend-context="owner"]')).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Entre no Agenda Fashion" })).toBeVisible();
 });

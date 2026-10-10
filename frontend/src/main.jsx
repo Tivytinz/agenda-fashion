@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./App";
 import { SessionProvider } from "./auth/SessionContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -18,16 +18,23 @@ import "./styles/lifecycle.css";
 
 installRuntimeRecovery();
 
+const router = createBrowserRouter([{
+  path: "*",
+  element: (
+    <ErrorBoundary>
+      <SessionProvider>
+        <PublicShell>
+          <App />
+        </PublicShell>
+      </SessionProvider>
+    </ErrorBoundary>
+  )
+}]);
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <ErrorBoundary>
-      <BrowserRouter>
-        <SessionProvider>
-          <PublicShell>
-            <App />
-          </PublicShell>
-        </SessionProvider>
-      </BrowserRouter>
+      <RouterProvider router={router} />
     </ErrorBoundary>
   </StrictMode>
 );

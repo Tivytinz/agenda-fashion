@@ -13,19 +13,6 @@
   box-shadow: 0 12px 34px rgb(72 22 43 / 6%);
 }
 
-.schedule-settings-page .schedule-editor-intro {
-  display: grid;
-  gap: 7px;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 20px;
-}
-
-.schedule-settings-page .schedule-editor-intro .eyebrow,
-.schedule-settings-page .schedule-editor-intro h2,
-.schedule-settings-page .schedule-editor-intro p {
-  margin: 0;
-}
-
 .schedule-settings-page .schedule-week-section {
   display: grid;
   gap: 14px;
@@ -61,7 +48,7 @@
 .schedule-settings-page .schedule-column-headings,
 .schedule-settings-page .schedule-row {
   display: grid;
-  grid-template-columns: 168px minmax(250px, 1fr) minmax(360px, 1.25fr) 104px;
+  grid-template-columns: 168px minmax(250px, 1fr) minmax(384px, 1.25fr) 104px;
   align-items: center;
   column-gap: 14px;
 }
@@ -105,6 +92,7 @@
 .schedule-settings-page .day-toggle {
   display: flex;
   min-width: 0;
+  min-height: 44px;
   align-items: center;
   gap: 11px;
   cursor: pointer;
@@ -212,14 +200,14 @@
 }
 
 .schedule-settings-page .schedule-pause-group {
-  grid-template-columns: minmax(138px, .62fr) minmax(210px, 1.38fr);
+  grid-template-columns: minmax(164px, .72fr) minmax(210px, 1.28fr);
   align-items: center;
   gap: 8px 10px;
 }
 
 .schedule-settings-page .schedule-pause-select {
   grid-column: 1;
-  min-width: 138px;
+  min-width: 164px;
   color: #6f5863;
   background: #fff9fb;
 }
@@ -474,9 +462,25 @@
   min-height: 46px;
 }
 
+.schedule-settings-page .schedule-quick-actions .text-button {
+  min-height: 44px;
+}
+
 .schedule-settings-page .schedule-publish-panel {
   width: min(100%, 800px);
   margin-inline: auto;
+}
+
+.schedule-settings-page .onboarding-complete-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.schedule-settings-page .onboarding-complete-icon {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
 }
 
 .schedule-settings-page .schedule-publish-status {
@@ -490,10 +494,24 @@
 }
 
 .schedule-settings-page .schedule-publish-actions {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 10px;
 }
 
-@media (max-width: 1180px) {
+.schedule-settings-page .schedule-publish-actions > .button:not(.button-secondary) {
+  color: #fff;
+  background: var(--pink-600);
+  border-color: var(--pink-600);
+}
+
+.schedule-settings-page .schedule-publish-actions > .button:not(.button-secondary):hover {
+  background: var(--pink-700);
+  border-color: var(--pink-700);
+}
+
+@media (max-width: 1320px) {
   .schedule-settings-page .schedule-column-headings {
     display: none;
   }
@@ -517,7 +535,7 @@
   }
 
   .schedule-settings-page .schedule-pause-group {
-    grid-template-columns: minmax(150px, .58fr) minmax(240px, 1.42fr);
+    grid-template-columns: minmax(164px, .58fr) minmax(240px, 1.42fr);
   }
 
   .schedule-settings-page .schedule-pause-group .schedule-mobile-label {
@@ -576,6 +594,68 @@
 }
 
 @media (max-width: 680px) {
+  .schedule-editor-page {
+    gap: 14px;
+  }
+
+  .schedule-editor-page .workspace-heading {
+    border-radius: 16px;
+    padding: 14px 16px;
+  }
+
+  .schedule-editor-page .workspace-heading .eyebrow {
+    margin-bottom: 4px;
+    font-size: .72rem;
+  }
+
+  .schedule-editor-page .workspace-heading h1 {
+    margin-bottom: 5px;
+    font-size: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .schedule-editor-page .workspace-heading p:last-child {
+    font-size: .88rem;
+    line-height: 1.4;
+  }
+
+  .schedule-editor-page .flow-progress {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+  }
+
+  .schedule-editor-page .flow-progress > p {
+    width: auto;
+    justify-content: start;
+    gap: 8px;
+    margin: 0;
+  }
+
+  .schedule-editor-page .flow-steps {
+    width: 132px;
+    flex: 0 0 132px;
+  }
+
+  .schedule-editor-page .schedule-settings-form {
+    padding: 14px;
+  }
+
+  .schedule-editor-page .schedule-week-heading .eyebrow {
+    display: none;
+  }
+
+  .schedule-editor-page .schedule-week-heading h2 {
+    font-size: 1.15rem;
+  }
+
+  .schedule-editor-page .schedule-week-heading p:last-child {
+    font-size: .85rem;
+    line-height: 1.4;
+  }
+
   .schedule-settings-page .schedule-settings-form {
     gap: 20px;
     border-radius: 16px;
@@ -603,7 +683,7 @@
 
   .schedule-settings-page .schedule-copy-button {
     width: 100%;
-    min-height: 42px;
+    min-height: 44px;
     justify-content: center;
     background: var(--pink-50);
   }
@@ -626,9 +706,8 @@
     text-align: center;
   }
 
-  .schedule-settings-page .schedule-save-feedback:empty::before {
-    display: block;
-    width: 100%;
+  .schedule-settings-page .schedule-save-feedback:empty {
+    display: none;
   }
 
   .schedule-settings-page .schedule-save-status {
@@ -654,6 +733,16 @@
 
   .schedule-settings-page .schedule-quick-actions .button {
     width: 100%;
+  }
+
+  .schedule-settings-page .schedule-publish-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-settings-page .schedule-publish-actions > .button {
+    width: 100%;
+    min-height: 44px;
   }
 }
 

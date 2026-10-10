@@ -143,7 +143,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 .public-share-icon { width: 17px; height: 17px; flex: 0 0 auto; }
 .profile-action-button.share { font: inherit; }
 .flow-progress { max-width: 760px; margin: 0 auto 24px; }
-.flow-progress > p { display: none; justify-content: space-between; margin-bottom: 9px; color: var(--muted); font-size: .82rem; }
+.flow-progress > p { display: none; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 9px; color: var(--muted); font-size: .82rem; }
 .flow-progress > p strong { color: var(--wine); }
 .flow-steps { display: grid; grid-template-columns: repeat(var(--flow-step-count, 4), minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; }
 .flow-steps li { position: relative; display: grid; justify-items: center; gap: 7px; color: var(--muted); text-align: center; }

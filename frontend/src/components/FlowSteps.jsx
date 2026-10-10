@@ -10,7 +10,7 @@ export function FlowSteps({
   return (
     <div className="flow-progress">
       <p>
-        Etapa {current} de {steps.length}
+        <span>Etapa {current} de {steps.length}</span>{" "}
         <strong>{steps[current - 1]}</strong>
       </p>
       <ol

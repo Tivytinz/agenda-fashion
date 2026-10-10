@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { track } from "../analytics/track";
 import { apiRequest } from "../api/client";
@@ -6,6 +7,7 @@ import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { FlowSteps } from "../components/FlowSteps";
 import { PublicShareButton } from "../components/PublicShareButton";
 import { ErrorState, LoadingState } from "../components/ScreenState";
+import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 
 const DAY_NAMES = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const DAY_SHORT_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -57,6 +59,16 @@ function scheduleSignature(day) {
     day.intervaloInicio || "",
     day.intervaloFim || ""
   ].join("|");
+}
+
+function serializeSchedule(config, days) {
+  return JSON.stringify({
+    duracaoPadrao: config?.duracaoPadrao,
+    intervaloMinutos: config?.intervaloMinutos,
+    antecedenciaAgendamento: config?.antecedenciaAgendamento,
+    antecedenciaCancelamento: config?.antecedenciaCancelamento,
+    days
+  });
 }
 
 export function summarizeSchedule(days) {
@@ -117,7 +129,6 @@ export function validateSchedule(days, { requireActiveDay = false } = {}) {
 
 export function ScheduleSettingsPage() {
   const location = useLocation();
-  const navigate = useNavigate();
   const contextoAgenda = location.pathname.startsWith("/profissional/")
     ? "profissional"
     : "dono";
@@ -139,11 +150,29 @@ export function ScheduleSettingsPage() {
     location.search,
     professionalContext
   ]);
+
+  // O guard libera a navegação antes de a troca de pessoa reiniciar o editor.
+  return (
+    <ScheduleSettingsEditor
+      contextoAgenda={contextoAgenda}
+      key={`${contextoAgenda}:${targetProfessionalId ?? "self"}`}
+      targetProfessionalId={targetProfessionalId}
+    />
+  );
+}
+
+function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const professionalContext = contextoAgenda === "profissional";
   const ownerTeamSchedule =
     !professionalContext &&
     Boolean(targetProfessionalId);
   const [config, setConfig] = useState(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const contextActiveRef = useRef(true);
   const [days, setDays] = useState([]);
+  const [savedSchedule, setSavedSchedule] = useState("");
   const [expandedPauses, setExpandedPauses] = useState(() => new Set());
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [firstScheduleMode, setFirstScheduleMode] = useState("quick");
@@ -161,6 +190,13 @@ export function ScheduleSettingsPage() {
   );
   const showActivationNextStep =
     activationNextStep && shareOnboardingRequested;
+  const hasChanges = Boolean(config && savedSchedule)
+    && serializeSchedule(config, days) !== savedSchedule;
+
+  useEffect(() => {
+    contextActiveRef.current = true;
+    return () => { contextActiveRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (!shareOnboardingRequested && activationNextStep) {
@@ -168,7 +204,10 @@ export function ScheduleSettingsPage() {
     }
   }, [activationNextStep, shareOnboardingRequested]);
 
-  const load = useCallback(() => {
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    setConfig(null);
     setError("");
 
     const path = ownerTeamSchedule
@@ -176,15 +215,17 @@ export function ScheduleSettingsPage() {
       : "/agenda-configuracao";
 
     apiRequest(path, {
+      signal: controller.signal,
       headers: {
         "X-AF-Contexto": contextoAgenda
       }
     })
       .then((result) => {
+        if (!active) return;
         const current = result.configuracao || {};
         const normalizedDays = (result.horarios || [])
           .map(normalizeDay)
-          .sort((a, b) => a.diaSemana - b.diaSemana);
+          .sort((a, b) => ((a.diaSemana + 6) % 7) - ((b.diaSemana + 6) % 7));
         const configuredAt = current.configurado_em ?? current.configuradoEm ?? null;
         const scheduleOrigin = current.origem_horarios ?? current.origemHorarios ?? "padrao_af";
         const personalized = scheduleOrigin === "personalizado";
@@ -192,14 +233,16 @@ export function ScheduleSettingsPage() {
         setScheduleProfessional(
           result.profissional || null
         );
-        setConfig({
+        const loadedConfig = {
           duracaoPadrao: current.duracao_padrao ?? current.duracaoPadrao ?? 60,
           intervaloMinutos: current.intervalo_minutos ?? current.intervaloMinutos ?? 0,
           antecedenciaAgendamento: current.antecedencia_agendamento ?? current.antecedenciaAgendamento ?? 0,
           antecedenciaCancelamento: current.antecedencia_cancelamento ?? current.antecedenciaCancelamento ?? 2,
           configuradoEm: configuredAt,
           origemHorarios: scheduleOrigin
-        });
+        };
+        setConfig(loadedConfig);
+        setSavedSchedule(serializeSchedule(loadedConfig, normalizedDays));
         setAdvancedOpen(personalized);
         setFirstScheduleMode(personalized ? "editor" : "quick");
         setDays(normalizedDays);
@@ -222,14 +265,20 @@ export function ScheduleSettingsPage() {
           }
         });
       })
-      .catch((requestError) => setError(requestError.message));
+      .catch((requestError) => {
+        if (active) setError(requestError.message);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [
     contextoAgenda,
+    loadAttempt,
     ownerTeamSchedule,
     targetProfessionalId
   ]);
-
-  useEffect(load, [load]);
 
   useEffect(() => {
     if (!message || showActivationNextStep) return undefined;
@@ -325,6 +374,7 @@ export function ScheduleSettingsPage() {
         await apiRequest(
           "/dashboard-dono/ativacao"
         );
+      if (!contextActiveRef.current) return { activationState: null, canShare: false };
       const activationState =
         dashboard
           ?.proxima_acao_ativacao
@@ -365,7 +415,7 @@ export function ScheduleSettingsPage() {
         canShare,
       };
     } finally {
-      setBusinessContextLoading(false);
+      if (contextActiveRef.current) setBusinessContextLoading(false);
     }
   }, []);
 
@@ -443,6 +493,7 @@ export function ScheduleSettingsPage() {
 
   async function submit(event) {
     event.preventDefault();
+    if (saving || !config) return;
     setError("");
     setMessage("");
 
@@ -542,6 +593,7 @@ export function ScheduleSettingsPage() {
         },
         body
       });
+      if (!contextActiveRef.current) return;
       const savedConfig = result.configuracao || {};
       const configuradoEm = savedConfig.configurado_em
         ?? savedConfig.configuradoEm
@@ -551,11 +603,15 @@ export function ScheduleSettingsPage() {
         ?? savedConfig.origemHorarios
         ?? "personalizado";
 
-      setConfig((current) => ({
-        ...current,
+      const updatedConfig = {
+        ...config,
         configuradoEm,
         origemHorarios
-      }));
+      };
+      flushSync(() => {
+        setConfig(updatedConfig);
+        setSavedSchedule(serializeSchedule(updatedConfig, days));
+      });
       setMessage(result.mensagem || "Horários atualizados.");
 
       if (
@@ -592,6 +648,7 @@ export function ScheduleSettingsPage() {
           activationContext =
             await loadCanonicalActivationContext();
         } catch {
+          if (!contextActiveRef.current) return;
           navigate("/painel", {
             replace: true,
             state: {
@@ -600,6 +657,8 @@ export function ScheduleSettingsPage() {
           });
           return;
         }
+
+        if (!contextActiveRef.current) return;
 
         if (
           activationContext
@@ -653,6 +712,7 @@ export function ScheduleSettingsPage() {
         navigate("/painel", { replace: true });
       }
     } catch (requestError) {
+      if (!contextActiveRef.current) return;
       setError(requestError.message);
       track("agenda_configuracao_erro", {
         page: "configuracao_agenda",
@@ -663,12 +723,12 @@ export function ScheduleSettingsPage() {
         }
       });
     } finally {
-      setSaving(false);
+      if (contextActiveRef.current) setSaving(false);
     }
   }
 
   if (!config && !error) return <main className="workspace-page"><LoadingState>Carregando horários...</LoadingState></main>;
-  if (!config && error) return <main className="workspace-page"><ErrorState message={error} onRetry={load} /></main>;
+  if (!config && error) return <main className="workspace-page"><ErrorState message={error} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} /></main>;
 
   const firstConfiguration =
     config.origemHorarios !== "personalizado" &&
@@ -684,7 +744,8 @@ export function ScheduleSettingsPage() {
     firstConfiguration && firstScheduleMode === "quick";
 
   return (
-    <main className="workspace-page schedule-settings-page">
+    <main className={`workspace-page schedule-settings-page${!quickConfirmation && !showActivationNextStep ? " schedule-editor-page" : ""}`}>
+      <UnsavedChangesGuard when={hasChanges} />
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">Disponibilidade</p>
@@ -738,7 +799,7 @@ export function ScheduleSettingsPage() {
             </p>
             <p className="muted">
               {businessContext
-                ? "Sua próxima ação é levar este link para as clientes. Compartilhe no WhatsApp ou copie para usar no Instagram e conduza as pessoas direto aos seus serviços e horários disponíveis."
+                ? "Compartilhe no WhatsApp ou copie o link para o Instagram. As clientes poderão escolher seus serviços e horários."
                 : "Você pode seguir para o painel sem perder a configuração. A divulgação continua disponível quando o perfil puder ser carregado novamente."}
             </p>
           </div>
@@ -786,7 +847,7 @@ export function ScheduleSettingsPage() {
           </div>
         </section>
       ) : (
-        <form className="panel stack-form schedule-settings-form" onSubmit={submit}>
+        <form aria-busy={saving} className="panel stack-form schedule-settings-form" onSubmit={submit}>
           {quickConfirmation ? (
             <section
               aria-labelledby="schedule-activation-title"
@@ -850,29 +911,20 @@ export function ScheduleSettingsPage() {
             </section>
           ) : (
             <>
-              {(firstConfiguration || firstProfessionalConfiguration) && (
-                <section className="schedule-editor-intro" aria-labelledby="schedule-editor-title">
-                  <p className="eyebrow">
-                    <span aria-hidden="true">📅</span>{" "}
-                    Ajuste sua disponibilidade
-                  </p>
-                  <h2 id="schedule-editor-title">Quando você recebe clientes</h2>
-                  <p className="muted">
-                    {professionalContext
-                      ? "Ative os dias em que você atende neste negócio e ajuste início, fim e pausas. Você poderá voltar e editar estes horários quando quiser."
-                      : ownerTeamSchedule
-                        ? "Ajuste os dias, horários e pausas desta profissional. A política de cancelamento continua pertencendo ao negócio."
-                        : "Ative os dias em que atende e ajuste início, fim e pausas. Ao salvar pela primeira vez, o AF confirma sua agenda. Você poderá voltar e editar estes horários quando quiser."}
-                  </p>
-                </section>
-              )}
-
               <section className="schedule-week-section" aria-labelledby="schedule-week-title">
                 <div className="schedule-week-heading">
                   <div>
                     <p className="eyebrow">Semana de atendimento</p>
                     <h2 id="schedule-week-title">Quando você recebe clientes</h2>
-                    <p className="muted">Ative os dias de trabalho e ajuste atendimento e pausa.</p>
+                    <p className="muted">
+                      {firstConfiguration || firstProfessionalConfiguration
+                        ? professionalContext
+                          ? "Revise os dias, horários e pausas em que atende neste negócio. Você poderá editar depois."
+                          : ownerTeamSchedule
+                            ? "Ajuste os dias, horários e pausas desta profissional. A política de cancelamento pertence ao negócio."
+                            : "Ajuste os dias, horários e pausas. Salve para continuar."
+                        : "Ative os dias de trabalho e ajuste atendimento e pausa."}
+                    </p>
                   </div>
                 </div>
 
@@ -889,7 +941,7 @@ export function ScheduleSettingsPage() {
                     return (
                       <article className={day.trabalha ? "schedule-row" : "schedule-row disabled"} key={day.diaSemana}>
                         <label className="day-toggle">
-                          <input checked={day.trabalha} onChange={(e) => toggleDay(index, e.target.checked)} type="checkbox" />
+                          <input checked={day.trabalha} disabled={saving} onChange={(e) => toggleDay(index, e.target.checked)} type="checkbox" />
                           <span className="schedule-day-name">
                             <strong>{dayName}</strong>
                             <small>{day.trabalha ? "Aberto" : "Fechado"}</small>
@@ -903,6 +955,7 @@ export function ScheduleSettingsPage() {
                               <div className="schedule-time-range">
                                 <input
                                   aria-label={`Início do atendimento de ${dayName}`}
+                                  disabled={saving}
                                   onChange={(e) => updateDay(index, "horaInicio", e.target.value)}
                                   type="time"
                                   value={day.horaInicio}
@@ -910,6 +963,7 @@ export function ScheduleSettingsPage() {
                                 <span aria-hidden="true">→</span>
                                 <input
                                   aria-label={`Fim do atendimento de ${dayName}`}
+                                  disabled={saving}
                                   onChange={(e) => updateDay(index, "horaFim", e.target.value)}
                                   type="time"
                                   value={day.horaFim}
@@ -920,18 +974,20 @@ export function ScheduleSettingsPage() {
                             <div className="schedule-field-group schedule-pause-group">
                               <span className="schedule-mobile-label">Pausa</span>
                               <select
+                                disabled={saving}
                                 aria-label={`Pausa de ${dayName}`}
                                 className="schedule-pause-select"
                                 onChange={(e) => setPauseMode(day, index, e.target.value === "custom")}
                                 value={pauseExpanded ? "custom" : "none"}
                               >
                                 <option value="none">Sem pausa</option>
-                                <option value="custom">Definir pausa</option>
+                                <option value="custom">Com pausa</option>
                               </select>
                               {pauseExpanded && (
                                 <div className="schedule-time-range schedule-pause-times">
                                   <input
                                     aria-label={`Início da pausa de ${dayName}`}
+                                    disabled={saving}
                                     onChange={(e) => updateDay(index, "intervaloInicio", e.target.value)}
                                     type="time"
                                     value={day.intervaloInicio}
@@ -939,6 +995,7 @@ export function ScheduleSettingsPage() {
                                   <span aria-hidden="true">→</span>
                                   <input
                                     aria-label={`Fim da pausa de ${dayName}`}
+                                    disabled={saving}
                                     onChange={(e) => updateDay(index, "intervaloFim", e.target.value)}
                                     type="time"
                                     value={day.intervaloFim}
@@ -948,6 +1005,7 @@ export function ScheduleSettingsPage() {
                             </div>
 
                             <button
+                              disabled={saving}
                               aria-label={`Copiar horário de ${dayName} para os dias ativos`}
                               className="text-button schedule-copy-button"
                               onClick={() => copyDayToActiveDays(index)}
@@ -984,13 +1042,13 @@ export function ScheduleSettingsPage() {
                 <section className="settings-grid schedule-general-settings" aria-label="Configurações gerais da agenda">
                   <label>
                     Duração padrão
-                    <select onChange={(e) => setConfig({ ...config, duracaoPadrao: Number(e.target.value) })} value={config.duracaoPadrao}>
+                    <select disabled={saving} onChange={(e) => setConfig({ ...config, duracaoPadrao: Number(e.target.value) })} value={config.duracaoPadrao}>
                       {withCurrentOption(DURATION_OPTIONS, config.duracaoPadrao).map((value) => <option key={value} value={value}>{value} minutos</option>)}
                     </select>
                   </label>
                   <label>
                     Intervalo entre clientes
-                    <select onChange={(e) => setConfig({ ...config, intervaloMinutos: Number(e.target.value) })} value={config.intervaloMinutos}>
+                    <select disabled={saving} onChange={(e) => setConfig({ ...config, intervaloMinutos: Number(e.target.value) })} value={config.intervaloMinutos}>
                       {withCurrentOption(INTERVAL_OPTIONS, config.intervaloMinutos).map((value) => (
                         <option key={value} value={value}>{value === 0 ? "Sem intervalo" : `${value} minutos`}</option>
                       ))}
@@ -998,7 +1056,7 @@ export function ScheduleSettingsPage() {
                   </label>
                   <label>
                     Antecedência para agendar
-                    <select onChange={(e) => setConfig({ ...config, antecedenciaAgendamento: Number(e.target.value) })} value={config.antecedenciaAgendamento}>
+                    <select disabled={saving} onChange={(e) => setConfig({ ...config, antecedenciaAgendamento: Number(e.target.value) })} value={config.antecedenciaAgendamento}>
                       {leadTimeBookingOptions.map((value) => <option key={value} value={value}>{formatLeadTime(value)}</option>)}
                     </select>
                   </label>
@@ -1006,6 +1064,7 @@ export function ScheduleSettingsPage() {
                     <label>
                       Antecedência para cancelar
                       <input
+                        disabled={saving}
                         aria-label="Antecedência para cancelar"
                         inputMode="numeric"
                         max="168"

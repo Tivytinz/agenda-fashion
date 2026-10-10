@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
@@ -10,6 +11,7 @@ import { BackLink } from "../components/BackLink";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { FlowSteps } from "../components/FlowSteps";
 import { ErrorState, LoadingState } from "../components/ScreenState";
+import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatCep, formatWhatsApp } from "../utils/format";
 import { buildPublicLink, copyPublicLink } from "../utils/publicLinks";
@@ -91,18 +93,12 @@ function serializeBusinessForm(value) {
   });
 }
 
-function isValidGoogleMapsUrl(value) {
+function isValidLocationUrl(value) {
   if (!String(value || "").trim()) return true;
 
   try {
     const url = new URL(value);
-    const host = url.hostname.toLowerCase();
-    return host === "maps.app.goo.gl"
-      || host === "maps.google.com"
-      || host.endsWith(".maps.google.com")
-      || (host === "google.com" && url.pathname.startsWith("/maps"))
-      || (host.endsWith(".google.com") && url.pathname.startsWith("/maps"))
-      || (host === "goo.gl" && url.pathname.startsWith("/maps"));
+    return url.protocol === "http:" || url.protocol === "https:";
   } catch {
     return false;
   }
@@ -149,14 +145,51 @@ export function BusinessPage({ create = false }) {
   const [closurePendings, setClosurePendings] = useState([]);
   const [cepLookup, setCepLookup] = useState({ status: "idle", message: "" });
   const cepRequestRef = useRef(0);
+  const addressEditsRef = useRef({ endereco: 0, bairro: 0, cidade: 0, estado: 0 });
+  const pageContextRef = useRef(null);
+  const operationRef = useRef(null);
+  const mutationBusy = saving || photoUploading || publishing || closingBusiness;
 
-  const hasChanges = !create
+  const unsavedChanges = !loading
     && serializeBusinessForm(form) !== serializeBusinessForm(savedForm);
+  const hasChanges = !create && unsavedChanges;
   const publicUrl = buildPublicLink({
     businessSlug: form.slug
   });
-  const googleMapsValid = isValidGoogleMapsUrl(form.localizacao_url);
+  const locationValid = isValidLocationUrl(form.localizacao_url);
   const whatsappError = validateWhatsApp(form.whatsapp);
+
+  useEffect(() => {
+    const context = { create };
+    pageContextRef.current = context;
+    operationRef.current = null;
+    setSaving(false);
+    setPhotoUploading(false);
+    setPublishing(false);
+    setClosingBusiness(false);
+    setCepLookup({ status: "idle", message: "" });
+
+    return () => {
+      if (pageContextRef.current === context) pageContextRef.current = null;
+      cepRequestRef.current += 1;
+    };
+  }, [create]);
+
+  function beginOperation() {
+    // Bloqueia ações simultâneas antes de o React desabilitar os controles.
+    if (loading || operationRef.current || !pageContextRef.current) return null;
+    const operation = { context: pageContextRef.current };
+    operationRef.current = operation;
+    return operation;
+  }
+
+  function isCurrentOperation(operation) {
+    return pageContextRef.current === operation.context;
+  }
+
+  function finishOperation(operation) {
+    if (operationRef.current === operation) operationRef.current = null;
+  }
 
   useEffect(() => {
     if (!create) return;
@@ -166,13 +199,23 @@ export function BusinessPage({ create = false }) {
     setForm((current) => current.whatsapp
       ? current
       : { ...current, whatsapp: accountWhatsapp });
+    setSavedForm((current) => current.whatsapp
+      ? current
+      : { ...current, whatsapp: accountWhatsapp });
   }, [create, session.usuario?.whatsapp]);
 
   useEffect(() => {
-    if (create) return;
+    if (create) {
+      setLoading(false);
+      return;
+    }
 
-    apiRequest("/configuracoes")
+    const controller = new AbortController();
+    let active = true;
+    setLoading(true);
+    apiRequest("/configuracoes", { signal: controller.signal })
       .then((result) => {
+        if (!active) return;
         const business = result.negocio || result.configuracoes || {};
         const normalized = normalizeBusinessForm(business);
         setForm(normalized);
@@ -183,8 +226,17 @@ export function BusinessPage({ create = false }) {
           pendencias: []
         });
       })
-      .catch((requestError) => setError(requestError.message))
-      .finally(() => setLoading(false));
+      .catch((requestError) => {
+        if (active) setError(requestError.message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [create]);
 
   useEffect(() => {
@@ -192,18 +244,6 @@ export function BusinessPage({ create = false }) {
     const timeout = window.setTimeout(() => setMessage(""), 2800);
     return () => window.clearTimeout(timeout);
   }, [message]);
-
-  useEffect(() => {
-    if (!hasChanges || saving) return undefined;
-
-    const preventAccidentalExit = (event) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-
-    window.addEventListener("beforeunload", preventAccidentalExit);
-    return () => window.removeEventListener("beforeunload", preventAccidentalExit);
-  }, [hasChanges, saving]);
 
   useEffect(() => {
     if (create || loading) return;
@@ -215,6 +255,7 @@ export function BusinessPage({ create = false }) {
   }, [create, loading]);
 
   function update(field, value) {
+    if (Object.hasOwn(addressEditsRef.current, field)) addressEditsRef.current[field] += 1;
     setForm((current) => ({ ...current, [field]: value }));
   }
 
@@ -233,6 +274,7 @@ export function BusinessPage({ create = false }) {
 
     const requestId = cepRequestRef.current + 1;
     cepRequestRef.current = requestId;
+    const addressEditsAtRequest = { ...addressEditsRef.current };
     setCepLookup({ status: "loading", message: "Buscando endereço..." });
 
     try {
@@ -241,12 +283,12 @@ export function BusinessPage({ create = false }) {
       });
       if (requestId !== cepRequestRef.current) return;
 
-      const addressPatch = {
+      const addressPatch = Object.fromEntries(Object.entries({
         endereco: result.endereco || "",
         bairro: result.bairro || "",
         cidade: result.cidade || "",
         estado: result.estado || ""
-      };
+      }).filter(([field]) => addressEditsRef.current[field] === addressEditsAtRequest[field]));
 
       setForm((current) => {
         const currentCep = String(current.cep || "").replace(/\D/g, "");
@@ -327,6 +369,7 @@ export function BusinessPage({ create = false }) {
 
   async function submit(event) {
     event.preventDefault();
+    if (operationRef.current || cepLookup.status === "loading") return;
     setError("");
     setMessage("");
 
@@ -346,11 +389,13 @@ export function BusinessPage({ create = false }) {
       return;
     }
 
-    if (!googleMapsValid) {
-      setError("Informe um link válido do Google Maps.");
+    if (!locationValid) {
+      setError("Informe um link HTTP ou HTTPS válido para a localização.");
       return;
     }
 
+    const operation = beginOperation();
+    if (!operation) return;
     setSaving(true);
 
     const payload = {
@@ -369,14 +414,17 @@ export function BusinessPage({ create = false }) {
         method: create ? "POST" : "PUT",
         body: payload
       });
+      if (!isCurrentOperation(operation)) return;
       const savedBusiness = result.negocio || {};
       const normalizedSaved = normalizeBusinessForm({
         ...form,
         ...savedBusiness,
         areas: savedBusiness.areas || form.areas
       });
-      setForm(normalizedSaved);
-      if (!create) setSavedForm(normalizedSaved);
+      flushSync(() => {
+        setForm(normalizedSaved);
+        setSavedForm(normalizedSaved);
+      });
       setMessage(result.mensagem || (create ? "Negócio criado." : "Alterações salvas."));
       if (result.publicacao) setPublication(result.publicacao);
       const profileOnboarding =
@@ -407,12 +455,10 @@ export function BusinessPage({ create = false }) {
             onboardingStep: "servico"
           }
         });
-      } else if (profileOnboarding) {
+      } else {
         // O PUT já devolve a publicação canônica. A reconciliação de sessão
         // não pode transformar um salvamento concluído em falha de UX.
         session.refresh({ silent: true }).catch(() => {});
-      } else {
-        await session.refresh();
       }
 
       if (profileOnboarding) {
@@ -452,13 +498,17 @@ export function BusinessPage({ create = false }) {
         }
       }
     } catch (requestError) {
-      setError(requestError.message);
+      if (isCurrentOperation(operation)) setError(requestError.message);
     } finally {
-      setSaving(false);
+      if (isCurrentOperation(operation)) {
+        finishOperation(operation);
+        setSaving(false);
+      }
     }
   }
 
   async function uploadPhoto(event) {
+    if (operationRef.current) return;
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -469,6 +519,8 @@ export function BusinessPage({ create = false }) {
       return;
     }
 
+    const operation = beginOperation();
+    if (!operation) return;
     setPhotoUploading(true);
     setError("");
     setMessage("");
@@ -480,6 +532,7 @@ export function BusinessPage({ create = false }) {
         method: "POST",
         body
       });
+      if (!isCurrentOperation(operation)) return;
       const business = result.negocio || {};
       if (business.foto_url !== undefined) {
         setForm((current) => ({ ...current, foto_url: business.foto_url }));
@@ -487,16 +540,20 @@ export function BusinessPage({ create = false }) {
       }
       if (result.publicacao) setPublication(result.publicacao);
       setMessage(result.mensagem || "Foto do negócio atualizada.");
-      await session.refresh();
+      session.refresh({ silent: true }).catch(() => {});
     } catch (requestError) {
-      setError(requestError.message);
+      if (isCurrentOperation(operation)) setError(requestError.message);
     } finally {
-      setPhotoUploading(false);
-      event.target.value = "";
+      if (isCurrentOperation(operation)) {
+        finishOperation(operation);
+        setPhotoUploading(false);
+        event.target.value = "";
+      }
     }
   }
 
   async function closeBusiness() {
+    if (operationRef.current || loading) return;
     if (
       !window.confirm(
         "Encerrar este negócio? Ele sairá da descoberta, não receberá novos agendamentos e não poderá ser reativado pelo fluxo normal."
@@ -505,6 +562,8 @@ export function BusinessPage({ create = false }) {
       return;
     }
 
+    const operation = beginOperation();
+    if (!operation) return;
     setClosingBusiness(true);
     setClosurePendings([]);
     setError("");
@@ -514,7 +573,9 @@ export function BusinessPage({ create = false }) {
       const result = await apiRequest("/negocio/encerrar", {
         method: "POST"
       });
+      if (!isCurrentOperation(operation)) return;
       await session.refresh();
+      if (!isCurrentOperation(operation)) return;
       navigate("/", {
         replace: true,
         state: {
@@ -522,18 +583,24 @@ export function BusinessPage({ create = false }) {
         }
       });
     } catch (requestError) {
-      setError(requestError.message);
-      setClosurePendings(
-        Array.isArray(requestError.data?.pendencias)
-          ? requestError.data.pendencias
-          : []
-      );
+      if (isCurrentOperation(operation)) {
+        setError(requestError.message);
+        setClosurePendings(
+          Array.isArray(requestError.data?.pendencias)
+            ? requestError.data.pendencias
+            : []
+        );
+      }
     } finally {
-      setClosingBusiness(false);
+      if (isCurrentOperation(operation)) {
+        finishOperation(operation);
+        setClosingBusiness(false);
+      }
     }
   }
 
   async function togglePublication() {
+    if (operationRef.current || loading || !publication) return;
     const nextPublished = !publication?.publicado;
 
     if (
@@ -545,6 +612,8 @@ export function BusinessPage({ create = false }) {
       return;
     }
 
+    const operation = beginOperation();
+    if (!operation) return;
     setPublishing(true);
     setError("");
     setMessage("");
@@ -554,9 +623,10 @@ export function BusinessPage({ create = false }) {
         method: "PATCH",
         body: { publicado: nextPublished }
       });
+      if (!isCurrentOperation(operation)) return;
       setPublication(result.publicacao);
       setMessage(result.mensagem);
-      await session.refresh();
+      session.refresh({ silent: true }).catch(() => {});
       if (
         nextPublished
         && location.state?.onboarding === true
@@ -565,9 +635,12 @@ export function BusinessPage({ create = false }) {
         navigate("/painel", { replace: true });
       }
     } catch (requestError) {
-      setError(requestError.message);
+      if (isCurrentOperation(operation)) setError(requestError.message);
     } finally {
-      setPublishing(false);
+      if (isCurrentOperation(operation)) {
+        finishOperation(operation);
+        setPublishing(false);
+      }
     }
   }
 
@@ -582,6 +655,7 @@ export function BusinessPage({ create = false }) {
           aria-busy={cepLookup.status === "loading" ? "true" : undefined}
           aria-invalid={cepLookup.status === "error" ? "true" : undefined}
           autoComplete="postal-code"
+          disabled={saving}
           inputMode="numeric"
           maxLength="9"
           onBlur={handleCepBlur}
@@ -600,27 +674,27 @@ export function BusinessPage({ create = false }) {
       <span className="field-wide business-address-divider" aria-hidden="true" />
       <label>
         Endereço
-        <input autoComplete="street-address" onChange={(event) => update("endereco", event.target.value)} required={create} value={form.endereco} />
+        <input autoComplete="street-address" disabled={saving} onChange={(event) => update("endereco", event.target.value)} required={create} value={form.endereco} />
       </label>
       <label>
         Número
-        <input onChange={(event) => update("numero", event.target.value)} required={create} value={form.numero} />
+        <input disabled={saving} onChange={(event) => update("numero", event.target.value)} required={create} value={form.numero} />
       </label>
       <label>
         {create ? "Complemento (opcional)" : "Complemento"}
-        <input onChange={(event) => update("complemento", event.target.value)} value={form.complemento} />
+        <input disabled={saving} onChange={(event) => update("complemento", event.target.value)} value={form.complemento} />
       </label>
       <label>
         Bairro
-        <input onChange={(event) => update("bairro", event.target.value)} required={create} value={form.bairro} />
+        <input disabled={saving} onChange={(event) => update("bairro", event.target.value)} required={create} value={form.bairro} />
       </label>
       <label>
         Cidade
-        <input onChange={(event) => update("cidade", event.target.value)} required={create} value={form.cidade} />
+        <input disabled={saving} onChange={(event) => update("cidade", event.target.value)} required={create} value={form.cidade} />
       </label>
       <label>
         Estado
-        <select aria-label="Estado" onChange={(event) => update("estado", event.target.value)} required value={form.estado}>
+        <select aria-label="Estado" disabled={saving} onChange={(event) => update("estado", event.target.value)} required value={form.estado}>
           <option value="">Selecione a UF</option>
           {BRAZILIAN_STATES.map((state) => (
             <option key={state} value={state}>{state}</option>
@@ -632,6 +706,7 @@ export function BusinessPage({ create = false }) {
 
   return (
     <main className={create ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
+      <UnsavedChangesGuard when={unsavedChanges} />
       {create && (
         <BackLink to={selectedPlan ? "/planos" : "/"}>
           {selectedPlan ? "Voltar aos planos" : "Voltar ao início"}
@@ -695,7 +770,7 @@ export function BusinessPage({ create = false }) {
               className={publication.publicado
                 ? "button button-secondary business-publication-toggle is-danger"
                 : "button business-publication-toggle"}
-              disabled={publishing || (!publication.publicado && !publication.pode_publicar)}
+              disabled={mutationBusy || (!publication.publicado && !publication.pode_publicar)}
               onClick={togglePublication}
               type="button"
             >
@@ -709,7 +784,7 @@ export function BusinessPage({ create = false }) {
         </section>
       )}
 
-      <form className="panel stack-form business-settings-form" onSubmit={submit}>
+      <form aria-busy={mutationBusy} className="panel stack-form business-settings-form" onSubmit={submit}>
         {!create && (
           <section className="business-form-section business-photo-section">
             <div className="business-form-heading">
@@ -733,7 +808,7 @@ export function BusinessPage({ create = false }) {
                   <input
                     accept="image/jpeg,image/png,image/webp"
                     className="sr-only"
-                    disabled={photoUploading}
+                    disabled={mutationBusy}
                     onChange={uploadPhoto}
                     type="file"
                   />
@@ -752,7 +827,7 @@ export function BusinessPage({ create = false }) {
           <div className="form-grid">
             <label className="field-wide">
               Nome do negócio
-              <input minLength="2" onChange={(event) => update("nome", event.target.value)} required value={form.nome} />
+              <input disabled={saving} minLength="2" onChange={(event) => update("nome", event.target.value)} required value={form.nome} />
             </label>
             {!create && form.slug && (
               <div className="field-wide public-address-card" data-testid="public-address-hint">
@@ -769,6 +844,7 @@ export function BusinessPage({ create = false }) {
             <label className="field-wide">
               Descrição (opcional)
               <textarea
+                disabled={saving}
                 maxLength="1000"
                 onChange={(event) => update("descricao", event.target.value)}
                 rows="4"
@@ -778,7 +854,7 @@ export function BusinessPage({ create = false }) {
                 Ajuda clientes a conhecerem seu trabalho, mas não impede a criação nem a publicação.
               </small>
             </label>
-            <fieldset className="specialty-field field-wide">
+            <fieldset className="specialty-field field-wide" disabled={saving}>
               <legend>Especialidades</legend>
               <div className="specialty-heading-row">
                 <p>Selecione tudo o que o negócio oferece.</p>
@@ -810,6 +886,7 @@ export function BusinessPage({ create = false }) {
               WhatsApp
               <input
                 autoComplete="tel"
+                disabled={saving}
                 aria-invalid={whatsappError ? "true" : undefined}
                 inputMode="tel"
                 maxLength="15"
@@ -827,7 +904,8 @@ export function BusinessPage({ create = false }) {
             <label>
               Link do Google Maps
               <input
-                aria-invalid={!googleMapsValid ? "true" : undefined}
+                aria-invalid={!locationValid ? "true" : undefined}
+                disabled={saving}
                 onChange={(event) => update("localizacao_url", event.target.value)}
                 placeholder="https://maps.app.goo.gl/..."
                 required={create}
@@ -835,16 +913,16 @@ export function BusinessPage({ create = false }) {
                 value={form.localizacao_url}
               />
               <span className="maps-field-helper">
-                <small className={!googleMapsValid ? "field-helper is-error" : "field-helper"}>
-                  {!googleMapsValid
-                    ? "Use um link válido do Google Maps."
+                <small className={!locationValid ? "field-helper is-error" : "field-helper"}>
+                  {!locationValid
+                    ? "Use um link HTTP ou HTTPS válido."
                     : form.localizacao_url
-                      ? "Link válido do Google Maps."
+                      ? "Link de localização válido."
                       : create
                         ? "Obrigatório na criação. Cole o link da localização no Google Maps."
                         : "Cole o link da localização no Google Maps."}
                 </small>
-                {googleMapsValid && form.localizacao_url && (
+                {locationValid && form.localizacao_url && (
                   <a href={form.localizacao_url} rel="noreferrer" target="_blank">Testar link ↗</a>
                 )}
               </span>
@@ -875,7 +953,7 @@ export function BusinessPage({ create = false }) {
         {create && message && <p className="form-success" role="status">{message}</p>}
         {(create || hasChanges || saving) && (
           <div className={create ? "form-actions business-save-actions" : "business-floating-save"}>
-            <button className="button" disabled={saving || photoUploading} type="submit">
+            <button className="button" disabled={mutationBusy || cepLookup.status === "loading"} type="submit">
               {saving ? "Salvando..." : create ? "Criar negócio" : "Salvar alterações"}
             </button>
           </div>
@@ -908,7 +986,7 @@ export function BusinessPage({ create = false }) {
 
           <button
             className="button button-secondary danger-text"
-            disabled={closingBusiness}
+            disabled={mutationBusy}
             onClick={closeBusiness}
             type="button"
           >

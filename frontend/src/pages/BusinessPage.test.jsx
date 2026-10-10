@@ -524,12 +524,51 @@ describe("publicação do negócio", () => {
     expect(screen.getByText(/WhatsApp com DDD/)).not.toBeNull();
 
     fireEvent.change(whatsapp, { target: { value: "11 98765-4321" } });
-    fireEvent.change(maps, { target: { value: "https://example.com/local" } });
-    expect(screen.getByText("Use um link válido do Google Maps.")).not.toBeNull();
+    fireEvent.change(maps, { target: { value: "javascript:alert(1)" } });
+    expect(screen.getByText("Use um link HTTP ou HTTPS válido.")).not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
     expect(await screen.findByRole("alert")).not.toBeNull();
     expect(apiRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    "https://www.google.com.br/maps/place/Studio+Victor",
+    "https://example.com/local",
+    "http://example.com/local"
+  ])("aceita a localização %s conforme o contrato da API", async (url) => {
+    apiRequest.mockImplementation((path, options = {}) => Promise.resolve({
+      negocio: { ...BUSINESS, ...(options.body || {}) },
+      publicacao: { publicado: false, pode_publicar: true, pendencias: [] }
+    }));
+    renderPage();
+    await screen.findByDisplayValue("Studio Victor");
+    fireEvent.change(screen.getByLabelText(/Link do Google Maps/), {
+      target: { value: url }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith(
+      "/configuracoes",
+      expect.objectContaining({ method: "PUT", body: expect.objectContaining({ localizacao_url: url }) })
+    ));
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("mantém o salvamento confirmado quando a atualização secundária da sessão falha", async () => {
+    refreshSession.mockRejectedValueOnce(new Error("Rede indisponível"));
+    apiRequest.mockImplementation((path, options = {}) => Promise.resolve({
+      negocio: { ...BUSINESS, ...(options.body || {}) },
+      mensagem: options.method === "PUT" ? "Alterações salvas." : undefined,
+      publicacao: { publicado: false, pode_publicar: true, pendencias: [] }
+    }));
+    renderPage();
+    await screen.findByDisplayValue("Studio Victor");
+    fireEvent.change(screen.getByLabelText("Número"), { target: { value: "11" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    await screen.findByText("Alterações salvas.");
+    expect(refreshSession).toHaveBeenCalledWith({ silent: true });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Salvar alterações" })).toBeNull();
   });
 
   it("troca a foto do negócio pelo endpoint próprio", async () => {
