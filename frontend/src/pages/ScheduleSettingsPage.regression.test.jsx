@@ -102,7 +102,10 @@ describe("regressões da configuração de horários", () => {
     expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
       .toBeNull();
     await waitFor(() => {
-      expect(apiRequest).toHaveBeenCalledWith("/dashboard-dono/ativacao");
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/dashboard-dono/ativacao",
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
     });
     expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes"))
       .toBe(false);

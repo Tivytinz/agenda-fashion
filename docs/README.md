@@ -75,7 +75,8 @@ ser mantida como duas interpretações válidas.
 
 - [principios-produto.md](./principios-produto.md): direção durável de produto
   e experiência; simplicidade, clareza, elegância, confiança, acessibilidade,
-  valor, automação com controle e evolução por resultados reais.
+  valor, automação com controle, evolução por resultados reais, empreendedorismo
+  feminino e orientação contínua dos negócios para o crescimento.
 - [ativacao-profissional-ux.md](./ativacao-profissional-ux.md): jornada de
   ativação da profissional e do negócio.
 - [planos.md](./planos.md): catálogo, limites, downgrade e princípios de

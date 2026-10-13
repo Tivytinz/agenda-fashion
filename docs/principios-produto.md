@@ -121,6 +121,36 @@ O AF deve evoluir com ambição e persistência, orientado pelo sucesso de quem 
 utiliza: clientes que conseguem agendar com facilidade e profissionais e
 negócios que organizam melhor a rotina e crescem com resultados reais.
 
+## 10. Fortalecer mulheres empreendedoras e impulsionar seus negócios
+
+O AF deve incentivar o empreendedorismo no mercado de beleza, com atenção
+especial às mulheres que formam seu público principal. Apoiar quem empreende
+significa reconhecer seu trabalho, oferecer orientação prática e facilitar o
+próximo passo para organizar, divulgar e fazer o negócio crescer com autonomia
+e confiança.
+
+A comunicação deve ser acolhedora, respeitosa e ligada à realidade de cada
+negócio. O incentivo deve ajudar a agir, sem estereótipos, pressão por upgrade
+ou promessas de faturamento e sucesso garantidos. O foco no empreendedorismo
+feminino mantém o produto inclusivo para todas as pessoas que empreendem.
+
+## 11. Manter cada negócio nos trilhos do crescimento
+
+O AF deve ajudar cada negócio a manter organização, constância e direção ao
+longo da rotina, além da primeira configuração. Tornar compreensível o que
+precisa de atenção e qual é a próxima ação útil, conforme o estágio e os dados
+reais do negócio.
+
+Orientações devem conectar a organização da agenda, a divulgação, o primeiro
+agendamento válido, a recorrência e a retenção aos contratos canônicos de cada
+domínio. Priorizar uma ação clara e viável por vez, respeitando o ritmo e as
+decisões de quem empreende.
+
+Orientar sem complicar e incentivar sem tirar a autonomia: sugestões precisam
+ter motivo compreensível e não podem virar cobranças constantes ou decisões
+automáticas sem autorização. O resultado deve ser avaliado por avanços reais
+do negócio, não apenas por cliques ou tarefas marcadas como concluídas.
+
 ## Perguntas para revisar uma mudança
 
 - A pessoa entende a tarefa e identifica a próxima ação?
@@ -130,6 +160,7 @@ negócios que organizam melhor a rotina e crescem com resultados reais.
 - A experiência funciona no celular e é acessível?
 - Estados de carregamento, vazio, erro e sucesso permitem continuar?
 - A mudança resolve um problema concreto e pode ser avaliada?
+- A orientação ajuda quem empreende a dar um próximo passo útil com autonomia?
 
 ## Relação com a documentação existente
 

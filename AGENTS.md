@@ -46,6 +46,13 @@ A direção durável de produto está em `docs/principios-produto.md`. Consultar
 esses princípios ao propor funcionalidades, fluxos, comunicação e mudanças
 visuais, junto dos contratos canônicos e critérios de aceitação aplicáveis.
 
+O AF deve fortalecer mulheres empreendedoras e impulsionar seus negócios,
+mantendo uma experiência inclusiva. Deve ajudar cada negócio a manter
+organização, constância e direção, com orientação prática para a próxima ação
+útil, baseada no estágio e nos dados reais, preservando a autonomia de quem
+empreende. Essa direção orienta a evolução do produto; não comprova uma
+funcionalidade implementada nem garante crescimento ou faturamento.
+
 ## Integração contínua e merge
 
 Pull requests não draft direcionados à `main` devem habilitar auto-merge por squash automaticamente. Os gates obrigatórios de CI e as regras de proteção da branch continuam sendo a condição de integração: o PR só entra na `main` depois de satisfazê-los. Falha ou cancelamento de check não deve ser contornado por merge forçado.
@@ -745,6 +752,10 @@ Em Meu negócio, salvamento, foto, publicação e encerramento são mutuamente
 exclusivos. Ao sair da criação ou edição, respostas antigas não atualizam a
 interface nem a sessão e não redirecionam a dona. A leitura inicial é cancelada
 ao sair; uma escrita já enviada pode concluir no backend.
+Em Horários, a restauração da divulgação preserva o editor durante alterações
+não salvas e salvamento. Editar ou salvar invalida leituras antigas de ativação;
+somente a consulta atual pode atualizar o link público e a missão. Desfazer o
+rascunho revalida a missão sem exigir um PUT.
 
 Detalhes técnicos: `docs/arquitetura.md`, `docs/frontend-estilos.md` e
 `docs/ux-contextos-visuais.md`.
