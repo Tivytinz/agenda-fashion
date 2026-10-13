@@ -177,7 +177,10 @@ describe("contexto da agenda sem reaproveitar horários de outra pessoa", () => 
     });
     mount("/painel/horarios", <ScheduleSettingsPage />);
     fireEvent.click(await screen.findByRole("button", { name: "Confirmar horários" }));
-    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith("/dashboard-dono/ativacao"));
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith(
+      "/dashboard-dono/ativacao",
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    ));
     await act(() => router.navigate("/painel/horarios?profissional=33"));
     await screen.findByText("Bia");
     await act(() => activation.resolve({

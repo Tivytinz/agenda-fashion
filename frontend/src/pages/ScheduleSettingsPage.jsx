@@ -171,6 +171,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
   const [config, setConfig] = useState(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const contextActiveRef = useRef(true);
+  const activationControllerRef = useRef(null);
   const [days, setDays] = useState([]);
   const [savedSchedule, setSavedSchedule] = useState("");
   const [expandedPauses, setExpandedPauses] = useState(() => new Set());
@@ -188,21 +189,25 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
     () => new URLSearchParams(location.search).get("onboarding") === "divulgacao",
     [location.search]
   );
-  const showActivationNextStep =
-    activationNextStep && shareOnboardingRequested;
   const hasChanges = Boolean(config && savedSchedule)
     && serializeSchedule(config, days) !== savedSchedule;
+  const showActivationNextStep =
+    activationNextStep && shareOnboardingRequested && !hasChanges;
 
   useEffect(() => {
     contextActiveRef.current = true;
-    return () => { contextActiveRef.current = false; };
+    return () => {
+      contextActiveRef.current = false;
+      activationControllerRef.current?.abort();
+    };
   }, []);
 
   useEffect(() => {
-    if (!shareOnboardingRequested && activationNextStep) {
-      setActivationNextStep(false);
+    if (!shareOnboardingRequested) {
+      if (activationNextStep) setActivationNextStep(false);
+      if (availabilityPending) setAvailabilityPending(false);
     }
-  }, [activationNextStep, shareOnboardingRequested]);
+  }, [activationNextStep, availabilityPending, shareOnboardingRequested]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -366,15 +371,21 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
     });
   }
 
-  const loadCanonicalActivationContext = useCallback(async () => {
+  const loadCanonicalActivationContext = useCallback(async (controller = new AbortController()) => {
+    activationControllerRef.current?.abort();
+    activationControllerRef.current = controller;
+    const isCurrent = () => contextActiveRef.current
+      && activationControllerRef.current === controller
+      && !controller.signal.aborted;
     setBusinessContextLoading(true);
 
     try {
       const dashboard =
         await apiRequest(
-          "/dashboard-dono/ativacao"
+          "/dashboard-dono/ativacao",
+          { signal: controller.signal }
         );
-      if (!contextActiveRef.current) return { activationState: null, canShare: false };
+      if (!isCurrent()) return null;
       const activationState =
         dashboard
           ?.proxima_acao_ativacao
@@ -413,9 +424,13 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
       return {
         activationState,
         canShare,
+        isCurrent,
       };
+    } catch (requestError) {
+      if (!isCurrent()) return null;
+      throw requestError;
     } finally {
-      if (contextActiveRef.current) setBusinessContextLoading(false);
+      if (isCurrent()) setBusinessContextLoading(false);
     }
   }, []);
 
@@ -426,18 +441,20 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
       || !shareOnboardingRequested
       || config?.origemHorarios !== "personalizado"
       || activationNextStep
+      || availabilityPending
+      || hasChanges
+      || saving
     ) {
       return undefined;
     }
 
     let active = true;
+    const controller = new AbortController();
 
-    loadCanonicalActivationContext()
-      .then(({
-        activationState,
-        canShare,
-      }) => {
-        if (!active) return;
+    loadCanonicalActivationContext(controller)
+      .then((activationContext) => {
+        if (!active || !activationContext?.isCurrent()) return;
+        const { activationState, canShare } = activationContext;
 
         if (
           activationState ===
@@ -464,7 +481,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
         navigate("/painel", { replace: true });
       })
       .catch(() => {
-        if (!active) return;
+        if (!active || controller.signal.aborted) return;
 
         // A URL de onboarding não deve afirmar uma missão sem confirmar
         // o estado canônico da ativação no backend. Em falha transitória,
@@ -480,14 +497,19 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
 
     return () => {
       active = false;
+      controller.abort();
+      if (activationControllerRef.current === controller) setBusinessContextLoading(false);
     };
   }, [
     activationNextStep,
+    availabilityPending,
     config?.origemHorarios,
     contextoAgenda,
+    hasChanges,
     loadCanonicalActivationContext,
     navigate,
     ownerTeamSchedule,
+    saving,
     shareOnboardingRequested
   ]);
 
@@ -567,6 +589,9 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
       return;
     }
 
+    // A leitura de restauração pertence à agenda anterior ao PUT.
+    activationControllerRef.current?.abort();
+    setBusinessContextLoading(false);
     setSaving(true);
     try {
       const body = {
@@ -658,7 +683,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
           return;
         }
 
-        if (!contextActiveRef.current) return;
+        if (!activationContext?.isCurrent()) return;
 
         if (
           activationContext
