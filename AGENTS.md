@@ -36,6 +36,16 @@ O AF deve gerar valor para os dois lados do marketplace:
 - clientes finais precisam encontrar oferta relevante, consultar disponibilidade
   real e agendar com poucos passos.
 
+## Princípios de produto e experiência
+
+**Simplicidade é o mais alto nível de sofisticação.** O AF deve reduzir esforço
+e tornar a próxima ação clara, preservando informações essenciais, controle,
+acessibilidade, segurança e confiabilidade dos agendamentos.
+
+A direção durável de produto está em `docs/principios-produto.md`. Consultar
+esses princípios ao propor funcionalidades, fluxos, comunicação e mudanças
+visuais, junto dos contratos canônicos e critérios de aceitação aplicáveis.
+
 ## Integração contínua e merge
 
 Pull requests não draft direcionados à `main` devem habilitar auto-merge por squash automaticamente. Os gates obrigatórios de CI e as regras de proteção da branch continuam sendo a condição de integração: o PR só entra na `main` depois de satisfazê-los. Falha ou cancelamento de check não deve ser contornado por merge forçado.
