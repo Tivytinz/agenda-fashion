@@ -40,8 +40,8 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("DashboardGrowthInsight", () => {
-  it("não aparece antes de existir oportunidade priorizada", () => {
-    const { container } = render(
+  it("orienta a rotina com pouca amostra sem inventar oportunidade", () => {
+    render(
       <MemoryRouter>
         <DashboardGrowthInsight
           insight={{
@@ -53,7 +53,97 @@ describe("DashboardGrowthInsight", () => {
       </MemoryRouter>
     );
 
-    expect(container.innerHTML).toBe("");
+    expect(screen.getByRole("heading", {
+      name: "Continue cuidando do seu negócio",
+    })).not.toBeNull();
+    expect(screen.getByRole("link", {
+      name: "Abrir agenda",
+    }).getAttribute("href")).toBe("/painel/agenda");
+    expect(screen.queryByLabelText("Evidências da oportunidade")).toBeNull();
+    expect(mocks.track).not.toHaveBeenCalled();
+    expect(mocks.apiRequest).not.toHaveBeenCalled();
+  });
+
+  it.each(["AGUARDANDO_ATIVACAO", "INDISPONIVEL", "SEM_OPORTUNIDADE_PRIORITARIA"])(
+    "não cria orientação genérica para %s",
+    (status) => {
+      const { container } = render(
+        <MemoryRouter>
+          <DashboardGrowthInsight insight={{ status }} businessId={11} />
+        </MemoryRouter>
+      );
+      expect(container.innerHTML).toBe("");
+      expect(mocks.track).not.toHaveBeenCalled();
+    }
+  );
+
+  it("orienta revisar horários sem oferecer divulgação ou Copilot", () => {
+    render(
+      <MemoryRouter>
+        <DashboardGrowthInsight
+          businessId={11}
+          insight={{
+            status: "OPORTUNIDADE_PRIORIZADA",
+            oportunidade_principal: {
+              codigo: "REVISAR_DISPONIBILIDADE",
+              categoria: "operacao",
+              titulo: "Revise os horários antes de divulgar",
+              mensagem: "Se a pausa for intencional, mantenha sua configuração.",
+              acao: {
+                tipo: "NAVEGAR",
+                rotulo: "Revisar horários",
+                destino: "/painel/horarios",
+              },
+            },
+          }}
+        />
+      </MemoryRouter>
+    );
+    expect(screen.getByRole("link", { name: "Revisar horários" }).getAttribute("href"))
+      .toBe("/painel/horarios");
+    expect(screen.queryByRole("button", { name: /Compartilhar|Criar texto/i })).toBeNull();
+    expect(mocks.apiRequest).not.toHaveBeenCalled();
+  });
+
+  it("não mostra divulgação de uma resposta antiga depois da revisão de horários", async () => {
+    let resolveCopy;
+    mocks.apiRequest.mockReturnValue(new Promise((resolve) => { resolveCopy = resolve; }));
+    const share = {
+      status: "OPORTUNIDADE_PRIORIZADA",
+      oportunidade_principal: {
+        codigo: "SERVICO_COM_TRACAO_CONCENTRADA",
+        categoria: "demanda",
+        titulo: "Divulgue seu perfil",
+        acao: { tipo: "COMPARTILHAR_PERFIL", rotulo: "Compartilhar perfil" },
+      },
+    };
+    const { rerender } = render(
+      <MemoryRouter><DashboardGrowthInsight insight={share} businessId={11} /></MemoryRouter>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "✨ Criar texto de divulgação" }));
+    rerender(
+      <MemoryRouter>
+        <DashboardGrowthInsight
+          businessId={11}
+          insight={{
+            status: "OPORTUNIDADE_PRIORIZADA",
+            oportunidade_principal: {
+              codigo: "REVISAR_DISPONIBILIDADE",
+              categoria: "operacao",
+              titulo: "Revise os horários antes de divulgar",
+              acao: { tipo: "NAVEGAR", rotulo: "Revisar horários", destino: "/painel/horarios" },
+            },
+          }}
+        />
+      </MemoryRouter>
+    );
+    resolveCopy({ fonte: "deterministic", titulo: "Divulgação anterior", texto: "Texto antigo" });
+    await waitFor(() => expect(mocks.track).toHaveBeenCalledWith(
+      "copilot_divulgacao_gerada", expect.anything()
+    ));
+    expect(screen.queryByLabelText("Texto de divulgação")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Compartilhar|Criar texto/i })).toBeNull();
+    expect(screen.getByRole("link", { name: "Revisar horários" })).not.toBeNull();
   });
 
   it("mostra evidências e mantém navegação em destino permitido", () => {

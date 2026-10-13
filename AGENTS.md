@@ -53,6 +53,12 @@ organização, constância e direção, com orientação prática para a próxim
 empreende. Essa direção orienta a evolução do produto; não comprova uma
 funcionalidade implementada nem garante crescimento ou faturamento.
 
+Após a ativação, ausência estrutural de disponibilidade agendável prioriza
+revisão de horários antes de divulgação, sem alterar publicação ou reabrir a
+ativação. Amostra insuficiente mantém orientação básica de rotina sem
+inventar oportunidades analíticas. Reservas não canceladas não são
+apresentadas como atendimentos realizados ou receita.
+
 ## Integração contínua e merge
 
 Pull requests não draft direcionados à `main` devem habilitar auto-merge por squash automaticamente. Os gates obrigatórios de CI e as regras de proteção da branch continuam sendo a condição de integração: o PR só entra na `main` depois de satisfazê-los. Falha ou cancelamento de check não deve ser contornado por merge forçado.

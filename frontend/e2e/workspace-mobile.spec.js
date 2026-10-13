@@ -255,6 +255,70 @@ test("próxima ação de ativação cabe no celular e mostra somente a missão a
   expect(diagnostics.scrollWidth).toBe(diagnostics.clientWidth);
 });
 
+for (const scenario of [
+  {
+    name: "pouca amostra",
+    title: "Continue cuidando do seu negócio",
+    action: "Abrir agenda",
+    destination: /\/painel\/agenda$/,
+    insight: { status: "DADOS_INSUFICIENTES", oportunidade_principal: null }
+  },
+  {
+    name: "sem disponibilidade",
+    title: "Revise os horários antes de divulgar",
+    action: "Revisar horários",
+    destination: /\/painel\/horarios$/,
+    insight: {
+      status: "OPORTUNIDADE_PRIORIZADA",
+      oportunidade_principal: {
+        codigo: "REVISAR_DISPONIBILIDADE",
+        categoria: "operacao",
+        titulo: "Revise os horários antes de divulgar",
+        mensagem: "Se a pausa for intencional, mantenha sua configuração.",
+        acao: { tipo: "NAVEGAR", rotulo: "Revisar horários", destino: "/painel/horarios" }
+      }
+    }
+  }
+]) {
+  test(`orientação pós-ativação com ${scenario.name} cabe no celular`, async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("session_active", "1"));
+    await page.route("**/minha-sessao", route => json(route, {
+      usuario: { id: 4, nome: "Ana", email: "ana@example.com" },
+      negocio: BUSINESS,
+      temNegocio: true,
+      administrador: null,
+      ehAdministrador: false
+    }));
+    await page.route("**/marketing/meta/config", route => json(route, { enabled: false }));
+    await page.route("**/marketing/google/config", route => json(route, { enabled: false }));
+    await page.route("**/minha-assinatura", route => json(route, {}));
+    await page.route("**/conta", route => json(route, {
+      usuario: { aceita_lembretes_whatsapp: true, aceita_alertas_operacionais_whatsapp: true }
+    }));
+    await page.route("**/dashboard-dono/origem-clientes?periodo=7dias", route => json(route, { resumo: {}, origens: [] }));
+    await page.route("**/dashboard-dono?periodo=7dias", route => json(route, {
+      resumo: {}, performance: {}, ranking_servicos: [],
+      negocio: { negocio_id: 11, nome: BUSINESS.nome, slug: BUSINESS.slug },
+      ativacao: { negocio_publicado: true, primeiro_agendamento_recebido: true },
+      proxima_acao_ativacao: { estado: "ATIVADO", concluido: true },
+      inteligencia_crescimento: scenario.insight
+    }));
+    await page.goto("/painel");
+    const guidance = page.getByRole("region", { name: scenario.title });
+    await expect(guidance).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Ativação concluída" })).toHaveCount(0);
+    await expect(guidance.getByRole("button", { name: /Compartilhar|Criar texto/i })).toHaveCount(0);
+    const action = guidance.getByRole("link", { name: scenario.action });
+    await action.scrollIntoViewIfNeeded();
+    await action.focus();
+    await expect(action).toBeFocused();
+    const diagnostics = await horizontalOverflowDiagnostics(page);
+    expect(diagnostics.scrollWidth).toBe(diagnostics.clientWidth);
+    await action.click();
+    await expect(page).toHaveURL(scenario.destination);
+  });
+}
+
 test("ProfessionalShell mantém rotina curta, foco visível e sem overflow no celular", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("session_active", "1");

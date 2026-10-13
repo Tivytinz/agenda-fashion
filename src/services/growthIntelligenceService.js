@@ -63,6 +63,36 @@ function analyzeGrowthIntelligence({
     };
   }
 
+  // This operational fact does not depend on marketing telemetry.
+  if (ativacao.possui_disponibilidade_agendavel === false) {
+    const oportunidade = {
+      codigo: "REVISAR_DISPONIBILIDADE",
+      categoria: "operacao",
+      titulo: "Revise os horários antes de divulgar",
+      mensagem:
+        "Seu perfil está publicado, mas a disponibilidade atual não permite " +
+        "novas reservas. Se quiser voltar a receber agendamentos, revise os " +
+        "horários. Se a pausa for intencional, mantenha sua configuração.",
+      impacto: 1,
+      confianca: 1,
+      urgencia: 1,
+      score: 1,
+      evidencias: [],
+      acao: {
+        tipo: "NAVEGAR",
+        rotulo: "Revisar horários",
+        destino: "/painel/horarios",
+      },
+    };
+
+    return {
+      status: GROWTH_INTELLIGENCE_STATUS.OPORTUNIDADE_PRIORIZADA,
+      ...period,
+      oportunidade_principal: oportunidade,
+      oportunidades: [oportunidade],
+    };
+  }
+
   // A recommendation derived from missing telemetry would treat a failed read as zero.
   if (dashboard?.qualidade_dados?.desempenho_perfil === "indisponivel" ||
       dashboard?.qualidade_dados?.favoritos === "indisponivel") {

@@ -14,6 +14,11 @@ A sequência de produto acompanha o valor real do AF: estruturar o negócio, pub
 
 Personalizar horários é importante para a qualidade operacional, mas não é etapa obrigatória do onboarding nem gate de publicação. O AF inicializa uma disponibilidade sugerida e a profissional pode ajustá-la depois.
 
+Com pouca amostra após a ativação, o painel mantém orientação básica de rotina,
+sem recriar o checklist inicial ou inventar uma análise de desempenho.
+Ausência estrutural de disponibilidade tem precedência sobre divulgação,
+preservando a decisão da dona de manter a agenda fechada.
+
 ## Catálogo e promessa de disponibilidade
 
 A experiência pública não deve prometer um horário específico sem validação real de disponibilidade pelo backend.
