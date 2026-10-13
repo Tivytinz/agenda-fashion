@@ -735,6 +735,10 @@ Em Meu negócio, salvamento, foto, publicação e encerramento são mutuamente
 exclusivos. Ao sair da criação ou edição, respostas antigas não atualizam a
 interface nem a sessão e não redirecionam a dona. A leitura inicial é cancelada
 ao sair; uma escrita já enviada pode concluir no backend.
+Em Horários, a restauração da divulgação preserva o editor durante alterações
+não salvas e salvamento. Editar ou salvar invalida leituras antigas de ativação;
+somente a consulta atual pode atualizar o link público e a missão. Desfazer o
+rascunho revalida a missão sem exigir um PUT.
 
 Detalhes técnicos: `docs/arquitetura.md`, `docs/frontend-estilos.md` e
 `docs/ux-contextos-visuais.md`.
