@@ -31,6 +31,7 @@ ser mantida como duas interpretações válidas.
 
 | Domínio | Documento principal | Complementos |
 | --- | --- | --- |
+| Princípios de produto e experiência | [principios-produto.md](./principios-produto.md) | [ux-contextos-visuais.md](./ux-contextos-visuais.md), [ativacao-profissional-ux.md](./ativacao-profissional-ux.md) |
 | Arquitetura | [arquitetura.md](./arquitetura.md) | [backend-arquitetura.md](./backend-arquitetura.md), [contexto-negocio.md](./contexto-negocio.md), [qualidade-codigo.md](./qualidade-codigo.md) |
 | Ativação profissional | [ativacao-profissional-ux.md](./ativacao-profissional-ux.md) | [ativacao-proxima-acao.md](./ativacao-proxima-acao.md), [convites-profissionais.md](./convites-profissionais.md) |
 | Agendamentos | [ciclo-atendimento.md](./ciclo-atendimento.md) | [agendamento-integridade.md](./agendamento-integridade.md), [confiabilidade-compromissos-agenda.md](./confiabilidade-compromissos-agenda.md), [snapshots-historicos-agendamento.md](./snapshots-historicos-agendamento.md), [cancelamento-agendamento-visitante.md](./cancelamento-agendamento-visitante.md) |
@@ -72,6 +73,10 @@ ser mantida como duas interpretações válidas.
 
 ### Canônico
 
+- [principios-produto.md](./principios-produto.md): direção durável de produto
+  e experiência; simplicidade, clareza, elegância, confiança, acessibilidade,
+  valor, automação com controle, evolução por resultados reais, empreendedorismo
+  feminino e orientação contínua dos negócios para o crescimento.
 - [ativacao-profissional-ux.md](./ativacao-profissional-ux.md): jornada de
   ativação da profissional e do negócio.
 - [planos.md](./planos.md): catálogo, limites, downgrade e princípios de
