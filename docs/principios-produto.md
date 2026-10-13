@@ -115,6 +115,12 @@ primeiro agendamento, pagamento e retenção são fatos diferentes.
 Uma solução mais simples de entender e manter é preferível quando entrega o
 mesmo resultado com segurança.
 
+## 9. O limite é o sucesso
+
+O AF deve evoluir com ambição e persistência, orientado pelo sucesso de quem o
+utiliza: clientes que conseguem agendar com facilidade e profissionais e
+negócios que organizam melhor a rotina e crescem com resultados reais.
+
 ## Perguntas para revisar uma mudança
 
 - A pessoa entende a tarefa e identifica a próxima ação?
