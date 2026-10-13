@@ -44,7 +44,7 @@ ser mantida como duas interpretações válidas.
 | Mídia paga | [google-ads-real-campaign-link.md](./google-ads-real-campaign-link.md) | [meta-ads-real-campaign-link.md](./meta-ads-real-campaign-link.md), [marketing-tiktok-ads.md](./marketing-tiktok-ads.md), [marketing-pinterest-ads.md](./marketing-pinterest-ads.md) |
 | WhatsApp | [whatsapp-automatico.md](./whatsapp-automatico.md) | [whatsapp.env.example](./whatsapp.env.example) |
 | IA e ML | [copilot-v1.md](./copilot-v1.md) | [arquitetura-copilot.md](./arquitetura-copilot.md), [machine-learning-no-show.md](./machine-learning-no-show.md) |
-| Segurança e privacidade | [session-security.md](./session-security.md) | [frontend-seguranca.md](./frontend-seguranca.md), [dependency-security.md](./dependency-security.md), [encerramento-privacidade.md](./encerramento-privacidade.md) |
+| Segurança e privacidade | [session-security.md](./session-security.md) | [frontend-seguranca.md](./frontend-seguranca.md), [dependency-security.md](./dependency-security.md), [encerramento-privacidade.md](./encerramento-privacidade.md), [auditoria-rbac.md](./auditoria-rbac.md) |
 | Deploy e continuidade | [deploy-seguro.md](./deploy-seguro.md) | [backup-recovery.md](./backup-recovery.md), [performance-qa.md](./performance-qa.md) |
 | Conteúdo | [estrategia-conteudo.md](./estrategia-conteudo.md) | [runway-criativos.md](./runway-criativos.md) |
 
@@ -250,6 +250,8 @@ booking nem colocado no caminho crítico do agendamento.
 - [dependency-security.md](./dependency-security.md): dependências e auditoria.
 - [encerramento-privacidade.md](./encerramento-privacidade.md): encerramento
   lógico, arquivamento e retenção de dados operacionais.
+- [auditoria-rbac.md](./auditoria-rbac.md): evidência da auditoria de papéis,
+  vínculos, propriedade de recursos, matriz de acesso e pendências de autorização.
 
 As regras transversais obrigatórias continuam resumidas em `AGENTS.md`.
 
