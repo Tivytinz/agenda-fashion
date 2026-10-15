@@ -61,6 +61,7 @@ export function AppHeader() {
   const operationalArea =
     adminArea ||
     businessArea ||
+    location.pathname === "/reservas-existentes" ||
     (
       location.pathname === "/conta" &&
       session.ehAdministrador
@@ -264,6 +265,10 @@ export function AppHeader() {
                   <NavLink to={getBusinessWorkspacePath(session)}>
                     {workspaceLabel}
                   </NavLink>
+                )}
+
+                {session.temReservasProfissionaisRestritas && (
+                  <NavLink to="/reservas-existentes">Reservas existentes</NavLink>
                 )}
 
                 <button

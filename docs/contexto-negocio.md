@@ -22,6 +22,12 @@ autorização e UX de seleção de negócio.
 - `negocio`: contexto principal, preservado para compatibilidade;
 - `vinculos`: todos os vínculos ativos autorizados da conta.
 
+RN50 acrescenta `temReservasProfissionaisRestritas` como sinal de navegação
+para `/reservas-existentes`. Isso não acrescenta vínculos inativos a `vinculos`,
+não muda o contexto principal e não concede workspace. A área restrita resolve
+cada reserva no backend, sem aceitar negócio-alvo como autorização. A matriz e
+os critérios de revogação ficam em [ciclo-atendimento.md](./ciclo-atendimento.md).
+
 O contexto principal não substitui o contexto explicitamente indicado pela
 rota. No frontend:
 

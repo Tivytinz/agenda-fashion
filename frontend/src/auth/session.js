@@ -106,6 +106,7 @@ export function getBusinessWorkspacePath(session, preferredRole = "") {
   const business = preferred || getBusinessContext(session);
 
   if (!business) {
+    if (session?.temReservasProfissionaisRestritas) return "/reservas-existentes";
     return "/criar-negocio";
   }
 
@@ -166,7 +167,8 @@ export function getAuthDestination(session, {
 
   if (
     session?.ehAdministrador ||
-    session?.temNegocio
+    session?.temNegocio ||
+    session?.temReservasProfissionaisRestritas
   ) {
     return getWorkspacePath(session);
   }

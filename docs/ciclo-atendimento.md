@@ -96,10 +96,63 @@ Dentro do contexto de negócio resolvido pelo backend:
 - a dona pode iniciar ou registrar falta nos atendimentos do negócio quando a regra temporal permitir;
 - `realizado` só pode ser persistido pela profissional responsável pelo booking, inclusive quando a própria dona é a profissional atribuída;
 - a profissional pode atualizar apenas atendimentos atribuídos a ela;
-- vínculos inativos ou outro negócio não autorizam a operação;
+- vínculos inativos não autorizam a operação geral; a exceção restrita da RN50
+  permite somente `realizado` ou `falta` nas próprias reservas existentes;
 - o agendamento é bloqueado durante a transação para evitar corrida com outra alteração de estado.
 
 Nos endpoints de agenda compartilhados entre os workspaces de dona e profissional, o frontend informa o papel pretendido por `X-AF-Contexto` e o backend resolve somente um vínculo ativo compatível. Esse seletor não substitui autorização nem permite apontar diretamente um `negocio_id` arbitrário. Este fluxo não deve ser usado para ampliar acesso entre negócios.
+
+### RN50 — Reservas existentes de vínculo inativo
+
+`INATIVO` preserva o vínculo e o histórico, sem consumir vaga ativa do plano nem
+permitir novos agendamentos. A decisão de produto permite consultar reservas
+próprias existentes e registrar `realizado` ou `falta`. Cancelamento e
+reagendamento ficam com a dona durante a inatividade, respeitando as permissões
+normais dela. A regra de que somente a responsável pode concluir `realizado`
+permanece válida, inclusive para a dona.
+
+| Ação com vínculo profissional inativo | Permissão |
+| --- | --- |
+| Consultar próprias reservas e resultados | Permitida na área restrita |
+| Registrar realizado / falta | Permitida conforme relógio, responsável e estado do booking |
+| Iniciar atendimento, cancelar ou reagendar | Negada |
+| Configurar horários, criar bloqueios ou receber novas reservas | Negada |
+| Serviços, equipe, assinatura e agenda geral | Negada |
+
+`GET /reservas-profissionais-existentes?pagina=1` lista somente bookings da
+pessoa autenticada em vínculos profissionais inativos preservados, em negócios
+ativos e não arquivados. Retorna até 20 itens e `tem_proxima`; não aceita uma
+identidade ou negócio do navegador para conceder acesso. Cada item identifica
+seu negócio, inclusive quando a pessoa já possui um vínculo ativo em outro
+local. A consulta não devolve telefone, e-mail ou observações da cliente.
+
+`PATCH /agendamentos/:id/atendimento` admite a exceção somente para `realizado`
+e `falta`. O service reconsulta e bloqueia o booking e o vínculo na transação
+antes de persistir o resultado e o fato analítico. Repetições do mesmo resultado
+continuam idempotentes; estados terminais não são reescritos.
+
+O predicado compartilhado dos repositories exige vínculo `profissional` inativo,
+conta ativa e não encerrada, negócio ativo e não arquivado, mesmo negócio e
+responsável. A criação do booking deve ser igual ou posterior à criação do
+vínculo preservado: remover e recriar um vínculo não recupera reservas de uma
+relação anterior. São aceitos os motivos atuais de plano e o motivo nulo dos
+vínculos legados; motivos futuros exigem revisão explícita. A espera de vaga
+sem reservas não concede acesso a outros dados do negócio.
+
+Remoção do vínculo, encerramento da identidade e arquivamento do negócio
+revogam essa consulta e a escrita. Reativação devolve o fluxo operacional normal.
+Os endpoints de cancelamento/reagendamento, horários e bloqueios mantêm seus
+guards de vínculo ativo, mesmo quando o payload tenta solicitar a exceção.
+
+No frontend, `/reservas-existentes` exige autenticação e fica fora do workspace
+ativo. A sessão sinaliza `temReservasProfissionaisRestritas` para mostrar a
+entrada no menu; a flag não concede autorização. Se não houver outro workspace,
+o login comum pode levar diretamente a essa área. `vinculos`, `negocio` e
+`temNegocio` continuam representando somente os contextos ativos.
+
+Regressões: `tests/rn50-reservas-restritas.test.js`,
+`tests/rn50-reservas-restritas.integration.test.js`, testes de sessão e
+`frontend/e2e/restricted-professional-reservations.spec.js`.
 
 ## Regra temporal
 

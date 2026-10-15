@@ -488,6 +488,7 @@ const rotasReactNoindex = new Set([
   reactRoutes.confirm,
   reactRoutes.success,
   reactRoutes.myAgenda,
+  reactRoutes.restrictedProfessionalReservations,
   reactRoutes.favorites,
   reactRoutes.createBusiness,
   reactRoutes.account,

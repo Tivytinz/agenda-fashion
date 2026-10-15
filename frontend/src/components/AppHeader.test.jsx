@@ -50,6 +50,20 @@ beforeEach(() => {
   });
 });
 
+it("RN50: oferece reservas existentes para conta sem vínculo ativo", () => {
+  useSession.mockReturnValue({ authenticated: true, temNegocio: false, temReservasProfissionaisRestritas: true, usuario: { nome: "Ana" }, logout });
+  renderHeader("/");
+  expect(screen.getByRole("link", { name: "Reservas existentes" }).getAttribute("href")).toBe("/reservas-existentes");
+  expect(screen.queryByRole("link", { name: "Ir para área de trabalho" })).toBeNull();
+});
+
+it("RN50: a área restrita mantém o menu da conta sem busca de catálogo", () => {
+  useSession.mockReturnValue({ authenticated: true, temNegocio: false, temReservasProfissionaisRestritas: true, usuario: { nome: "Ana" }, logout });
+  renderHeader("/reservas-existentes");
+  expect(screen.queryByRole("search")).toBeNull();
+  expect(screen.getByRole("link", { name: "Reservas existentes" })).not.toBeNull();
+});
+
 afterEach(cleanup);
 
 describe("cabeçalho por contexto", () => {

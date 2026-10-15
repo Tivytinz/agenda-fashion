@@ -1,4 +1,5 @@
 const db = require("../db/db");
+const { VINCULO_RESTRITO_SQL } = require("./reservasProfissionaisRestritasSql");
 
 async function listarAgendamentosCliente(clienteId) {
   const result = await db.query(
@@ -99,6 +100,7 @@ async function buscarAgendamentoOperacionalParaAtualizar({
   agendamentoId,
   negocioId,
   usuarioId,
+  statusDestino = "",
   executor = db,
 }) {
   const result = await executor.query(
@@ -115,6 +117,7 @@ async function buscarAgendamentoOperacionalParaAtualizar({
         COALESCE(a.duracao_minutos, s.duracao_minutos, 0)::int AS duracao_minutos,
         COALESCE(NULLIF(n.fuso_horario, ''), 'America/Sao_Paulo') AS fuso_horario,
         un.papel AS papel_executor,
+        un.ativo AS vinculo_ativo,
         a.atendimento_iniciado_em,
         a.atendimento_iniciado_por,
         a.status_atendimento_em,
@@ -126,18 +129,24 @@ async function buscarAgendamentoOperacionalParaAtualizar({
       INNER JOIN usuarios_negocios un
         ON un.negocio_id = a.negocio_id
         AND un.usuario_id = $3
-        AND un.ativo = TRUE
-      INNER JOIN usuarios executor_usuario
-        ON executor_usuario.id = un.usuario_id
-        AND executor_usuario.ativo = TRUE
+      INNER JOIN usuarios u
+        ON u.id = un.usuario_id
+        AND u.ativo = TRUE
       LEFT JOIN servicos_negocio s
         ON s.id = a.servico_id
       WHERE a.id = $1
         AND a.negocio_id = $2
+        AND (
+          un.ativo = TRUE
+          OR (
+            $4::text IN ('realizado', 'falta')
+            AND (${VINCULO_RESTRITO_SQL})
+          )
+        )
       LIMIT 1
       FOR UPDATE OF a, un
     `,
-    [agendamentoId, negocioId, usuarioId]
+    [agendamentoId, negocioId, usuarioId, statusDestino]
   );
 
   return result.rows[0] || null;

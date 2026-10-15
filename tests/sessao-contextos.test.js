@@ -60,6 +60,16 @@ describe("sessão com múltiplos contextos", () => {
     sessaoRepository.buscarAdministradorAtivoPorUsuarioId.mockResolvedValue(null);
   });
 
+  test("expõe acesso restrito sem conceder vínculo ativo nem workspace", async () => {
+    sessaoRepository.buscarUsuarioPorId.mockResolvedValue({ ...usuarioAtivo(), tem_reservas_profissionais_restritas: true });
+    sessaoRepository.buscarVinculosAtivosPorUsuarioId.mockResolvedValue([]);
+    const resultado = await sessaoService.obterMinhaSessao(7);
+    expect(resultado.temReservasProfissionaisRestritas).toBe(true);
+    expect(resultado.temNegocio).toBe(false);
+    expect(resultado.negocio).toBeNull();
+    expect(resultado.vinculos).toEqual([]);
+  });
+
   test("mantém negócio principal por compatibilidade e expõe todos os vínculos", async () => {
     sessaoRepository.buscarVinculosAtivosPorUsuarioId.mockResolvedValue([
       vinculo({ negocioId: 10, papel: "dono", nome: "Negócio próprio" }),

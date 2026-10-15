@@ -30,6 +30,7 @@ const SIGNED_OUT_STATE = {
   negocioPrincipal: null,
   vinculos: [],
   temNegocio: false,
+  temReservasProfissionaisRestritas: false,
   administrador: null,
   ehAdministrador: false
 };
@@ -53,6 +54,7 @@ export function SessionProvider({ children }) {
       negocioPrincipal: null,
       vinculos: [],
       temNegocio: false,
+      temReservasProfissionaisRestritas: false,
       administrador: null,
       ehAdministrador: false
     };
@@ -137,6 +139,7 @@ export function SessionProvider({ children }) {
         negocioPrincipal: result.negocio || vinculos[0] || null,
         vinculos,
         temNegocio: vinculos.length > 0 || Boolean(result.temNegocio),
+        temReservasProfissionaisRestritas: Boolean(result.temReservasProfissionaisRestritas),
         administrador: result.administrador || null,
         ehAdministrador: Boolean(result.ehAdministrador)
       };

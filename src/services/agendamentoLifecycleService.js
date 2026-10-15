@@ -348,6 +348,7 @@ async function atualizarStatusAtendimento({
           agendamentoId: agendamentoIdNormalizado,
           negocioId: negocioIdNormalizado,
           usuarioId: usuarioIdNormalizado,
+          statusDestino,
           executor: client,
         });
 
@@ -356,6 +357,13 @@ async function atualizarStatusAtendimento({
         "Agendamento não encontrado neste negócio.",
         404
       );
+    }
+
+    if (
+      agendamento.vinculo_ativo === false &&
+      !["realizado", "falta"].includes(statusDestino)
+    ) {
+      throw criarErro("O vínculo inativo permite apenas registrar realizado ou falta.", 403);
     }
 
     if (
