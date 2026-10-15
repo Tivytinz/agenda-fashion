@@ -1,3 +1,4 @@
+// Medição de baseline da main para comparar o Performance QA da RN50.
 import {
   lazy,
   Suspense,
