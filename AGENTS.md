@@ -118,6 +118,8 @@ a diretiva `noindex`. Áreas operacionais e URLs sensíveis sem valor para busca
 podem continuar bloqueadas de rastreamento, mantendo autorização real no
 backend como controle de segurança.
 
+O perfil público pode embutir no HTML um bootstrap inicial para reduzir o caminho crítico de renderização, mas esse payload deve ser montado por DTO/whitelist explícita de campos públicos e serializado com escape seguro para contexto HTML. O bootstrap deve incluir os dados necessários para renderizar negócio, serviços e profissionais sem estado parcial; a revalidação posterior não pode apagar conteúdo válido já exibido por falha transitória. Validações autoritativas de disponibilidade, plano, autorização e criação de agendamento permanecem no backend e nunca podem depender desse bootstrap.
+
 ## Entidades e contextos
 
 Não tratar como equivalentes:
