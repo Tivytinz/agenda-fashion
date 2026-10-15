@@ -1,4 +1,5 @@
 const db = require("../db/db");
+const { VINCULO_RESTRITO_SQL } = require("./reservasProfissionaisRestritasSql");
 
 async function buscarVinculoProfissionalAtivo(
   usuarioId,
@@ -33,6 +34,7 @@ async function buscarVinculoProfissionalAtivo(
 async function buscarVinculoOperacionalDoAgendamento({
   agendamentoId,
   usuarioId,
+  permitirInativo = false,
   executor = db,
 }) {
   const result = await executor.query(
@@ -47,14 +49,17 @@ async function buscarVinculoOperacionalDoAgendamento({
       INNER JOIN usuarios_negocios un
         ON un.negocio_id = a.negocio_id
         AND un.usuario_id = $2
-        AND un.ativo = TRUE
       INNER JOIN usuarios u
         ON u.id = un.usuario_id
         AND u.ativo = TRUE
       WHERE a.id = $1
+        AND (
+          un.ativo = TRUE
+          OR ($3::boolean AND (${VINCULO_RESTRITO_SQL}))
+        )
       LIMIT 1
     `,
-    [agendamentoId, usuarioId]
+    [agendamentoId, usuarioId, permitirInativo]
   );
 
   return result.rows[0] || null;

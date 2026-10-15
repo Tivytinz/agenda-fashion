@@ -46,5 +46,6 @@
   "guestBookingAccess": "/agendamento-visitante/:id",
   "professionalAccount": "/profissional/conta",
   "professionalInvitesWorkspace": "/profissional/convites",
-  "clientAccount": "/cliente/conta"
+  "clientAccount": "/cliente/conta",
+  "restrictedProfessionalReservations": "/reservas-existentes"
 }

@@ -3,6 +3,23 @@
 **Data:** 13/10/2026. **Base auditada:** `b20ed7509e4a7f892607af302a163a5f10012f46`.
 **Tipo documental:** evidência de auditoria do backend.
 
+**Evolução RN50 (15/10/2026):** a implementação preparada após esta auditoria
+adiciona a área restrita de reservas existentes e permite somente consulta,
+`realizado` e `falta` para a responsável com vínculo inativo preservado.
+Cancelamento e reagendamento ficam com a dona. A regra atual e os critérios de
+revogação estão em [ciclo-atendimento.md](./ciclo-atendimento.md#rn50--reservas-existentes-de-vínculo-inativo).
+Os achados e números abaixo continuam representando a base auditada em 13/10,
+não uma nova certificação da aplicação nem uma confirmação de deploy.
+
+Validação local da evolução RN50: lint e build aprovados; 698 testes frontend,
+123 testes backend com doubles e 20 cenários WebKit com APIs simuladas passaram.
+As 114 migrations foram aplicadas sem alteração em PostgreSQL 18.6 embarcado
+(PGlite, instalado somente no harness externo ao produto); nele passaram 10
+cenários novos da RN50 e duas regressões existentes de lifecycle/autorização.
+Essa execução exercita o SQL e as transações, mas não substitui o CI com
+PostgreSQL servidor nem valida concorrência entre conexões independentes.
+Safari nativo e deploy não fazem parte dessa evidência local.
+
 As regras de identidade, contexto e sessão continuam em
 [arquitetura.md](./arquitetura.md), [contexto-negocio.md](./contexto-negocio.md)
 e [session-security.md](./session-security.md). Este relatório registra a
@@ -143,7 +160,9 @@ administrativa aberta. A revalidação do administrador está coberta por
 ### RBAC-01 — Permissões mínimas de profissional inativa não estão implementadas
 
 **Prioridade:** P2. **Categoria:** divergência funcional de autorização.
-**Referência:** RN50. **Status:** confirmada no seletor de acesso, sem correção nesta auditoria.
+**Referência:** RN50. **Status na base auditada:** confirmada no seletor de acesso,
+sem correção naquela auditoria. A evolução posterior está registrada no início
+deste documento.
 
 RN50 prevê que a profissional inativa preserve histórico e permissões mínimas
 necessárias às reservas existentes. Os controles atuais de leitura de agenda e

@@ -254,6 +254,9 @@ async function obterMinhaSessao(
     temNegocio:
       vinculos.length > 0,
 
+    temReservasProfissionaisRestritas:
+      usuario.tem_reservas_profissionais_restritas === true,
+
     negocio,
 
     vinculos,

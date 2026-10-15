@@ -78,7 +78,7 @@ describe("contexto explícito da agenda profissional", () => {
     expect(sql).toContain("un.negocio_id = a.negocio_id");
     expect(sql).toContain("un.usuario_id = $2");
     expect(sql).toContain("WHERE a.id = $1");
-    expect(parametros).toEqual([91, 7]);
+    expect(parametros).toEqual([91, 7, false]);
   });
 
   test("usa negocio validado como parâmetro para decidir quais detalhes podem ser expostos", async () => {

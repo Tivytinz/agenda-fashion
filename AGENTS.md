@@ -474,6 +474,19 @@ começando pelas ativações mais recentes. Esses vínculos usam
 `motivo_inatividade = 'excedente_limite_plano'`; `ativado_em` registra a
 ativação mais recente para manter a ordem de downgrade determinística.
 
+RN50 preserva acesso restrito às próprias reservas existentes de um vínculo
+profissional inativo. A profissional pode consultar essas reservas e registrar
+somente `realizado` ou `falta`, respeitando as regras temporais, os estados
+terminais e a idempotência do lifecycle. Cancelamento e reagendamento ficam com
+a dona enquanto o vínculo estiver inativo. A exceção não libera início de
+atendimento, novas reservas, horários, bloqueios, serviços, equipe ou assinatura.
+Conta desativada, negócio arquivado e vínculo removido não recebem essa exceção;
+um vínculo recriado não recupera reservas anteriores à sua criação. A sessão
+expõe `temReservasProfissionaisRestritas` sem adicionar vínculos inativos a
+`vinculos` ou alterar `temNegocio`. A entrada é `/reservas-existentes`, separada
+do workspace ativo, e cada consulta/escrita revalida a autorização no backend.
+Detalhes e matriz: `docs/ciclo-atendimento.md`.
+
 As oportunidades de upgrade dentro da área da dona são **contextuais**, não
 publicidade permanente. O backend de assinatura resolve de forma canônica o
 próximo tier pela ordem `inicial → autonoma → studio → salao` e entrega ao
