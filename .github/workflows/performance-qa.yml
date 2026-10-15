@@ -45,10 +45,32 @@ jobs:
   performance:
     name: Performance gate
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: agenda_fashion_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d agenda_fashion_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     env:
-      PERF_TARGET_URL: ${{ github.event.inputs.target_url || 'https://agendafashion.com.br' }}
+      PERF_TARGET_URL: http://127.0.0.1:4173
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/agenda_fashion_test
+      JWT_SECRET: ci-jwt-secret-with-at-least-32-characters
+      ASAAS_API_URL: https://api-sandbox.asaas.com/v3
+      ASAAS_API_KEY: ci-asaas-key
+      ASAAS_WEBHOOK_TOKEN: ci-webhook-token-with-at-least-32-characters
+      WHATSAPP_NOTIFICATIONS_ENABLED: "false"
+      BACKGROUND_WORKERS_ENABLED: "false"
       PERF_API_SAMPLES: "30"
       PERF_API_CONCURRENCY: "3"
       PERF_API_P95_MS: "2000"
@@ -64,21 +86,26 @@ jobs:
         with:
           node-version: 22
 
-      - name: Wait for target readiness
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Wait for production API readiness
         shell: bash
+        env:
+          PERF_TARGET_URL: ${{ github.event.inputs.target_url || 'https://agendafashion.com.br' }}
         run: |
           for attempt in {1..18}; do
-            if curl --fail --silent --show-error \
-              --max-time 10 \
-              "${PERF_TARGET_URL%/}/health/ready" >/dev/null; then
+            if curl --fail --silent --show-error --max-time 10 "${PERF_TARGET_URL%/}/health/ready" >/dev/null; then
               exit 0
             fi
             sleep 10
           done
-          echo "Ambiente alvo não ficou pronto dentro da janela de QA." >&2
+          echo "API de produção não ficou pronta para medição de p95." >&2
           exit 1
 
-      - name: Measure API p95
+      - name: Measure production API p95
+        env:
+          PERF_TARGET_URL: ${{ github.event.inputs.target_url || 'https://agendafashion.com.br' }}
         run: node scripts/performance-api-p95.mjs
 
       - name: Verify Lighthouse runtime
@@ -94,27 +121,29 @@ jobs:
       - name: Build branch frontend
         run: npm --prefix frontend run build
 
-      - name: Start branch preview
-        working-directory: frontend
+      - name: Apply test migrations
+        run: npm run migrate:test
+
+      - name: Seed isolated performance profile
+        run: node scripts/seed-performance-ci.js
+
+      - name: Start branch Express application
         shell: bash
-        env:
-          PERF_API_PROXY_TARGET: https://agendafashion.com.br
         run: |
-          npx vite preview --host 127.0.0.1 --port 4173 > /tmp/af-perf-preview.log 2>&1 &
+          PORT=4173 node scripts/start-performance-ci.js > /tmp/af-perf-preview.log 2>&1 &
           echo $! > /tmp/af-perf-preview.pid
-          for attempt in {1..20}; do
-            if curl --fail --silent --show-error http://127.0.0.1:4173/ >/dev/null; then
-              exit 0
-            fi
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/health/ready >/dev/null; then break; fi
             sleep 1
           done
-          cat /tmp/af-perf-preview.log >&2
-          exit 1
+          curl --fail http://127.0.0.1:4173/health/ready >/dev/null || { cat /tmp/af-perf-preview.log >&2; exit 1; }
+          curl --fail --silent http://127.0.0.1:4173/negocio/performance-ci | grep -q 'af-profile-initial-data' || { cat /tmp/af-perf-preview.log >&2; exit 1; }
 
       - name: Measure branch mobile LCP
         working-directory: frontend
         env:
           PERF_TARGET_URL: http://127.0.0.1:4173
+          PERF_PROFILE_SLUG: performance-ci
         run: xvfb-run -a node scripts/performance-lcp.mjs
 
       - name: Stop branch preview
