@@ -230,8 +230,7 @@ async function main() {
     );
   }
 
-  const slug =
-    await descobrirSlug();
+  const slug = process.env.PERF_PROFILE_SLUG || await descobrirSlug();
 
   const pages = [
     {
