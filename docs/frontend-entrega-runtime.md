@@ -50,6 +50,7 @@ Servidor:
 - Node.js 22;
 - Express 5;
 - `express.static`;
+- compressão negociada de assets públicos em `/assets`;
 - Helmet;
 - rotas server-side específicas para SEO;
 - fallback controlado da SPA.
@@ -61,6 +62,13 @@ Deploy:
 - readiness em `/health/ready`.
 
 ## 3. Build de produção
+
+O Express negocia compressão nos arquivos públicos de `/assets` por
+`Accept-Encoding`, mantendo `Vary: Accept-Encoding` e a política de cache já
+definida. JS e CSS deixam de depender de compressão em um proxy externo para
+ter entrega compactada. Imagens já compactadas seguem o filtro padrão de MIME.
+Documentos HTML, APIs autenticadas, cookies e respostas de sessão não passam
+por esse middleware. O CI mede o mesmo caminho de entrega da aplicação.
 
 O script frontend é:
 
