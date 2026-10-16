@@ -2,6 +2,8 @@ function obterContentSecurityPolicy() {
   return {
     useDefaults: true,
     directives: {
+      // O servidor de testes usa HTTP local; produção mantém o upgrade para HTTPS.
+      "upgrade-insecure-requests": process.env.NODE_ENV === "test" ? null : [],
       "default-src": ["'self'"],
       "base-uri": ["'self'"],
       "connect-src": [
