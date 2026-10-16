@@ -130,9 +130,18 @@ function montarDescricao(negocio, servico) {
     );
   }
 
+  if (textoSeguro(negocio.descricao)) {
+    return textoSeguro(negocio.descricao, 180);
+  }
+
+  const local = [negocio.bairro, negocio.cidade, negocio.estado]
+    .map((parte) => textoSeguro(parte, 70))
+    .filter(Boolean)
+    .join(", ");
+  const complementoLocal = local ? ` em ${local}` : "";
+
   return textoSeguro(
-    negocio.descricao ||
-      `Conheça os serviços da ${negocio.nome} e agende seu horário online.`,
+    `Conheça os serviços da ${negocio.nome}${complementoLocal} e agende seu horário online pelo Agenda Fashion.`,
     180
   );
 }
