@@ -347,7 +347,13 @@ function injetarDadosIniciaisPerfil(html, dados) {
     .replace(/>/g, "\\u003e")
     .replace(/&/g, "\\u0026");
 
-  return String(html).replace(
+  // O perfil não usa o hero da home; seu preload concorre com JS/CSS críticos.
+  const htmlDoPerfil = String(html).replace(
+    /<link\b[^>]*href=["']\/assets\/home\/salon-hero-(?:mobile|wide)\.webp["'][^>]*>\s*/gi,
+    ""
+  );
+
+  return htmlDoPerfil.replace(
     /<\/body>/i,
     `    <script id="af-profile-initial-data" type="application/json">${json}</script>\n  </body>`
   );

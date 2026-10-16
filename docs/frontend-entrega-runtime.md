@@ -70,6 +70,12 @@ ter entrega compactada. Imagens já compactadas seguem o filtro padrão de MIME.
 Documentos HTML, APIs autenticadas, cookies e respostas de sessão não passam
 por esse middleware. O CI mede o mesmo caminho de entrega da aplicação.
 
+O favicon referenciado no HTML é `/favicon-96.png`, PNG transparente de 96×96
+e 5.786 bytes, derivado da marca de 96 px já usada no header. O orçamento HTTP
+é de 8 KiB. A URL estável revalida a cada uso; `/favicon.png` continua disponível
+para compatibilidade e dados estruturados. O preload do hero da home é removido
+do HTML do perfil público para não disputar rede com os recursos dessa página.
+
 O script frontend é:
 
 ```bash

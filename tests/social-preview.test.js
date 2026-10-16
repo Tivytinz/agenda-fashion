@@ -143,6 +143,8 @@ describe("prévia social dos links públicos", () => {
       'rel="canonical" href="https://agendafashion.com.br/negocio/beauty-vanessa?servico=11"'
     );
     expect(resposta.text).not.toContain("utm_source");
+    expect(resposta.text).not.toContain("/assets/home/salon-hero-mobile.webp");
+    expect(resposta.text).not.toContain("/assets/home/salon-hero-wide.webp");
     expect(resposta.text).toContain(
       'id="af-profile-initial-data" type="application/json"'
     );

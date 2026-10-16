@@ -14,6 +14,7 @@ on:
       - ".github/workflows/performance-qa.yml"
       - "scripts/performance-api-p95.mjs"
       - "frontend/index.html"
+      - "frontend/public/favicon*.png"
       - "frontend/vite.config.js"
       - "src/server.js"
       - "src/config/securityHeaders.js"
