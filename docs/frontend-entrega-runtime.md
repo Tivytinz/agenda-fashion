@@ -1020,38 +1020,25 @@ client-side é suficiente.
 
 ## 60. Professional Landing
 
-`ProfessionalLandingPage` altera title e description no browser via
-`useEffect`.
+A rota `/para-profissionais` recebe metadados específicos no HTML do Express,
+por meio de `socialPreviewService.montarMetadadosPaginaEstatica()` e
+`src/server.js`, incluindo title, description e canonical próprios. O hook
+de metadata client-side continua sendo usado durante navegação SPA.
 
-Ao mesmo tempo, `/para-profissionais` está no sitemap.
-
-No caminho server-side genérico, a rota recebe o metadata base do
-`index.html`, pois não possui renderer especializado como perfil/catálogo.
-
-Isso é um finding de SEO:
-
-> robôs que não executarem ou não aguardarem JavaScript podem observar title e
-> description genéricos para uma landing explicitamente listada no sitemap.
-
-Esta branch não alterou metadata server-side dessa landing.
+A captura do teste em tempo real no Search Console em 16/10/2026 mostrou
+a landing renderizada e tecnicamente disponível para indexação, mas essa
+evidência isolada não garante inclusão no índice.
 
 ## 61. Plans e institucionais
 
-O sitemap inclui:
+As páginas `/planos`, `/privacidade` e `/termos` também recebem metadata
+deliberada no servidor. A home publica Organization e WebSite factuais.
+`tests/spa-seo-http.test.js` verifica title, description e canonical sem UTM.
 
-- `/`;
-- `/para-profissionais`;
-- `/planos`;
-- `/privacidade`;
-- `/termos`.
-
-Entre essas rotas, o runtime server-side genérico não injeta metadata dedicada
-por página.
-
-A home possui metadata base coerente com descoberta geral.
-
-Para páginas estratégicas como planos/landing, avaliar metadata server-side antes
-de tratar SEO como otimizado.
+O AF não possui SSR geral do conteúdo React: o HTML inicial dessas rotas
+continua sendo o shell da SPA com metadata no head. Qualquer evolução para
+conteúdo inicial server-side exige validar UX, hidratação, segurança e custo
+antes de adotar nova tecnologia. A decisão de indexar continua sendo do Google.
 
 ## 62. Sitemap
 
