@@ -99,6 +99,25 @@ separado de roteamento/CORS e não deve contaminar a evidência do app canônico
 
 ## Execução
 
+### CI integrado ao Express (outubro de 2026)
+
+O LCP no pull request usa a build de produção da branch, servida pelo Express
+em `http://127.0.0.1:4173`, com PostgreSQL efêmero e perfil isolado. A API p95
+continua sendo medida separadamente no domínio público `agendafashion.com.br`.
+O Vite preview não executa o bootstrap server-side do perfil e não representa
+esse caminho de renderização.
+
+O runtime local usa `NODE_ENV=test`, com `CORS_ORIGINS` restrito à sua própria
+origem. Somente nesse ambiente a CSP omite `upgrade-insecure-requests`: o servidor
+de teste não oferece TLS. Produção mantém o upgrade HTTPS e as demais diretivas
+continuam ativas nos testes. O passo de build define `NODE_ENV=production`
+explicitamente, sem herdar o modo de teste do backend.
+
+Sem esses ajustes, assets eram promovidos para HTTPS ou rejeitados por CORS,
+produzindo uma tela vazia e `NO_FCP`. Isso é uma falha de execução, não um valor
+válido de LCP. Corrigir o ambiente exige uma nova medição; o limite continua
+em 2.500 ms, sem descartar amostras lentas ou aceitar uma execução sem conteúdo.
+
 Scripts:
 
 ```bash
