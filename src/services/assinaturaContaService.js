@@ -320,14 +320,14 @@ function estadoAssinatura({
 
 async function buscarMinhaAssinatura({ usuarioId }) {
   if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
+    throw criarErro("Usuário não autenticado.", 401);
   }
 
   const negocio = await assinaturaRepository
     .buscarNegocioDono(usuarioId);
 
   if (!negocio) {
-    throw new Error("Negócio não encontrado.");
+    throw criarErro("Negócio não encontrado.", 404);
   }
 
   await reconciliarReativacaoAbandonada(

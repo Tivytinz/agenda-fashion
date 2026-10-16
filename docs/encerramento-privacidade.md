@@ -73,7 +73,7 @@ A credencial:
 
 - é HMAC-SHA256 derivada de booking, usuário, instante da desativação e
   `JWT_SECRET`;
-- não é enviada na query da API;
+- não é aceita na query da API;
 - fica no fragmento `#token=` do link entregue ao navegador;
 - é repassada para consulta pelo header `X-Agenda-Access`;
 - é repassada no corpo para cancelamento;
@@ -83,6 +83,10 @@ A credencial:
 A rota pública de consulta expõe somente os dados mínimos da própria reserva.
 O cancelamento reutiliza a política congelada no agendamento e continua
 transacional.
+
+Consulta e cancelamento por capability, inclusive os caminhos de visitante,
+enviam `Cache-Control: no-store` tanto no sucesso quanto no erro. Informar
+`?token=` sem a credencial no transporte autorizado não concede acesso.
 
 ## Rotas
 

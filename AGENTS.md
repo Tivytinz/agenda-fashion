@@ -1067,6 +1067,11 @@ O browser não deve persistir perfil de usuário ou negócio em `localStorage` p
 
 O header `X-Agenda-Access` faz parte do contrato de capability de booking e deve permanecer permitido pelo CORS para que a mesma capability continue funcionando caso frontend e API usem origens permitidas distintas. Isso não amplia o escopo da capability nem substitui validação backend.
 
+APIs de acesso por capability de reserva (visitante ou cliente desativado) não
+aceitam credencial por query string. Consulta usa `X-Agenda-Access` e cancelamento
+usa o corpo JSON previsto no contrato. Sucesso e erro desses caminhos enviam
+`Cache-Control: no-store` para impedir armazenamento de dados da reserva em cache.
+
 A retirada de transporte Bearer legado exige evidência operacional sem registrar credenciais. A observabilidade pode contar apenas a classe de transporte (`cookie` ou `bearer`) e timestamps agregados do processo; nunca registrar o token, o header `Authorization`, usuário, rota ou payload para esse diagnóstico. Contador zero em um único processo/deploy não prova ausência histórica e não autoriza remoção automática da compatibilidade.
 
 O frontend web não deve propagar Bearer legado em chamadas normais. Quando encontrar a chave histórica `token` no `localStorage`, deve fazer uma migração única e validada para o cookie HttpOnly pelo endpoint dedicado, remover o token local e seguir usando somente cookie. O backend pode manter aceitação temporária de Bearer para clientes legados enquanto a janela operacional ainda não justificar a retirada total.
