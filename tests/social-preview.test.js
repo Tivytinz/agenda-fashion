@@ -64,6 +64,37 @@ describe("prévia social dos links públicos", () => {
     expect(html).not.toContain("content=\"genérica\"");
   });
 
+  test("usa localização real na descrição quando o negócio não informou texto", () => {
+    const metadados = socialPreviewService.montarMetadados({
+      negocio: {
+        ...NEGOCIO,
+        descricao: null,
+        bairro: "Centro",
+        cidade: "Goiânia",
+        estado: "GO"
+      },
+      servico: null
+    });
+
+    expect(metadados.descricao).toContain(
+      "Beauty <Vanessa> \"Studio\" em Centro, Goiânia, GO"
+    );
+    expect(metadados.descricao).toContain("agende seu horário online");
+    expect(metadados.url).toBe(
+      "https://agendafashion.com.br/negocio/beauty-vanessa"
+    );
+  });
+
+  test("não inventa localização quando negócio não a possui", () => {
+    const metadados = socialPreviewService.montarMetadados({
+      negocio: { ...NEGOCIO, descricao: "  " },
+      servico: null
+    });
+
+    expect(metadados.descricao).toContain("Conheça os serviços da");
+    expect(metadados.descricao).not.toContain(" em ,");
+  });
+
   test("usa o serviço válido do próprio negócio", async () => {
     const previa = await socialPreviewService.buscarPrevia({
       slug: "beauty-vanessa",
