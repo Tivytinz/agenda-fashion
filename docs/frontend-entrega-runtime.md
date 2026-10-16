@@ -2012,3 +2012,31 @@ Atualizar este documento quando mudar de forma durável:
 - estratégia de deploy do frontend.
 
 Mudança puramente visual que não altera entrega não exige atualização.
+
+## Auditoria de links públicos rastreáveis (16/10/2026)
+
+No frontend executável, `HomePage` monta `ExplorePage` via React,
+após um atraso curto; `ExplorePage` renderiza `BusinessCard` e
+`ServiceCard` a partir de dados públicos da API. Os componentes usam
+`Link` do React Router, que gera âncoras HTML com `href` para
+`/negocio/:slug` e, quando houver categoria/localidade válidas,
+`/servicos/:categoria/em/:localidade`. A landing profissional também
+contém um link para perfil demonstrativo e outro para `/planos`.
+O catálogo local só é indexável quando há oferta válida.
+
+Limitação confirmada: esses links da descoberta dependem de execução do
+JavaScript e carregamento da API; o HTML inicial da home contém apenas
+`<div id="root"></div>`. Isso não é evidência de bloqueio do Google,
+que renderizou a landing em teste real, mas impede afirmar que a
+descoberta de perfis seja independente do JavaScript.
+
+A cobertura atual de testes de SEO HTTP valida sitemap, metadata e
+noindex. Antes de considerar um eventual HTML inicial com links públicos,
+testar representação segura de dados, atualização de publicação, isolamento
+de negócios, ausência de URLs despublicadas, navegação mobile e regressão
+de performance. Não gerar links a perfis arquivados ou não publicados.
+
+A indexação observada no Search Console em 11/10/2026 foi 1/25 URLs
+do sitemap; a classificação de URL pelo Google não estabelece, isoladamente,
+a causa raiz. Reinspecionar após rastreamentos futuros.
+
