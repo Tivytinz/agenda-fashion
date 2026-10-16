@@ -360,7 +360,7 @@ export function AdminContributionOperationsPanel() {
 
       {!podeEditar && (
         <p className="muted">
-          A consulta está disponível para administradores. Criação de fonte, custo, crédito e cobertura são restritos ao superadministrador no backend.
+          A consulta está disponível para administradores. Criação de fonte, custo, crédito e cobertura são restritos ao administrador no backend.
         </p>
       )}
 

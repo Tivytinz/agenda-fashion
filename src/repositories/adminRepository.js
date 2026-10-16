@@ -1147,11 +1147,6 @@ async function listarUsuariosRecentes() {
 
           CASE
             WHEN ua.papel =
-              'superadmin'
-            THEN
-              'superadmin'
-
-            WHEN ua.papel =
               'admin'
             THEN
               'admin'
@@ -1191,11 +1186,6 @@ async function listarUsuariosRecentes() {
            * Não existe coluna usuarios.tipo.
            */
           CASE
-            WHEN ua.papel =
-              'superadmin'
-            THEN
-              'superadmin'
-
             WHEN ua.papel =
               'admin'
             THEN

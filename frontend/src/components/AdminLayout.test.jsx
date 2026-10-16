@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import reactRoutes from "../../../src/config/reactRoutes.json";
-import { ADMIN_NAV_GROUPS, adminNavGroupsForRole } from "./AdminLayout";
+import { ADMIN_NAV_GROUPS } from "./AdminLayout";
 
 describe("navegação administrativa", () => {
   it("inclui todas as páginas administrativas autorizadas na navegação", () => {
@@ -19,11 +19,10 @@ describe("navegação administrativa", () => {
         "/admin/receita",
         "/admin/operacao",
         "/admin/saude",
-        "/admin/whatsapp"
+        "/admin/whatsapp",
+        "/admin/auditoria"
       ]);
-    expect(adminNavGroupsForRole("admin").flatMap(({ links }) => links.map(({ path }) => path)))
-      .not.toContain("/admin/auditoria");
-    expect(adminNavGroupsForRole("superadmin").flatMap(({ links }) => links.map(({ path }) => path)))
+    expect(ADMIN_NAV_GROUPS.flatMap(({ links }) => links.map(({ path }) => path)))
       .toContain("/admin/auditoria");
   });
 
@@ -31,7 +30,7 @@ describe("navegação administrativa", () => {
     const currentAdminRoutes = Object.entries(reactRoutes)
       .filter(([name]) => name.startsWith("admin") && name !== "adminProfessionals")
       .map(([, path]) => path);
-    const visibleRoutes = adminNavGroupsForRole("superadmin")
+    const visibleRoutes = ADMIN_NAV_GROUPS
       .flatMap(({ links }) => links.map(({ path }) => path));
 
     expect([...visibleRoutes].sort()).toEqual([...currentAdminRoutes].sort());

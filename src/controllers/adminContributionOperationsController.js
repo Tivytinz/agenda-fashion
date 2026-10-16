@@ -10,9 +10,9 @@ async function buscarPainel(
   try {
     const resultado =
       await service.buscarPainel({
-        superadmin:
-          req.admin?.superadmin ===
-          true,
+        adminAutorizado:
+          req.admin?.papel ===
+          "admin",
       });
 
     return res
@@ -35,9 +35,9 @@ async function criarFonte(
           req.body || {},
         usuarioId:
           req.admin?.usuarioId,
-        superadmin:
-          req.admin?.superadmin ===
-          true,
+        adminAutorizado:
+          req.admin?.papel ===
+          "admin",
       });
 
     return res
@@ -60,9 +60,9 @@ async function registrarCusto(
           req.body || {},
         usuarioId:
           req.admin?.usuarioId,
-        superadmin:
-          req.admin?.superadmin ===
-          true,
+        adminAutorizado:
+          req.admin?.papel ===
+          "admin",
       });
 
     return res
@@ -86,9 +86,9 @@ async function registrarCobertura(
             req.body || {},
           usuarioId:
             req.admin?.usuarioId,
-          superadmin:
-            req.admin?.superadmin ===
-            true,
+          adminAutorizado:
+            req.admin?.papel ===
+            "admin",
         });
 
     return res

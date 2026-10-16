@@ -89,7 +89,7 @@ A navegação principal do Admin expõe diretamente as páginas disponíveis:
 9. **Operação** — negócios, agendamentos e marketplace em nível operacional;
 10. **Saúde do SaaS** — bloqueios de ativação e saúde operacional;
 11. **WhatsApp** — templates, entregas e configuração operacional;
-12. **Auditoria** — ações críticas, visível somente ao superadmin.
+12. **Auditoria** — ações críticas, disponível para admin.
 
 A navegação mobile abre os mesmos destinos autorizados do sidebar desktop.
 

@@ -195,7 +195,7 @@ describe(
               intervaloMinutos: 60,
               ativa: true,
             },
-            superadmin: true,
+            adminAutorizado: true,
           });
 
       const integracaoId =

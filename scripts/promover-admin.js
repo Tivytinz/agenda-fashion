@@ -7,7 +7,6 @@ const db = require(
 const PAPEIS_PERMITIDOS =
   new Set([
     "admin",
-    "superadmin",
   ]);
 
 function normalizarEmail(
@@ -36,7 +35,7 @@ function normalizarPapel(
     )
   ) {
     throw new Error(
-      'Papel inválido. Use "admin" ou "superadmin".'
+      'Papel inválido. Use "admin".'
     );
   }
 

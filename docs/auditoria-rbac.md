@@ -3,6 +3,14 @@
 **Data:** 13/10/2026. **Base auditada:** `b20ed7509e4a7f892607af302a163a5f10012f46`.
 **Tipo documental:** evidência de auditoria do backend.
 
+## Decisão posterior — administração com papel único
+
+O responsável pelo AF definiu somente `admin` após a primeira validação desta
+revisão. A [matriz por ação](./admin-permissoes-matriz.md) documenta as 41 ações.
+A migration 115 converte o papel legado e preserva eventos históricos. Admin
+ativo passa a acessar auditoria e contribuição financeira. O restante deste
+relatório mantém a evidência anterior à decisão; o novo commit exige novo CI.
+
 ## Revalidação e correções — 16/10/2026
 
 **Base:** `084afc7c0c3c8d91237301078643922e98d4a289` (main, PR #395).

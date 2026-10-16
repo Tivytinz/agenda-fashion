@@ -15,6 +15,9 @@ A administração do AF é um centro de comando operacional e analítico. O obje
 
 Cadastros, cliques, sessões, checkout, agendamento e receita permanecem conceitos diferentes.
 
+A autorização por ação e o papel único `admin` estão em
+[`admin-permissoes-matriz.md`](./admin-permissoes-matriz.md).
+
 ## Baseline exclusiva de requisitos
 
 A cobertura funcional geral do AF e a cobertura do Admin são métricas
@@ -43,7 +46,7 @@ agrupadas por tarefa:
   `/admin/retencao` — Retenção e `/admin/receita` — Receita;
 - **Plataforma:** `/admin/operacao` — Operação,
   `/admin/saude` — Saúde do SaaS, `/admin/whatsapp` — WhatsApp;
-  para superadmin, também `/admin/auditoria` — Auditoria.
+  também `/admin/auditoria` — Auditoria.
 
 Marketing cobre canais e campanhas; Investimento e eficiência apresenta custos,
 e Integrações concentra conexões e sincronização. Aquisição mostra o
@@ -53,7 +56,7 @@ sem uma segunda navegação fixa sobre o conteúdo. Cada página seleciona seu
 próprio link; o caminho antigo `/admin/trafego-pago/custos#integracoes-custos`
 leva à página de Integrações.
 
-`/admin/auditoria` é uma consulta especializada do superadmin para rastrear
+`/admin/auditoria` é uma consulta especializada do admin para rastrear
 tentativas e resultados das ações críticas. O contrato e os limites desta
 leitura ficam em `admin-wave-2-rf41-auditoria.md`.
 Revisões humanas das pendências vencidas preservam o resultado HTTP desconhecido;

@@ -290,7 +290,7 @@ O inventário de rotas acima indica superfície e autorização. Os contratos ab
 
 #### Administração, analytics e marketing
 
-- Controllers administrativos recebem o ator administrativo de `req.admin`; operações mutáveis relevantes propagam `usuarioId` e/ou condição `superadmin` para o service.
+- Controllers administrativos recebem o ator administrativo de `req.admin`; operações mutáveis relevantes propagam `usuarioId` e/ou condição `adminAutorizado`, derivada de `req.admin.papel` para o service.
 - Analytics V2 aceita uma `secao` de rota e `periodo`; o service restringe as seções a `overview`, `acquisition`, `journey`, `retention` e `revenue`.
 - `overview` separa audiência, aquisição, entidades, ativação, demanda e receita; não transforma sessões, cadastros, negócios ou pagamentos em métricas equivalentes.
 - `acquisition` retorna sessões por origem, funil por campanha, qualidade/diagnóstico de atribuição e retorno financeiro. O funil por campanha explicita cadastros, negócios, serviços, publicação, primeiro agendamento, checkout, assinatura, investimento, receita de primeiro pagamento, CAC e ROAS quando calculáveis.
@@ -301,7 +301,7 @@ O inventário de rotas acima indica superfície e autorização. Os contratos ab
 
 - Registro administrativo de gasto recebe o payload bruto somente no controller; normalização, validação e auditoria pertencem ao service.
 - Operações de contribuição expõem painel, criação de fonte, lançamento de custo e registro de cobertura. Criação de fonte/custo responde `201`; cobertura responde `200`.
-- Gestão e execução manual das integrações de contribuição exigem `superadmin === true` também no service, não apenas visibilidade no frontend.
+- Gestão e execução manual das integrações de contribuição exigem `adminAutorizado === true` também no service, não apenas visibilidade no frontend.
 - O status de sincronização retorna `agendamento`, `adaptadores`, `integracoes` e `execucoes`; integrações não expõem segredo do provider.
 - Criação/atualização de integração retorna um objeto `integracao` com identificador, fonte, adaptador, estado e intervalo.
 - Execução de sync retorna contadores de itens recebidos/importados/replay e cobertura. Persistência de custos, cobertura, cursor e conclusão de sucesso ocorre transacionalmente; concorrência para a mesma integração retorna `409`.

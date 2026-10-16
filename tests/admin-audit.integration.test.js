@@ -22,7 +22,7 @@ describe("admin audit ledger in PostgreSQL", () => {
     const tentativaId = crypto.randomUUID();
     const item = {
       tentativaId, fase: "INICIADA", atorUsuarioId: 77202,
-      papelAdmin: "superadmin", acao: "campanha_criar",
+      papelAdmin: "admin", acao: "campanha_criar",
       alvoTipo: "campanha", requestId: "test-request-77202"
     };
     await repository.registrarEvento(item, client);
@@ -138,7 +138,7 @@ describe("admin audit ledger in PostgreSQL", () => {
         'campanha', NOW() - INTERVAL '15 minutes')
     `, [tentativaId]);
     const review = () => service.review({
-      admin: { usuarioId: 77206, papel: "superadmin" },
+      admin: { usuarioId: 77206, papel: "admin" },
       tentativaId, avaliacao: "INDETERMINADO",
       evidenciaTipo: "LOG_APLICACAO", evidenciaReferencia: "request-77205"
     });

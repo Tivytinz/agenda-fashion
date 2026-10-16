@@ -74,7 +74,7 @@ describe(
     );
 
     it(
-      "mantém escrita oculta para admin sem permissão de superadmin",
+      "mantém escrita oculta quando o backend não autoriza",
       async () => {
         apiRequest
           .mockResolvedValue({
@@ -88,7 +88,7 @@ describe(
 
         expect(
           await screen.findByText(
-            /restritos ao superadministrador no backend/i
+            /restritos ao administrador no backend/i
           )
         ).not.toBeNull();
 

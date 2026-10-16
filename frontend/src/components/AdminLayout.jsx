@@ -1,5 +1,4 @@
 import { AdminShell } from "./AdminShell";
-import { useOptionalSession } from "../auth/SessionContext";
 import "../styles/admin-core-finish.css";
 
 export const ADMIN_NAV_GROUPS = [
@@ -24,22 +23,15 @@ export const ADMIN_NAV_GROUPS = [
     links: [
       { path: "/admin/operacao", label: "Operação" },
       { path: "/admin/saude", label: "Saúde do SaaS" },
-      { path: "/admin/whatsapp", label: "WhatsApp" }
+      { path: "/admin/whatsapp", label: "WhatsApp" },
+      { path: "/admin/auditoria", label: "Auditoria" }
     ]
   }
 ];
 
-export function adminNavGroupsForRole(role) {
-  if (role !== "superadmin") return ADMIN_NAV_GROUPS;
-  return ADMIN_NAV_GROUPS.map((group) => group.label === "Plataforma"
-    ? { ...group, links: [...group.links, { path: "/admin/auditoria", label: "Auditoria" }] }
-    : group);
-}
-
 export function AdminLayout({ children }) {
-  const role = useOptionalSession()?.administrador?.papel;
   return (
-    <AdminShell groups={adminNavGroupsForRole(role)}>
+    <AdminShell groups={ADMIN_NAV_GROUPS}>
       {children}
     </AdminShell>
   );

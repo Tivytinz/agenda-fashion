@@ -1,3 +1,4 @@
+jest.mock("../src/repositories/adminAuditRepository", () => ({ registrarEvento: jest.fn().mockResolvedValue({}) }));
 const express = require(
   "express"
 );
@@ -29,16 +30,7 @@ jest.mock(
   ) => {
     req.admin = {
       usuarioId: 7,
-      papel:
-        req.headers[
-          "x-test-superadmin"
-        ] === "yes"
-          ? "superadmin"
-          : "admin",
-      superadmin:
-        req.headers[
-          "x-test-superadmin"
-        ] === "yes",
+      papel: "admin",
     };
 
     return next();
@@ -125,7 +117,7 @@ describe(
         expect(
           service.buscarPainel
         ).toHaveBeenCalledWith({
-          superadmin: false,
+          adminAutorizado: true,
         });
       }
     );
@@ -159,7 +151,7 @@ describe(
               "/admin/financeiro/contribuicao/fontes"
             )
             .set(
-              "x-test-superadmin",
+              "x-test-admin",
               "yes"
             )
             .send(payload);
@@ -173,7 +165,7 @@ describe(
         ).toHaveBeenCalledWith({
           payload,
           usuarioId: 7,
-          superadmin: true,
+          adminAutorizado: true,
         });
       }
     );
@@ -211,7 +203,7 @@ describe(
               "/admin/financeiro/contribuicao/custos"
             )
             .set(
-              "x-test-superadmin",
+              "x-test-admin",
               "yes"
             )
             .send(payload);
@@ -225,7 +217,7 @@ describe(
         ).toHaveBeenCalledWith({
           payload,
           usuarioId: 7,
-          superadmin: true,
+          adminAutorizado: true,
         });
       }
     );
@@ -261,7 +253,7 @@ describe(
               "/admin/financeiro/contribuicao/cobertura"
             )
             .set(
-              "x-test-superadmin",
+              "x-test-admin",
               "yes"
             )
             .send(payload);
@@ -275,7 +267,7 @@ describe(
         ).toHaveBeenCalledWith({
           payload,
           usuarioId: 7,
-          superadmin: true,
+          adminAutorizado: true,
         });
       }
     );

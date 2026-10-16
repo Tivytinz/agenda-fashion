@@ -66,7 +66,6 @@ describe(
             ehAdministrador: true,
             administrador: {
               papel: "admin",
-              superadmin: false,
             },
           });
 

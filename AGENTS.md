@@ -134,7 +134,9 @@ Não tratar como equivalentes:
 
 A identidade principal fica em `usuarios`. Papéis de negócio pertencem a
 `usuarios_negocios.papel`, atualmente `dono` e `profissional`. Administração
-global usa `usuarios_administradores`.
+global usa `usuarios_administradores`, com papel único `admin`. A migration 115
+converte o antigo superadmin sem reativar permissões e preserva o ledger histórico.
+A matriz por ação fica em `docs/admin-permissoes-matriz.md`.
 
 Uma mesma conta pode atuar em mais de um contexto. O frontend muda navegação e
 apresentação conforme rota, sessão e vínculos, mas essas escolhas não substituem
@@ -687,7 +689,7 @@ um fluxo administrativo próprio. A migration 102 cria o cutover
 `fontes_contribuicao_v1_inicio` e uma trilha
 `contribuicao_operacoes_admin` append-only. Nenhuma fonte é criada por seed:
 cadastro, débito, crédito e cobertura dependem de ação explícita. Escritas são
-restritas a superadmin no backend e registram ator + motivo. Correções
+restritas a admin no backend e registram ator + motivo. Correções
 administrativas de custo usam crédito referenciado, nunca UPDATE/DELETE do
 ledger; o crédito não pode superar o saldo do débito original. Cobertura mantém
 início imutável e watermark não regressivo. Admin comum pode consultar o painel,
@@ -787,7 +789,7 @@ O Admin funciona como um centro de comando operacional com design system própri
 Seu shell usa uma navegação textual única para as páginas administrativas,
 agrupadas em Início, Crescimento e Plataforma. Marketing, Investimento e
 eficiência, Integrações, Saúde do SaaS e WhatsApp têm destinos próprios no
-sidebar; Auditoria aparece apenas para superadmin. No celular, a mesma lista
+sidebar; Auditoria está disponível para admin. No celular, a mesma lista
 é aberta por um botão Menu, sem barra inferior fixa.
 O contexto administrativo usa superfícies claras, texto de alto contraste e
 cor de destaque com moderação. Cores de estado só representam estados reais.
