@@ -195,3 +195,18 @@ profissional está habilitada, a revisão passa pela equipe e pelo contexto
 da etapa de horários, a interface reutiliza a mensagem canônica e oferece a
 mesma saída para a equipe, preservando os horários salvos e sem pedir para
 ativar dias quando o problema está na habilitação.
+
+### Saída explícita durante uma operação pendente
+
+Ao confirmar `Sair sem salvar` no negócio, a interface invalida a geração das
+operações pendentes antes de liberar a navegação. A proteção não depende do
+unmount: uma rota carregada sob Suspense pode manter a tela antiga montada até o
+destino ficar pronto. Sucesso, erro e finalização da geração descartada não
+podem adotar o negócio na sessão, iniciar refresh, redirecionar ou alterar o
+editor atual. Continuar editando ou fechar a confirmação por Escape preserva
+a operação. Concluir um salvamento normalmente não sinaliza descarte.
+
+Essa invalidação protege efeitos locais posteriores à escolha de saída. Ela
+não desfaz uma criação ou alteração que o backend já tenha persistido. O teste
+de navegador mantém a página de planos carregando enquanto entrega a resposta
+da criação; a dona deve permanecer no destino que escolheu.

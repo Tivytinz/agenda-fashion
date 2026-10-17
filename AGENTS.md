@@ -79,6 +79,12 @@ pertence à pessoa e à abertura atual da janela; fechar, trocar ou sair invalid
 respostas antigas, inclusive erros e conclusão de carregamento. O salvamento
 mantém esse contexto e permite nova tentativa após falha sem perder a seleção.
 
+No negócio, confirmar `Sair sem salvar` invalida a geração das operações
+pendentes antes de liberar a navegação, inclusive enquanto Suspense mantém a
+tela antiga montada. Respostas descartadas não podem adotar negócio, atualizar
+sessão, redirecionar ou alterar o editor. Continuar editando e Escape preservam
+a operação; a invalidação local não desfaz persistência já confirmada no backend.
+
 ## Integração contínua e merge
 
 Pull requests não draft direcionados à `main` devem habilitar auto-merge por squash automaticamente. Os gates obrigatórios de CI e as regras de proteção da branch continuam sendo a condição de integração: o PR só entra na `main` depois de satisfazê-los. Falha ou cancelamento de check não deve ser contornado por merge forçado.

@@ -1,7 +1,7 @@
 import { useContext, useEffect, useRef } from "react";
 import { UNSAFE_DataRouterContext, useBlocker } from "react-router-dom";
 
-function InternalNavigationGuard({ when }) {
+function InternalNavigationGuard({ when, onDiscard }) {
   const dialogRef = useRef(null);
   const blocker = useBlocker(({ currentLocation, nextLocation }) => (
     when && (
@@ -34,7 +34,12 @@ function InternalNavigationGuard({ when }) {
           <button autoFocus className="button" onClick={() => blocker.reset?.()} type="button">
             Continuar editando
           </button>
-          <button className="button button-secondary" onClick={() => blocker.proceed?.()} type="button">
+          <button className="button button-secondary" onClick={() => {
+            if (blocker.state !== "blocked") return;
+            onDiscard?.();
+            dialogRef.current?.close();
+            blocker.proceed?.();
+          }} type="button">
             Sair sem salvar
           </button>
         </div>
@@ -43,7 +48,7 @@ function InternalNavigationGuard({ when }) {
   );
 }
 
-export function UnsavedChangesGuard({ when }) {
+export function UnsavedChangesGuard({ when, onDiscard }) {
   const dataRouter = useContext(UNSAFE_DataRouterContext);
 
   useEffect(() => {
@@ -56,5 +61,5 @@ export function UnsavedChangesGuard({ when }) {
     return () => window.removeEventListener("beforeunload", preventExit);
   }, [when]);
 
-  return dataRouter ? <InternalNavigationGuard when={when} /> : null;
+  return dataRouter ? <InternalNavigationGuard when={when} onDiscard={onDiscard} /> : null;
 }
