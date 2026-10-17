@@ -1124,7 +1124,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
                 >
                   {availabilityGuidance?.mensagem || "Seu perfil está publicado, mas ainda não há disponibilidade para novas reservas. Revise os dias e horários antes de divulgar."}
                   {availabilityGuidance?.acao?.destino === "/painel/profissionais" && (
-                    <> <Link to="/painel/profissionais">Gerenciar serviços da equipe</Link></>
+                    <> <Link to="/painel/profissionais">{availabilityGuidance.acao.rotulo || "Abrir equipe"}</Link></>
                   )}
                 </p>
               )}

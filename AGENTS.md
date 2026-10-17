@@ -72,6 +72,13 @@ mesma elegibilidade operacional da fila de WhatsApp. Depois do primeiro
 agendamento válido, a agenda de hoje antecede orientação, upgrade e
 consentimentos; a primeira jornada continua priorizando sua missão de ativação.
 
+Quando apenas outra profissional está habilitada, a orientação de horários
+passa pela equipe e pelo contexto explícito da profissional, sem abrir a agenda
+pessoal da dona como solução. No editor de serviços da equipe, cada leitura
+pertence à pessoa e à abertura atual da janela; fechar, trocar ou sair invalida
+respostas antigas, inclusive erros e conclusão de carregamento. O salvamento
+mantém esse contexto e permite nova tentativa após falha sem perder a seleção.
+
 ## Integração contínua e merge
 
 Pull requests não draft direcionados à `main` devem habilitar auto-merge por squash automaticamente. Os gates obrigatórios de CI e as regras de proteção da branch continuam sendo a condição de integração: o PR só entra na `main` depois de satisfazê-los. Falha ou cancelamento de check não deve ser contornado por merge forçado.

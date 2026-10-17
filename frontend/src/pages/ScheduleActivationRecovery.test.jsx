@@ -84,13 +84,16 @@ afterEach(() => {
 });
 
 describe("recuperação das leituras de ativação em horários", () => {
-  it.each(["restauração", "salvamento"])("oferece a equipe em vez de pedir dias ativos na %s", async (etapa) => {
+  it.each([
+    ["restauração", "Gerenciar serviços da equipe"], ["salvamento", "Gerenciar serviços da equipe"],
+    ["restauração", "Revisar horários da equipe"], ["salvamento", "Revisar horários da equipe"]
+  ])("oferece a equipe na %s: %s", async (etapa, rotulo) => {
     const initial = deferred();
     const response = activation(false);
     response.proxima_acao_ativacao = {
       estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
       mensagem: "Nenhuma profissional ativa está habilitada para realizar os serviços.",
-      acao: { tipo: "NAVEGAR", destino: "/painel/profissionais" }
+      acao: { tipo: "NAVEGAR", rotulo, destino: "/painel/profissionais" }
     };
     mockRequests(initial);
     if (etapa === "salvamento") {
@@ -108,7 +111,7 @@ describe("recuperação das leituras de ativação em horários", () => {
       fireEvent.click(screen.getByRole("button", { name: "Salvar horários", exact: true }));
       await waitFor(() => expect(apiRequest.mock.calls.some(([, o]) => o?.method === "PUT")).toBe(true));
     }
-    const link = await screen.findByRole("link", { name: "Gerenciar serviços da equipe" });
+    const link = await screen.findByRole("link", { name: rotulo });
     expect(screen.queryByText(/Ative pelo menos um dia/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Compartilhar perfil" })).toBeNull();
     fireEvent.click(link);

@@ -311,3 +311,17 @@ describe("diagnóstico da próxima ação", () => {
     expect(resultado.mensagem).not.toContain("Ative pelo menos um dia");
   });
 });
+
+describe("orientação para horários da equipe", () => {
+  test.each(["SEM_HORARIOS", "DURACAO_INCOMPATIVEL"])("encaminha à equipe quando a dona não atende o serviço: %s", (motivo) => {
+    const ativacao = {
+      possui_servico_ativo: true, negocio_publicado: true,
+      possui_disponibilidade_agendavel: false, motivo_indisponibilidade: motivo,
+      revisar_horarios_na_equipe: true,
+      primeiro_agendamento_recebido: false,
+    };
+    const resultado = resolverProximaAcaoAtivacao(ativacao);
+    expect(resultado.acao).toEqual({ tipo: "NAVEGAR", rotulo: "Revisar horários da equipe", destino: "/painel/profissionais" });
+    expect(resultado.mensagem).toContain("configure os horários de uma profissional habilitada");
+  });
+});

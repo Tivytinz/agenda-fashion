@@ -10,6 +10,8 @@ export function ProfessionalsPage() {
   const session = useSession();
   const removeDialogRef = useRef(null);
   const servicesDialogRef = useRef(null);
+  const servicesReadRef = useRef(null);
+  const servicesSaveRef = useRef(null);
   const [items, setItems] = useState(null);
   const [invite, setInvite] = useState("");
   const [lastInvite, setLastInvite] = useState(null);
@@ -21,6 +23,7 @@ export function ProfessionalsPage() {
   const [servicesTarget, setServicesTarget] = useState(null);
   const [serviceOptions, setServiceOptions] = useState([]);
   const [servicesLoading, setServicesLoading] = useState(false);
+  const [servicesReady, setServicesReady] = useState(false);
   const [servicesSaving, setServicesSaving] = useState(false);
   const [servicesError, setServicesError] = useState("");
   const [activatingId, setActivatingId] = useState(null);
@@ -58,6 +61,24 @@ export function ProfessionalsPage() {
   }, []);
 
   useEffect(load, [load]);
+
+  useEffect(() => () => {
+    servicesReadRef.current?.controller.abort();
+    servicesReadRef.current = null;
+    servicesSaveRef.current = null;
+  }, []);
+
+  function closeServices() {
+    servicesReadRef.current?.controller.abort();
+    servicesReadRef.current = null;
+    servicesDialogRef.current?.close();
+    setServicesTarget(null);
+    setServiceOptions([]);
+    setServicesError("");
+    setServicesLoading(false);
+    setServicesReady(false);
+    setServicesSaving(false);
+  }
 
   async function sendInvite(event) {
     event.preventDefault();
@@ -128,21 +149,36 @@ export function ProfessionalsPage() {
   }
 
   async function openServices(professional) {
+    if (servicesSaveRef.current) return;
+    servicesReadRef.current?.controller.abort();
+    const context = {
+      controller: new AbortController(),
+      professionalId: Number(professional.id),
+      ready: false,
+    };
+    servicesReadRef.current = context;
+    const isCurrent = () => servicesReadRef.current === context
+      && !context.controller.signal.aborted;
     setServicesTarget(professional);
     setServiceOptions([]);
     setServicesError("");
     setServicesLoading(true);
+    setServicesReady(false);
     servicesDialogRef.current?.showModal();
 
     try {
       const result = await apiRequest(
-        `/profissionais/${professional.id}/servicos`
+        `/profissionais/${professional.id}/servicos`,
+        { signal: context.controller.signal }
       );
+      if (!isCurrent()) return;
+      context.ready = true;
+      setServicesReady(true);
       setServiceOptions(result.servicos || []);
     } catch (requestError) {
-      setServicesError(requestError.message);
+      if (isCurrent()) setServicesError(requestError.message);
     } finally {
-      setServicesLoading(false);
+      if (isCurrent()) setServicesLoading(false);
     }
   }
 
@@ -160,7 +196,13 @@ export function ProfessionalsPage() {
   }
 
   async function saveServices() {
-    if (!servicesTarget) return;
+    const context = servicesReadRef.current;
+    if (!servicesTarget || !context?.ready || servicesLoading
+      || context.professionalId !== Number(servicesTarget.id)
+      || servicesSaveRef.current) return;
+    servicesSaveRef.current = context;
+    const isCurrent = () => servicesReadRef.current === context
+      && !context.controller.signal.aborted;
 
     setServicesSaving(true);
     setServicesError("");
@@ -171,7 +213,7 @@ export function ProfessionalsPage() {
         .map((service) => Number(service.id));
 
       const result = await apiRequest(
-        `/profissionais/${servicesTarget.id}/servicos`,
+        `/profissionais/${context.professionalId}/servicos`,
         {
           method: "PUT",
           body: {
@@ -180,17 +222,20 @@ export function ProfessionalsPage() {
         }
       );
 
+      if (!isCurrent()) return;
+
       setMessage(
         result.mensagem ||
         "Serviços da profissional atualizados."
       );
-      servicesDialogRef.current?.close();
-      setServicesTarget(null);
-      setServiceOptions([]);
+      closeServices();
     } catch (requestError) {
-      setServicesError(requestError.message);
+      if (isCurrent()) setServicesError(requestError.message);
     } finally {
-      setServicesSaving(false);
+      if (servicesSaveRef.current === context) {
+        servicesSaveRef.current = null;
+        if (isCurrent()) setServicesSaving(false);
+      }
     }
   }
 
@@ -399,9 +444,7 @@ export function ProfessionalsPage() {
             return;
           }
 
-          setServicesTarget(null);
-          setServiceOptions([]);
-          setServicesError("");
+          closeServices();
         }}
         ref={servicesDialogRef}
       >
@@ -462,12 +505,7 @@ export function ProfessionalsPage() {
             <button
               className="button button-secondary"
               disabled={servicesSaving}
-              onClick={() => {
-                servicesDialogRef.current?.close();
-                setServicesTarget(null);
-                setServiceOptions([]);
-                setServicesError("");
-              }}
+              onClick={closeServices}
               type="button"
             >
               Fechar
@@ -478,7 +516,7 @@ export function ProfessionalsPage() {
               disabled={
                 servicesSaving ||
                 servicesLoading ||
-                Boolean(servicesError)
+                !servicesReady
               }
               onClick={() => void saveServices()}
               type="button"

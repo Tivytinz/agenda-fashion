@@ -310,6 +310,22 @@ for (const scenario of [
     }
   },
   {
+    name: "horários da equipe",
+    title: "Revise os horários antes de divulgar",
+    action: "Revisar horários da equipe",
+    destination: /\/painel\/profissionais$/,
+    activation: { possui_disponibilidade_agendavel: false, motivo_indisponibilidade: "SEM_HORARIOS", revisar_horarios_na_equipe: true },
+    insight: {
+      status: "OPORTUNIDADE_PRIORIZADA",
+      oportunidade_principal: {
+        codigo: "REVISAR_DISPONIBILIDADE", categoria: "operacao",
+        titulo: "Revise os horários antes de divulgar",
+        mensagem: "Abra a equipe e configure os horários de uma profissional habilitada.",
+        acao: { tipo: "NAVEGAR", rotulo: "Revisar horários da equipe", destino: "/painel/profissionais" }
+      }
+    }
+  },
+  {
     name: "perfil oculto",
     title: "Seu perfil está oculto",
     action: "Gerenciar publicação",
@@ -337,7 +353,14 @@ for (const scenario of [
     await page.route("**/marketing/meta/config", route => json(route, { enabled: false }));
     await page.route("**/marketing/google/config", route => json(route, { enabled: false }));
     await page.route("**/minha-assinatura", route => json(route, {}));
-    await page.route("**/profissionais", route => json(route, { profissionais: [] }));
+    await page.route("**/profissionais", route => json(route, {
+      profissionais: scenario.action === "Revisar horários da equipe" ? [{ id: 9, nome: "Ana", ativo: true }] : []
+    }));
+    await page.route("**/agenda-configuracao?profissionalId=9", route => json(route, {
+      profissional: { id: 9, nome: "Ana" },
+      configuracao: { origem_horarios: "personalizado", duracao_padrao: 60 },
+      horarios: [{ dia_semana: 1, trabalha: false, hora_inicio: null, hora_fim: null }]
+    }));
     await page.route("**/conta", route => json(route, {
       usuario: { aceita_lembretes_whatsapp: false, aceita_alertas_operacionais_whatsapp: true }
     }));
@@ -374,8 +397,15 @@ for (const scenario of [
     expect(diagnostics.scrollWidth).toBe(diagnostics.clientWidth);
     await action.click();
     await expect(page).toHaveURL(scenario.destination);
-    if (scenario.action === "Gerenciar serviços da equipe") {
+    if (scenario.action.endsWith("da equipe")) {
       await expect(page.getByRole("heading", { name: "Profissionais", exact: true })).toBeVisible();
+    }
+    if (scenario.action === "Revisar horários da equipe") {
+      await page.getByRole("link", { name: "Configurar horários", exact: true }).click();
+      await expect(page).toHaveURL(/\/painel\/horarios\?profissional=9$/);
+      await expect(page.locator(".workspace-heading").getByText("Ana", { exact: true })).toBeVisible();
+      const teamDiagnostics = await horizontalOverflowDiagnostics(page);
+      expect(teamDiagnostics.scrollWidth).toBe(teamDiagnostics.clientWidth);
     }
   });
 }

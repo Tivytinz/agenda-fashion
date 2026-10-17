@@ -98,7 +98,12 @@ function sqlDiagnosticoDisponibilidadeAgendavel(negocioIdSql) {
       WHEN BOOL_OR((${sqlHorarioValido()}) AND (${sqlDuracaoCabe()}))
         THEN NULL
       ELSE 'DURACAO_INCOMPATIVEL'
-    END AS motivo_indisponibilidade
+    END AS motivo_indisponibilidade,
+    (
+      COUNT(*) > 0
+      AND BOOL_OR(disponibilidade_un.papel = 'dono') IS NOT TRUE
+      AND BOOL_OR((${sqlHorarioValido()}) AND (${sqlDuracaoCabe()})) IS NOT TRUE
+    ) AS revisar_horarios_na_equipe
     ${sqlCandidatosDisponibilidade(negocioIdSql)}
   `;
 }

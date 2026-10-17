@@ -27,6 +27,7 @@ async function buscarAtivacaoNegocio({
       agenda_configurada: false,
       possui_disponibilidade_agendavel: false,
       motivo_indisponibilidade: null,
+      revisar_horarios_na_equipe: false,
       primeiro_agendamento_recebido: false,
     };
   }
@@ -59,6 +60,10 @@ async function buscarAtivacaoNegocio({
         : null,
     primeiro_agendamento_recebido:
       estado?.primeiro_agendamento_recebido === true,
+    revisar_horarios_na_equipe:
+      estado?.revisar_horarios_na_equipe === true &&
+      estado?.possui_disponibilidade_agendavel === false &&
+      ["SEM_HORARIOS", "DURACAO_INCOMPATIVEL"].includes(estado?.motivo_indisponibilidade),
   };
 }
 

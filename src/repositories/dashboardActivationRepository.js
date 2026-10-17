@@ -53,6 +53,7 @@ async function buscarEstadoAtivacao(
         disponibilidade.motivo_indisponibilidade IS NULL
           AS possui_disponibilidade_agendavel,
         disponibilidade.motivo_indisponibilidade,
+        disponibilidade.revisar_horarios_na_equipe,
 
         ${sqlPossuiPrimeiroAgendamentoValido(
           "n.id"

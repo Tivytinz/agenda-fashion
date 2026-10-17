@@ -20,6 +20,21 @@ describe(
       jest.resetAllMocks();
     });
 
+    test.each([
+      [true, false, "SEM_HORARIOS", true],
+      [true, false, "DURACAO_INCOMPATIVEL", true],
+      [true, true, "SEM_HORARIOS", false],
+      ["true", false, "SEM_HORARIOS", false],
+      [true, false, "SEM_PROFISSIONAL_HABILITADA", false],
+      [true, false, undefined, false],
+    ])("normaliza contexto da equipe: %s/%s/%s", async (equipe, disponivel, motivo, esperado) => {
+      dashboardActivationRepository.buscarEstadoAtivacao.mockResolvedValue({
+        revisar_horarios_na_equipe: equipe, possui_disponibilidade_agendavel: disponivel, motivo_indisponibilidade: motivo,
+      });
+      const result = await dashboardActivationService.buscarAtivacaoNegocio({ negocioId: 12 });
+      expect(result.revisar_horarios_na_equipe).toBe(esperado);
+    });
+
     test.each(["SEM_PROFISSIONAL_HABILITADA", "SEM_HORARIOS", "DURACAO_INCOMPATIVEL", "desconhecido", undefined])(
       "normaliza o diagnóstico de indisponibilidade: %s", async (motivo) => {
         dashboardActivationRepository.buscarEstadoAtivacao.mockResolvedValue({
@@ -79,6 +94,7 @@ describe(
           agenda_configurada: true,
           possui_disponibilidade_agendavel: true,
           motivo_indisponibilidade: null,
+          revisar_horarios_na_equipe: false,
           primeiro_agendamento_recebido: false,
         });
 
@@ -116,6 +132,7 @@ describe(
           agenda_configurada: false,
           possui_disponibilidade_agendavel: false,
           motivo_indisponibilidade: null,
+          revisar_horarios_na_equipe: false,
           primeiro_agendamento_recebido: false,
         });
       }
@@ -137,6 +154,7 @@ describe(
           agenda_configurada: false,
           possui_disponibilidade_agendavel: false,
           motivo_indisponibilidade: null,
+          revisar_horarios_na_equipe: false,
           primeiro_agendamento_recebido: false,
         });
 

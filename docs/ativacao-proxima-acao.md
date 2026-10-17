@@ -22,7 +22,12 @@ estrutural: `SEM_PROFISSIONAL_HABILITADA`, `SEM_HORARIOS` ou
 `DURACAO_INCOMPATIVEL`; quando existe disponibilidade, o motivo é nulo.
 Falta de profissional habilitada direciona para `/painel/profissionais`.
 Ausência de horários e duração que não cabe nas faixas direcionam para
-`/painel/horarios`, com mensagens distintas. O diagnóstico não altera os estados,
+`/painel/horarios`, com mensagens distintas. Quando apenas a equipe está habilitada, o sinal
+`revisar_horarios_na_equipe = true` encaminha para `/painel/profissionais`,
+onde a dona escolhe a profissional e abre seus horários pelo contexto explícito.
+Esse sinal é falso quando a própria dona oferece serviço ativo, não há qualquer
+profissional habilitada ou já existe disponibilidade. Não expõe IDs adicionais.
+O diagnóstico não altera os estados,
 a publicação nem a autorização e não expõe dados individuais de profissionais.
 
 O frontend não recalcula a próxima etapa usando visitas ao perfil, métricas de conversão, pendências de publicação ou outras heurísticas.

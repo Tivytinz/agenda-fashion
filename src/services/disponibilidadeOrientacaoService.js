@@ -24,6 +24,12 @@ function orientarDisponibilidade(ativacao = {}, { posAtivacao = false } = {}) {
     destino = "/painel/horarios";
   }
 
+  if (motivo !== "SEM_PROFISSIONAL_HABILITADA" && ativacao?.revisar_horarios_na_equipe === true) {
+    mensagem += " Abra a equipe e configure os horários de uma profissional habilitada.";
+    rotulo = "Revisar horários da equipe";
+    destino = "/painel/profissionais";
+  }
+
   if (posAtivacao) {
     mensagem += " Se a pausa for intencional, mantenha sua configuração.";
   }
