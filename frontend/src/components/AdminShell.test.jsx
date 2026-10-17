@@ -42,7 +42,7 @@ describe("AdminShell", () => {
       name: "Módulos administrativos"
     });
 
-    expect(navigation.querySelectorAll(".admin-nav-link")).toHaveLength(11);
+    expect(navigation.querySelectorAll(".admin-nav-link")).toHaveLength(12);
     expect(screen.getByRole("heading", { name: "Crescimento" })).not.toBeNull();
     expect(navigation.querySelector("a[href='/admin/trafego-pago/custos?periodo=7']")
       .classList.contains("active")).toBe(true);
@@ -77,7 +77,7 @@ describe("AdminShell", () => {
     const navigation = screen.getByRole("navigation", {
       name: "Navegação mobile da administração"
     });
-    expect(navigation.querySelectorAll(".admin-nav-link")).toHaveLength(11);
+    expect(navigation.querySelectorAll(".admin-nav-link")).toHaveLength(12);
     expect(screen.getByRole("button", { name: "Menu" })
       .getAttribute("aria-expanded")).toBe("true");
     expect(navigation.querySelector("a[href='/admin/saude']"))

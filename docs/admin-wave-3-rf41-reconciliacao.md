@@ -1,5 +1,10 @@
 # Admin Wave 3 — Reconciliação de tentativas de auditoria RF41
 
+> Atualização de 16/10/2026: o papel atual é somente `admin`. As referências
+> a superadmin nesta implementação anterior foram substituídas pela
+> [matriz de permissões vigente](./admin-permissoes-matriz.md). Trilhas e evidências
+> históricas mantêm os rótulos originais.
+
 ## Objetivo
 
 Fechar a lacuna operacional deixada pela Admin Wave 2: uma ação pode ter

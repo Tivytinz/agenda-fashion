@@ -340,7 +340,7 @@ router.post(
  * Fontes factuais e custos variáveis de contribuição.
  *
  * A leitura é administrativa. Escritas financeiras
- * são validadas no backend e restritas ao superadmin.
+ * são validadas no backend e restritas ao admin.
  */
 router.get(
   "/admin/financeiro/contribuicao",

@@ -450,7 +450,7 @@ export function AdminOperationPage() {
         </button>
       </header>
 
-      {session?.administrador?.papel === "superadmin" && (
+      {session?.administrador?.papel === "admin" && (
         <div className="admin-operation-audit-link">
           <Link className="text-button" to="/admin/auditoria">Consultar auditoria administrativa →</Link>
         </div>

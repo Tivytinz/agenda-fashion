@@ -175,7 +175,7 @@ test("shell do admin mantém navegação durante rolagem e privacidade fora dos 
 
   const sidebar = page.locator(".admin-sidebar");
   const topbar = page.locator(".admin-topbar");
-  await expect(sidebar.locator(".admin-nav-link")).toHaveCount(11);
+  await expect(sidebar.locator(".admin-nav-link")).toHaveCount(12);
   await expect(sidebar.getByRole("link", { name: "Marketing" })).toBeVisible();
   await expect(sidebar.getByRole("link", { name: "Saúde do SaaS" })).toBeVisible();
   await expect(sidebar).toBeInViewport();

@@ -33,7 +33,7 @@ function positiveId(value) {
 function actor(admin) {
   const id = positiveId(admin?.usuarioId);
   const role = admin?.papel;
-  if (!id || !["admin", "superadmin"].includes(role)) {
+  if (!id || role !== "admin") {
     throw new AppError("Permissão administrativa inválida.", 403);
   }
   return { id, role };
@@ -89,9 +89,7 @@ async function finish(started, { targetId, status }) {
 }
 
 async function list({ admin, query = {} }) {
-  if (actor(admin).role !== "superadmin") {
-    throw new AppError("Auditoria restrita ao superadministrador.", 403);
-  }
+  actor(admin);
   const page = positiveId(query.pagina) || 1;
   if (page > 1000000) throw new AppError("Página inválida.", 400);
   const limit = Math.min(positiveId(query.limite) || 25, 100);
@@ -153,9 +151,6 @@ async function list({ admin, query = {} }) {
 
 async function review({ admin, tentativaId, avaliacao, evidenciaTipo, evidenciaReferencia }) {
   const reviewer = actor(admin);
-  if (reviewer.role !== "superadmin") {
-    throw new AppError("Revisão restrita ao superadministrador.", 403);
-  }
   if (!ATTEMPT_ID.test(String(tentativaId || ""))) {
     throw new AppError("Tentativa de auditoria inválida.", 400);
   }

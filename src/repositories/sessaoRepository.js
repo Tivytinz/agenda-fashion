@@ -113,10 +113,7 @@ async function buscarAdministradorAtivoPorUsuarioId(
         WHERE ua.usuario_id = $1
           AND ua.ativo = TRUE
           AND u.ativo = TRUE
-          AND ua.papel IN (
-            'admin',
-            'superadmin'
-          )
+          AND ua.papel = 'admin'
 
         LIMIT 1
       `,

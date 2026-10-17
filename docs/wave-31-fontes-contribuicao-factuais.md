@@ -1,5 +1,10 @@
 # Wave 31 — Fontes factuais de custos de contribuição v1
 
+> Atualização de 16/10/2026: o papel atual é somente `admin`. As referências
+> a superadmin nesta implementação anterior foram substituídas pela
+> [matriz de permissões vigente](./admin-permissoes-matriz.md). Trilhas e evidências
+> históricas mantêm os rótulos originais.
+
 > Workstream financeiro pós-baseline.
 >
 > A baseline funcional P0 + P1 permanece congelada em **67/67 (100%)**.

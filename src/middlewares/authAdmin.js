@@ -55,7 +55,7 @@ async function authAdmin(
           usuarioId
         );
 
-    if (!administrador) {
+    if (!administrador || administrador.papel !== "admin") {
       throw new AppError(
         "Acesso restrito aos administradores da plataforma.",
         403
@@ -77,10 +77,6 @@ async function authAdmin(
 
       papel:
         administrador.papel,
-
-      superadmin:
-        administrador.papel ===
-        "superadmin",
     };
 
     return next();

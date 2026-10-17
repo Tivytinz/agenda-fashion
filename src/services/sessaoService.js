@@ -153,17 +153,13 @@ function montarNegocio(
 function montarAdministrador(
   administrador
 ) {
-  if (!administrador) {
+  if (!administrador || administrador.papel !== "admin") {
     return null;
   }
 
   return {
     papel:
       administrador.papel,
-
-    superadmin:
-      administrador.papel ===
-      "superadmin",
   };
 }
 

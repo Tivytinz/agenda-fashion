@@ -660,6 +660,7 @@ describe(
         expect(
           consulta.statusCode
         ).toBe(200);
+        expect(consulta.headers["cache-control"]).toContain("no-store");
 
         expect(
           consulta.body
@@ -689,6 +690,7 @@ describe(
         expect(
           acessoInvalido.statusCode
         ).toBe(403);
+        expect(acessoInvalido.headers["cache-control"]).toContain("no-store");
 
         const cancelamento =
           await request(app)
@@ -703,6 +705,7 @@ describe(
         expect(
           cancelamento.statusCode
         ).toBe(200);
+        expect(cancelamento.headers["cache-control"]).toContain("no-store");
 
         expect(
           cancelamento.body

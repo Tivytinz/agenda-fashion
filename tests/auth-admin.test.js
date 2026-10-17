@@ -269,9 +269,6 @@ describe(
 
             papel:
               "admin",
-
-            superadmin:
-              false,
           },
         });
 
@@ -314,50 +311,12 @@ describe(
       }
     );
 
-    test(
-      "autoriza superadministrador e identifica seu nível",
-      async () => {
-        db.query
-          .mockResolvedValue({
-            rows: [
-              {
-                usuario_id:
-                  "12",
-
-                papel:
-                  "superadmin",
-              },
-            ],
-          });
-
-        const resposta =
-          await request(app)
-            .get(
-              "/admin/teste"
-            )
-            .set(
-              "x-test-user-id",
-              "12"
-            );
-
-        expect(
-          resposta.status
-        ).toBe(200);
-
-        expect(
-          resposta.body.admin
-        ).toEqual({
-          usuarioId:
-            12,
-
-          papel:
-            "superadmin",
-
-          superadmin:
-            true,
-        });
-      }
-    );
+    test("recusa papel legado superadmin mesmo se um repository incorreto o retornar", async () => {
+      db.query.mockResolvedValue({ rows: [{ usuario_id: "12", papel: "superadmin" }] });
+      const resposta = await request(app).get("/admin/teste").set("x-test-user-id", "12");
+      expect(resposta.status).toBe(403);
+      expect(resposta.body).not.toHaveProperty("admin");
+    });
 
     test(
       "não usa usuario.tipo para liberar o acesso",

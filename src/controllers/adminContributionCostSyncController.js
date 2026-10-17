@@ -30,10 +30,10 @@ async function criarIntegracao(
         .criarIntegracao({
           payload:
             req.body || {},
-          superadmin:
+          adminAutorizado:
             req.admin
-              ?.superadmin ===
-            true,
+              ?.papel ===
+            "admin",
         });
 
     return res
@@ -57,10 +57,10 @@ async function atualizarIntegracao(
             req.params?.id,
           payload:
             req.body || {},
-          superadmin:
+          adminAutorizado:
             req.admin
-              ?.superadmin ===
-            true,
+              ?.papel ===
+            "admin",
         });
 
     return res
@@ -82,10 +82,10 @@ async function sincronizar(
         .sincronizarManual({
           integracaoId:
             req.params?.id,
-          superadmin:
+          adminAutorizado:
             req.admin
-              ?.superadmin ===
-            true,
+              ?.papel ===
+            "admin",
         });
 
     return res

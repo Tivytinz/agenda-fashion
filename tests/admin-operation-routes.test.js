@@ -25,7 +25,6 @@ jest.mock(
     req.admin = {
       usuarioId: 7,
       papel: "admin",
-      superadmin: false
     };
     return next();
   }

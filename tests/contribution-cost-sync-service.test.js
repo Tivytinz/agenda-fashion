@@ -243,7 +243,7 @@ describe(
               adaptador:
                 "inexistente",
             },
-            superadmin: true,
+            adminAutorizado: true,
           })
         ).rejects.toMatchObject({
           statusCode: 409,
@@ -257,7 +257,7 @@ describe(
     );
 
     test(
-      "restringe configuração automática ao superadmin",
+      "restringe configuração automática a administrador autorizado",
       async () => {
         await expect(
           service.criarIntegracao({
@@ -266,7 +266,7 @@ describe(
               adaptador:
                 "provider_test",
             },
-            superadmin: false,
+            adminAutorizado: false,
           })
         ).rejects.toMatchObject({
           statusCode: 403,
@@ -287,7 +287,7 @@ describe(
                 intervaloMinutos: 60,
                 ativa: true,
               },
-              superadmin: true,
+              adminAutorizado: true,
             });
 
         expect(
@@ -329,7 +329,7 @@ describe(
                 ativa: false,
                 intervaloMinutos: 60,
               },
-              superadmin: true,
+              adminAutorizado: true,
             });
 
         expect(
@@ -365,7 +365,7 @@ describe(
               payload: {
                 ativa: true,
               },
-              superadmin: true,
+              adminAutorizado: true,
             })
         ).rejects.toMatchObject({
           statusCode: 409,

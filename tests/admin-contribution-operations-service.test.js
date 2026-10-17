@@ -89,11 +89,11 @@ describe(
     });
 
     test(
-      "permite leitura para admin comum mas bloqueia qualquer escrita financeira",
+      "não permite escrita financeira sem autorização administrativa",
       async () => {
         await expect(
           service.buscarPainel({
-            superadmin: false,
+            adminAutorizado: false,
           })
         ).resolves.toMatchObject({
           podeEditar: false,
@@ -113,7 +113,7 @@ describe(
                 "Fonte factual",
             },
             usuarioId: 7,
-            superadmin: false,
+            adminAutorizado: false,
           })
         ).rejects.toMatchObject({
           statusCode: 403,
@@ -161,7 +161,7 @@ describe(
                 "Contrato variável confirmado",
             },
             usuarioId: 7,
-            superadmin: true,
+            adminAutorizado: true,
           });
 
         expect(
@@ -234,7 +234,7 @@ describe(
                 "Fechamento factual do provedor",
             },
             usuarioId: 7,
-            superadmin: true,
+            adminAutorizado: true,
           });
 
         expect(
@@ -316,7 +316,7 @@ describe(
               "Replay confirmado",
           },
           usuarioId: 7,
-          superadmin: true,
+          adminAutorizado: true,
         });
 
         expect(
@@ -354,7 +354,7 @@ describe(
                 "Estorno confirmado",
             },
             usuarioId: 7,
-            superadmin: true,
+            adminAutorizado: true,
           })
         ).rejects.toMatchObject({
           statusCode: 409,
@@ -411,7 +411,7 @@ describe(
                 "Replay confirmado",
             },
             usuarioId: 7,
-            superadmin: true,
+            adminAutorizado: true,
           });
 
         expect(
@@ -441,7 +441,7 @@ describe(
                 "Cobertura sem fechamento",
             },
             usuarioId: 7,
-            superadmin: true,
+            adminAutorizado: true,
           })
         ).rejects.toMatchObject({
           statusCode: 400,
@@ -462,7 +462,7 @@ describe(
                 "Cobertura futura inválida",
             },
             usuarioId: 7,
-            superadmin: true,
+            adminAutorizado: true,
           })
         ).rejects.toMatchObject({
           statusCode: 400,
@@ -502,7 +502,7 @@ describe(
                 "Conciliação concluída",
             },
             usuarioId: 7,
-            superadmin: true,
+            adminAutorizado: true,
           });
 
         expect(

@@ -14,7 +14,7 @@ function app() {
   const instance = express();
   instance.use(express.json());
   instance.use((req, res, next) => {
-    req.admin = { usuarioId: 7, papel: req.headers["x-role"] || "superadmin" };
+    req.admin = { usuarioId: 7, papel: req.headers["x-role"] || "admin" };
     req.id = "request-12345";
     next();
   });
@@ -48,7 +48,7 @@ test("registra alvo confirmado e HTTP sem gravar payload", async () => {
   expect(result.status).toBe(201);
   await new Promise((resolve) => setImmediate(resolve));
   expect(audit.start).toHaveBeenCalledWith({
-    admin: { usuarioId: 7, papel: "superadmin" },
+    admin: { usuarioId: 7, papel: "admin" },
     action: "campanha_criar", targetId: undefined,
     targetCode: undefined, targetAttemptId: undefined, requestId: "request-12345"
   });
@@ -67,7 +67,7 @@ test("rota de revisão passa identidade e dados estruturados para o service", as
     });
   expect(result.status).toBe(201);
   expect(audit.review).toHaveBeenCalledWith({
-    admin: { usuarioId: 7, papel: "superadmin" },
+    admin: { usuarioId: 7, papel: "admin" },
     tentativaId: "00000000-0000-4000-8000-000000000001",
     avaliacao: "INDETERMINADO", evidenciaTipo: "LOG_APLICACAO",
     evidenciaReferencia: "request-12345"
@@ -75,11 +75,11 @@ test("rota de revisão passa identidade e dados estruturados para o service", as
   expect(JSON.stringify(audit.review.mock.calls)).not.toContain("never audit this");
 });
 
-test("consulta a auditoria pelo service, que valida superadmin", async () => {
+test("consulta a auditoria pelo service, que valida admin", async () => {
   audit.list.mockResolvedValueOnce({ eventos: [], paginacao: {} });
   const result = await request(app()).get("/admin/auditoria");
   expect(result.status).toBe(200);
   expect(audit.list).toHaveBeenCalledWith(expect.objectContaining({
-    admin: { usuarioId: 7, papel: "superadmin" }
+    admin: { usuarioId: 7, papel: "admin" }
   }));
 });
