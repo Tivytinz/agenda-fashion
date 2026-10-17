@@ -280,6 +280,36 @@ for (const scenario of [
     }
   },
   {
+    name: "primeira reserva sem horários",
+    title: "Adicione horários para receber agendamentos",
+    action: "Configurar horários",
+    destination: /\/painel\/horarios$/,
+    activation: { primeiro_agendamento_recebido: false, possui_disponibilidade_agendavel: false, possui_servico_ativo: true },
+    nextAction: {
+      estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO", concluido: false,
+      titulo: "Adicione horários para receber agendamentos",
+      mensagem: "Revise os dias e horários antes de divulgar.",
+      acao: { tipo: "NAVEGAR", rotulo: "Configurar horários", destino: "/painel/horarios" }
+    },
+    insight: { status: "AGUARDANDO_ATIVACAO", oportunidade_principal: null }
+  },
+  {
+    name: "serviço sem profissional habilitada",
+    title: "Habilite uma profissional para seus serviços",
+    action: "Gerenciar serviços da equipe",
+    destination: /\/painel\/profissionais$/,
+    activation: { possui_disponibilidade_agendavel: false, motivo_indisponibilidade: "SEM_PROFISSIONAL_HABILITADA" },
+    insight: {
+      status: "OPORTUNIDADE_PRIORIZADA",
+      oportunidade_principal: {
+        codigo: "REVISAR_DISPONIBILIDADE", categoria: "operacao",
+        titulo: "Habilite uma profissional para seus serviços",
+        mensagem: "Revise os serviços oferecidos pela equipe antes de divulgar.",
+        acao: { tipo: "NAVEGAR", rotulo: "Gerenciar serviços da equipe", destino: "/painel/profissionais" }
+      }
+    }
+  },
+  {
     name: "perfil oculto",
     title: "Seu perfil está oculto",
     action: "Gerenciar publicação",
@@ -295,7 +325,7 @@ for (const scenario of [
     insight: { status: "AGUARDANDO_ATIVACAO", oportunidade_principal: null }
   }
 ]) {
-  test(`orientação pós-ativação com ${scenario.name} cabe no celular`, async ({ page }) => {
+  test(`orientação do painel com ${scenario.name} cabe no celular`, async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem("session_active", "1"));
     await page.route("**/minha-sessao", route => json(route, {
       usuario: { id: 4, nome: "Ana", email: "ana@example.com" },
@@ -307,8 +337,9 @@ for (const scenario of [
     await page.route("**/marketing/meta/config", route => json(route, { enabled: false }));
     await page.route("**/marketing/google/config", route => json(route, { enabled: false }));
     await page.route("**/minha-assinatura", route => json(route, {}));
+    await page.route("**/profissionais", route => json(route, { profissionais: [] }));
     await page.route("**/conta", route => json(route, {
-      usuario: { aceita_lembretes_whatsapp: true, aceita_alertas_operacionais_whatsapp: true }
+      usuario: { aceita_lembretes_whatsapp: false, aceita_alertas_operacionais_whatsapp: true }
     }));
     await page.route("**/dashboard-dono/origem-clientes?periodo=7dias", route => json(route, { resumo: {}, origens: [] }));
     await page.route("**/dashboard-dono?periodo=7dias", route => json(route, {
@@ -323,6 +354,16 @@ for (const scenario of [
       has: page.getByRole("heading", { name: scenario.title, exact: true })
     });
     await expect(guidance).toBeVisible();
+    const today = page.getByRole("region", { name: "Agenda de hoje" });
+    await expect(today).toBeVisible();
+    const agendaBox = await today.boundingBox();
+    const guidanceBox = await guidance.boundingBox();
+    if (scenario.activation?.primeiro_agendamento_recebido === false) {
+      expect(guidanceBox.y + guidanceBox.height).toBeLessThanOrEqual(agendaBox.y);
+    } else {
+      expect(agendaBox.y + agendaBox.height).toBeLessThanOrEqual(guidanceBox.y);
+    }
+    await expect(page.getByRole("button", { name: "Ativar lembretes no WhatsApp" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Ativação concluída" })).toHaveCount(0);
     await expect(guidance.getByRole("button", { name: /Compartilhar|Criar texto/i })).toHaveCount(0);
     const action = guidance.getByRole("link", { name: scenario.action });
@@ -333,6 +374,9 @@ for (const scenario of [
     expect(diagnostics.scrollWidth).toBe(diagnostics.clientWidth);
     await action.click();
     await expect(page).toHaveURL(scenario.destination);
+    if (scenario.action === "Gerenciar serviços da equipe") {
+      await expect(page.getByRole("heading", { name: "Profissionais", exact: true })).toBeVisible();
+    }
   });
 }
 

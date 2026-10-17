@@ -8,6 +8,7 @@ const ALLOWED_DESTINATIONS = new Set([
   "/painel/agenda",
   "/painel/servicos",
   "/painel/horarios",
+  "/painel/profissionais",
   "/painel/negocio",
 ]);
 

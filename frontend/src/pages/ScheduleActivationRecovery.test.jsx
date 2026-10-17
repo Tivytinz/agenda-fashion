@@ -84,6 +84,37 @@ afterEach(() => {
 });
 
 describe("recuperação das leituras de ativação em horários", () => {
+  it.each(["restauração", "salvamento"])("oferece a equipe em vez de pedir dias ativos na %s", async (etapa) => {
+    const initial = deferred();
+    const response = activation(false);
+    response.proxima_acao_ativacao = {
+      estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+      mensagem: "Nenhuma profissional ativa está habilitada para realizar os serviços.",
+      acao: { tipo: "NAVEGAR", destino: "/painel/profissionais" }
+    };
+    mockRequests(initial);
+    if (etapa === "salvamento") {
+      apiRequest.mockImplementation((path, options = {}) => {
+        if (path === "/agenda-configuracao") return Promise.resolve({ configuracao: CONFIG, horarios: WEEK });
+        if (path === "/dashboard-dono/ativacao") return options.signal && apiRequest.mock.calls.filter(([p]) => p === path).length === 1 ? initial.promise : Promise.resolve(response);
+        return Promise.reject(new Error(`Rota inesperada: ${path}`));
+      });
+    }
+    renderPage();
+    await screen.findByLabelText("Início do atendimento de Segunda");
+    await settle(initial, response);
+    if (etapa === "salvamento") {
+      fireEvent.change(screen.getByLabelText("Início do atendimento de Segunda"), { target: { value: "09:00" } });
+      fireEvent.click(screen.getByRole("button", { name: "Salvar horários", exact: true }));
+      await waitFor(() => expect(apiRequest.mock.calls.some(([, o]) => o?.method === "PUT")).toBe(true));
+    }
+    const link = await screen.findByRole("link", { name: "Gerenciar serviços da equipe" });
+    expect(screen.queryByText(/Ative pelo menos um dia/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Compartilhar perfil" })).toBeNull();
+    fireEvent.click(link);
+    await waitFor(() => expect(router.state.location.pathname).toBe("/painel/profissionais"));
+  });
+
   it("mantém o rascunho acessível e permite continuar editando e salvar após uma resposta atrasada", async () => {
     const initial = deferred();
     const reads = mockRequests(initial);

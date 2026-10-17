@@ -64,3 +64,14 @@ Estas mudanças devem ser avaliadas por métricas de funil, não apenas por cliq
 - recorrência e retenção dos negócios.
 
 Configuração ou personalização de horários pode ser acompanhada como qualidade operacional, mas não substitui os marcos canônicos acima.
+
+## Orientação operacional e prioridade da agenda
+
+Depois do primeiro agendamento válido, a agenda de hoje antecede oportunidades,
+upgrade e consentimentos no painel. Antes desse marco, a missão de ativação
+continua primeiro. A disponibilidade estrutural inclui habilitação de serviço,
+dias de atendimento e duração compatível com as faixas e pausas; a orientação
+explica a causa e direciona para equipe ou horários conforme o diagnóstico
+canônico. O convite de divulgação por WhatsApp exige publicação, serviço ativo,
+disponibilidade e ausência de primeiro agendamento válido. Esse consentimento
+não se confunde com avisos operacionais, que continuam úteis durante pausas.

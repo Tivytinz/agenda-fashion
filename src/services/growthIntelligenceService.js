@@ -7,6 +7,7 @@ const {
 const {
   rankGrowthOpportunities,
 } = require("./growthIntelligence/recommendationService");
+const { orientarDisponibilidade } = require("./disponibilidadeOrientacaoService");
 
 const GROWTH_INTELLIGENCE_STATUS = Object.freeze({
   AGUARDANDO_ATIVACAO: "AGUARDANDO_ATIVACAO",
@@ -68,21 +69,12 @@ function analyzeGrowthIntelligence({
     const oportunidade = {
       codigo: "REVISAR_DISPONIBILIDADE",
       categoria: "operacao",
-      titulo: "Revise os horários antes de divulgar",
-      mensagem:
-        "Seu perfil está publicado, mas a disponibilidade atual não permite " +
-        "novas reservas. Se quiser voltar a receber agendamentos, revise os " +
-        "horários. Se a pausa for intencional, mantenha sua configuração.",
+      ...orientarDisponibilidade(ativacao, { posAtivacao: true }),
       impacto: 1,
       confianca: 1,
       urgencia: 1,
       score: 1,
       evidencias: [],
-      acao: {
-        tipo: "NAVEGAR",
-        rotulo: "Revisar horários",
-        destino: "/painel/horarios",
-      },
     };
 
     return {

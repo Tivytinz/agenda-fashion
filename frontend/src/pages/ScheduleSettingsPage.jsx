@@ -185,6 +185,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
   const [businessContextLoading, setBusinessContextLoading] = useState(false);
   const [scheduleProfessional, setScheduleProfessional] = useState(null);
   const [availabilityPending, setAvailabilityPending] = useState(false);
+  const [availabilityGuidance, setAvailabilityGuidance] = useState(null);
   const shareOnboardingRequested = useMemo(
     () => new URLSearchParams(location.search).get("onboarding") === "divulgacao",
     [location.search]
@@ -400,6 +401,8 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
         activationState ===
           "CONQUISTAR_PRIMEIRO_AGENDAMENTO" &&
         hasBookableAvailability;
+      const guidance = dashboard?.proxima_acao_ativacao;
+      setAvailabilityGuidance(canShare ? null : guidance);
       const business =
         dashboard?.negocio || {};
 
@@ -424,6 +427,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
       return {
         activationState,
         canShare,
+        guidance,
         isCurrent,
       };
     } catch (requestError) {
@@ -454,7 +458,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
     loadCanonicalActivationContext(controller)
       .then((activationContext) => {
         if (!active || !activationContext?.isCurrent()) return;
-        const { activationState, canShare } = activationContext;
+        const { activationState, canShare, guidance } = activationContext;
 
         if (
           activationState ===
@@ -473,7 +477,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
           setActivationNextStep(false);
           setAvailabilityPending(true);
           setMessage(
-            "Seu perfil está publicado. Ative pelo menos um dia de atendimento antes de divulgar."
+            guidance?.mensagem || "Seu perfil está publicado. Revise a disponibilidade antes de divulgar."
           );
           return;
         }
@@ -711,7 +715,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
           setActivationNextStep(false);
           setAvailabilityPending(true);
           setMessage(
-            "Horários salvos. Ative pelo menos um dia de atendimento antes de divulgar."
+            `Horários salvos. ${activationContext.guidance?.mensagem || "Revise a disponibilidade antes de divulgar."}`
           );
 
           if (!shareOnboardingRequested) {
@@ -1118,7 +1122,10 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
                   className="muted"
                   role="status"
                 >
-                  Seu perfil está publicado, mas ainda não há disponibilidade para novas reservas. Ative pelo menos um dia de atendimento antes de divulgar.
+                  {availabilityGuidance?.mensagem || "Seu perfil está publicado, mas ainda não há disponibilidade para novas reservas. Revise os dias e horários antes de divulgar."}
+                  {availabilityGuidance?.acao?.destino === "/painel/profissionais" && (
+                    <> <Link to="/painel/profissionais">Gerenciar serviços da equipe</Link></>
+                  )}
                 </p>
               )}
               {error && <p className="form-error schedule-settings-error" role="alert">{error}</p>}

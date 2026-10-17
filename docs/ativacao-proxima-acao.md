@@ -17,18 +17,32 @@ A decisão é feita no backend a partir do estado canônico do negócio:
 - `primeiro_agendamento_recebido`: existe ao menos um agendamento não cancelado para o negócio. O nome do campo é preservado por compatibilidade, mas um cancelamento deixa de encerrar a ativação se não existir outro agendamento válido;
 - `possui_disponibilidade_agendavel`: diagnóstico operacional estrutural que indica se existe profissional ativa, serviço ativo habilitado e ao menos um segmento semanal em que a duração inteira desse serviço caiba, considerando a pausa configurada. Ocupações e bloqueios pontuais continuam sendo filtrados no cálculo público de slots e não transformam publicação em gate. Esse sinal escolhe o CTA dentro de `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, mas não cria um estado novo nem vira gate de publicação.
 
+A projeção também inclui `motivo_indisponibilidade`, derivado do mesmo cálculo
+estrutural: `SEM_PROFISSIONAL_HABILITADA`, `SEM_HORARIOS` ou
+`DURACAO_INCOMPATIVEL`; quando existe disponibilidade, o motivo é nulo.
+Falta de profissional habilitada direciona para `/painel/profissionais`.
+Ausência de horários e duração que não cabe nas faixas direcionam para
+`/painel/horarios`, com mensagens distintas. O diagnóstico não altera os estados,
+a publicação nem a autorização e não expõe dados individuais de profissionais.
+
 O frontend não recalcula a próxima etapa usando visitas ao perfil, métricas de conversão, pendências de publicação ou outras heurísticas.
 
 ## Ordem das transições
 
-A prioridade oficial é:
+Antes da sequência abaixo, um perfil despublicado com
+`publicacao_pausada_manualmente = true` recebe `REVISAR_PUBLICACAO`, com a
+mensagem de que está oculto por escolha da dona e a ação opcional de gerenciar
+publicação. Essa intenção prevalece inclusive quando não há serviço ativo e
+não provoca republicação automática.
+
+Para os demais casos, a prioridade oficial é:
 
 1. `GARANTIR_SERVICO_ATIVO`
 2. `REVISAR_PUBLICACAO`
 3. `CONQUISTAR_PRIMEIRO_AGENDAMENTO`
 4. `ATIVADO`
 
-A ordem é deliberada e também protege estados legados ou regressões operacionais. Um negócio que já recebeu agendamento, mas perdeu todos os serviços ativos, volta para `GARANTIR_SERVICO_ATIVO`. Disponibilidade não altera essa ordem nem a publicação. Dentro de `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, porém, ausência de disponibilidade agendável troca o CTA de compartilhamento por `Configurar horários`; assim que existir faixa elegível, a mesma etapa volta a recomendar divulgação.
+A ordem é deliberada e também protege estados legados ou regressões operacionais. Um negócio que já recebeu agendamento, mas perdeu todos os serviços ativos, volta para `GARANTIR_SERVICO_ATIVO`. Disponibilidade não altera essa ordem nem a publicação. Dentro de `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, porém, ausência de disponibilidade agendável troca o compartilhamento pela orientação correspondente à causa: revisar equipe ou horários. Assim que existir disponibilidade elegível, a mesma etapa volta a recomendar divulgação.
 
 Esses estados são mecanismo interno do produto. No dashboard, a profissional recebe uma única missão útil de cada vez. A interface não precisa expor a quantidade total de estados nem apresentar `X de N etapas concluídas` quando essa informação não ajuda a decidir o que fazer agora.
 
@@ -54,6 +68,7 @@ Exemplo:
     "negocio_publicado": true,
     "agenda_configurada": true,
     "possui_disponibilidade_agendavel": true,
+    "motivo_indisponibilidade": null,
     "primeiro_agendamento_recebido": false
   },
   "proxima_acao_ativacao": {
@@ -69,7 +84,7 @@ Exemplo:
 }
 ```
 
-Ações de navegação usam `tipo = NAVEGAR`, `rotulo` e `destino`. Divulgação usa `tipo = COMPARTILHAR_PERFIL` para reutilizar o mecanismo rastreável de compartilhamento já existente no AF. Em `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, `possui_disponibilidade_agendavel = false` produz `NAVEGAR → /painel/horarios`; o frontend deve permitir explicitamente esse destino em sua whitelist de navegação. Esse ajuste é operacional e mantém o mesmo estado canônico.
+Ações de navegação usam `tipo = NAVEGAR`, `rotulo` e `destino`. Divulgação usa `tipo = COMPARTILHAR_PERFIL` para reutilizar o mecanismo rastreável de compartilhamento já existente no AF. Em `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, `possui_disponibilidade_agendavel = false` produz `NAVEGAR → /painel/horarios`; o frontend deve permitir explicitamente esse destino em sua whitelist de navegação. Quando o motivo é `SEM_PROFISSIONAL_HABILITADA`, o destino é `/painel/profissionais`, também autorizado explicitamente. Esse ajuste é operacional e mantém o mesmo estado canônico.
 
 O contrato pode continuar entregando os sinais canônicos para analytics, diagnóstico e compatibilidade sem obrigar a interface a exibi-los como checklist.
 
@@ -173,3 +188,16 @@ primeiro agendamento:
   estado canônico `ATIVADO` após existir primeiro agendamento válido.
 
 Mudanças futuras nessa ordem ou na definição de qualquer sinal canônico devem atualizar esta documentação e os testes correspondentes.
+
+## Prioridade da rotina no painel
+
+Quando existe primeiro agendamento válido, a agenda de hoje aparece antes da
+orientação, upgrade e convites de WhatsApp, inclusive durante uma pausa manual
+posterior da publicação. A primeira jornada preserva sua missão antes do resumo
+do dia. A hierarquia visual acompanha a ordem do DOM e do teclado.
+
+O convite de consentimento para orientações de divulgação só aparece quando o
+negócio está publicado, tem serviço ativo, disponibilidade agendável e ainda não
+recebeu primeiro agendamento válido. Avisos operacionais possuem finalidade
+separada e podem ser autorizados mesmo sem disponibilidade para novas reservas.
+A fila de mensagens continua revalidando a elegibilidade antes do envio.

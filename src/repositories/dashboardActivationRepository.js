@@ -1,6 +1,6 @@
 const db = require("../db/db");
 const {
-  sqlPossuiDisponibilidadeAgendavel,
+  sqlDiagnosticoDisponibilidadeAgendavel,
   sqlPossuiPrimeiroAgendamentoValido,
 } = require("./ativacaoSql");
 
@@ -50,15 +50,18 @@ async function buscarEstadoAtivacao(
               'personalizado'
         ) AS agenda_configurada,
 
-        ${sqlPossuiDisponibilidadeAgendavel(
-          "n.id"
-        )} AS possui_disponibilidade_agendavel,
+        disponibilidade.motivo_indisponibilidade IS NULL
+          AS possui_disponibilidade_agendavel,
+        disponibilidade.motivo_indisponibilidade,
 
         ${sqlPossuiPrimeiroAgendamentoValido(
           "n.id"
         )} AS primeiro_agendamento_recebido
 
       FROM negocios n
+      CROSS JOIN LATERAL (
+        ${sqlDiagnosticoDisponibilidadeAgendavel("n.id")}
+      ) disponibilidade
       WHERE n.id = $1
         AND n.ativo = TRUE
       LIMIT 1

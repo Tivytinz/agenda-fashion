@@ -294,3 +294,20 @@ describe(
     );
   }
 );
+
+describe("diagnóstico da próxima ação", () => {
+  test.each([
+    ["SEM_PROFISSIONAL_HABILITADA", "/painel/profissionais", "Habilite uma profissional"],
+    ["SEM_HORARIOS", "/painel/horarios", "Adicione horários"],
+    ["DURACAO_INCOMPATIVEL", "/painel/horarios", "Ajuste as faixas"],
+  ])("orienta a causa %s", (motivo, destino, titulo) => {
+    const resultado = resolverProximaAcaoAtivacao({
+      negocio_publicado: true, possui_servico_ativo: true,
+      possui_disponibilidade_agendavel: false, motivo_indisponibilidade: motivo,
+    });
+    expect(resultado.estado).toBe("CONQUISTAR_PRIMEIRO_AGENDAMENTO");
+    expect(resultado.acao).toMatchObject({ tipo: "NAVEGAR", destino });
+    expect(resultado.titulo).toContain(titulo);
+    expect(resultado.mensagem).not.toContain("Ative pelo menos um dia");
+  });
+});

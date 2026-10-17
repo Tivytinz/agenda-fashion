@@ -20,6 +20,26 @@ describe(
       jest.resetAllMocks();
     });
 
+    test.each(["SEM_PROFISSIONAL_HABILITADA", "SEM_HORARIOS", "DURACAO_INCOMPATIVEL", "desconhecido", undefined])(
+      "normaliza o diagnóstico de indisponibilidade: %s", async (motivo) => {
+        dashboardActivationRepository.buscarEstadoAtivacao.mockResolvedValue({
+          possui_disponibilidade_agendavel: false, motivo_indisponibilidade: motivo,
+        });
+        const resultado = await dashboardActivationService.buscarAtivacaoNegocio({ negocioId: 12 });
+        expect(resultado.motivo_indisponibilidade).toBe(
+          ["SEM_PROFISSIONAL_HABILITADA", "SEM_HORARIOS", "DURACAO_INCOMPATIVEL"].includes(motivo) ? motivo : null
+        );
+      }
+    );
+
+    test("não mantém diagnóstico de bloqueio quando existe disponibilidade", async () => {
+      dashboardActivationRepository.buscarEstadoAtivacao.mockResolvedValue({
+        possui_disponibilidade_agendavel: true, motivo_indisponibilidade: "SEM_HORARIOS",
+      });
+      const resultado = await dashboardActivationService.buscarAtivacaoNegocio({ negocioId: 12 });
+      expect(resultado.motivo_indisponibilidade).toBeNull();
+    });
+
     test.each([true, false, "true", 1, undefined])(
       "deriva a pausa apenas de booleano verdadeiro retornado pelo repository: %s",
       async (sinal) => {
@@ -58,6 +78,7 @@ describe(
           publicacao_pausada_manualmente: false,
           agenda_configurada: true,
           possui_disponibilidade_agendavel: true,
+          motivo_indisponibilidade: null,
           primeiro_agendamento_recebido: false,
         });
 
@@ -94,6 +115,7 @@ describe(
           publicacao_pausada_manualmente: false,
           agenda_configurada: false,
           possui_disponibilidade_agendavel: false,
+          motivo_indisponibilidade: null,
           primeiro_agendamento_recebido: false,
         });
       }
@@ -114,6 +136,7 @@ describe(
           publicacao_pausada_manualmente: false,
           agenda_configurada: false,
           possui_disponibilidade_agendavel: false,
+          motivo_indisponibilidade: null,
           primeiro_agendamento_recebido: false,
         });
 

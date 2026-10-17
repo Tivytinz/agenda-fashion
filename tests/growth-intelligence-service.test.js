@@ -379,3 +379,18 @@ describe("growthIntelligenceService", () => {
     expect(serialized).not.toContain("ranking_clientes");
   });
 });
+
+describe("diagnóstico operacional pós-ativação", () => {
+  test.each([
+    ["SEM_PROFISSIONAL_HABILITADA", "/painel/profissionais", "Habilite uma profissional"],
+    ["SEM_HORARIOS", "/painel/horarios", "Revise os horários"],
+    ["DURACAO_INCOMPATIVEL", "/painel/horarios", "Ajuste as faixas"],
+  ])("direciona a causa %s sem depender de telemetria", (motivo, destino, titulo) => {
+    const result = analyze({ qualidade_dados: { desempenho_perfil: "indisponivel" } }, {
+      ativacao: { ...ATIVACAO_CONCLUIDA, possui_disponibilidade_agendavel: false, motivo_indisponibilidade: motivo },
+    });
+    expect(result.oportunidade_principal.acao).toMatchObject({ tipo: "NAVEGAR", destino });
+    expect(result.oportunidade_principal.titulo).toContain(titulo);
+    expect(result.oportunidade_principal.mensagem).toContain("Se a pausa for intencional");
+  });
+});

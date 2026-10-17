@@ -2,6 +2,12 @@ const dashboardActivationRepository = require(
   "../repositories/dashboardActivationRepository"
 );
 
+const MOTIVOS_INDISPONIBILIDADE = new Set([
+  "SEM_PROFISSIONAL_HABILITADA",
+  "SEM_HORARIOS",
+  "DURACAO_INCOMPATIVEL",
+]);
+
 async function buscarAtivacaoNegocio({
   negocioId,
 }) {
@@ -20,6 +26,7 @@ async function buscarAtivacaoNegocio({
       publicacao_pausada_manualmente: false,
       agenda_configurada: false,
       possui_disponibilidade_agendavel: false,
+      motivo_indisponibilidade: null,
       primeiro_agendamento_recebido: false,
     };
   }
@@ -45,6 +52,11 @@ async function buscarAtivacaoNegocio({
       estado
         ?.possui_disponibilidade_agendavel ===
       true,
+    motivo_indisponibilidade:
+      estado?.possui_disponibilidade_agendavel !== true &&
+      MOTIVOS_INDISPONIBILIDADE.has(estado?.motivo_indisponibilidade)
+        ? estado.motivo_indisponibilidade
+        : null,
     primeiro_agendamento_recebido:
       estado?.primeiro_agendamento_recebido === true,
   };

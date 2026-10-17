@@ -52,6 +52,7 @@ const DASHBOARD = {
   resumo_dias: [{ data: "27/09", agendamentos: 2, faturamento: 100 }],
   ativacao: {
     possui_servico_ativo: true,
+    possui_disponibilidade_agendavel: true,
     negocio_publicado: true,
     agenda_configurada: true,
     primeiro_agendamento_recebido: false
@@ -239,6 +240,50 @@ describe("dashboard", () => {
     expect(screen.queryByText("Carregando origem dos clientes...")).toBeNull();
   });
 
+  it.each([false, true])("abre a equipe pela orientação canônica; pós-ativação: %s", async (posAtivacao) => {
+    const guidance = {
+      titulo: "Habilite uma profissional para seus serviços",
+      mensagem: "Nenhuma profissional ativa está habilitada.",
+      acao: { tipo: "NAVEGAR", rotulo: "Gerenciar serviços da equipe", destino: "/painel/profissionais" }
+    };
+    mockDashboardRequests({ dashboard: {
+      ...DASHBOARD,
+      ativacao: { ...DASHBOARD.ativacao, primeiro_agendamento_recebido: posAtivacao, possui_disponibilidade_agendavel: false },
+      proxima_acao_ativacao: posAtivacao ? { estado: "ATIVADO", concluido: true } : { estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO", ...guidance },
+      inteligencia_crescimento: posAtivacao ? {
+        status: "OPORTUNIDADE_PRIORIZADA",
+        oportunidade_principal: { codigo: "REVISAR_DISPONIBILIDADE", ...guidance }
+      } : { status: "AGUARDANDO_ATIVACAO" }
+    } });
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+    const link = await screen.findByRole("link", { name: "Gerenciar serviços da equipe" });
+    expect(link.getAttribute("href")).toBe("/painel/profissionais");
+    const today = screen.getByRole("region", { name: "Agenda de hoje" });
+    const panel = link.closest("section");
+    expect(Boolean(today.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(posAtivacao);
+  });
+
+  it.each([false, undefined])("não convida para divulgar com disponibilidade %s", (disponivel) => {
+    expect(getWhatsappConsentVisibility({
+      activation: { negocio_publicado: true, possui_servico_ativo: true, possui_disponibilidade_agendavel: disponivel, primeiro_agendamento_recebido: false },
+      reminders: { enabled: false, operationalEnabled: true }
+    })).toEqual({ operational: false, activation: false });
+  });
+
+  it("mantém avisos operacionais disponíveis mesmo sem horários", () => {
+    expect(getWhatsappConsentVisibility({
+      activation: { negocio_publicado: true, possui_disponibilidade_agendavel: false },
+      reminders: { enabled: false, operationalEnabled: false }
+    })).toEqual({ operational: true, activation: false });
+  });
+
+  it("não oferece marketing sem serviço ativo", () => {
+    expect(getWhatsappConsentVisibility({
+      activation: { negocio_publicado: true, possui_servico_ativo: false, possui_disponibilidade_agendavel: true },
+      reminders: { enabled: false, operationalEnabled: true }
+    }).activation).toBe(false);
+  });
+
   it("não deixa convites de WhatsApp competir com a ativação antes da publicação", () => {
     expect(getWhatsappConsentVisibility({
       activation: {
@@ -259,6 +304,8 @@ describe("dashboard", () => {
     expect(getWhatsappConsentVisibility({
       activation: {
         negocio_publicado: true,
+        possui_servico_ativo: true,
+        possui_disponibilidade_agendavel: true,
         primeiro_agendamento_recebido: false
       },
       reminders: {
@@ -273,6 +320,8 @@ describe("dashboard", () => {
     expect(getWhatsappConsentVisibility({
       activation: {
         negocio_publicado: true,
+        possui_servico_ativo: true,
+        possui_disponibilidade_agendavel: true,
         primeiro_agendamento_recebido: false
       },
       reminders: {

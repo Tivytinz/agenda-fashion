@@ -183,3 +183,13 @@ No dashboard, a missão de conquistar o primeiro agendamento deve aparecer antes
 No fluxo público de agendamento, compartilhar um serviço é uma ação secundária. Ela não deve competir com a escolha do serviço em cada card; pode ser oferecida depois que a cliente já tiver selecionado o serviço.
 
 Não criar um segundo mecanismo de compartilhamento. Reutilizar os links públicos rastreáveis e o `PublicShareButton` existentes.
+
+### Orientação conforme a causa da indisponibilidade
+
+A projeção canônica distingue falta de profissional ativa habilitada, ausência
+de horários e faixas insuficientes para a duração integral do serviço,
+considerando pausas. A primeira causa oferece acesso à equipe; as demais
+orientam a revisar horários com texto específico. Na restauração ou conclusão
+da etapa de horários, a interface reutiliza a mensagem canônica e oferece a
+mesma saída para a equipe, preservando os horários salvos e sem pedir para
+ativar dias quando o problema está na habilitação.

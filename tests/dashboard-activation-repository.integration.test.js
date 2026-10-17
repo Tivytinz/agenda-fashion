@@ -33,6 +33,31 @@ describe(
       );
     });
 
+    test("diagnostica habilitação, faixas e duração sem divergir do sinal usado pelo WhatsApp", async () => {
+      const { sqlPossuiDisponibilidadeAgendavel } = require("../src/repositories/ativacaoSql");
+      async function verificar(motivo) {
+        const estado = await dashboardActivationRepository.buscarEstadoAtivacao(cenario.negocioId);
+        const { rows } = await db.query(`SELECT ${sqlPossuiDisponibilidadeAgendavel("$1")} AS disponivel`, [cenario.negocioId]);
+        expect(estado.motivo_indisponibilidade).toBe(motivo);
+        expect(estado.possui_disponibilidade_agendavel).toBe(motivo === null);
+        expect(rows[0].disponivel).toBe(estado.possui_disponibilidade_agendavel);
+      }
+      await verificar(null);
+      await db.query("UPDATE agenda_horarios SET trabalha = FALSE WHERE negocio_id = $1", [cenario.negocioId]);
+      await verificar("SEM_HORARIOS");
+      await db.query(`UPDATE agenda_horarios SET trabalha = TRUE, hora_inicio = '09:00', hora_fim = '09:30', intervalo_inicio = NULL, intervalo_fim = NULL WHERE negocio_id = $1 AND dia_semana = 1`, [cenario.negocioId]);
+      await verificar("DURACAO_INCOMPATIVEL");
+      await db.query(`UPDATE agenda_horarios SET hora_fim = '10:00' WHERE negocio_id = $1 AND dia_semana = 1`, [cenario.negocioId]);
+      await verificar(null);
+      // The day is long enough in total, but neither side of the pause fits the service.
+      await db.query(`UPDATE agenda_horarios SET hora_fim = '11:00', intervalo_inicio = '09:30', intervalo_fim = '10:30' WHERE negocio_id = $1 AND dia_semana = 1`, [cenario.negocioId]);
+      await verificar("DURACAO_INCOMPATIVEL");
+      await db.query("DELETE FROM agenda_horarios WHERE negocio_id = $1", [cenario.negocioId]);
+      await verificar("SEM_HORARIOS");
+      await db.query("DELETE FROM profissional_servicos WHERE negocio_id = $1", [cenario.negocioId]);
+      await verificar("SEM_PROFISSIONAL_HABILITADA");
+    });
+
     test("distingue ocultação manual de uma publicação ainda pendente", async () => {
       await db.query(
         "UPDATE negocios SET publicado = FALSE, despublicado_manual_em = NOW() WHERE id = $1",

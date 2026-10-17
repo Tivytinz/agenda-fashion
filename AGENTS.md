@@ -64,6 +64,14 @@ backend e oferece gestão da publicação, sem chamar a escolha da dona de
 cadastro incompleto ou republicar automaticamente. Erros de consentimento
 operacional de WhatsApp são exibidos no próprio card e permitem nova tentativa.
 
+O diagnóstico estrutural da disponibilidade distingue ausência de profissional
+ativa habilitada, ausência de horários e duração incompatível com as faixas e
+pausas. A orientação canônica encaminha para equipe ou horários conforme a
+causa, sem alterar publicação. Convites de divulgação no painel respeitam a
+mesma elegibilidade operacional da fila de WhatsApp. Depois do primeiro
+agendamento válido, a agenda de hoje antecede orientação, upgrade e
+consentimentos; a primeira jornada continua priorizando sua missão de ativação.
+
 ## Integração contínua e merge
 
 Pull requests não draft direcionados à `main` devem habilitar auto-merge por squash automaticamente. Os gates obrigatórios de CI e as regras de proteção da branch continuam sendo a condição de integração: o PR só entra na `main` depois de satisfazê-los. Falha ou cancelamento de check não deve ser contornado por merge forçado.

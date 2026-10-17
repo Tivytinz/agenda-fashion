@@ -1,3 +1,5 @@
+const { orientarDisponibilidade } = require("./disponibilidadeOrientacaoService");
+
 const ESTADOS_PROXIMA_ACAO_ATIVACAO = Object.freeze({
   GARANTIR_SERVICO_ATIVO: "GARANTIR_SERVICO_ATIVO",
   REVISAR_PUBLICACAO: "REVISAR_PUBLICACAO",
@@ -78,14 +80,7 @@ function resolverProximaAcaoAtivacao(ativacao = {}) {
         estado:
           ESTADOS_PROXIMA_ACAO_ATIVACAO.CONQUISTAR_PRIMEIRO_AGENDAMENTO,
         concluido: false,
-        titulo:
-          "Adicione horários para receber agendamentos",
-        mensagem:
-          "Seu perfil está publicado, mas ainda não há uma disponibilidade que permita novas reservas. Ative pelo menos um dia de atendimento antes de divulgar.",
-        acao: acaoNavegacao(
-          "Configurar horários",
-          "/painel/horarios"
-        ),
+        ...orientarDisponibilidade(ativacao),
       };
     }
 
