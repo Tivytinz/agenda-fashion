@@ -3,16 +3,16 @@
 import { useState } from "react";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createMemoryRouter, Link, RouterProvider, useNavigate } from "react-router-dom";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { UnsavedChangesGuard } from "./UnsavedChangesGuard";
 
 let router;
 
-function Draft() {
+function Draft({ onDiscard }) {
   const [dirty, setDirty] = useState(false);
   const navigate = useNavigate();
   return <>
-    <UnsavedChangesGuard when={dirty} />
+    <UnsavedChangesGuard when={dirty} onDiscard={onDiscard} />
     <h1>Rascunho</h1>
     <button onClick={() => setDirty(true)}>Editar</button>
     <button onClick={() => setDirty(false)}>Salvar</button>
@@ -21,9 +21,9 @@ function Draft() {
   </>;
 }
 
-function renderDraft(initialEntries = ["/rascunho"]) {
+function renderDraft(initialEntries = ["/rascunho"], onDiscard) {
   router = createMemoryRouter([
-    { path: "/rascunho", element: <Draft /> },
+    { path: "/rascunho", element: <Draft onDiscard={onDiscard} /> },
     { path: "/destino", element: <h1>Destino</h1> }
   ], { initialEntries });
   render(<RouterProvider router={router} />);
@@ -39,6 +39,34 @@ afterEach(() => {
 });
 
 describe("proteção de alterações não salvas", () => {
+  it("invalida antes de liberar a saída explícita, preservando Continuar e Escape", async () => {
+    const onDiscard = vi.fn(() => expect(router.state.location.pathname).toBe("/rascunho"));
+    renderDraft(["/rascunho"], onDiscard);
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    fireEvent.click(screen.getByRole("link", { name: "Abrir destino" }));
+    await screen.findByRole("dialog");
+    fireEvent.click(screen.getByRole("button", { name: "Continuar editando" }));
+    expect(onDiscard).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("link", { name: "Abrir destino" }));
+    fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
+    expect(onDiscard).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("link", { name: "Abrir destino" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sair sem salvar" }));
+    await screen.findByRole("heading", { name: "Destino" });
+    expect(onDiscard).toHaveBeenCalledTimes(1);
+  });
+
+  it("a conclusão do salvamento libera navegação sem sinalizar descarte", async () => {
+    const onDiscard = vi.fn();
+    renderDraft(["/rascunho"], onDiscard);
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    fireEvent.click(screen.getByRole("link", { name: "Abrir destino" }));
+    await screen.findByRole("dialog");
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+    await screen.findByRole("heading", { name: "Destino" });
+    expect(onDiscard).not.toHaveBeenCalled();
+  });
+
   it("permite sair de um formulário sem alterações", async () => {
     renderDraft();
     fireEvent.click(screen.getByRole("link", { name: "Abrir destino" }));

@@ -47,7 +47,7 @@ function conversionOpportunity(signals) {
       titulo: "Transforme visitas em agendamentos",
       mensagem:
         `${visits} visitas ao perfil foram registradas neste período, ` +
-        "mas nenhum agendamento concluído apareceu nos mesmos sinais. " +
+        "mas não houve agendamentos não cancelados no mesmo período. " +
         "Vale revisar a clareza do perfil, os serviços e a disponibilidade antes de buscar mais tráfego.",
       impacto: 1,
       confianca: confidence,
@@ -56,7 +56,7 @@ function conversionOpportunity(signals) {
         evidence("visitas_perfil", "Visitas ao perfil", visits),
         evidence(
           "agendamentos_concluidos",
-          "Agendamentos concluídos",
+          "Agendamentos não cancelados",
           bookings
         ),
         evidence("taxa_conversao", "Conversão", round(conversion, 1), "%"),
@@ -78,7 +78,7 @@ function conversionOpportunity(signals) {
     categoria: "conversao",
     titulo: "Revise a conversão do perfil",
     mensagem:
-      `Seu perfil teve ${visits} visitas e ${bookings} agendamentos concluídos ` +
+      `Seu perfil teve ${visits} visitas e ${bookings} agendamentos não cancelados ` +
       `neste período, com conversão registrada de ${round(conversion, 1)}%. ` +
       "Isso não prova uma causa específica, mas já é amostra suficiente para revisar apresentação, serviços e horários disponíveis.",
     impacto: 0.7 + severity * 0.2,
@@ -88,7 +88,7 @@ function conversionOpportunity(signals) {
       evidence("visitas_perfil", "Visitas ao perfil", visits),
       evidence(
         "agendamentos_concluidos",
-        "Agendamentos concluídos",
+        "Agendamentos não cancelados",
         bookings
       ),
       evidence("taxa_conversao", "Conversão", round(conversion, 1), "%"),
@@ -123,7 +123,7 @@ function interestWithoutBookingOpportunity(signals) {
     mensagem:
       `O perfil registrou ${interest} ações de interesse ` +
       "(WhatsApp, Maps ou favoritos) para " +
-      `${bookings} agendamentos concluídos no período. ` +
+      `${bookings} agendamentos não cancelados no período. ` +
       "O sinal sugere que vale reduzir atrito entre interesse e reserva, sem assumir uma causa específica.",
     impacto: 0.72,
     confianca: confidence,
@@ -132,7 +132,7 @@ function interestWithoutBookingOpportunity(signals) {
       evidence("acoes_interesse", "Ações de interesse", interest),
       evidence(
         "agendamentos_concluidos",
-        "Agendamentos concluídos",
+        "Agendamentos não cancelados",
         bookings
       ),
       evidence(

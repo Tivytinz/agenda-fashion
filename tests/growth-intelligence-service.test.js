@@ -35,6 +35,80 @@ function analyze(dashboard, overrides = {}) {
 }
 
 describe("growthIntelligenceService", () => {
+  test.each([false, true])(
+    "prioriza horários sem disponibilidade; telemetria indisponível: %s",
+    (telemetriaIndisponivel) => {
+      const ativacao = {
+        ...ATIVACAO_CONCLUIDA,
+        possui_disponibilidade_agendavel: false,
+      };
+      const result = analyze({
+        periodo: "7dias",
+        qualidade_dados: telemetriaIndisponivel
+          ? { desempenho_perfil: "indisponivel", favoritos: "indisponivel" }
+          : {},
+        resumo: { servicos_vendidos: 8 },
+        performance: {
+          visitas_perfil: 30,
+          agendamentos_concluidos: 8,
+          taxa_conversao: 26.7,
+        },
+        ranking_servicos: [{ id: 1, nome: "Manicure", total: 8 }],
+      }, { ativacao });
+
+      expect(result.status).toBe(GROWTH_INTELLIGENCE_STATUS.OPORTUNIDADE_PRIORIZADA);
+      expect(result.oportunidade_principal.codigo).toBe("REVISAR_DISPONIBILIDADE");
+      expect(result.oportunidade_principal.acao).toEqual({
+        tipo: "NAVEGAR", rotulo: "Revisar horários", destino: "/painel/horarios",
+      });
+      expect(result.oportunidades).toHaveLength(1);
+      expect(JSON.stringify(result)).not.toContain("COMPARTILHAR_PERFIL");
+      expect(ativacao).toEqual({
+        ...ATIVACAO_CONCLUIDA,
+        possui_disponibilidade_agendavel: false,
+      });
+    }
+  );
+
+  test("preserva a missão inicial quando ainda não há primeiro agendamento", () => {
+    const result = analyze({}, {
+      ativacao: {
+        ...ATIVACAO_CONCLUIDA,
+        primeiro_agendamento_recebido: false,
+        possui_disponibilidade_agendavel: false,
+      },
+      proximaAcaoAtivacao: { concluido: false },
+    });
+    expect(result.status).toBe(GROWTH_INTELLIGENCE_STATUS.AGUARDANDO_ATIVACAO);
+    expect(result.oportunidade_principal).toBeNull();
+  });
+
+  test.each([true, undefined])("preserva divulgação com disponibilidade %s", (disponibilidade) => {
+    const result = analyze({
+      resumo: { servicos_vendidos: 8 },
+      performance: { visitas_perfil: 30, agendamentos_concluidos: 8, taxa_conversao: 26.7 },
+      ranking_servicos: [{ id: 1, nome: "Manicure", total: 8 }],
+    }, {
+      ativacao: {
+        ...ATIVACAO_CONCLUIDA,
+        possui_disponibilidade_agendavel: disponibilidade,
+      },
+    });
+    expect(result.oportunidade_principal.acao.tipo).toBe("COMPARTILHAR_PERFIL");
+  });
+
+  test("distingue reservas não canceladas de atendimentos realizados", () => {
+    const result = analyze({
+      performance: { visitas_perfil: 50, agendamentos_concluidos: 0 },
+    });
+    expect(result.oportunidade_principal.evidencias).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rotulo: "Agendamentos não cancelados" }),
+      ])
+    );
+    expect(JSON.stringify(result)).not.toContain("concluído");
+  });
+
   test.each(["desempenho_perfil", "favoritos"])("não recomenda ações quando %s está indisponível", (campo) => {
     const result = analyze({
       periodo: "7dias",
@@ -303,5 +377,34 @@ describe("growthIntelligenceService", () => {
     expect(serialized).not.toContain("Cliente Exemplo");
     expect(serialized).not.toContain("62999999999");
     expect(serialized).not.toContain("ranking_clientes");
+  });
+});
+
+describe("diagnóstico operacional pós-ativação", () => {
+  test.each([
+    ["SEM_PROFISSIONAL_HABILITADA", "/painel/profissionais", "Habilite uma profissional"],
+    ["SEM_HORARIOS", "/painel/horarios", "Revise os horários"],
+    ["DURACAO_INCOMPATIVEL", "/painel/horarios", "Ajuste as faixas"],
+  ])("direciona a causa %s sem depender de telemetria", (motivo, destino, titulo) => {
+    const result = analyze({ qualidade_dados: { desempenho_perfil: "indisponivel" } }, {
+      ativacao: { ...ATIVACAO_CONCLUIDA, possui_disponibilidade_agendavel: false, motivo_indisponibilidade: motivo },
+    });
+    expect(result.oportunidade_principal.acao).toMatchObject({ tipo: "NAVEGAR", destino });
+    expect(result.oportunidade_principal.titulo).toContain(titulo);
+    expect(result.oportunidade_principal.mensagem).toContain("Se a pausa for intencional");
+  });
+});
+
+describe("orientação para horários da equipe", () => {
+  test.each(["SEM_HORARIOS", "DURACAO_INCOMPATIVEL"])("encaminha à equipe quando a dona não atende o serviço: %s", (motivo) => {
+    const ativacao = {
+      possui_servico_ativo: true, negocio_publicado: true,
+      possui_disponibilidade_agendavel: false, motivo_indisponibilidade: motivo,
+      revisar_horarios_na_equipe: true,
+      primeiro_agendamento_recebido: true,
+    };
+    const resultado = analyze({}, { ativacao }).oportunidade_principal;
+    expect(resultado.acao).toEqual({ tipo: "NAVEGAR", rotulo: "Revisar horários da equipe", destino: "/painel/profissionais" });
+    expect(resultado.mensagem).toContain("configure os horários de uma profissional habilitada");
   });
 });

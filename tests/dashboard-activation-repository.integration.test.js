@@ -33,6 +33,79 @@ describe(
       );
     });
 
+    test("diagnostica habilitação, faixas e duração sem divergir do sinal usado pelo WhatsApp", async () => {
+      const { sqlPossuiDisponibilidadeAgendavel } = require("../src/repositories/ativacaoSql");
+      async function verificar(motivo) {
+        const estado = await dashboardActivationRepository.buscarEstadoAtivacao(cenario.negocioId);
+        const { rows } = await db.query(`SELECT ${sqlPossuiDisponibilidadeAgendavel("$1")} AS disponivel`, [cenario.negocioId]);
+        expect(estado.motivo_indisponibilidade).toBe(motivo);
+        expect(estado.possui_disponibilidade_agendavel).toBe(motivo === null);
+        expect(rows[0].disponivel).toBe(estado.possui_disponibilidade_agendavel);
+      }
+      await verificar(null);
+      await db.query("UPDATE agenda_horarios SET trabalha = FALSE WHERE negocio_id = $1", [cenario.negocioId]);
+      await verificar("SEM_HORARIOS");
+      await db.query(`UPDATE agenda_horarios SET trabalha = TRUE, hora_inicio = '09:00', hora_fim = '09:30', intervalo_inicio = NULL, intervalo_fim = NULL WHERE negocio_id = $1 AND dia_semana = 1`, [cenario.negocioId]);
+      await verificar("DURACAO_INCOMPATIVEL");
+      await db.query(`UPDATE agenda_horarios SET hora_fim = '10:00' WHERE negocio_id = $1 AND dia_semana = 1`, [cenario.negocioId]);
+      await verificar(null);
+      // The day is long enough in total, but neither side of the pause fits the service.
+      await db.query(`UPDATE agenda_horarios SET hora_fim = '11:00', intervalo_inicio = '09:30', intervalo_fim = '10:30' WHERE negocio_id = $1 AND dia_semana = 1`, [cenario.negocioId]);
+      await verificar("DURACAO_INCOMPATIVEL");
+      await db.query("DELETE FROM agenda_horarios WHERE negocio_id = $1", [cenario.negocioId]);
+      await verificar("SEM_HORARIOS");
+      await db.query("DELETE FROM profissional_servicos WHERE negocio_id = $1", [cenario.negocioId]);
+      await verificar("SEM_PROFISSIONAL_HABILITADA");
+    });
+
+    test("revisa a equipe quando só outra profissional está habilitada, sem usar horários da dona", async () => {
+      const equipe = await criarCenarioAgendamento(db, { prefixo: "activation-team-target" });
+      try {
+        await db.query("INSERT INTO usuarios_negocios (usuario_id, negocio_id, papel, ativo) VALUES ($1, $2, 'profissional', TRUE)", [equipe.profissional.id, cenario.negocioId]);
+        await db.query("INSERT INTO profissional_servicos (negocio_id, profissional_id, servico_id, habilitado_por_usuario_id) VALUES ($1, $2, $3, $4)", [cenario.negocioId, equipe.profissional.id, cenario.servico.id, cenario.profissional.id]);
+        await db.query(`INSERT INTO agenda_horarios (profissional_id, negocio_id, dia_semana, trabalha, hora_inicio, hora_fim)
+          SELECT $1, negocio_id, dia_semana, TRUE, '09:00'::TIME, '09:30'::TIME FROM agenda_horarios WHERE negocio_id = $2 AND profissional_id = $3
+          ON CONFLICT (profissional_id, negocio_id, dia_semana) DO UPDATE
+          SET trabalha = TRUE, hora_inicio = EXCLUDED.hora_inicio, hora_fim = EXCLUDED.hora_fim,
+              intervalo_inicio = NULL, intervalo_fim = NULL`, [equipe.profissional.id, cenario.negocioId, cenario.profissional.id]);
+        expect(await dashboardActivationRepository.buscarEstadoAtivacao(cenario.negocioId)).toMatchObject({ possui_disponibilidade_agendavel: true, revisar_horarios_na_equipe: false });
+        await db.query("DELETE FROM profissional_servicos WHERE negocio_id = $1 AND profissional_id = $2", [cenario.negocioId, cenario.profissional.id]);
+        expect(await dashboardActivationRepository.buscarEstadoAtivacao(cenario.negocioId)).toMatchObject({ motivo_indisponibilidade: "DURACAO_INCOMPATIVEL", revisar_horarios_na_equipe: true });
+        await db.query("UPDATE agenda_horarios SET trabalha = FALSE WHERE negocio_id = $1 AND profissional_id = $2", [cenario.negocioId, equipe.profissional.id]);
+        expect(await dashboardActivationRepository.buscarEstadoAtivacao(cenario.negocioId)).toMatchObject({ motivo_indisponibilidade: "SEM_HORARIOS", revisar_horarios_na_equipe: true });
+        await db.query("UPDATE agenda_horarios SET trabalha = TRUE, hora_fim = '10:00' WHERE negocio_id = $1 AND profissional_id = $2", [cenario.negocioId, equipe.profissional.id]);
+        expect(await dashboardActivationRepository.buscarEstadoAtivacao(cenario.negocioId)).toMatchObject({ possui_disponibilidade_agendavel: true, motivo_indisponibilidade: null, revisar_horarios_na_equipe: false });
+      } finally {
+        await db.query("DELETE FROM profissional_servicos WHERE negocio_id = $1 AND profissional_id = $2", [cenario.negocioId, equipe.profissional.id]);
+        await db.query("DELETE FROM agenda_horarios WHERE negocio_id = $1 AND profissional_id = $2", [cenario.negocioId, equipe.profissional.id]);
+        await db.query("DELETE FROM usuarios_negocios WHERE negocio_id = $1 AND usuario_id = $2", [cenario.negocioId, equipe.profissional.id]);
+        await removerCenarioAgendamento(db, equipe);
+      }
+    });
+
+    test("distingue ocultação manual de uma publicação ainda pendente", async () => {
+      await db.query(
+        "UPDATE negocios SET publicado = FALSE, despublicado_manual_em = NOW() WHERE id = $1",
+        [cenario.negocioId]
+      );
+      const pausado = await dashboardActivationRepository.buscarEstadoAtivacao(cenario.negocioId);
+      expect(pausado).toMatchObject({
+        negocio_publicado: false,
+        publicacao_pausada_manualmente: true,
+        possui_servico_ativo: true,
+      });
+
+      await db.query(
+        "UPDATE negocios SET despublicado_manual_em = NULL WHERE id = $1",
+        [cenario.negocioId]
+      );
+      const pendente = await dashboardActivationRepository.buscarEstadoAtivacao(cenario.negocioId);
+      expect(pendente).toMatchObject({
+        negocio_publicado: false,
+        publicacao_pausada_manualmente: false,
+      });
+    });
+
     test(
       "usa serviço ativo, publicação e agenda confirmada como estado canônico",
       async () => {

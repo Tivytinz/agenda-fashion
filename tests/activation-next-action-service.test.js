@@ -8,6 +8,40 @@ const {
 describe(
   "activationNextActionService",
   () => {
+    test.each([false, true])("respeita ocultação manual com serviço ativo: %s", (possuiServicoAtivo) => {
+      const resultado = resolverProximaAcaoAtivacao({
+        possui_servico: true,
+        possui_servico_ativo: possuiServicoAtivo,
+        negocio_publicado: false,
+        publicacao_pausada_manualmente: true,
+        primeiro_agendamento_recebido: true,
+      });
+
+      expect(resultado).toMatchObject({
+        estado: ESTADOS_PROXIMA_ACAO_ATIVACAO.REVISAR_PUBLICACAO,
+        concluido: false,
+        titulo: "Seu perfil está oculto",
+        acao: {
+          tipo: "NAVEGAR",
+          rotulo: "Gerenciar publicação",
+          destino: "/painel/negocio",
+        },
+      });
+      expect(resultado.mensagem).toContain("Essa escolha continua valendo");
+      expect(resultado.mensagem).not.toContain("dados obrigatórios");
+    });
+
+    test("não apresenta pausa quando o perfil está publicado", () => {
+      const resultado = resolverProximaAcaoAtivacao({
+        possui_servico_ativo: true,
+        negocio_publicado: true,
+        publicacao_pausada_manualmente: true,
+        primeiro_agendamento_recebido: true,
+      });
+      expect(resultado.estado).toBe(ESTADOS_PROXIMA_ACAO_ATIVACAO.ATIVADO);
+      expect(resultado.concluido).toBe(true);
+    });
+
     test.each([
       [
         "prioriza serviço ativo quando toda a ativação está pendente",
@@ -260,3 +294,34 @@ describe(
     );
   }
 );
+
+describe("diagnóstico da próxima ação", () => {
+  test.each([
+    ["SEM_PROFISSIONAL_HABILITADA", "/painel/profissionais", "Habilite uma profissional"],
+    ["SEM_HORARIOS", "/painel/horarios", "Adicione horários"],
+    ["DURACAO_INCOMPATIVEL", "/painel/horarios", "Ajuste as faixas"],
+  ])("orienta a causa %s", (motivo, destino, titulo) => {
+    const resultado = resolverProximaAcaoAtivacao({
+      negocio_publicado: true, possui_servico_ativo: true,
+      possui_disponibilidade_agendavel: false, motivo_indisponibilidade: motivo,
+    });
+    expect(resultado.estado).toBe("CONQUISTAR_PRIMEIRO_AGENDAMENTO");
+    expect(resultado.acao).toMatchObject({ tipo: "NAVEGAR", destino });
+    expect(resultado.titulo).toContain(titulo);
+    expect(resultado.mensagem).not.toContain("Ative pelo menos um dia");
+  });
+});
+
+describe("orientação para horários da equipe", () => {
+  test.each(["SEM_HORARIOS", "DURACAO_INCOMPATIVEL"])("encaminha à equipe quando a dona não atende o serviço: %s", (motivo) => {
+    const ativacao = {
+      possui_servico_ativo: true, negocio_publicado: true,
+      possui_disponibilidade_agendavel: false, motivo_indisponibilidade: motivo,
+      revisar_horarios_na_equipe: true,
+      primeiro_agendamento_recebido: false,
+    };
+    const resultado = resolverProximaAcaoAtivacao(ativacao);
+    expect(resultado.acao).toEqual({ tipo: "NAVEGAR", rotulo: "Revisar horários da equipe", destino: "/painel/profissionais" });
+    expect(resultado.mensagem).toContain("configure os horários de uma profissional habilitada");
+  });
+});

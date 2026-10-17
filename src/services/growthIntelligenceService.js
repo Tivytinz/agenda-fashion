@@ -7,6 +7,7 @@ const {
 const {
   rankGrowthOpportunities,
 } = require("./growthIntelligence/recommendationService");
+const { orientarDisponibilidade } = require("./disponibilidadeOrientacaoService");
 
 const GROWTH_INTELLIGENCE_STATUS = Object.freeze({
   AGUARDANDO_ATIVACAO: "AGUARDANDO_ATIVACAO",
@@ -60,6 +61,27 @@ function analyzeGrowthIntelligence({
       ...period,
       oportunidade_principal: null,
       oportunidades: [],
+    };
+  }
+
+  // This operational fact does not depend on marketing telemetry.
+  if (ativacao.possui_disponibilidade_agendavel === false) {
+    const oportunidade = {
+      codigo: "REVISAR_DISPONIBILIDADE",
+      categoria: "operacao",
+      ...orientarDisponibilidade(ativacao, { posAtivacao: true }),
+      impacto: 1,
+      confianca: 1,
+      urgencia: 1,
+      score: 1,
+      evidencias: [],
+    };
+
+    return {
+      status: GROWTH_INTELLIGENCE_STATUS.OPORTUNIDADE_PRIORIZADA,
+      ...period,
+      oportunidade_principal: oportunidade,
+      oportunidades: [oportunidade],
     };
   }
 

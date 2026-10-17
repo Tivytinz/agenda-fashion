@@ -174,3 +174,44 @@ test('sair durante criação impede adoção e redirecionamento por uma resposta
   await expect(page.getByRole('heading', { name: 'Crie seu negócio' })).not.toBeVisible();
   expect(state.sessionReads()).toBe(reads);
 });
+
+test('confirmar saída invalida criação antes de a página de planos carregar', async ({ page }) => {
+  const state = await setup(page, { creating: true });
+  let pendingCreation;
+  let pendingPlans;
+  await page.route('**/criar-negocio', route => {
+    if (route.request().method() !== 'POST') return route.continue();
+    pendingCreation = route;
+  });
+  // The destination's JS remains pending while the creation response arrives.
+  await page.route('**/src/pages/PlansPage.jsx*', route => { pendingPlans = route; });
+  await page.route('**/planos', route => route.request().isNavigationRequest()
+    ? route.continue() : json(route, { planos: [] }));
+  await page.route('**/meu-plano', route => json(route, {}));
+  await page.route('**/cep/01001000', route => json(route, BUSINESS));
+  await page.goto('/criar-negocio?plano=autonoma');
+  await page.getByLabel('Nome do negócio').fill(BUSINESS.nome);
+  await page.getByLabel('Unhas', { exact: true }).check();
+  await page.getByLabel(/WhatsApp/).fill(BUSINESS.whatsapp);
+  await page.getByLabel(/Link do Google Maps/).fill(BUSINESS.localizacao_url);
+  await page.getByLabel(/CEP/).fill(BUSINESS.cep);
+  await expect(page.getByLabel('Endereço', { exact: true })).toHaveValue(BUSINESS.endereco);
+  await page.getByLabel('Número', { exact: true }).fill('10');
+  await page.getByRole('button', { name: 'Criar negócio', exact: true }).click();
+  await expect.poll(() => Boolean(pendingCreation)).toBe(true);
+  try {
+    await page.getByRole('link', { name: 'Voltar aos planos', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Sair sem salvar?' }).getByRole('button', { name: 'Sair sem salvar', exact: true }).click();
+    await expect.poll(() => Boolean(pendingPlans)).toBe(true);
+    await expect(page).toHaveURL(/\/planos$/);
+    const reads = state.sessionReads();
+    state.setBusiness(BUSINESS);
+    await finishMutation(page, pendingCreation, { negocio: BUSINESS }, 201);
+    expect(state.sessionReads()).toBe(reads);
+    await expect(page).toHaveURL(/\/planos$/);
+  } finally {
+    await pendingPlans?.continue();
+  }
+  await expect(page.getByRole('heading', { name: 'Planos que acompanham seu sucesso', exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/planos$/);
+});

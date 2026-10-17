@@ -83,3 +83,17 @@ tratados explicitamente.
 
 O menu autenticado mantém `Convites de equipe` acessível tanto antes quanto
 depois do vínculo.
+
+## Edição dos serviços por profissional
+
+Cada abertura de `Configurar serviços` inicia uma leitura vinculada à pessoa e
+àquela abertura da janela. Fechar por botão ou Escape, trocar de profissional e
+sair da página cancelam/inutilizam a leitura anterior. Sucesso, erro e conclusão
+de uma leitura antiga não podem alterar opções, erro ou carregamento atuais,
+mesmo que o transporte entregue a resposta depois do cancelamento.
+
+O salvamento usa somente a pessoa e as opções da leitura atual concluída;
+não fica disponível durante o carregamento ou após erro de leitura. Durante o
+PUT, a janela mantém o contexto e impede envio duplicado. Falha ao salvar
+preserva a seleção e permite nova tentativa; sucesso libera a próxima edição.
+A autorização e a elegibilidade continuam sendo revalidadas no backend.

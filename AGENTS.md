@@ -53,6 +53,38 @@ organização, constância e direção, com orientação prática para a próxim
 empreende. Essa direção orienta a evolução do produto; não comprova uma
 funcionalidade implementada nem garante crescimento ou faturamento.
 
+Após a ativação, ausência estrutural de disponibilidade agendável prioriza
+revisão de horários antes de divulgação, sem alterar publicação ou reabrir a
+ativação. Amostra insuficiente mantém orientação básica de rotina sem
+inventar oportunidades analíticas. Reservas não canceladas não são
+apresentadas como atendimentos realizados ou receita.
+
+A orientação do painel reconhece a ocultação manual por sinal derivado no
+backend e oferece gestão da publicação, sem chamar a escolha da dona de
+cadastro incompleto ou republicar automaticamente. Erros de consentimento
+operacional de WhatsApp são exibidos no próprio card e permitem nova tentativa.
+
+O diagnóstico estrutural da disponibilidade distingue ausência de profissional
+ativa habilitada, ausência de horários e duração incompatível com as faixas e
+pausas. A orientação canônica encaminha para equipe ou horários conforme a
+causa, sem alterar publicação. Convites de divulgação no painel respeitam a
+mesma elegibilidade operacional da fila de WhatsApp. Depois do primeiro
+agendamento válido, a agenda de hoje antecede orientação, upgrade e
+consentimentos; a primeira jornada continua priorizando sua missão de ativação.
+
+Quando apenas outra profissional está habilitada, a orientação de horários
+passa pela equipe e pelo contexto explícito da profissional, sem abrir a agenda
+pessoal da dona como solução. No editor de serviços da equipe, cada leitura
+pertence à pessoa e à abertura atual da janela; fechar, trocar ou sair invalida
+respostas antigas, inclusive erros e conclusão de carregamento. O salvamento
+mantém esse contexto e permite nova tentativa após falha sem perder a seleção.
+
+No negócio, confirmar `Sair sem salvar` invalida a geração das operações
+pendentes antes de liberar a navegação, inclusive enquanto Suspense mantém a
+tela antiga montada. Respostas descartadas não podem adotar negócio, atualizar
+sessão, redirecionar ou alterar o editor. Continuar editando e Escape preservam
+a operação; a invalidação local não desfaz persistência já confirmada no backend.
+
 ## Integração contínua e merge
 
 Pull requests não draft direcionados à `main` devem habilitar auto-merge por squash automaticamente. Os gates obrigatórios de CI e as regras de proteção da branch continuam sendo a condição de integração: o PR só entra na `main` depois de satisfazê-los. Falha ou cancelamento de check não deve ser contornado por merge forçado.

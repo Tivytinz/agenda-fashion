@@ -8,6 +8,7 @@ const ALLOWED_DESTINATIONS = new Set([
   "/painel/agenda",
   "/painel/servicos",
   "/painel/horarios",
+  "/painel/profissionais",
   "/painel/negocio",
 ]);
 
@@ -107,6 +108,30 @@ export function DashboardGrowthInsight({
   useEffect(() => {
     setComposer(EMPTY_COMPOSER);
   }, [opportunityCode, period]);
+
+  if (insight?.status === "DADOS_INSUFICIENTES") {
+    return (
+      <section
+        aria-labelledby="dashboard-growth-guidance-title"
+        className="panel dashboard-action-panel"
+      >
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Seu próximo passo</p>
+            <h2 id="dashboard-growth-guidance-title">
+              Continue cuidando do seu negócio
+            </h2>
+          </div>
+        </div>
+        <p className="muted dashboard-action-copy">
+          Ainda não há dados suficientes para recomendar uma ação de
+          crescimento. Enquanto isso, acompanhe sua agenda e mantenha os
+          horários de atendimento atualizados.
+        </p>
+        <Link className="button" to="/painel/agenda">Abrir agenda</Link>
+      </section>
+    );
+  }
 
   if (!opportunity) return null;
 
@@ -257,13 +282,13 @@ export function DashboardGrowthInsight({
         )}
       </div>
 
-      {composer.status === "error" && (
+      {canGenerateShare && composer.status === "error" && (
         <p className="form-error" role="alert">
           {composer.erro}
         </p>
       )}
 
-      {composer.status === "ready" && (
+      {canGenerateShare && composer.status === "ready" && (
         <div className="dashboard-copilot-composer">
           <p className="eyebrow">
             {composer.fonte === "openai" ? "Copilot AF" : "Sugestão automática"}

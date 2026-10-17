@@ -21,7 +21,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("dashboard pós-ativação", () => {
-  it("prioriza growth, mostra recorrência e não repete o marco de ativação", async () => {
+  it("prioriza a agenda, mostra recorrência e não repete o marco de ativação", async () => {
     const dashboard = {
       negocio: {
         negocio_id: 11,
@@ -96,11 +96,15 @@ describe("dashboard pós-ativação", () => {
       if (path.startsWith("/dashboard-dono")) {
         return Promise.resolve(dashboard);
       }
+      if (path === "/minha-assinatura") return Promise.resolve({
+        uso: { status: "limite_atingido" },
+        upgrade_contextual: { disponivel: true, plano_destino: { slug: "studio", nome: "Studio", valor: 99.9 } }
+      });
       if (path === "/conta") {
         return Promise.resolve({
           usuario: {
             aceita_lembretes_whatsapp: true,
-            aceita_alertas_operacionais_whatsapp: true,
+            aceita_alertas_operacionais_whatsapp: false,
           },
         });
       }
@@ -136,5 +140,10 @@ describe("dashboard pós-ativação", () => {
     ).not.toBeNull();
     expect(screen.queryByText("Conversão do perfil")).toBeNull();
     expect(screen.getByText("Valor agendado", { selector: ".metric-card span" })).not.toBeNull();
+    const today = screen.getByRole("region", { name: "Agenda de hoje" });
+    const growth = screen.getByRole("region", { name: "Fortaleça o retorno das clientes" });
+    for (const panel of [growth, screen.getByRole("region", { name: "Oportunidade de upgrade" }), screen.getByRole("region", { name: "Acompanhe sua agenda pelo WhatsApp" })]) {
+      expect(today.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
   });
 });

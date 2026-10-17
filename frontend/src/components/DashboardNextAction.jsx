@@ -9,6 +9,7 @@ const ACTIVATION_ROUTES = Object.freeze({
   firstService: { to: "/painel/servicos/novo?onboarding=servico" },
   business: { to: "/painel/negocio" },
   schedule: { to: "/painel/horarios" },
+  team: { to: "/painel/profissionais" },
 });
 
 const ALLOWED_NAVIGATION_DESTINATIONS = new Set(
