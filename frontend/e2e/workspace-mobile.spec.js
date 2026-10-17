@@ -278,13 +278,28 @@ for (const scenario of [
         acao: { tipo: "NAVEGAR", rotulo: "Revisar horários", destino: "/painel/horarios" }
       }
     }
+  },
+  {
+    name: "perfil oculto",
+    title: "Seu perfil está oculto",
+    action: "Gerenciar publicação",
+    destination: /\/painel\/negocio$/,
+    activation: { negocio_publicado: false, publicacao_pausada_manualmente: true },
+    nextAction: {
+      estado: "REVISAR_PUBLICACAO",
+      concluido: false,
+      titulo: "Seu perfil está oculto",
+      mensagem: "Você escolheu ocultar o perfil. Essa escolha continua valendo.",
+      acao: { tipo: "NAVEGAR", rotulo: "Gerenciar publicação", destino: "/painel/negocio" }
+    },
+    insight: { status: "AGUARDANDO_ATIVACAO", oportunidade_principal: null }
   }
 ]) {
   test(`orientação pós-ativação com ${scenario.name} cabe no celular`, async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem("session_active", "1"));
     await page.route("**/minha-sessao", route => json(route, {
       usuario: { id: 4, nome: "Ana", email: "ana@example.com" },
-      negocio: BUSINESS,
+      negocio: { ...BUSINESS, publicado: scenario.activation?.negocio_publicado ?? true },
       temNegocio: true,
       administrador: null,
       ehAdministrador: false
@@ -299,12 +314,14 @@ for (const scenario of [
     await page.route("**/dashboard-dono?periodo=7dias", route => json(route, {
       resumo: {}, performance: {}, ranking_servicos: [],
       negocio: { negocio_id: 11, nome: BUSINESS.nome, slug: BUSINESS.slug },
-      ativacao: { negocio_publicado: true, primeiro_agendamento_recebido: true },
-      proxima_acao_ativacao: { estado: "ATIVADO", concluido: true },
+      ativacao: { negocio_publicado: true, primeiro_agendamento_recebido: true, ...scenario.activation },
+      proxima_acao_ativacao: scenario.nextAction || { estado: "ATIVADO", concluido: true },
       inteligencia_crescimento: scenario.insight
     }));
     await page.goto("/painel");
-    const guidance = page.getByRole("region", { name: scenario.title });
+    const guidance = page.locator("section.dashboard-action-panel").filter({
+      has: page.getByRole("heading", { name: scenario.title, exact: true })
+    });
     await expect(guidance).toBeVisible();
     await expect(page.getByRole("heading", { name: "Ativação concluída" })).toHaveCount(0);
     await expect(guidance.getByRole("button", { name: /Compartilhar|Criar texto/i })).toHaveCount(0);

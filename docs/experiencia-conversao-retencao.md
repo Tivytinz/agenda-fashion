@@ -19,6 +19,15 @@ sem recriar o checklist inicial ou inventar uma análise de desempenho.
 Ausência estrutural de disponibilidade tem precedência sobre divulgação,
 preservando a decisão da dona de manter a agenda fechada.
 
+Uma ocultação manual do perfil deve ser reconhecida como escolha da dona,
+sem ser apresentada como cadastro incompleto ou ausência de serviço. A
+orientação abre Meu negócio para gerenciar a publicação, sem efetuar escritas
+ou oferecer compartilhamento de um perfil oculto.
+
+Falhas ao autorizar avisos operacionais de WhatsApp devem aparecer no próprio
+card da ação, com mensagem acessível e nova tentativa disponível. Consentimento
+operacional e lembretes de ativação continuam separados.
+
 ## Catálogo e promessa de disponibilidade
 
 A experiência pública não deve prometer um horário específico sem validação real de disponibilidade pelo backend.

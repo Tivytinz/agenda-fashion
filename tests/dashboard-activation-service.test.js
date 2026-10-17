@@ -20,6 +20,18 @@ describe(
       jest.resetAllMocks();
     });
 
+    test.each([true, false, "true", 1, undefined])(
+      "deriva a pausa apenas de booleano verdadeiro retornado pelo repository: %s",
+      async (sinal) => {
+        dashboardActivationRepository.buscarEstadoAtivacao.mockResolvedValue({
+          negocio_publicado: false,
+          publicacao_pausada_manualmente: sinal,
+        });
+        const resultado = await dashboardActivationService.buscarAtivacaoNegocio({ negocioId: 12 });
+        expect(resultado.publicacao_pausada_manualmente).toBe(sinal === true);
+      }
+    );
+
     test(
       "normaliza somente verdades explícitas do banco",
       async () => {
@@ -43,6 +55,7 @@ describe(
           possui_servico: true,
           possui_servico_ativo: true,
           negocio_publicado: true,
+          publicacao_pausada_manualmente: false,
           agenda_configurada: true,
           possui_disponibilidade_agendavel: true,
           primeiro_agendamento_recebido: false,
@@ -78,6 +91,7 @@ describe(
           possui_servico: false,
           possui_servico_ativo: false,
           negocio_publicado: false,
+          publicacao_pausada_manualmente: false,
           agenda_configurada: false,
           possui_disponibilidade_agendavel: false,
           primeiro_agendamento_recebido: false,
@@ -97,6 +111,7 @@ describe(
           possui_servico: false,
           possui_servico_ativo: false,
           negocio_publicado: false,
+          publicacao_pausada_manualmente: false,
           agenda_configurada: false,
           possui_disponibilidade_agendavel: false,
           primeiro_agendamento_recebido: false,

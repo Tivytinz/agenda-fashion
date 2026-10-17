@@ -33,6 +33,29 @@ describe(
       );
     });
 
+    test("distingue ocultação manual de uma publicação ainda pendente", async () => {
+      await db.query(
+        "UPDATE negocios SET publicado = FALSE, despublicado_manual_em = NOW() WHERE id = $1",
+        [cenario.negocioId]
+      );
+      const pausado = await dashboardActivationRepository.buscarEstadoAtivacao(cenario.negocioId);
+      expect(pausado).toMatchObject({
+        negocio_publicado: false,
+        publicacao_pausada_manualmente: true,
+        possui_servico_ativo: true,
+      });
+
+      await db.query(
+        "UPDATE negocios SET despublicado_manual_em = NULL WHERE id = $1",
+        [cenario.negocioId]
+      );
+      const pendente = await dashboardActivationRepository.buscarEstadoAtivacao(cenario.negocioId);
+      expect(pendente).toMatchObject({
+        negocio_publicado: false,
+        publicacao_pausada_manualmente: false,
+      });
+    });
+
     test(
       "usa serviço ativo, publicação e agenda confirmada como estado canônico",
       async () => {

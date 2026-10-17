@@ -59,6 +59,11 @@ ativação. Amostra insuficiente mantém orientação básica de rotina sem
 inventar oportunidades analíticas. Reservas não canceladas não são
 apresentadas como atendimentos realizados ou receita.
 
+A orientação do painel reconhece a ocultação manual por sinal derivado no
+backend e oferece gestão da publicação, sem chamar a escolha da dona de
+cadastro incompleto ou republicar automaticamente. Erros de consentimento
+operacional de WhatsApp são exibidos no próprio card e permitem nova tentativa.
+
 ## Integração contínua e merge
 
 Pull requests não draft direcionados à `main` devem habilitar auto-merge por squash automaticamente. Os gates obrigatórios de CI e as regras de proteção da branch continuam sendo a condição de integração: o PR só entra na `main` depois de satisfazê-los. Falha ou cancelamento de check não deve ser contornado por merge forçado.

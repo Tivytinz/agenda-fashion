@@ -17,6 +17,7 @@ async function buscarAtivacaoNegocio({
       possui_servico: false,
       possui_servico_ativo: false,
       negocio_publicado: false,
+      publicacao_pausada_manualmente: false,
       agenda_configurada: false,
       possui_disponibilidade_agendavel: false,
       primeiro_agendamento_recebido: false,
@@ -36,6 +37,8 @@ async function buscarAtivacaoNegocio({
       estado?.possui_servico_ativo === true,
     negocio_publicado:
       estado?.negocio_publicado === true,
+    publicacao_pausada_manualmente:
+      estado?.publicacao_pausada_manualmente === true,
     agenda_configurada:
       estado?.agenda_configurada === true,
     possui_disponibilidade_agendavel:

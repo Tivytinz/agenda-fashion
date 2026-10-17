@@ -401,6 +401,11 @@ export function DashboardPage() {
               Gerenciar em Minha conta
             </Link>
           </div>
+          {whatsappReminders.error && (
+            <p className="form-error" role="alert">
+              {whatsappReminders.error}
+            </p>
+          )}
         </section>
       )}
 

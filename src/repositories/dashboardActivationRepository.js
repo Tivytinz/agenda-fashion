@@ -26,6 +26,9 @@ async function buscarEstadoAtivacao(
         n.publicado = TRUE
           AS negocio_publicado,
 
+        n.despublicado_manual_em IS NOT NULL
+          AS publicacao_pausada_manualmente,
+
         EXISTS (
           SELECT 1
           FROM usuarios_negocios un

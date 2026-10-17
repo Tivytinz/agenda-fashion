@@ -24,6 +24,18 @@ function resolverProximaAcaoAtivacao(ativacao = {}) {
       ?.possui_disponibilidade_agendavel ===
     false;
 
+  if (!negocioPublicado && ativacao?.publicacao_pausada_manualmente === true) {
+    return {
+      estado: ESTADOS_PROXIMA_ACAO_ATIVACAO.REVISAR_PUBLICACAO,
+      concluido: false,
+      titulo: "Seu perfil está oculto",
+      mensagem:
+        "Você escolheu ocultar o perfil. Essa escolha continua valendo. " +
+        "Quando quiser, gerencie a publicação em Meu negócio.",
+      acao: acaoNavegacao("Gerenciar publicação", "/painel/negocio"),
+    };
+  }
+
   if (!possuiServicoAtivo) {
     const primeiraInclusao = !possuiServico;
 

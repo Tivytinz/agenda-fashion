@@ -8,6 +8,40 @@ const {
 describe(
   "activationNextActionService",
   () => {
+    test.each([false, true])("respeita ocultação manual com serviço ativo: %s", (possuiServicoAtivo) => {
+      const resultado = resolverProximaAcaoAtivacao({
+        possui_servico: true,
+        possui_servico_ativo: possuiServicoAtivo,
+        negocio_publicado: false,
+        publicacao_pausada_manualmente: true,
+        primeiro_agendamento_recebido: true,
+      });
+
+      expect(resultado).toMatchObject({
+        estado: ESTADOS_PROXIMA_ACAO_ATIVACAO.REVISAR_PUBLICACAO,
+        concluido: false,
+        titulo: "Seu perfil está oculto",
+        acao: {
+          tipo: "NAVEGAR",
+          rotulo: "Gerenciar publicação",
+          destino: "/painel/negocio",
+        },
+      });
+      expect(resultado.mensagem).toContain("Essa escolha continua valendo");
+      expect(resultado.mensagem).not.toContain("dados obrigatórios");
+    });
+
+    test("não apresenta pausa quando o perfil está publicado", () => {
+      const resultado = resolverProximaAcaoAtivacao({
+        possui_servico_ativo: true,
+        negocio_publicado: true,
+        publicacao_pausada_manualmente: true,
+        primeiro_agendamento_recebido: true,
+      });
+      expect(resultado.estado).toBe(ESTADOS_PROXIMA_ACAO_ATIVACAO.ATIVADO);
+      expect(resultado.concluido).toBe(true);
+    });
+
     test.each([
       [
         "prioriza serviço ativo quando toda a ativação está pendente",

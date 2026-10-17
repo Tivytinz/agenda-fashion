@@ -164,6 +164,69 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("dashboard", () => {
+  it("mantém o erro operacional no card e permite tentar a autorização novamente", async () => {
+    mockDashboardRequests({
+      account: {
+        usuario: { aceita_lembretes_whatsapp: true, aceita_alertas_operacionais_whatsapp: false }
+      }
+    });
+    const initialRequest = apiRequest.getMockImplementation();
+    let attempts = 0;
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/conta/preferencias-whatsapp" && options.method === "PUT") {
+        attempts += 1;
+        if (attempts === 1) return Promise.reject(new Error("Não foi possível salvar os avisos."));
+        return Promise.resolve({ preferencia: { aceita_alertas_operacionais_whatsapp: true } });
+      }
+      return initialRequest(path, options);
+    });
+
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+    const panel = await screen.findByRole("region", { name: "Acompanhe sua agenda pelo WhatsApp" });
+    const button = within(panel).getByRole("button", { name: "Ativar avisos de agendamento" });
+    fireEvent.click(button);
+    expect((await within(panel).findByRole("alert")).textContent).toContain("Não foi possível salvar os avisos.");
+    expect(button.disabled).toBe(false);
+    expect(screen.queryByRole("button", { name: "Ativar lembretes no WhatsApp" })).toBeNull();
+
+    fireEvent.click(button);
+    await waitFor(() => expect(screen.queryByRole("region", {
+      name: "Acompanhe sua agenda pelo WhatsApp"
+    })).toBeNull());
+    expect(screen.queryByText("Não foi possível salvar os avisos.")).toBeNull();
+    expect(attempts).toBe(2);
+    expect(apiRequest).toHaveBeenCalledWith("/conta/preferencias-whatsapp", {
+      method: "PUT", body: { aceitaAlertasOperacionais: true, origem: "painel" }
+    });
+  });
+
+  it("reconhece o perfil oculto e oferece gestão sem republicar ou divulgar", async () => {
+    mockDashboardRequests({
+      dashboard: {
+        ...DASHBOARD,
+        ativacao: {
+          ...DASHBOARD.ativacao,
+          negocio_publicado: false,
+          publicacao_pausada_manualmente: true
+        },
+        proxima_acao_ativacao: nextActionNavigate({
+          estado: "REVISAR_PUBLICACAO",
+          titulo: "Seu perfil está oculto",
+          mensagem: "Você escolheu ocultar o perfil. Essa escolha continua valendo.",
+          rotulo: "Gerenciar publicação",
+          destino: "/painel/negocio"
+        })
+      }
+    });
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+    expect(await screen.findByRole("heading", { name: "Seu perfil está oculto" })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Gerenciar publicação" }).getAttribute("href"))
+      .toBe("/painel/negocio");
+    expect(screen.queryByRole("button", { name: "Compartilhar perfil" })).toBeNull();
+    expect(apiRequest.mock.calls.every(([, options]) => !options?.method || options.method === "GET"))
+      .toBe(true);
+  });
+
   it("exibe a visão geral antes da origem dos clientes terminar de carregar", async () => {
     let resolveOrigin;
     const pendingOrigin = new Promise((resolve) => { resolveOrigin = resolve; });

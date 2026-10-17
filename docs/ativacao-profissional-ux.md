@@ -111,6 +111,14 @@ A mesma regra de elegibilidade deve ser usada pela publicação manual, pela pub
 
 A proprietária pode despublicar um perfil elegível manualmente. Essa escolha tem precedência sobre a automação: o backend registra `negocios.despublicado_manual_em` e mantém `publicado = FALSE` mesmo quando perfil e serviços continuam elegíveis. Alterar dados do negócio, criar/editar/reativar serviços ou recalcular elegibilidade não remove essa decisão. Somente a ação explícita `Mostrar na busca`/publicar novamente limpa o marcador e tenta publicar de novo, sempre revalidando a elegibilidade no backend.
 
+Na orientação do painel, o sinal `publicacao_pausada_manualmente` é derivado
+no backend de `negocios.despublicado_manual_em`. Quando o perfil está oculto
+por escolha da dona, essa condição tem precedência sobre convites para ativar
+serviços ou corrigir dados: a próxima ação mantém `REVISAR_PUBLICACAO`, explica
+a escolha e abre a gestão da publicação. Não há republicação automática nem
+alteração dos critérios de elegibilidade; a publicação continua sendo uma ação
+explícita em Meu negócio.
+
 Depois da primeira publicação válida, perder ou desativar o último serviço ativo
 não apaga automaticamente a presença pública do negócio. O perfil permanece
 acessível para preservar descoberta, identidade e links já compartilhados, mas
