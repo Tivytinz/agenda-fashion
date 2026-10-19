@@ -171,6 +171,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
   const [config, setConfig] = useState(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const contextActiveRef = useRef(true);
+  const operationGenerationRef = useRef(0);
   const activationControllerRef = useRef(null);
   const [days, setDays] = useState([]);
   const [savedSchedule, setSavedSchedule] = useState("");
@@ -194,6 +195,14 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
     && serializeSchedule(config, days) !== savedSchedule;
   const showActivationNextStep =
     activationNextStep && shareOnboardingRequested && !hasChanges;
+
+  function discardPendingOperations() {
+    // O descarte antecede a navegação; não depende do unmount sob Suspense.
+    operationGenerationRef.current += 1;
+    activationControllerRef.current?.abort();
+    setBusinessContextLoading(false);
+    setSaving(false);
+  }
 
   useEffect(() => {
     contextActiveRef.current = true;
@@ -520,6 +529,9 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
   async function submit(event) {
     event.preventDefault();
     if (saving || !config) return;
+    const generation = operationGenerationRef.current;
+    const isCurrent = () => contextActiveRef.current
+      && operationGenerationRef.current === generation;
     setError("");
     setMessage("");
 
@@ -622,7 +634,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
         },
         body
       });
-      if (!contextActiveRef.current) return;
+      if (!isCurrent()) return;
       const savedConfig = result.configuracao || {};
       const configuradoEm = savedConfig.configurado_em
         ?? savedConfig.configuradoEm
@@ -677,7 +689,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
           activationContext =
             await loadCanonicalActivationContext();
         } catch {
-          if (!contextActiveRef.current) return;
+          if (!isCurrent()) return;
           navigate("/painel", {
             replace: true,
             state: {
@@ -687,7 +699,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
           return;
         }
 
-        if (!activationContext?.isCurrent()) return;
+        if (!isCurrent() || !activationContext?.isCurrent()) return;
 
         if (
           activationContext
@@ -741,7 +753,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
         navigate("/painel", { replace: true });
       }
     } catch (requestError) {
-      if (!contextActiveRef.current) return;
+      if (!isCurrent()) return;
       setError(requestError.message);
       track("agenda_configuracao_erro", {
         page: "configuracao_agenda",
@@ -752,7 +764,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
         }
       });
     } finally {
-      if (contextActiveRef.current) setSaving(false);
+      if (isCurrent()) setSaving(false);
     }
   }
 
@@ -774,7 +786,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
 
   return (
     <main className={`workspace-page schedule-settings-page${!quickConfirmation && !showActivationNextStep ? " schedule-editor-page" : ""}`}>
-      <UnsavedChangesGuard when={hasChanges} />
+      <UnsavedChangesGuard when={hasChanges} onDiscard={discardPendingOperations} />
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">Disponibilidade</p>

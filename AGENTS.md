@@ -79,11 +79,14 @@ pertence à pessoa e à abertura atual da janela; fechar, trocar ou sair invalid
 respostas antigas, inclusive erros e conclusão de carregamento. O salvamento
 mantém esse contexto e permite nova tentativa após falha sem perder a seleção.
 
-No negócio, confirmar `Sair sem salvar` invalida a geração das operações
-pendentes antes de liberar a navegação, inclusive enquanto Suspense mantém a
-tela antiga montada. Respostas descartadas não podem adotar negócio, atualizar
+No negócio, nos serviços e nos horários, confirmar `Sair sem salvar` invalida a
+geração das operações pendentes antes de liberar a navegação, inclusive enquanto
+Suspense mantém a tela antiga montada. Respostas descartadas não podem adotar negócio, atualizar
 sessão, redirecionar ou alterar o editor. Continuar editando e Escape preservam
 a operação; a invalidação local não desfaz persistência já confirmada no backend.
+No serviço, o descarte também impede iniciar os próximos uploads do lote. Em
+Horários, cancela consultas de ativação e impede que uma resposta descartada
+consulte ou restaure a próxima missão.
 
 ## Integração contínua e merge
 
