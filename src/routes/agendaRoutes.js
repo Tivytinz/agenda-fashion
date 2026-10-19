@@ -17,6 +17,11 @@ const agendamentoCancelamentoController = require(
 const agendamentoReagendamentoController = require(
   "../controllers/agendamentoReagendamentoController"
 );
+const reservasProfissionaisRestritasController = require(
+  "../controllers/reservasProfissionaisRestritasController"
+);
+
+router.get("/reservas-profissionais-existentes", auth, reservasProfissionaisRestritasController.listar);
 
 router.get(
   "/agenda-geral",
@@ -41,7 +46,7 @@ router.get(
 router.patch(
   "/agendamentos/:id/atendimento",
   auth,
-  agendamentoOperacionalAtivo,
+  agendamentoOperacionalAtivo.comReservasExistentes,
   agendamentoLifecycleController.atualizarStatusAtendimento
 );
 

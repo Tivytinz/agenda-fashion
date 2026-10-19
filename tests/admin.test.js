@@ -80,9 +80,6 @@ jest.mock(
 
         papel:
           "admin",
-
-        superadmin:
-          false,
       };
 
       return next();

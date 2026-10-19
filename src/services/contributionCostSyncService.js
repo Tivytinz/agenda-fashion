@@ -656,12 +656,12 @@ async function status() {
   };
 }
 
-function exigirSuperadmin(
-  superadmin
+function exigirAdmin(
+  adminAutorizado
 ) {
-  if (superadmin !== true) {
+  if (adminAutorizado !== true) {
     throw new AppError(
-      "Operação de integração financeira restrita ao superadministrador.",
+      "Operação de integração financeira restrita ao administrador.",
       403
     );
   }
@@ -669,10 +669,10 @@ function exigirSuperadmin(
 
 async function criarIntegracao({
   payload,
-  superadmin,
+  adminAutorizado,
 }) {
-  exigirSuperadmin(
-    superadmin
+  exigirAdmin(
+    adminAutorizado
   );
 
   const fonteId =
@@ -773,10 +773,10 @@ async function criarIntegracao({
 async function atualizarIntegracao({
   integracaoId,
   payload,
-  superadmin,
+  adminAutorizado,
 }) {
-  exigirSuperadmin(
-    superadmin
+  exigirAdmin(
+    adminAutorizado
   );
 
   const id =
@@ -1295,10 +1295,10 @@ async function sincronizarIntegracao(
 
 async function sincronizarManual({
   integracaoId,
-  superadmin,
+  adminAutorizado,
 }) {
-  exigirSuperadmin(
-    superadmin
+  exigirAdmin(
+    adminAutorizado
   );
 
   return sincronizarIntegracao({

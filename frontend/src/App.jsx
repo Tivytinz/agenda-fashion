@@ -189,6 +189,11 @@ const MyAppointmentsPage = lazyNamed(
   () => import("./pages/MyAppointmentsPage"),
   "MyAppointmentsPage"
 );
+const RestrictedProfessionalReservationsPage = lazyNamedWithStyles(
+  () => import("./styles/restricted-reservations.css"),
+  () => import("./pages/RestrictedProfessionalReservationsPage"),
+  "RestrictedProfessionalReservationsPage"
+);
 const InactiveBookingAccessPage = lazyNamed(
   () => import("./pages/InactiveBookingAccessPage"),
   "InactiveBookingAccessPage"
@@ -354,6 +359,9 @@ export default function App() {
             element={<ProtectedRoute><ProfessionalInvitesRoute /></ProtectedRoute>}
           />
           <Route path={reactRoutes.plans} element={<PlansPage />} />
+          <Route path={reactRoutes.restrictedProfessionalReservations} element={(
+            <ProtectedRoute><RestrictedProfessionalReservationsPage /></ProtectedRoute>
+          )} />
           <Route
             path={reactRoutes.checkout}
             element={(

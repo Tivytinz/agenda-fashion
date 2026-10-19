@@ -141,6 +141,20 @@ describe(
       ]);
     });
 
+    test("sem identidade, recusa antes de buscar vínculo ou plano", async () => {
+      await expect(buscarMinhaAssinatura({})).rejects.toMatchObject({ statusCode: 401 });
+      expect(assinaturaRepository.buscarNegocioDono).not.toHaveBeenCalled();
+      expect(buscarUsoPlano).not.toHaveBeenCalled();
+    });
+
+    test("sem vínculo de dona, não consulta dados financeiros", async () => {
+      assinaturaRepository.buscarNegocioDono.mockResolvedValue(null);
+      await expect(buscarMinhaAssinatura({ usuarioId: 7 })).rejects.toMatchObject({ statusCode: 404 });
+      expect(assinaturaRepository.buscarNegocioDono).toHaveBeenCalledWith(7);
+      expect(assinaturaRepository.expirarCheckoutsPendentes).not.toHaveBeenCalled();
+      expect(buscarUsoPlano).not.toHaveBeenCalled();
+    });
+
     test(
       "oferece o próximo plano sem reconstruir limites no frontend",
       async () => {

@@ -1,6 +1,7 @@
 const db = require(
   "../db/db"
 );
+const { VINCULO_RESTRITO_SQL } = require("./reservasProfissionaisRestritasSql");
 
 function normalizarId(
   valor
@@ -57,7 +58,14 @@ async function buscarUsuarioPorId(
         ultimo_login_em,
         senha_alterada_em,
         created_at,
-        updated_at
+        updated_at,
+        EXISTS (
+          SELECT 1 FROM agendamentos a
+          INNER JOIN usuarios_negocios un ON un.negocio_id = a.negocio_id AND un.usuario_id = $1
+          INNER JOIN usuarios u ON u.id = un.usuario_id
+          INNER JOIN negocios n ON n.id = a.negocio_id
+          WHERE ${VINCULO_RESTRITO_SQL}
+        ) AS tem_reservas_profissionais_restritas
 
       FROM usuarios
 
@@ -105,10 +113,7 @@ async function buscarAdministradorAtivoPorUsuarioId(
         WHERE ua.usuario_id = $1
           AND ua.ativo = TRUE
           AND u.ativo = TRUE
-          AND ua.papel IN (
-            'admin',
-            'superadmin'
-          )
+          AND ua.papel = 'admin'
 
         LIMIT 1
       `,

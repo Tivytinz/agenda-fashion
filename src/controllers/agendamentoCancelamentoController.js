@@ -4,6 +4,7 @@ const agendamentoCancelamentoService = require(
 const agendamentoNotificacaoService = require(
   "../services/agendamentoNotificacaoService"
 );
+const { disableDocumentCache } = require("../utils/httpCache");
 
 async function buscarPoliticaPublica(req, res, next) {
   try {
@@ -66,6 +67,7 @@ async function cancelarCliente(req, res, next) {
 }
 
 async function consultarVisitante(req, res, next) {
+  disableDocumentCache(res);
   try {
     const resultado =
       await agendamentoCancelamentoService.consultarAgendamentoVisitante({
@@ -81,6 +83,7 @@ async function consultarVisitante(req, res, next) {
 }
 
 async function cancelarVisitante(req, res, next) {
+  disableDocumentCache(res);
   try {
     const agendamento =
       await agendamentoCancelamentoService.cancelarAgendamentoVisitante({

@@ -13,14 +13,14 @@ beforeEach(() => {
   repository.transacao.mockImplementation((callback) => callback({}));
 });
 
-test("revisão exige superadmin, tentativa vencida e evidência estruturada", async () => {
+test("revisão exige admin, tentativa vencida e evidência estruturada", async () => {
   const attemptId = "00000000-0000-4000-8000-000000000001";
   const payload = {
-    admin: { usuarioId: 8, papel: "superadmin" }, tentativaId: attemptId,
+    admin: { usuarioId: 8, papel: "admin" }, tentativaId: attemptId,
     avaliacao: "INDETERMINADO", evidenciaTipo: "LOG_APLICACAO",
     evidenciaReferencia: "request-12345"
   };
-  await expect(service.review({ ...payload, admin: { usuarioId: 8, papel: "admin" } }))
+  await expect(service.review({ ...payload, admin: { usuarioId: 8, papel: "dono" } }))
     .rejects.toMatchObject({ statusCode: 403 });
   await expect(service.review({ ...payload, evidenciaReferencia: "https://secret/token" }))
     .rejects.toMatchObject({ statusCode: 400 });
@@ -46,19 +46,19 @@ test("revisão exige superadmin, tentativa vencida e evidência estruturada", as
 test("ação de revisão é auditada com UUID do alvo e não presume status HTTP", async () => {
   const id = "00000000-0000-4000-8000-000000000002";
   const started = await service.start({
-    admin: { usuarioId: 8, papel: "superadmin" },
+    admin: { usuarioId: 8, papel: "admin" },
     action: "auditoria_revisar", targetAttemptId: id
   });
   expect(started).toMatchObject({ alvoTipo: "tentativa", alvoTentativaId: id });
   await expect(service.start({
-    admin: { usuarioId: 8, papel: "superadmin" },
+    admin: { usuarioId: 8, papel: "admin" },
     action: "auditoria_revisar", targetAttemptId: "invalid"
   })).rejects.toMatchObject({ statusCode: 400 });
 });
 
 test("registra ator, ação e alvo com allowlist, sem payload ou segredo", async () => {
   const started = await service.start({
-    admin: { usuarioId: 7, papel: "superadmin" },
+    admin: { usuarioId: 7, papel: "admin" },
     action: "campanha_atualizar",
     targetId: "12",
     requestId: "request-12345"
@@ -87,16 +87,16 @@ test("não inicia ação administrativa sem ator ou auditoria disponível", asyn
   })).rejects.toThrow("database down");
 });
 
-test("consulta exige superadmin e limita filtros/paginação", async () => {
+test("consulta exige admin e limita filtros/paginação", async () => {
   repository.listar.mockResolvedValue({ total: 2, rows: [{
     tentativa_id: "attempt", ator_usuario_id: "7", papel_admin: "admin",
     acao: "campanha_criar", alvo_tipo: "campanha", alvo_id: "10",
     request_id: null, iniciado_em: "2026-09-24T00:00:00Z", resultado: null
   }] });
-  await expect(service.list({ admin: { usuarioId: 7, papel: "admin" } }))
+  await expect(service.list({ admin: { usuarioId: 7, papel: "dono" } }))
     .rejects.toMatchObject({ statusCode: 403 });
   const result = await service.list({
-    admin: { usuarioId: 8, papel: "superadmin" },
+    admin: { usuarioId: 8, papel: "admin" },
     query: { acao: "campanha_criar", resultado: "PENDENTE", pagina: "1", limite: "1000" }
   });
   expect(repository.listar).toHaveBeenCalledWith(expect.objectContaining({
@@ -104,10 +104,10 @@ test("consulta exige superadmin e limita filtros/paginação", async () => {
   }));
   expect(result.eventos[0]).toMatchObject({ resultado: "PENDENTE", alvoId: 10 });
   await expect(service.list({
-    admin: { usuarioId: 8, papel: "superadmin" }, query: { acao: "desconhecida" }
+    admin: { usuarioId: 8, papel: "admin" }, query: { acao: "desconhecida" }
   })).rejects.toMatchObject({ statusCode: 400 });
   await expect(service.list({
-    admin: { usuarioId: 8, papel: "superadmin" }, query: { resultado: "CONCLUIDO" }
+    admin: { usuarioId: 8, papel: "admin" }, query: { resultado: "CONCLUIDO" }
   })).rejects.toMatchObject({ statusCode: 400 });
 });
 
@@ -122,7 +122,7 @@ test("revisão humana não substitui resultado HTTP tardio na consulta", async (
   };
   repository.listar.mockResolvedValueOnce({ total: 1, rows: [row] });
   const reviewed = await service.list({
-    admin: { usuarioId: 8, papel: "superadmin" }, query: { resultado: "REVISADA" }
+    admin: { usuarioId: 8, papel: "admin" }, query: { resultado: "REVISADA" }
   });
   expect(reviewed.eventos[0]).toMatchObject({
     resultado: "REVISADA", vencida: false,
@@ -131,7 +131,7 @@ test("revisão humana não substitui resultado HTTP tardio na consulta", async (
   repository.listar.mockResolvedValueOnce({ total: 1, rows: [{
     ...row, resultado: "HTTP_OK", http_status: 201
   }] });
-  const late = await service.list({ admin: { usuarioId: 8, papel: "superadmin" } });
+  const late = await service.list({ admin: { usuarioId: 8, papel: "admin" } });
   expect(late.eventos[0]).toMatchObject({
     resultado: "HTTP_OK", httpStatus: 201,
     revisao: { avaliacao: "INDETERMINADO" }

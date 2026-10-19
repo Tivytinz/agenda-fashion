@@ -288,7 +288,7 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   const navigation = page.getByRole("navigation", {
     name: "Navegação mobile da administração"
   });
-  await expect(navigation.locator(".admin-nav-link")).toHaveCount(11);
+  await expect(navigation.locator(".admin-nav-link")).toHaveCount(12);
   await expect(navigation.getByRole("link", { name: "Marketing" })).toBeVisible();
   await expect(navigation.getByRole("link", { name: "Saúde do SaaS" })).toBeVisible();
   await expect(navigation.getByRole("link", { name: "Ver produto" })).toHaveCount(0);

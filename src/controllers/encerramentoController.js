@@ -1,6 +1,7 @@
 const encerramentoService = require(
   "../services/encerramentoService"
 );
+const { disableDocumentCache } = require("../utils/httpCache");
 
 async function encerrarNegocio(req, res, next) {
   try {
@@ -46,13 +47,12 @@ async function consultarReservaDesativada(
   res,
   next
 ) {
+  disableDocumentCache(res);
   try {
     const resultado =
       await encerramentoService.consultarReservaClienteDesativado({
         agendamentoId: req.params.id,
-        acesso:
-          req.get("X-Agenda-Access") ||
-          req.query?.token,
+        acesso: req.get("X-Agenda-Access"),
       });
 
     return res.json(resultado);
@@ -66,13 +66,12 @@ async function cancelarReservaDesativada(
   res,
   next
 ) {
+  disableDocumentCache(res);
   try {
     const resultado =
       await encerramentoService.cancelarReservaClienteDesativado({
         agendamentoId: req.params.id,
-        acesso:
-          req.body?.token ||
-          req.query?.token,
+        acesso: req.body?.token,
       });
 
     return res.json(resultado);

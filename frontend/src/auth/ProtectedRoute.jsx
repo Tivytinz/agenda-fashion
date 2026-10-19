@@ -49,6 +49,18 @@ export function ProtectedRoute({
     return <Navigate replace to="/" />;
   }
 
+  const professionalRoute =
+    location.pathname === "/profissional" ||
+    location.pathname.startsWith("/profissional/");
+
+  if (
+    professionalRoute &&
+    session.negocio?.papel !== "profissional" &&
+    session.temReservasProfissionaisRestritas
+  ) {
+    return <Navigate replace to="/reservas-existentes" />;
+  }
+
   if (businessRequired && !session.temNegocio) {
     const planSlug = normalizePlanSlug(
       new URLSearchParams(location.search).get("plano")
@@ -62,10 +74,6 @@ export function ProtectedRoute({
       />
     );
   }
-
-  const professionalRoute =
-    location.pathname === "/profissional" ||
-    location.pathname.startsWith("/profissional/");
 
   if (
     professionalRoute &&

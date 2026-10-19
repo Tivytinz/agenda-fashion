@@ -116,7 +116,7 @@ export function AdminAuditPage() {
       .catch((err) => {
         if (active && err.name !== "AbortError") {
           setError(err.status === 403
-            ? "A consulta da auditoria é restrita ao superadministrador."
+            ? "A consulta da auditoria é restrita ao administrador."
             : err.message || "Não foi possível carregar a auditoria.");
         }
       })

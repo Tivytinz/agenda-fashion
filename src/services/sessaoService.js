@@ -153,17 +153,13 @@ function montarNegocio(
 function montarAdministrador(
   administrador
 ) {
-  if (!administrador) {
+  if (!administrador || administrador.papel !== "admin") {
     return null;
   }
 
   return {
     papel:
       administrador.papel,
-
-    superadmin:
-      administrador.papel ===
-      "superadmin",
   };
 }
 
@@ -253,6 +249,9 @@ async function obterMinhaSessao(
 
     temNegocio:
       vinculos.length > 0,
+
+    temReservasProfissionaisRestritas:
+      usuario.tem_reservas_profissionais_restritas === true,
 
     negocio,
 

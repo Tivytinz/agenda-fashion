@@ -119,6 +119,30 @@ async function descobrirSlug() {
   );
 }
 
+// Falhas de trace do Lighthouse não produzem uma amostra de LCP.
+// Reexecutamos somente erros transitórios conhecidos; uma amostra válida
+// acima da meta continua reprovando o gate normalmente.
+const MAX_TRACE_ATTEMPTS = 3;
+
+function erroTransitorioLighthouse(error) {
+  return /NO_NAVSTART|NO_FCP|PROTOCOL_TIMEOUT|Something went wrong with recording the trace/i
+    .test(String(error?.message || error));
+}
+
+function medirComRetry(args, { measure = medirComLighthouse, onRetry = console.warn } = {}) {
+  for (let attempt = 1; attempt <= MAX_TRACE_ATTEMPTS; attempt += 1) {
+    try {
+      return measure(args);
+    } catch (error) {
+      if (!erroTransitorioLighthouse(error) || attempt === MAX_TRACE_ATTEMPTS) {
+        throw error;
+      }
+      onRetry(`Lighthouse: trace transitório em ${args.relativeUrl} (tentativa ${attempt}/${MAX_TRACE_ATTEMPTS}); repetindo a mesma amostra.`);
+    }
+  }
+  throw new Error("Falha inesperada na medição do Lighthouse.");
+}
+
 function medirComLighthouse({
   relativeUrl,
   outputFile,
@@ -230,8 +254,7 @@ async function main() {
     );
   }
 
-  const slug =
-    await descobrirSlug();
+  const slug = process.env.PERF_PROFILE_SLUG || await descobrirSlug();
 
   const pages = [
     {
@@ -292,7 +315,7 @@ async function main() {
         );
 
       const measured =
-        medirComLighthouse({
+        medirComRetry({
           relativeUrl:
             testCase.path,
           outputFile,

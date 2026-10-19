@@ -10,12 +10,12 @@ const repository =
     "../repositories/adminContributionOperationsRepository"
   );
 
-function exigirSuperadmin(
-  superadmin
+function exigirAdmin(
+  adminAutorizado
 ) {
-  if (superadmin !== true) {
+  if (adminAutorizado !== true) {
     throw new AppError(
-      "Operação financeira restrita ao superadministrador.",
+      "Operação financeira restrita ao administrador.",
       403
     );
   }
@@ -400,7 +400,7 @@ function converterErroContribuicao(
 }
 
 async function buscarPainel({
-  superadmin,
+  adminAutorizado,
 } = {}) {
   const dados =
     await repository
@@ -411,7 +411,7 @@ async function buscarPainel({
       dados.inicio_cobertura ||
       null,
     podeEditar:
-      superadmin === true,
+      adminAutorizado === true,
     fontes:
       dados.fontes.map(
         mapearFonte
@@ -438,10 +438,10 @@ async function buscarPainel({
 async function criarFonte({
   payload,
   usuarioId,
-  superadmin,
+  adminAutorizado,
 }) {
-  exigirSuperadmin(
-    superadmin
+  exigirAdmin(
+    adminAutorizado
   );
 
   const normalizado = {
@@ -551,10 +551,10 @@ async function criarFonte({
 async function registrarCusto({
   payload,
   usuarioId,
-  superadmin,
+  adminAutorizado,
 }) {
-  exigirSuperadmin(
-    superadmin
+  exigirAdmin(
+    adminAutorizado
   );
 
   const tipo =
@@ -830,10 +830,10 @@ async function registrarCusto({
 async function registrarCobertura({
   payload,
   usuarioId,
-  superadmin,
+  adminAutorizado,
 }) {
-  exigirSuperadmin(
-    superadmin
+  exigirAdmin(
+    adminAutorizado
   );
 
   const ator =

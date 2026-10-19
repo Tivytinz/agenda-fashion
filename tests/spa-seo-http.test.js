@@ -2,6 +2,17 @@ const request = require("supertest");
 const app = require("../src/server");
 
 describe("SEO e 404 das rotas React", () => {
+  test("favicon público mantém dimensão, orçamento e revalidação", async () => {
+    const response = await request(app).get("/favicon-96.png");
+    expect(response.status).toBe(200);
+    expect(response.headers["content-type"]).toMatch(/image\/png/);
+    expect(response.body.subarray(1, 4).toString()).toBe("PNG");
+    expect(response.body.readUInt32BE(16)).toBe(96);
+    expect(response.body.readUInt32BE(20)).toBe(96);
+    expect(response.body.length).toBeLessThan(8 * 1024);
+    expect(response.headers["cache-control"]).toContain("max-age=0");
+    expect(response.headers["cache-control"]).not.toContain("immutable");
+  });
   test.each([
     "/entrar",
     "/cadastro",
@@ -38,6 +49,8 @@ describe("SEO e 404 das rotas React", () => {
     expect(resposta.text).toContain(
       "<title>Agenda Fashion | Agendamento de beleza online</title>"
     );
+    expect(resposta.text).toContain("/assets/home/salon-hero-mobile.webp");
+    expect(resposta.text).toContain("/assets/home/salon-hero-wide.webp");
     expect(resposta.text).toContain(
       'rel="canonical" href="https://agendafashion.com.br/"'
     );
@@ -54,7 +67,7 @@ describe("SEO e 404 das rotas React", () => {
       '"@type":"WebSite"'
     );
     expect(resposta.text).toContain(
-      'href="/favicon.png"'
+      'href="/favicon-96.png"'
     );
     expect(resposta.text).not.toContain(
       "utm_source=bing"

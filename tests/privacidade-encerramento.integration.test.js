@@ -666,6 +666,17 @@ describe("Wave 8 - privacidade e encerramento P0", () => {
     const acesso =
       desativada.body.reservas_acesso[0].acesso;
 
+    const consultaPelaUrl = await request(app)
+      .get(`/agendamentos/${booking.id}/acesso-cliente-desativado`)
+      .query({ token: acesso });
+    expect(consultaPelaUrl.statusCode).toBe(403);
+
+    const cancelamentoPelaUrl = await request(app)
+      .patch(`/agendamentos/${booking.id}/cancelar-acesso-cliente-desativado`)
+      .query({ token: acesso })
+      .send({});
+    expect(cancelamentoPelaUrl.statusCode).toBe(403);
+
     const consulta = await request(app)
       .get(
         `/agendamentos/${booking.id}/acesso-cliente-desativado`
@@ -673,6 +684,7 @@ describe("Wave 8 - privacidade e encerramento P0", () => {
       .set("X-Agenda-Access", acesso);
 
     expect(consulta.statusCode).toBe(200);
+    expect(consulta.headers["cache-control"]).toContain("no-store");
     expect(consulta.body.agendamento).toMatchObject({
       id: String(booking.id),
       status: "confirmado",
@@ -686,6 +698,7 @@ describe("Wave 8 - privacidade e encerramento P0", () => {
       .send({ token: acesso });
 
     expect(cancelada.statusCode).toBe(200);
+    expect(cancelada.headers["cache-control"]).toContain("no-store");
 
     const estadoFinal = await db.query(
       "SELECT status FROM agendamentos WHERE id = $1",

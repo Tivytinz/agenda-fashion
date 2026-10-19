@@ -1,3 +1,4 @@
+jest.mock("../src/repositories/adminAuditRepository", () => ({ registrarEvento: jest.fn().mockResolvedValue({}) }));
 const express = require(
   "express"
 );
@@ -28,16 +29,7 @@ jest.mock(
   ) => {
     req.admin = {
       usuarioId: 7,
-      papel:
-        req.headers[
-          "x-test-superadmin"
-        ] === "yes"
-          ? "superadmin"
-          : "admin",
-      superadmin:
-        req.headers[
-          "x-test-superadmin"
-        ] === "yes",
+      papel: "admin",
     };
     return next();
   }
@@ -146,7 +138,7 @@ describe(
             "provider_test",
           intervaloMinutos: 60,
           ativa: true,
-          superadmin: false,
+          adminAutorizado: true,
         };
 
         const resposta =
@@ -157,7 +149,7 @@ describe(
               "/admin/financeiro/contribuicao/sync/integracoes"
             )
             .set(
-              "x-test-superadmin",
+              "x-test-admin",
               "yes"
             )
             .send(payload);
@@ -171,7 +163,7 @@ describe(
             .criarIntegracao
         ).toHaveBeenCalledWith({
           payload,
-          superadmin: true,
+          adminAutorizado: true,
         });
       }
     );
@@ -201,7 +193,7 @@ describe(
               "/admin/financeiro/contribuicao/sync/integracoes/3"
             )
             .set(
-              "x-test-superadmin",
+              "x-test-admin",
               "yes"
             )
             .send(payload);
@@ -216,7 +208,7 @@ describe(
         ).toHaveBeenCalledWith({
           integracaoId: "3",
           payload,
-          superadmin: true,
+          adminAutorizado: true,
         });
       }
     );
@@ -239,7 +231,7 @@ describe(
               "/admin/financeiro/contribuicao/sync/integracoes/3/executar"
             )
             .set(
-              "x-test-superadmin",
+              "x-test-admin",
               "yes"
             );
 
@@ -252,7 +244,7 @@ describe(
             .sincronizarManual
         ).toHaveBeenCalledWith({
           integracaoId: "3",
-          superadmin: true,
+          adminAutorizado: true,
         });
       }
     );

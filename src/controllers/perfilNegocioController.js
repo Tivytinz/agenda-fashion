@@ -97,9 +97,12 @@ async function renderizarPerfilPublico(req, res, next) {
     return res
       .type("html")
       .send(
-        socialPreviewService.injetarMetadados(
-          html,
-          previa.metadados
+        socialPreviewService.injetarDadosIniciaisPerfil(
+          socialPreviewService.injetarMetadados(
+            html,
+            previa.metadados
+          ),
+          previa.bootstrap
         )
       );
   } catch (erro) {

@@ -3,6 +3,108 @@
 **Data:** 13/10/2026. **Base auditada:** `b20ed7509e4a7f892607af302a163a5f10012f46`.
 **Tipo documental:** evidência de auditoria do backend.
 
+## Decisão posterior — administração com papel único
+
+O responsável pelo AF definiu somente `admin` após a primeira validação desta
+revisão. A [matriz por ação](./admin-permissoes-matriz.md) documenta as 41 ações.
+A migration 115 converte o papel legado e preserva eventos históricos. Admin
+ativo passa a acessar auditoria e contribuição financeira. O restante deste
+relatório mantém a evidência anterior à decisão; o novo commit exige novo CI.
+
+## Revalidação e correções — 16/10/2026
+
+**Base:** `084afc7c0c3c8d91237301078643922e98d4a289` (main, PR #395).
+**Branch:** `audit/rbac-hardening`. Revisão preparada para validação em PR de
+rascunho no CI. Os resultados locais abaixo não representam merge, deploy ou
+teste contra dados de produção.
+
+O modelo segue sendo RBAC contextual com verificação de vínculo, negócio,
+responsável e estado. Não foi confirmado bypass de papel nem acesso entre
+negócios nos caminhos exercitados. Foram confirmadas duas inconsistências e
+ampliada a cobertura de recusa de acesso.
+
+| Achado | Prioridade | Evidência anterior | Correção preparada |
+| --- | --- | --- | --- |
+| RBAC-03 — Credencial de cliente desativado aceita na URL | P2, hardening de capability | `encerramentoController` aceitava `req.query.token` em consulta/cancelamento. O teste com HMAC válido na query retornava 200. Essa forma de transporte aumenta a superfície de exposição da credencial em URLs e infraestrutura intermediária. Não foi investigado nem confirmado vazamento histórico. | Remove o fallback de query; mantém header para consulta e corpo JSON para cancelamento, como a interface já usa. Respostas de capability de visitante/cliente desativado passam a usar `no-store`, inclusive nos erros. |
+| RBAC-04 — Recusa de assinatura classificada como falha interna | P3, contrato de erro | `GET /minha-assinatura` de conta sem vínculo de dona retornava 500. Não liberava dados financeiros. | Service responde 401 sem identidade e 404 sem negócio autorizado, consistente com o cancelamento de assinatura. Testes impedem consultas financeiras após a recusa. |
+| RBAC-02 — Cobertura negativa distribuída | P3, melhoria | A revisão anterior recomendava consolidar a matriz de negação. | Nova matriz inventaria todas as 146 declarações, exige exceções explícitas e verifica 114 rotas sem sessão, 39 rotas administrativas com papel forjado e a recusa de assinatura. Isolamento de recurso/RN50 ganha suíte integrada adicional. |
+
+### Matriz e isolamento exercitados
+
+O inventário executável encontra **146 declarações em 24 módulos de rotas**
+(excluído o agregador): **114 com autenticação obrigatória**, incluindo **39
+administrativas**, e **32 exceções explícitas**. As exceções distinguem APIs
+públicas, autenticação opcional, logout, capabilities, webhooks e callbacks OAuth.
+O teste falha se uma nova rota sem autenticação não tiver classificação revisada.
+Isso verifica a fronteira declarada, não prova sozinho autorização de cada recurso.
+
+| Cenário | Resultado observado |
+| --- | --- |
+| Anônimo nas 114 rotas privadas | 401, antes de consultar dados |
+| JWT assinado com claims falsos de superadmin, header de contexto e payload forjado | 403 nas 39 rotas administrativas; o banco recebe a identidade autenticada |
+| Dona de A e profissional de B tenta editar serviço/equipe de B | 404; serviço e vínculo de B permanecem inalterados |
+| Profissional ativa tenta concluir/cancelar reserva de outra responsável de B | 403 e estado persistido preservado |
+| Vínculo de B inativo e vínculo de dona ativo em A | Não ganha agenda profissional por fallback; consulta restrita retorna somente a própria reserva de B |
+| RN50: concluir a própria reserva após o término | 200; a exceção não libera cancelamento/reagendamento nem reserva alheia |
+| Remoção e recriação do vínculo | Reservas anteriores não reaparecem nem podem ser atualizadas |
+| Capability apenas na query | 403; header/corpo legítimos continuam funcionando |
+
+### Validação local desta revisão
+
+- **361 testes em 27 suítes** com configuração normal do Jest: matriz de rotas,
+  sessão, papéis administrativos, contexto, agenda, RN50, serviços, checkout,
+  assinatura, favoritos, OAuth e transporte/cache de capabilities. São 353 da
+  regressão em 26 suítes mais os 8 casos novos de `booking-capability-http`;
+  reexecuções sobrepostas não entram novamente na contagem.
+- **19 testes SQL/API em 3 suítes**, com as migrations aplicadas em PostgreSQL
+  18.6 embarcado (PGlite 0.5.10): `rbac-resource-isolation.integration`,
+  `privacidade-encerramento.integration` e
+  `agenda-profissional-autorizacao-integracao`. A adaptação externa ao produto
+  preserva o formato de bigint/numeric do driver `pg` e executa o SQL real.
+- Reproduções na base anterior: capability na query retornava 200; recusa de
+  assinatura retornava 500. Com as correções, esses cenários retornam 403 e 404.
+- Build frontend aprovado e diff revisado sem erros de whitespace.
+
+**Limites:** o ambiente local não permite iniciar o PostgreSQL nativo por falta de
+permissão para trocar o usuário do processo. O harness embarcado não comprova
+concorrência entre conexões independentes. Uma tentativa ampliada com outras
+cinco suítes SQL foi interrompida sem resultado conclusivo e não foi contada como
+aprovação. O CI com PostgreSQL servidor ainda precisa validar esta branch antes
+de integração. Não houve pen test de produção, verificação de logs históricos ou
+certificação de todas as combinações de papel/recurso/estado.
+
+### Melhorias ainda recomendadas
+
+1. Ampliar a matriz de isolamento por família para fotos, notificações, favoritos,
+   convites, faturamento e todas as combinações de conta/negócio arquivado; os
+   guards e testes existentes foram inspecionados, mas a matriz integrada nova é
+   focada em equipe, serviços, reservas e RN50.
+2. Exercitar revogação concorrente (perda de vínculo durante uma escrita) em
+   PostgreSQL servidor. A consulta inicial de papel não deve ser tratada como
+   garantia de revogação atômica de todas as operações já em andamento.
+3. Formalizar permissões por ação administrativa antes de adicionar novos níveis
+   ou papéis. A especificação v1.17 ainda lista essa definição como pendência;
+   esta auditoria não cria novos privilégios por suposição.
+
+## Histórico da auditoria de 13/10 e evolução RN50
+
+**Evolução RN50 (15/10/2026):** a implementação preparada após esta auditoria
+adiciona a área restrita de reservas existentes e permite somente consulta,
+`realizado` e `falta` para a responsável com vínculo inativo preservado.
+Cancelamento e reagendamento ficam com a dona. A regra atual e os critérios de
+revogação estão em [ciclo-atendimento.md](./ciclo-atendimento.md#rn50--reservas-existentes-de-vínculo-inativo).
+Os achados e números abaixo continuam representando a base auditada em 13/10,
+não uma nova certificação da aplicação nem uma confirmação de deploy.
+
+Validação local da evolução RN50: lint e build aprovados; 698 testes frontend,
+123 testes backend com doubles e 20 cenários WebKit com APIs simuladas passaram.
+As 114 migrations foram aplicadas sem alteração em PostgreSQL 18.6 embarcado
+(PGlite, instalado somente no harness externo ao produto); nele passaram 10
+cenários novos da RN50 e duas regressões existentes de lifecycle/autorização.
+Essa execução exercita o SQL e as transações, mas não substitui o CI com
+PostgreSQL servidor nem valida concorrência entre conexões independentes.
+Safari nativo e deploy não fazem parte dessa evidência local.
+
 As regras de identidade, contexto e sessão continuam em
 [arquitetura.md](./arquitetura.md), [contexto-negocio.md](./contexto-negocio.md)
 e [session-security.md](./session-security.md). Este relatório registra a
@@ -143,7 +245,9 @@ administrativa aberta. A revalidação do administrador está coberta por
 ### RBAC-01 — Permissões mínimas de profissional inativa não estão implementadas
 
 **Prioridade:** P2. **Categoria:** divergência funcional de autorização.
-**Referência:** RN50. **Status:** confirmada no seletor de acesso, sem correção nesta auditoria.
+**Referência:** RN50. **Status na base auditada:** confirmada no seletor de acesso,
+sem correção naquela auditoria. A evolução posterior está registrada no início
+deste documento.
 
 RN50 prevê que a profissional inativa preserve histórico e permissões mínimas
 necessárias às reservas existentes. Os controles atuais de leitura de agenda e

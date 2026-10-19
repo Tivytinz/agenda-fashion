@@ -14,7 +14,7 @@ beforeEach(() => {
   apiRequest.mockResolvedValue({
     acoes: ["campanha_criar", "contribuicao_custo_registrar"],
     eventos: [{
-      tentativaId: attemptId, atorUsuarioId: 7, papelAdmin: "superadmin",
+      tentativaId: attemptId, atorUsuarioId: 7, papelAdmin: "admin",
       acao: "campanha_criar", alvoTipo: "campanha", alvoId: 42,
       requestId: "request-12345", iniciadoEm: "2026-09-24T12:00:00Z",
       finalizadoEm: null, resultado: "PENDENTE", httpStatus: null, vencida: false
@@ -94,7 +94,7 @@ describe("AdminAuditPage", () => {
   it("explica permissão negada sem interpretar como lista vazia", async () => {
     apiRequest.mockRejectedValue({ status: 403, message: "Proibido" });
     render(<MemoryRouter><AdminAuditPage /></MemoryRouter>);
-    expect(await screen.findByText(/restrita ao superadministrador/i)).not.toBeNull();
+    expect(await screen.findByText(/restrita ao administrador/i)).not.toBeNull();
     expect(screen.queryByText("Nenhuma ação encontrada")).toBeNull();
   });
 });

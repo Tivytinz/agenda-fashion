@@ -257,6 +257,16 @@ Conta profissional. Quando a mesma identidade também possui vínculo ativo de
 dona, o shell pode oferecer uma troca explícita para `/painel`, sem alterar
 papéis ou permissões persistidas.
 
+RN50 oferece `/reservas-existentes` (`RestrictedProfessionalReservationsPage`)
+fora do workspace ativo. A entrada aparece no menu da conta quando a sessão
+sinaliza reservas acessíveis em vínculos inativos. A tela permite consulta e
+registro de realizado/falta; não apresenta horários, bloqueios, cancelamento ou
+reagendamento. Links antigos da área profissional sem vínculo profissional ativo
+encaminham à área restrita quando houver reservas acessíveis. Conta desativada,
+vínculo removido e negócio arquivado não recebem a exceção. A autorização real é
+revalidada por reserva no backend, conforme
+[`ciclo-atendimento.md`](./ciclo-atendimento.md).
+
 ## 9. Convites e equipe
 
 ### Dona

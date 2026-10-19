@@ -155,5 +155,11 @@ describe("continuidade do plano escolhido", () => {
       requestedPath: "/checkout?plano=autonoma"
     })).toBe("/criar-negocio?plano=autonoma");
   });
+
+  it("RN50: abre reservas restritas sem criar vínculo ativo e preserva outro workspace", () => {
+    expect(getAuthDestination({ temNegocio: false, temReservasProfissionaisRestritas: true })).toBe("/reservas-existentes");
+    expect(getAuthDestination({ temNegocio: true, negocio: { papel: "dono" }, temReservasProfissionaisRestritas: true })).toBe("/painel");
+    expect(getAuthDestination({ temNegocio: true, negocio: { papel: "profissional" }, temReservasProfissionaisRestritas: true })).toBe("/profissional/agenda");
+  });
 });
 

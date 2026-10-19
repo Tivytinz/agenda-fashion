@@ -50,6 +50,7 @@ Servidor:
 - Node.js 22;
 - Express 5;
 - `express.static`;
+- compressão negociada de assets públicos em `/assets`;
 - Helmet;
 - rotas server-side específicas para SEO;
 - fallback controlado da SPA.
@@ -61,6 +62,19 @@ Deploy:
 - readiness em `/health/ready`.
 
 ## 3. Build de produção
+
+O Express negocia compressão nos arquivos públicos de `/assets` por
+`Accept-Encoding`, mantendo `Vary: Accept-Encoding` e a política de cache já
+definida. JS e CSS deixam de depender de compressão em um proxy externo para
+ter entrega compactada. Imagens já compactadas seguem o filtro padrão de MIME.
+Documentos HTML, APIs autenticadas, cookies e respostas de sessão não passam
+por esse middleware. O CI mede o mesmo caminho de entrega da aplicação.
+
+O favicon referenciado no HTML é `/favicon-96.png`, PNG transparente de 96×96
+e 5.786 bytes, derivado da marca de 96 px já usada no header. O orçamento HTTP
+é de 8 KiB. A URL estável revalida a cada uso; `/favicon.png` continua disponível
+para compatibilidade e dados estruturados. O preload do hero da home é removido
+do HTML do perfil público para não disputar rede com os recursos dessa página.
 
 O script frontend é:
 
@@ -1006,38 +1020,25 @@ client-side é suficiente.
 
 ## 60. Professional Landing
 
-`ProfessionalLandingPage` altera title e description no browser via
-`useEffect`.
+A rota `/para-profissionais` recebe metadados específicos no HTML do Express,
+por meio de `socialPreviewService.montarMetadadosPaginaEstatica()` e
+`src/server.js`, incluindo title, description e canonical próprios. O hook
+de metadata client-side continua sendo usado durante navegação SPA.
 
-Ao mesmo tempo, `/para-profissionais` está no sitemap.
-
-No caminho server-side genérico, a rota recebe o metadata base do
-`index.html`, pois não possui renderer especializado como perfil/catálogo.
-
-Isso é um finding de SEO:
-
-> robôs que não executarem ou não aguardarem JavaScript podem observar title e
-> description genéricos para uma landing explicitamente listada no sitemap.
-
-Esta branch não alterou metadata server-side dessa landing.
+A captura do teste em tempo real no Search Console em 16/10/2026 mostrou
+a landing renderizada e tecnicamente disponível para indexação, mas essa
+evidência isolada não garante inclusão no índice.
 
 ## 61. Plans e institucionais
 
-O sitemap inclui:
+As páginas `/planos`, `/privacidade` e `/termos` também recebem metadata
+deliberada no servidor. A home publica Organization e WebSite factuais.
+`tests/spa-seo-http.test.js` verifica title, description e canonical sem UTM.
 
-- `/`;
-- `/para-profissionais`;
-- `/planos`;
-- `/privacidade`;
-- `/termos`.
-
-Entre essas rotas, o runtime server-side genérico não injeta metadata dedicada
-por página.
-
-A home possui metadata base coerente com descoberta geral.
-
-Para páginas estratégicas como planos/landing, avaliar metadata server-side antes
-de tratar SEO como otimizado.
+O AF não possui SSR geral do conteúdo React: o HTML inicial dessas rotas
+continua sendo o shell da SPA com metadata no head. Qualquer evolução para
+conteúdo inicial server-side exige validar UX, hidratação, segurança e custo
+antes de adotar nova tecnologia. A decisão de indexar continua sendo do Google.
 
 ## 62. Sitemap
 
@@ -2011,3 +2012,31 @@ Atualizar este documento quando mudar de forma durável:
 - estratégia de deploy do frontend.
 
 Mudança puramente visual que não altera entrega não exige atualização.
+
+## Auditoria de links públicos rastreáveis (16/10/2026)
+
+No frontend executável, `HomePage` monta `ExplorePage` via React,
+após um atraso curto; `ExplorePage` renderiza `BusinessCard` e
+`ServiceCard` a partir de dados públicos da API. Os componentes usam
+`Link` do React Router, que gera âncoras HTML com `href` para
+`/negocio/:slug` e, quando houver categoria/localidade válidas,
+`/servicos/:categoria/em/:localidade`. A landing profissional também
+contém um link para perfil demonstrativo e outro para `/planos`.
+O catálogo local só é indexável quando há oferta válida.
+
+Limitação confirmada: esses links da descoberta dependem de execução do
+JavaScript e carregamento da API; o HTML inicial da home contém apenas
+`<div id="root"></div>`. Isso não é evidência de bloqueio do Google,
+que renderizou a landing em teste real, mas impede afirmar que a
+descoberta de perfis seja independente do JavaScript.
+
+A cobertura atual de testes de SEO HTTP valida sitemap, metadata e
+noindex. Antes de considerar um eventual HTML inicial com links públicos,
+testar representação segura de dados, atualização de publicação, isolamento
+de negócios, ausência de URLs despublicadas, navegação mobile e regressão
+de performance. Não gerar links a perfis arquivados ou não publicados.
+
+A indexação observada no Search Console em 11/10/2026 foi 1/25 URLs
+do sitemap; a classificação de URL pelo Google não estabelece, isoladamente,
+a causa raiz. Reinspecionar após rastreamentos futuros.
+

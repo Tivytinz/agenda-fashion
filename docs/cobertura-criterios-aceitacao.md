@@ -486,7 +486,7 @@ A Wave 31 cria a operação administrativa necessária para alimentar
 `contribuicao_cobertura` sem estimativa ou seed.
 
 A migration 102 adiciona cutover próprio e auditoria append-only. Escritas são
-restritas a superadmin, exigem motivo e usam ator da sessão administrativa.
+restritas a admin, exigem motivo e usam ator da sessão administrativa.
 Débitos continuam idempotentes; correções usam crédito referenciado e limitado
 ao saldo do débito. Cobertura não pode regredir.
 

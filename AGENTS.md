@@ -150,6 +150,8 @@ a diretiva `noindex`. Áreas operacionais e URLs sensíveis sem valor para busca
 podem continuar bloqueadas de rastreamento, mantendo autorização real no
 backend como controle de segurança.
 
+O perfil público pode embutir no HTML um bootstrap inicial para reduzir o caminho crítico de renderização, mas esse payload deve ser montado por DTO/whitelist explícita de campos públicos e serializado com escape seguro para contexto HTML. O bootstrap deve incluir os dados necessários para renderizar negócio, serviços e profissionais sem estado parcial; a revalidação posterior não pode apagar conteúdo válido já exibido por falha transitória. Validações autoritativas de disponibilidade, plano, autorização e criação de agendamento permanecem no backend e nunca podem depender desse bootstrap.
+
 ## Entidades e contextos
 
 Não tratar como equivalentes:
@@ -164,7 +166,9 @@ Não tratar como equivalentes:
 
 A identidade principal fica em `usuarios`. Papéis de negócio pertencem a
 `usuarios_negocios.papel`, atualmente `dono` e `profissional`. Administração
-global usa `usuarios_administradores`.
+global usa `usuarios_administradores`, com papel único `admin`. A migration 115
+converte o antigo superadmin sem reativar permissões e preserva o ledger histórico.
+A matriz por ação fica em `docs/admin-permissoes-matriz.md`.
 
 Uma mesma conta pode atuar em mais de um contexto. O frontend muda navegação e
 apresentação conforme rota, sessão e vínculos, mas essas escolhas não substituem
@@ -506,6 +510,19 @@ começando pelas ativações mais recentes. Esses vínculos usam
 `motivo_inatividade = 'excedente_limite_plano'`; `ativado_em` registra a
 ativação mais recente para manter a ordem de downgrade determinística.
 
+RN50 preserva acesso restrito às próprias reservas existentes de um vínculo
+profissional inativo. A profissional pode consultar essas reservas e registrar
+somente `realizado` ou `falta`, respeitando as regras temporais, os estados
+terminais e a idempotência do lifecycle. Cancelamento e reagendamento ficam com
+a dona enquanto o vínculo estiver inativo. A exceção não libera início de
+atendimento, novas reservas, horários, bloqueios, serviços, equipe ou assinatura.
+Conta desativada, negócio arquivado e vínculo removido não recebem essa exceção;
+um vínculo recriado não recupera reservas anteriores à sua criação. A sessão
+expõe `temReservasProfissionaisRestritas` sem adicionar vínculos inativos a
+`vinculos` ou alterar `temNegocio`. A entrada é `/reservas-existentes`, separada
+do workspace ativo, e cada consulta/escrita revalida a autorização no backend.
+Detalhes e matriz: `docs/ciclo-atendimento.md`.
+
 As oportunidades de upgrade dentro da área da dona são **contextuais**, não
 publicidade permanente. O backend de assinatura resolve de forma canônica o
 próximo tier pela ordem `inicial → autonoma → studio → salao` e entrega ao
@@ -704,7 +721,7 @@ um fluxo administrativo próprio. A migration 102 cria o cutover
 `fontes_contribuicao_v1_inicio` e uma trilha
 `contribuicao_operacoes_admin` append-only. Nenhuma fonte é criada por seed:
 cadastro, débito, crédito e cobertura dependem de ação explícita. Escritas são
-restritas a superadmin no backend e registram ator + motivo. Correções
+restritas a admin no backend e registram ator + motivo. Correções
 administrativas de custo usam crédito referenciado, nunca UPDATE/DELETE do
 ledger; o crédito não pode superar o saldo do débito original. Cobertura mantém
 início imutável e watermark não regressivo. Admin comum pode consultar o painel,
@@ -804,7 +821,7 @@ O Admin funciona como um centro de comando operacional com design system própri
 Seu shell usa uma navegação textual única para as páginas administrativas,
 agrupadas em Início, Crescimento e Plataforma. Marketing, Investimento e
 eficiência, Integrações, Saúde do SaaS e WhatsApp têm destinos próprios no
-sidebar; Auditoria aparece apenas para superadmin. No celular, a mesma lista
+sidebar; Auditoria está disponível para admin. No celular, a mesma lista
 é aberta por um botão Menu, sem barra inferior fixa.
 O contexto administrativo usa superfícies claras, texto de alto contraste e
 cor de destaque com moderação. Cores de estado só representam estados reais.
@@ -1083,6 +1100,11 @@ Na topologia web atual, mutações autenticadas por cookie usam defesa CSRF em c
 O browser não deve persistir perfil de usuário ou negócio em `localStorage` para acelerar bootstrap. A persistência local da sessão web fica restrita ao marcador técnico `session_active` e à compatibilidade legada ainda existente; nome, e-mail, WhatsApp, foto e contexto de negócio permanecem em memória e são reidratados por `GET /minha-sessao`. Chaves antigas `usuario` e `negocio` devem ser removidas no bootstrap.
 
 O header `X-Agenda-Access` faz parte do contrato de capability de booking e deve permanecer permitido pelo CORS para que a mesma capability continue funcionando caso frontend e API usem origens permitidas distintas. Isso não amplia o escopo da capability nem substitui validação backend.
+
+APIs de acesso por capability de reserva (visitante ou cliente desativado) não
+aceitam credencial por query string. Consulta usa `X-Agenda-Access` e cancelamento
+usa o corpo JSON previsto no contrato. Sucesso e erro desses caminhos enviam
+`Cache-Control: no-store` para impedir armazenamento de dados da reserva em cache.
 
 A retirada de transporte Bearer legado exige evidência operacional sem registrar credenciais. A observabilidade pode contar apenas a classe de transporte (`cookie` ou `bearer`) e timestamps agregados do processo; nunca registrar o token, o header `Authorization`, usuário, rota ou payload para esse diagnóstico. Contador zero em um único processo/deploy não prova ausência histórica e não autoriza remoção automática da compatibilidade.
 

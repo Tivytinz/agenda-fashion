@@ -130,9 +130,18 @@ function montarDescricao(negocio, servico) {
     );
   }
 
+  if (textoSeguro(negocio.descricao)) {
+    return textoSeguro(negocio.descricao, 180);
+  }
+
+  const local = [negocio.bairro, negocio.cidade, negocio.estado]
+    .map((parte) => textoSeguro(parte, 70))
+    .filter(Boolean)
+    .join(", ");
+  const complementoLocal = local ? ` em ${local}` : "";
+
   return textoSeguro(
-    negocio.descricao ||
-      `Conheça os serviços da ${negocio.nome} e agende seu horário online.`,
+    `Conheça os serviços da ${negocio.nome}${complementoLocal} e agende seu horário online pelo Agenda Fashion.`,
     180
   );
 }
@@ -291,6 +300,74 @@ function injetarMetadados(html, metadados) {
   );
 }
 
+function montarBootstrapPerfilPublico({ negocio, servicos, profissionais }) {
+  const negocioPublico = {
+    id: negocio.id,
+    nome: negocio.nome,
+    slug: negocio.slug,
+    foto_url: negocio.foto_url,
+    descricao: negocio.descricao,
+    setor: negocio.setor,
+    whatsapp_negocio: negocio.whatsapp_negocio,
+    whatsapp: negocio.whatsapp,
+    cidade: negocio.cidade,
+    estado: negocio.estado,
+    bairro: negocio.bairro,
+    endereco: negocio.endereco,
+    numero: negocio.numero,
+    complemento: negocio.complemento,
+    cep: negocio.cep,
+    localizacao_url: negocio.localizacao_url,
+    google_maps_url: negocio.google_maps_url,
+    latitude: negocio.latitude,
+    longitude: negocio.longitude,
+    fuso_horario: negocio.fuso_horario,
+    agendamento_online_disponivel: negocio.agendamento_online_disponivel,
+    areas: negocio.areas,
+    media_avaliacoes: negocio.media_avaliacoes,
+    total_avaliacoes: negocio.total_avaliacoes
+  };
+
+  return {
+    slug: negocio.slug,
+    negocio: negocioPublico,
+    servicos: servicos.map((servico) => ({
+      id: servico.id,
+      nome: servico.nome,
+      descricao: servico.descricao,
+      valor: servico.valor,
+      duracao_minutos: servico.duracao_minutos,
+      categoria: servico.categoria,
+      foto_url: servico.foto_url
+    })),
+    profissionais: profissionais.map((profissional) => ({
+      id: profissional.id,
+      nome: profissional.nome,
+      foto_url: profissional.foto_url,
+      papel: profissional.papel,
+      servico_ids: profissional.servico_ids
+    }))
+  };
+}
+
+function injetarDadosIniciaisPerfil(html, dados) {
+  const json = JSON.stringify(dados)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+
+  // O perfil não usa o hero da home; seu preload concorre com JS/CSS críticos.
+  const htmlDoPerfil = String(html).replace(
+    /<link\b[^>]*href=["']\/assets\/home\/salon-hero-(?:mobile|wide)\.webp["'][^>]*>\s*/gi,
+    ""
+  );
+
+  return htmlDoPerfil.replace(
+    /<\/body>/i,
+    `    <script id="af-profile-initial-data" type="application/json">${json}</script>\n  </body>`
+  );
+}
+
 async function buscarPrevia({ slug, servicoId }) {
   const slugSolicitado = textoSeguro(slug, 120).toLowerCase();
   const negocio =
@@ -300,8 +377,10 @@ async function buscarPrevia({ slug, servicoId }) {
 
   if (!negocio) return null;
 
-  const servicos =
-    await perfilNegocioRepository.buscarServicos(negocio.id);
+  const [servicos, profissionais] = await Promise.all([
+    perfilNegocioRepository.buscarServicos(negocio.id),
+    perfilNegocioRepository.buscarProfissionais(negocio.id)
+  ]);
 
   const servico = servicos.find(
     item => String(item.id) === String(servicoId || "")
@@ -310,14 +389,23 @@ async function buscarPrevia({ slug, servicoId }) {
   return {
     negocio,
     servico,
+    servicos,
+    profissionais,
     slugSolicitado,
-    metadados: montarMetadados({ negocio, servico })
+    metadados: montarMetadados({ negocio, servico }),
+    bootstrap: montarBootstrapPerfilPublico({
+      negocio,
+      servicos,
+      profissionais
+    })
   };
 }
 
 module.exports = {
   buscarPrevia,
   escaparHtml,
+  injetarDadosIniciaisPerfil,
+  montarBootstrapPerfilPublico,
   injetarMetadados,
   lerHtmlReact,
   montarMetadados,

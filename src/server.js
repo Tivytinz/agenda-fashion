@@ -12,6 +12,7 @@ const crypto = require("crypto");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const compression = require("compression");
 
 const {
   corsOptions,
@@ -213,6 +214,9 @@ app.get(
 const rootDir = path.join(process.cwd(), "agendamento-nails");
 const reactDir = path.join(rootDir, "react-app");
 const reactRoutes = require("./config/reactRoutes.json");
+
+// Compacta somente assets públicos; respostas de sessão/API não entram aqui.
+app.use("/assets", compression());
 
 app.use(express.static(reactDir, {
   index: false,
@@ -488,6 +492,7 @@ const rotasReactNoindex = new Set([
   reactRoutes.confirm,
   reactRoutes.success,
   reactRoutes.myAgenda,
+  reactRoutes.restrictedProfessionalReservations,
   reactRoutes.favorites,
   reactRoutes.createBusiness,
   reactRoutes.account,

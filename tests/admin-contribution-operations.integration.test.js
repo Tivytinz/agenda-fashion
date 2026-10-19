@@ -144,7 +144,7 @@ describe(
               "Teste de fonte factual",
           },
           usuarioId,
-          superadmin: true,
+          adminAutorizado: true,
         });
 
       const fonteId =
@@ -190,7 +190,7 @@ describe(
                   "Débito para teste concorrente",
               },
               usuarioId,
-              superadmin: true,
+              adminAutorizado: true,
             });
 
         const payloadCredito = {
@@ -217,13 +217,13 @@ describe(
               payload:
                 payloadCredito,
               usuarioId,
-              superadmin: true,
+              adminAutorizado: true,
             }),
             service.registrarCusto({
               payload:
                 payloadCredito,
               usuarioId,
-              superadmin: true,
+              adminAutorizado: true,
             }),
           ]);
 
@@ -307,7 +307,7 @@ describe(
                   "Fatura variável confirmada",
               },
               usuarioId,
-              superadmin: true,
+              adminAutorizado: true,
             });
 
         const replay =
@@ -327,7 +327,7 @@ describe(
                   "Replay do mesmo fechamento",
               },
               usuarioId,
-              superadmin: true,
+              adminAutorizado: true,
             });
 
         expect(
@@ -357,7 +357,7 @@ describe(
                 "Estorno parcial confirmado",
             },
             usuarioId,
-            superadmin: true,
+            adminAutorizado: true,
           });
 
         await expect(
@@ -381,7 +381,7 @@ describe(
                   "Tentativa acima do saldo",
               },
               usuarioId,
-              superadmin: true,
+              adminAutorizado: true,
             })
         ).rejects.toMatchObject({
           statusCode: 409,
@@ -416,13 +416,13 @@ describe(
                 "Fechamento conciliado",
             },
             usuarioId,
-            superadmin: true,
+            adminAutorizado: true,
           });
 
         const painel =
           await service
             .buscarPainel({
-              superadmin: true,
+              adminAutorizado: true,
             });
 
         const fonte =

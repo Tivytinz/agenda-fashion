@@ -1,5 +1,10 @@
 # Admin Wave 2 — RF41 Auditoria administrativa transversal
 
+> Atualização de 16/10/2026: o papel atual é somente `admin`. As referências
+> a superadmin nesta implementação anterior foram substituídas pela
+> [matriz de permissões vigente](./admin-permissoes-matriz.md). Trilhas e evidências
+> históricas mantêm os rótulos originais.
+
 ## Contrato
 
 RF41 exige rastreabilidade de ações administrativas críticas. RN25 exige
