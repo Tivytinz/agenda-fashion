@@ -1261,3 +1261,9 @@ mesmo conjunto de mudanças sempre que possível.
 ## Reativação idempotente da renovação
 
 Enquanto o período já pago permanecer válido, a dona pode reativar uma renovação cancelada sem cobrança imediata. Cada ciclo usa `assinaturas.reativacao_tentativa` como versão monotônica e uma `externalReference` determinística no Asaas. O estado transitório `REACTIVATING` não deve ser revertido por timeout ou erro ambíguo: uma execução posterior consulta a mesma referência; recorrência encontrada finaliza a reativação, ausência confirmada restaura `CANCELED` e falha de consulta preserva `REACTIVATING` para nova reconciliação. Chamadas ao Asaas permanecem fora de transações PostgreSQL.
+
+No Copilot, trocar negócio, período ou recomendação e desmontar o componente
+invalida o pedido anterior, incluindo sucesso, erro e telemetria de geração.
+O ranking histórico preserva serviços inativos; destaque de divulgação exige
+confirmação explícita de serviço atualmente ativo, mantendo todos os
+agendamentos do período no denominador da participação.

@@ -221,3 +221,11 @@ não desfaz uma criação ou alteração que o backend já tenha persistido. O t
 de navegador mantém a página de planos carregando enquanto entrega a resposta
 da criação; também mantém Meu negócio carregando durante respostas de upload e
 salvamento de horários. A dona deve permanecer no destino que escolheu.
+
+### Contexto da divulgação
+
+O texto do Copilot pertence ao negócio, período e recomendação atuais. Trocar
+esse contexto ou sair cancela o pedido; respostas antigas não alteram texto,
+erro ou evento de geração. O ranking histórico mantém serviços desativados,
+mas somente serviços confirmados como ativos podem ser destacados na
+divulgação. A participação continua usando todos os agendamentos do período.

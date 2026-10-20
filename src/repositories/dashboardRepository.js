@@ -756,6 +756,7 @@ async function buscarRankingServicos(
     SELECT
       s.id,
       s.nome,
+      s.ativo,
 
       COUNT(
         a.id
@@ -783,7 +784,8 @@ async function buscarRankingServicos(
 
     GROUP BY
       s.id,
-      s.nome
+      s.nome,
+      s.ativo
 
     ORDER BY
       total DESC

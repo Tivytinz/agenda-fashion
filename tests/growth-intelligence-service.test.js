@@ -53,7 +53,7 @@ describe("growthIntelligenceService", () => {
           agendamentos_concluidos: 8,
           taxa_conversao: 26.7,
         },
-        ranking_servicos: [{ id: 1, nome: "Manicure", total: 8 }],
+        ranking_servicos: [{ id: 1, nome: "Manicure", total: 8, ativo: true }],
       }, { ativacao });
 
       expect(result.status).toBe(GROWTH_INTELLIGENCE_STATUS.OPORTUNIDADE_PRIORIZADA);
@@ -87,7 +87,7 @@ describe("growthIntelligenceService", () => {
     const result = analyze({
       resumo: { servicos_vendidos: 8 },
       performance: { visitas_perfil: 30, agendamentos_concluidos: 8, taxa_conversao: 26.7 },
-      ranking_servicos: [{ id: 1, nome: "Manicure", total: 8 }],
+      ranking_servicos: [{ id: 1, nome: "Manicure", total: 8, ativo: true }],
     }, {
       ativacao: {
         ...ATIVACAO_CONCLUIDA,
@@ -252,8 +252,8 @@ describe("growthIntelligenceService", () => {
         favoritos_recebidos: 3,
       },
       ranking_servicos: [
-        { id: 1, nome: "Manicure", total: 4 },
-        { id: 2, nome: "Pedicure", total: 4 },
+        { id: 1, nome: "Manicure", total: 4, ativo: true },
+        { id: 2, nome: "Pedicure", total: 4, ativo: true },
       ],
     });
 
@@ -279,9 +279,9 @@ describe("growthIntelligenceService", () => {
         favoritos_recebidos: 0,
       },
       ranking_servicos: [
-        { id: 1, nome: "Alongamento em gel", total: 12 },
-        { id: 2, nome: "Manicure", total: 5 },
-        { id: 3, nome: "Pedicure", total: 3 },
+        { id: 1, nome: "Alongamento em gel", total: 12, ativo: true },
+        { id: 2, nome: "Manicure", total: 5, ativo: true },
+        { id: 3, nome: "Pedicure", total: 3, ativo: true },
       ],
     });
 
@@ -315,8 +315,8 @@ describe("growthIntelligenceService", () => {
         favoritos_recebidos: 0,
       },
       ranking_servicos: [
-        { id: 1, nome: "Alongamento", total: 8 },
-        { id: 2, nome: "Manicure", total: 2 },
+        { id: 1, nome: "Alongamento", total: 8, ativo: true },
+        { id: 2, nome: "Manicure", total: 2, ativo: true },
       ],
     });
 
@@ -340,11 +340,11 @@ describe("growthIntelligenceService", () => {
         favoritos_recebidos: 1,
       },
       ranking_servicos: [
-        { id: 1, nome: "Manicure", total: 6 },
-        { id: 2, nome: "Pedicure", total: 5 },
-        { id: 3, nome: "Escova", total: 4 },
-        { id: 4, nome: "Corte", total: 3 },
-        { id: 5, nome: "Sobrancelha", total: 2 },
+        { id: 1, nome: "Manicure", total: 6, ativo: true },
+        { id: 2, nome: "Pedicure", total: 5, ativo: true },
+        { id: 3, nome: "Escova", total: 4, ativo: true },
+        { id: 4, nome: "Corte", total: 3, ativo: true },
+        { id: 5, nome: "Sobrancelha", total: 2, ativo: true },
       ],
     });
 
@@ -408,3 +408,22 @@ describe("orientação para horários da equipe", () => {
     expect(resultado.mensagem).toContain("configure os horários de uma profissional habilitada");
   });
 });
+
+ test.each([false, undefined, null])("não promove serviço sem confirmação de oferta ativa: %s", (ativo) => {
+   const signals = buildGrowthSignals({
+     resumo: { servicos_vendidos: 10 },
+     ranking_servicos: [
+       { id: 1, nome: "Serviço antigo", total: 8, ativo },
+       { id: 2, nome: "Serviço atual", total: 2, ativo: true },
+     ],
+   });
+   expect(signals.ranking_servicos).toHaveLength(2);
+   expect(signals.ranking_servicos[0].total).toBe(8);
+   expect(signals.servico_destaque.nome).toBe("Serviço atual");
+   expect(signals.participacao_servico_destaque).toBe(20);
+   const result = analyze({
+     resumo: { servicos_vendidos: 10 },
+     ranking_servicos: signals.ranking_servicos,
+   });
+   expect(JSON.stringify(result.oportunidades)).not.toContain("SERVICO_COM_TRACAO_CONCENTRADA");
+ });

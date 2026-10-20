@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
@@ -105,9 +105,18 @@ export function DashboardGrowthInsight({
     });
   }, [businessId, opportunityCategory, opportunityCode]);
 
+  const requestRef = useRef(null);
+  const composerContext = JSON.stringify([
+    businessId, businessName, businessSlug, period, opportunity,
+  ]);
+
   useEffect(() => {
     setComposer(EMPTY_COMPOSER);
-  }, [opportunityCode, period]);
+    return () => {
+      requestRef.current?.abort();
+      requestRef.current = null;
+    };
+  }, [composerContext]);
 
   if (insight?.status === "DADOS_INSUFICIENTES") {
     return (
@@ -150,6 +159,11 @@ export function DashboardGrowthInsight({
   async function generateShareCopy() {
     if (!canGenerateShare || composer.status === "loading") return;
 
+    const controller = new AbortController();
+    requestRef.current?.abort();
+    requestRef.current = controller;
+    const isCurrent = () => requestRef.current === controller && !controller.signal.aborted;
+
     track("copilot_divulgacao_solicitada", {
       ...TRACKING_CONTEXT,
       businessId,
@@ -171,12 +185,15 @@ export function DashboardGrowthInsight({
         {
           method: "POST",
           timeoutMs: 12000,
+          signal: controller.signal,
           body: {
             periodo: period,
             canal: "whatsapp",
           },
         }
       );
+
+      if (!isCurrent()) return;
 
       const nextComposer = {
         status: "ready",
@@ -199,6 +216,7 @@ export function DashboardGrowthInsight({
         },
       });
     } catch (requestError) {
+      if (!isCurrent()) return;
       setComposer({
         ...EMPTY_COMPOSER,
         status: "error",

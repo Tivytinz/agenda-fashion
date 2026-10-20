@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -137,10 +138,10 @@ describe("DashboardGrowthInsight", () => {
         />
       </MemoryRouter>
     );
-    resolveCopy({ fonte: "deterministic", titulo: "Divulgação anterior", texto: "Texto antigo" });
-    await waitFor(() => expect(mocks.track).toHaveBeenCalledWith(
+    await act(async () => resolveCopy({ fonte: "deterministic", titulo: "Divulgação anterior", texto: "Texto antigo" }));
+    expect(mocks.track).not.toHaveBeenCalledWith(
       "copilot_divulgacao_gerada", expect.anything()
-    ));
+    );
     expect(screen.queryByLabelText("Texto de divulgação")).toBeNull();
     expect(screen.queryByRole("button", { name: /Compartilhar|Criar texto/i })).toBeNull();
     expect(screen.getByRole("link", { name: "Revisar horários" })).not.toBeNull();
@@ -340,4 +341,49 @@ describe("fonte determinística do Copilot", () => {
       })
     );
   });
+});
+
+ it.each(["success", "error"])("descarta resposta antiga entre períodos: %s", async (outcome) => {
+   let resolveOld, rejectOld;
+   mocks.apiRequest.mockImplementationOnce(() => new Promise((resolve, reject) => {
+     resolveOld = resolve; rejectOld = reject;
+   })).mockResolvedValueOnce({ texto: "Texto atual de 30 dias" });
+   const view = (periodo, businessId = 11) => <MemoryRouter><DashboardGrowthInsight businessId={businessId} insight={{
+     status: "OPORTUNIDADE_PRIORIZADA", periodo,
+     oportunidade_principal: { codigo: "TRACAO", acao: { tipo: "COMPARTILHAR_PERFIL" } },
+   }} /></MemoryRouter>;
+   const { rerender } = render(view("7dias"));
+   fireEvent.click(screen.getByRole("button", { name: /Criar texto/ }));
+   const oldSignal = mocks.apiRequest.mock.calls[0][1].signal;
+   rerender(view("30dias"));
+   expect(oldSignal.aborted).toBe(true);
+   fireEvent.click(screen.getByRole("button", { name: /Criar texto/ }));
+   await waitFor(() => expect(screen.getByLabelText("Texto de divulgação").value).toBe("Texto atual de 30 dias"));
+   await act(async () => {
+     if (outcome === "success") resolveOld({ texto: "Texto antigo" });
+     else rejectOld(new Error("Falha antiga"));
+   });
+   expect(screen.getByLabelText("Texto de divulgação").value).toBe("Texto atual de 30 dias");
+   expect(screen.queryByRole("alert")).toBeNull();
+   expect(mocks.track.mock.calls.filter(([event]) => event === "copilot_divulgacao_gerada")).toHaveLength(1);
+   rerender(view("30dias", 22));
+   expect(screen.queryByLabelText("Texto de divulgação")).toBeNull();
+ });
+
+it.each(["negocio", "recomendacao", "unmount"])("invalida pedido pendente ao mudar %s", async (change) => {
+  let resolveCopy;
+  mocks.apiRequest.mockImplementationOnce(() => new Promise((resolve) => { resolveCopy = resolve; }));
+  const view = (businessId, codigo) => <MemoryRouter><DashboardGrowthInsight businessId={businessId} insight={{
+    status: "OPORTUNIDADE_PRIORIZADA", periodo: "7dias",
+    oportunidade_principal: { codigo, acao: { tipo: "COMPARTILHAR_PERFIL" } },
+  }} /></MemoryRouter>;
+  const { rerender, unmount } = render(view(11, "A"));
+  fireEvent.click(screen.getByRole("button", { name: /Criar texto/ }));
+  const signal = mocks.apiRequest.mock.calls[0][1].signal;
+  if (change === "unmount") unmount();
+  else rerender(view(change === "negocio" ? 22 : 11, change === "recomendacao" ? "B" : "A"));
+  expect(signal.aborted).toBe(true);
+  await act(async () => resolveCopy({ texto: "Resposta descartada" }));
+  expect(screen.queryByLabelText("Texto de divulgação")).toBeNull();
+  expect(mocks.track).not.toHaveBeenCalledWith("copilot_divulgacao_gerada", expect.anything());
 });

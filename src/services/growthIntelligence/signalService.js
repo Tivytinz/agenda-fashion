@@ -25,6 +25,7 @@ function normalizeServiceRanking(items) {
       id: item?.id ?? null,
       nome: String(item?.nome || "").trim(),
       total: nonNegativeInteger(item?.total),
+      ativo: item?.ativo === true,
     }))
     .filter((item) => item.nome && item.total > 0)
     .sort((left, right) => right.total - left.total);
@@ -82,7 +83,7 @@ function buildGrowthSignals(dashboard = {}) {
     cliquesMaps +
     favoritosRecebidos;
 
-  const servicoDestaque = rankingServicos[0] || null;
+  const servicoDestaque = rankingServicos.find((item) => item.ativo) || null;
   const participacaoServicoDestaque =
     servicoDestaque && agendamentosPeriodo > 0
       ? Math.min(
