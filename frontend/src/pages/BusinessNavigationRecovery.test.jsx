@@ -26,7 +26,7 @@ let router;
 function mount(mutation, destination, create = true) {
   const LazyDestination = lazy(() => destination.promise);
   apiRequest.mockImplementation((path, options = {}) => {
-    if (options.method && (path === "/criar-negocio" || path === "/configuracoes")) return mutation.promise;
+    if (options.method && (path === "/criar-negocio" || path.startsWith("/configuracoes"))) return mutation.promise;
     return Promise.resolve(path === "/configuracoes" ? { negocio: BUSINESS } : BUSINESS);
   });
   // Match App's shared Suspense boundary: a slow destination retains the old page.
@@ -59,7 +59,7 @@ beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
 });
-afterEach(() => { cleanup(); router?.dispose(); });
+afterEach(() => { cleanup(); router?.dispose(); vi.restoreAllMocks(); });
 
 describe("saída da criação durante carregamento da próxima página", () => {
   it.each(["sucesso", "erro"])("ignora %s depois da confirmação de saída, antes do unmount", async outcome => {
@@ -99,19 +99,20 @@ describe("saída da criação durante carregamento da próxima página", () => {
 });
 
 
-it.each(["sucesso", "erro"])("ignora %s de salvar Meu negócio sem rascunho após sair", async outcome => {
+it.each(["sucesso", "erro"])("ignora %s da publicação sem rascunho após sair", async outcome => {
   const mutation = deferred();
   const destination = deferred();
   mount(mutation, destination, false);
   await screen.findByDisplayValue(BUSINESS.nome);
-  fireEvent.submit(screen.getByRole("button", { name: "Salvar alterações" }).closest("form"));
-  expect(apiRequest.mock.calls.filter(([, options]) => options?.method === "PUT")).toHaveLength(1);
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  fireEvent.click(screen.getByRole("button", { name: "Ocultar da busca" }));
+  expect(apiRequest.mock.calls.filter(([, options]) => options?.method === "PATCH")).toHaveLength(1);
   await act(() => router.navigate("/planos"));
   expect(router.state.location.pathname).toBe("/planos");
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.getByRole("heading", { name: "Meu negócio", hidden: true })).toBeTruthy();
   await act(async () => outcome === "sucesso"
-    ? mutation.resolve({ negocio: BUSINESS }) : mutation.reject(new Error("Resposta de negócio anterior")));
+    ? mutation.resolve({ publicacao: { publicado: false, pode_publicar: true, pendencias: [] } }) : mutation.reject(new Error("Resposta de negócio anterior")));
   expect(session.refresh).not.toHaveBeenCalled();
   expect(session.adoptCreatedBusiness).not.toHaveBeenCalled();
   await act(async () => destination.resolve({ default: () => <h1>Planos prontos</h1> }));
