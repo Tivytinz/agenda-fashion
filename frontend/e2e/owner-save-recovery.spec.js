@@ -305,12 +305,13 @@ async function delayedBusinessDestination(page) {
   let pendingModule;
   await page.route('**/src/pages/BusinessPage.jsx*', route => { pendingModule = route; });
   return {
-    async leave() {
+    async leave({ discard = true } = {}) {
       const navigation = page.getByRole('navigation', { name: 'Área de trabalho' });
       await navigation.getByRole('button', { name: 'Abrir mais opções da área de trabalho' }).click();
       await navigation.getByRole('link', { name: 'Meu negócio', exact: true }).click();
-      await page.getByRole('dialog', { name: 'Sair sem salvar?' })
-        .getByRole('button', { name: 'Sair sem salvar', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'Sair sem salvar?' });
+      if (discard) await dialog.getByRole('button', { name: 'Sair sem salvar', exact: true }).click();
+      else await expect(dialog).not.toBeVisible();
       await expect.poll(() => Boolean(pendingModule)).toBe(true);
       await expect(page).toHaveURL(/\/painel\/negocio$/);
     },
@@ -393,4 +394,54 @@ test('sair durante salvamento de horários não retoma ativação enquanto Meu n
   await expect(page.getByLabel('Nome do negócio')).toHaveValue(BUSINESS.nome);
   expect(activationReads).toBe(0);
   expect(errors).toEqual([]);
+});
+
+
+test('confirmação rápida pendente respeita saída sem rascunho e destino lento', async ({ page }) => {
+  await setup(page);
+  const destination = await delayedBusinessDestination(page);
+  let pending;
+  let activationReads = 0;
+  await page.route('**/agenda-configuracao', route => {
+    if (route.request().method() === 'PUT') { pending = route; return; }
+    return json(route, { configuracao: { ...CONFIG, origem_horarios: 'padrao_af' }, horarios: WEEK });
+  });
+  await page.route('**/dashboard-dono/ativacao', route => {
+    activationReads += 1;
+    return json(route, { negocio: BUSINESS, ativacao: { possui_disponibilidade_agendavel: true },
+      proxima_acao_ativacao: { estado: 'CONQUISTAR_PRIMEIRO_AGENDAMENTO' } });
+  });
+  await page.goto('/painel/horarios');
+  await page.getByRole('button', { name: 'Confirmar horários', exact: true }).click();
+  await expect.poll(() => Boolean(pending)).toBe(true);
+  try {
+    await destination.leave({ discard: false });
+    await finishPendingWrite(page, pending, { configuracao: CONFIG });
+    expect(activationReads).toBe(0);
+    await expect(page).toHaveURL(/\/painel\/negocio$/);
+  } finally {
+    await destination.release();
+  }
+  await expect(page.getByLabel('Nome do negócio')).toHaveValue(BUSINESS.nome);
+  expect(activationReads).toBe(0);
+});
+
+test('salvar serviço sem editar respeita saída sem rascunho e destino lento', async ({ page }) => {
+  await setup(page);
+  const destination = await delayedBusinessDestination(page);
+  let pending;
+  await page.route('**/servicos/12/fotos', route => json(route, []));
+  await page.route('**/servicos/12', route => { pending = route; });
+  await page.goto('/painel/servicos/12/editar');
+  await expect(page.getByLabel('Nome do serviço')).toHaveValue(SERVICE.nome);
+  await page.getByRole('button', { name: 'Salvar serviço', exact: true }).click();
+  await expect.poll(() => Boolean(pending)).toBe(true);
+  try {
+    await destination.leave({ discard: false });
+    await finishPendingWrite(page, pending, { servico: SERVICE });
+    await expect(page).toHaveURL(/\/painel\/negocio$/);
+  } finally {
+    await destination.release();
+  }
+  await expect(page.getByLabel('Nome do negócio')).toHaveValue(BUSINESS.nome);
 });

@@ -170,3 +170,91 @@ describe.each(["Continuar editando", "Escape"])("operação preservada por %s", 
     await finishDestination();
   });
 });
+
+
+describe("saída sem rascunho com operação pendente", () => {
+  async function leaveClean() {
+    await act(() => router.navigate("/planos"));
+    expect(router.state.location.pathname).toBe("/planos");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  }
+
+  const SERVICE = { id: 12, nome: "Manicure", categoria: "unha", valor: 50, duracao_minutos: 60, ativo: true };
+  const CONFIG = { duracao_padrao: 60, intervalo_minutos: 0, antecedencia_agendamento: 0, antecedencia_cancelamento: 2, origem_horarios: "padrao_af" };
+  const WEEK = [{ dia_semana: 1, trabalha: true, hora_inicio: "08:00", hora_fim: "18:00" }];
+
+  it.each(["sucesso", "erro"])("ignora %s de salvar serviço sem editar os campos", async outcome => {
+    const mutation = deferred();
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (options.method === "PUT") return mutation.promise;
+      return Promise.resolve(path.endsWith("/fotos") ? [] : { servicos: [SERVICE] });
+    });
+    mount("/painel/servicos/12/editar", <ServiceEditorPage />);
+    await screen.findByDisplayValue("Manicure");
+    fireEvent.submit(screen.getByRole("button", { name: "Salvar serviço" }).closest("form"));
+    expect(apiRequest.mock.calls.filter(([, options]) => options?.method === "PUT")).toHaveLength(1);
+    await leaveClean();
+    expect(screen.getByRole("heading", { name: "Editar serviço", hidden: true })).toBeTruthy();
+    await act(async () => outcome === "sucesso"
+      ? mutation.resolve({ servico: SERVICE }) : mutation.reject(new Error("Falha antiga sem rascunho")));
+    expect(router.state.location.pathname).toBe("/planos");
+    await finishDestination();
+  });
+
+  it.each(["sucesso", "erro"])("ignora %s da confirmação rápida de horários ao sair sem editar", async outcome => {
+    const mutation = deferred();
+    apiRequest.mockImplementation((_path, options = {}) => options.method === "PUT"
+      ? mutation.promise : Promise.resolve({ configuracao: CONFIG, horarios: WEEK }));
+    mount("/painel/horarios", <ScheduleSettingsPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Confirmar horários" }));
+    expect(apiRequest.mock.calls.filter(([, options]) => options?.method === "PUT")).toHaveLength(1);
+    await leaveClean();
+    expect(screen.getByRole("heading", { name: "Horários de atendimento", hidden: true })).toBeTruthy();
+    await act(async () => outcome === "sucesso"
+      ? mutation.resolve({ configuracao: { ...CONFIG, origem_horarios: "personalizado" } })
+      : mutation.reject(new Error("Falha antiga de confirmação")));
+    expect(apiRequest.mock.calls.some(([path]) => path === "/dashboard-dono/ativacao")).toBe(false);
+    expect(router.state.location.pathname).toBe("/planos");
+    await finishDestination();
+  });
+
+  it("cancela a próxima etapa quando a saída ocorre depois do PUT e durante a leitura de ativação", async () => {
+    const activation = deferred();
+    let activationSignal;
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/dashboard-dono/ativacao") {
+        activationSignal = options.signal;
+        return activation.promise;
+      }
+      return Promise.resolve({ configuracao: { ...CONFIG, origem_horarios: options.method === "PUT" ? "personalizado" : "padrao_af" }, horarios: WEEK });
+    });
+    mount("/painel/horarios", <ScheduleSettingsPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Confirmar horários" }));
+    await waitFor(() => expect(activationSignal).toBeTruthy());
+    await leaveClean();
+    expect(activationSignal.aborted).toBe(true);
+    await act(async () => activation.resolve({
+      negocio: { id: 11, nome: "Studio", slug: "studio" },
+      ativacao: { possui_disponibilidade_agendavel: true },
+      proxima_acao_ativacao: { estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO" }
+    }));
+    expect(router.state.location.pathname).toBe("/planos");
+    await finishDestination();
+  });
+
+  it("respeita o destino já solicitado quando o primeiro serviço termina de salvar", async () => {
+    const mutation = deferred();
+    apiRequest.mockImplementation(() => mutation.promise);
+    mount("/painel/servicos/novo?onboarding=servico", <ServiceEditorPage />);
+    fireEvent.change(screen.getByLabelText("Nome do serviço"), { target: { value: "Manicure" } });
+    fireEvent.change(screen.getByLabelText(/Categoria/), { target: { value: "unha" } });
+    fireEvent.change(screen.getByLabelText("Valor"), { target: { value: "50" } });
+    fireEvent.submit(screen.getByRole("button", { name: /Salvar serviço/ }).closest("form"));
+    await act(() => router.navigate("/planos"));
+    await screen.findByRole("dialog");
+    await act(async () => mutation.resolve({ servico: SERVICE, publicacao: { publicado: true } }));
+    expect(router.state.location.pathname).toBe("/planos");
+    expect(session.refresh).not.toHaveBeenCalled();
+    await finishDestination();
+  });
+});

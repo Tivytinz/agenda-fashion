@@ -23,18 +23,21 @@ function deferred() {
   return { promise, resolve, reject };
 }
 let router;
-function mount(mutation, destination) {
+function mount(mutation, destination, create = true) {
   const LazyDestination = lazy(() => destination.promise);
-  apiRequest.mockImplementation(path => path === "/criar-negocio" ? mutation.promise : Promise.resolve(BUSINESS));
+  apiRequest.mockImplementation((path, options = {}) => {
+    if (options.method && (path === "/criar-negocio" || path === "/configuracoes")) return mutation.promise;
+    return Promise.resolve(path === "/configuracoes" ? { negocio: BUSINESS } : BUSINESS);
+  });
   // Match App's shared Suspense boundary: a slow destination retains the old page.
   function Shell() {
     return <Suspense fallback={<h1>Carregando destino</h1>}><Routes>
-      <Route path="/criar-negocio" element={<BusinessPage create />} />
+      <Route path={create ? "/criar-negocio" : "/painel/negocio"} element={<BusinessPage create={create} />} />
       <Route path="/planos" element={<LazyDestination />} />
       <Route path="*" element={<h1>Primeiro serviço</h1>} />
     </Routes></Suspense>;
   }
-  router = createMemoryRouter([{ path: "*", element: <Shell /> }], { initialEntries: ["/criar-negocio"] });
+  router = createMemoryRouter([{ path: "*", element: <Shell /> }], { initialEntries: [create ? "/criar-negocio" : "/painel/negocio"] });
   render(<RouterProvider router={router} />);
 }
 async function submitCreation() {
@@ -93,4 +96,26 @@ describe("saída da criação durante carregamento da próxima página", () => {
     expect(session.refresh).toHaveBeenCalledTimes(1);
     await screen.findByRole("heading", { name: "Primeiro serviço" });
   });
+});
+
+
+it.each(["sucesso", "erro"])("ignora %s de salvar Meu negócio sem rascunho após sair", async outcome => {
+  const mutation = deferred();
+  const destination = deferred();
+  mount(mutation, destination, false);
+  await screen.findByDisplayValue(BUSINESS.nome);
+  fireEvent.submit(screen.getByRole("button", { name: "Salvar alterações" }).closest("form"));
+  expect(apiRequest.mock.calls.filter(([, options]) => options?.method === "PUT")).toHaveLength(1);
+  await act(() => router.navigate("/planos"));
+  expect(router.state.location.pathname).toBe("/planos");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByRole("heading", { name: "Meu negócio", hidden: true })).toBeTruthy();
+  await act(async () => outcome === "sucesso"
+    ? mutation.resolve({ negocio: BUSINESS }) : mutation.reject(new Error("Resposta de negócio anterior")));
+  expect(session.refresh).not.toHaveBeenCalled();
+  expect(session.adoptCreatedBusiness).not.toHaveBeenCalled();
+  await act(async () => destination.resolve({ default: () => <h1>Planos prontos</h1> }));
+  await screen.findByRole("heading", { name: "Planos prontos" });
+  expect(router.state.location.pathname).toBe("/planos");
+  expect(screen.queryByRole("alert")).toBeNull();
 });

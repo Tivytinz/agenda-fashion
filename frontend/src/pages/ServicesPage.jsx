@@ -634,6 +634,7 @@ export function ServiceEditorPage() {
         }
         setPersistedId(String(savedId));
         flushSync(() => setSavedForm(form));
+        if (!isCurrentOperation(operation)) return;
       } catch (requestError) {
         if (isCurrentOperation(operation)) setError(requestError.message);
         return;
@@ -678,6 +679,7 @@ export function ServiceEditorPage() {
         setCover(null);
         setGalleryFiles([]);
       });
+      if (!isCurrentOperation(operation)) return;
       navigate("/painel/servicos", {
         replace: true,
         state: {
@@ -762,7 +764,7 @@ export function ServiceEditorPage() {
 
   return (
     <main className="workspace-page service-editor-page">
-      <UnsavedChangesGuard when={hasChanges} onDiscard={discardPendingOperations} />
+      <UnsavedChangesGuard when={hasChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
       <div>
         <BackLink to="/painel/servicos">Voltar aos serviços</BackLink>
         {firstServiceOnboarding && (

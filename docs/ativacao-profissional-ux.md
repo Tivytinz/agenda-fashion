@@ -209,6 +209,13 @@ Consultas de ativação em andamento são canceladas na saída de Horários.
 Continuar editando ou fechar a confirmação por Escape preserva
 a operação. Concluir um salvamento normalmente não sinaliza descarte.
 
+A invalidação também acompanha mudanças de pathname/query aceitas pelo roteador,
+sem depender de rascunho: confirmar os horários sugeridos ou salvar um serviço
+sem editar não exige diálogo, mas sair ainda encerra as continuações locais.
+Tentativas bloqueadas, Continuar editando, Escape e mudanças apenas de state/hash
+preservam a operação. Se o salvamento terminar com uma saída já solicitada,
+o fluxo respeita esse destino antes de iniciar refresh, uploads ou onboarding.
+
 Essa invalidação protege efeitos locais posteriores à escolha de saída. Ela
 não desfaz uma criação ou alteração que o backend já tenha persistido. O teste
 de navegador mantém a página de planos carregando enquanto entrega a resposta

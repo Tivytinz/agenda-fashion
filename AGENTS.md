@@ -87,6 +87,11 @@ a operação; a invalidação local não desfaz persistência já confirmada no 
 No serviço, o descarte também impede iniciar os próximos uploads do lote. Em
 Horários, cancela consultas de ativação e impede que uma resposta descartada
 consulte ou restaure a próxima missão.
+A mudança de pathname ou query aceita pelo roteador também invalida essas
+operações, mesmo sem rascunho e sem diálogo de descarte. Tentativas bloqueadas,
+Continuar editando, Escape e mudanças apenas de state/hash não invalidam a
+operação. Se concluir o salvamento liberar uma saída já solicitada, a continuação
+antiga não pode iniciar uploads, refresh ou outra navegação.
 
 ## Integração contínua e merge
 

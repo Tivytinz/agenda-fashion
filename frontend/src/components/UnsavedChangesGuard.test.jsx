@@ -8,11 +8,11 @@ import { UnsavedChangesGuard } from "./UnsavedChangesGuard";
 
 let router;
 
-function Draft({ onDiscard }) {
+function Draft({ onDiscard, onLeave }) {
   const [dirty, setDirty] = useState(false);
   const navigate = useNavigate();
   return <>
-    <UnsavedChangesGuard when={dirty} onDiscard={onDiscard} />
+    <UnsavedChangesGuard when={dirty} onDiscard={onDiscard} onLeave={onLeave} />
     <h1>Rascunho</h1>
     <button onClick={() => setDirty(true)}>Editar</button>
     <button onClick={() => setDirty(false)}>Salvar</button>
@@ -21,9 +21,9 @@ function Draft({ onDiscard }) {
   </>;
 }
 
-function renderDraft(initialEntries = ["/rascunho"], onDiscard) {
+function renderDraft(initialEntries = ["/rascunho"], onDiscard, onLeave) {
   router = createMemoryRouter([
-    { path: "/rascunho", element: <Draft onDiscard={onDiscard} /> },
+    { path: "/rascunho", element: <Draft onDiscard={onDiscard} onLeave={onLeave} /> },
     { path: "/destino", element: <h1>Destino</h1> }
   ], { initialEntries });
   render(<RouterProvider router={router} />);
@@ -121,5 +121,58 @@ describe("proteção de alterações não salvas", () => {
     fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
     expect(router.state.location.search).toBe("");
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+
+describe("saída aceita pelo roteador", () => {
+  it("sinaliza saída sem rascunho sem sinalizar descarte", async () => {
+    const onDiscard = vi.fn();
+    const onLeave = vi.fn();
+    renderDraft(["/rascunho"], onDiscard, onLeave);
+    expect(onLeave).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("link", { name: "Abrir destino" }));
+    await screen.findByRole("heading", { name: "Destino" });
+    expect(onDiscard).not.toHaveBeenCalled();
+    expect(onLeave).toHaveBeenCalledTimes(1);
+  });
+
+  it("não sinaliza tentativas canceladas por Continuar ou Escape", async () => {
+    const onLeave = vi.fn();
+    renderDraft(["/rascunho"], undefined, onLeave);
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    fireEvent.click(screen.getByRole("link", { name: "Abrir destino" }));
+    await screen.findByRole("dialog");
+    fireEvent.click(screen.getByRole("button", { name: "Continuar editando" }));
+    expect(onLeave).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("link", { name: "Abrir destino" }));
+    fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
+    expect(onLeave).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("link", { name: "Abrir destino" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sair sem salvar" }));
+    await screen.findByRole("heading", { name: "Destino" });
+    expect(onLeave).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserva state e hash e sinaliza mudança de query", async () => {
+    const onLeave = vi.fn();
+    renderDraft(["/rascunho"], undefined, onLeave);
+    await act(() => router.navigate("/rascunho#detalhes", { state: { message: "Aviso" } }));
+    expect(onLeave).not.toHaveBeenCalled();
+    await act(() => router.navigate("/rascunho?plano=autonoma"));
+    expect(onLeave).toHaveBeenCalledTimes(1);
+  });
+
+  it("sinaliza a saída liberada pelo salvamento sem chamar descarte", async () => {
+    const onDiscard = vi.fn();
+    const onLeave = vi.fn();
+    renderDraft(["/rascunho"], onDiscard, onLeave);
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    fireEvent.click(screen.getByRole("link", { name: "Abrir destino" }));
+    await screen.findByRole("dialog");
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+    await screen.findByRole("heading", { name: "Destino" });
+    expect(onLeave).toHaveBeenCalledTimes(1);
+    expect(onDiscard).not.toHaveBeenCalled();
   });
 });

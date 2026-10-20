@@ -653,6 +653,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
         setConfig(updatedConfig);
         setSavedSchedule(serializeSchedule(updatedConfig, days));
       });
+      if (!isCurrent()) return;
       setMessage(result.mensagem || "Horários atualizados.");
 
       if (
@@ -786,7 +787,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
 
   return (
     <main className={`workspace-page schedule-settings-page${!quickConfirmation && !showActivationNextStep ? " schedule-editor-page" : ""}`}>
-      <UnsavedChangesGuard when={hasChanges} onDiscard={discardPendingOperations} />
+      <UnsavedChangesGuard when={hasChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">Disponibilidade</p>

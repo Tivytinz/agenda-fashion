@@ -441,6 +441,7 @@ export function BusinessPage({ create = false }) {
         setForm(normalizedSaved);
         setSavedForm(normalizedSaved);
       });
+      if (!isCurrentOperation(operation)) return;
       setMessage(result.mensagem || (create ? "Negócio criado." : "Alterações salvas."));
       if (result.publicacao) setPublication(result.publicacao);
       const profileOnboarding =
@@ -722,7 +723,7 @@ export function BusinessPage({ create = false }) {
 
   return (
     <main className={create ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
-      <UnsavedChangesGuard when={unsavedChanges} onDiscard={discardPendingOperations} />
+      <UnsavedChangesGuard when={unsavedChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
       {create && (
         <BackLink to={selectedPlan ? "/planos" : "/"}>
           {selectedPlan ? "Voltar aos planos" : "Voltar ao início"}
