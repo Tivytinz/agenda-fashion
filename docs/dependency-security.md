@@ -40,3 +40,17 @@ O frontend utilizava `nanoid@3.3.16` de forma transitiva via PostCSS/Vite. O adv
 Uma revisão do grafo raiz identificou advisories transitivos que não apareciam no gate de runtime porque estavam concentrados em tooling, além de findings de menor severidade no grafo do Express. A remediação preservou as majors e os ranges já aceitos pelos pacotes pais: `body-parser@2.3.0`, `qs@6.16.0`, `side-channel@1.1.1`, `brace-expansion@5.0.9/2.1.4/1.1.18`, `fast-uri@3.1.7`, `js-yaml@4.3.1/3.15.1` e `browserslist@4.28.7`. Não foram adicionados ignores nem upgrades forçados de major.
 
 O CI também passou a auditar o grafo completo da raiz com severidade mínima `high`, mantendo em paralelo o audit exclusivo de runtime e o audit do frontend.
+
+## Remediação de follow-redirects em outubro de 2026
+
+A resolução transitiva usada pelo Axios passou de `1.16.0` para `1.16.1`,
+versão corrigida dos advisories [GHSA-q3jh-wrc6-jgq8](https://github.com/advisories/GHSA-q3jh-wrc6-jgq8)
+e [GHSA-8r9p-f939-6h3c](https://github.com/advisories/GHSA-8r9p-f939-6h3c).
+A atualização fica no lockfile, dentro do range aceito, sem override nem
+mudança de major.
+
+O mesmo ciclo atualiza Vite de `7.3.6` para `7.3.7`, no lockfile do
+frontend, para os alertas transitivos de launch-editor reportados pelo audit
+([GHSA-698v-4r3x-3vcv](https://github.com/advisories/GHSA-698v-4r3x-3vcv),
+[GHSA-r825-w8mm-5pxw](https://github.com/advisories/GHSA-r825-w8mm-5pxw) e
+[GHSA-587h-7wmj-h5pm](https://github.com/advisories/GHSA-587h-7wmj-h5pm)).

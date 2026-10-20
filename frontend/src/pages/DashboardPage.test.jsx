@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
@@ -252,6 +252,7 @@ describe("dashboard", () => {
       proxima_acao_ativacao: posAtivacao ? { estado: "ATIVADO", concluido: true } : { estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO", ...guidance },
       inteligencia_crescimento: posAtivacao ? {
         status: "OPORTUNIDADE_PRIORIZADA",
+        periodo: "7dias",
         oportunidade_principal: { codigo: "REVISAR_DISPONIBILIDADE", ...guidance }
       } : { status: "AGUARDANDO_ATIVACAO" }
     } });
@@ -785,4 +786,31 @@ describe("dashboard", () => {
       })).toBeNull();
     });
   });
+});
+
+it.each(["success", "error"])("não permite Copilot com período anterior durante atualização: %s", async (outcome) => {
+  let resolvePeriod, rejectPeriod, resolveCopy;
+  const dashboard = (periodo) => ({ ...DASHBOARD, inteligencia_crescimento: {
+    status: "OPORTUNIDADE_PRIORIZADA", periodo,
+    oportunidade_principal: { codigo: "TRACAO", titulo: "Divulgação atual", acao: { tipo: "COMPARTILHAR_PERFIL" } },
+  } });
+  apiRequest.mockImplementation((path) => {
+    if (path === "/conta") return Promise.resolve({ usuario: {} });
+    if (path === "/dashboard-dono?periodo=7dias") return Promise.resolve(dashboard("7dias"));
+    if (path === "/dashboard-dono?periodo=30dias") return new Promise((resolve, reject) => { resolvePeriod = resolve; rejectPeriod = reject; });
+    if (path === "/dashboard-dono/copilot/divulgacao") return new Promise((resolve) => { resolveCopy = resolve; });
+    return Promise.resolve(null);
+  });
+  render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+  fireEvent.click(await screen.findByRole("button", { name: /Criar texto/ }));
+  fireEvent.click(screen.getByRole("button", { name: "30 dias" }));
+  expect(screen.queryByRole("button", { name: /Criar texto/ })).toBeNull();
+  await act(async () => resolveCopy({ texto: "Texto anterior" }));
+  expect(screen.queryByLabelText("Texto de divulgação")).toBeNull();
+  await act(async () => {
+    if (outcome === "success") resolvePeriod(dashboard("30dias"));
+    else rejectPeriod(new Error("Falha na atualização"));
+  });
+  if (outcome === "success") expect(await screen.findByRole("button", { name: /Criar texto/ })).not.toBeNull();
+  else expect(screen.queryByRole("button", { name: /Criar texto/ })).toBeNull();
 });

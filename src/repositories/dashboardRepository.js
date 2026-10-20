@@ -1,4 +1,5 @@
 const db = require("../db/db");
+const { sqlPossuiDisponibilidadeAgendavel } = require("./ativacaoSql");
 
 async function buscarNegocioDoUsuario(
   usuarioId
@@ -757,6 +758,7 @@ async function buscarRankingServicos(
       s.id,
       s.nome,
       s.ativo,
+      ${sqlPossuiDisponibilidadeAgendavel("$1", "s.id")} AS agendavel,
 
       COUNT(
         a.id

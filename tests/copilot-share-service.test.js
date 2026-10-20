@@ -24,7 +24,7 @@ function dashboardComOportunidade() {
         id: 8,
         nome: "Alongamento em gel",
         total: 12,
-        ativo: true,
+        ativo: true, agendavel: true,
       },
     ],
     inteligencia_crescimento: {

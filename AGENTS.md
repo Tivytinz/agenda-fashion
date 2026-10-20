@@ -1267,3 +1267,10 @@ invalida o pedido anterior, incluindo sucesso, erro e telemetria de geração.
 O ranking histórico preserva serviços inativos; destaque de divulgação exige
 confirmação explícita de serviço atualmente ativo, mantendo todos os
 agendamentos do período no denominador da participação.
+
+O destaque de divulgação exige disponibilidade estrutural do próprio serviço,
+além de ativo: profissional ativa habilitada e duração compatível com faixas e
+pausas. A projeção reutiliza o SQL canônico de disponibilidade, sem remover
+histórico. Ao trocar período, recomendações ficam indisponíveis até confirmar
+os dados atuais; erro de atualização preserva métricas antigas, sem liberar
+divulgação baseada nelas.

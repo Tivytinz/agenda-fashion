@@ -313,14 +313,16 @@ export function DashboardPage() {
     />
   );
 
-  const growthPanel = (
+  const growthPeriodIsCurrent = !refreshing && !error &&
+    data.inteligencia_crescimento?.periodo === period;
+  const growthPanel = growthPeriodIsCurrent ? (
     <DashboardGrowthInsight
       insight={data.inteligencia_crescimento}
       businessId={data.negocio?.negocio_id}
       businessName={data.negocio?.nome}
       businessSlug={data.negocio?.slug}
     />
-  );
+  ) : null;
 
   const prioritizeAgenda = data.ativacao?.primeiro_agendamento_recebido === true;
   const todayPanel = (

@@ -229,3 +229,9 @@ esse contexto ou sair cancela o pedido; respostas antigas não alteram texto,
 erro ou evento de geração. O ranking histórico mantém serviços desativados,
 mas somente serviços confirmados como ativos podem ser destacados na
 divulgação. A participação continua usando todos os agendamentos do período.
+
+O destaque exige também `agendavel: true` para o próprio serviço, calculado
+com a mesma regra estrutural da ativação (profissional habilitada, faixas e
+duração considerando pausas). Outro serviço agendável não torna o destaque
+elegível. A atualização de período desmonta a recomendação e invalida o
+Copilot pendente; erro conserva indicadores anteriores, mas não sua divulgação.

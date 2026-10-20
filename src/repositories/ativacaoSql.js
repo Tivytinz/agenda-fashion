@@ -79,11 +79,12 @@ function sqlDuracaoCabe() {
         ) >= disponibilidade_s.duracao_minutos`;
 }
 
-function sqlPossuiDisponibilidadeAgendavel(negocioIdSql) {
+function sqlPossuiDisponibilidadeAgendavel(negocioIdSql, servicoIdSql = null) {
   return `
     EXISTS (
       SELECT 1
       ${sqlCandidatosDisponibilidade(negocioIdSql)}
+        ${servicoIdSql ? `AND disponibilidade_s.id = ${servicoIdSql}` : ""}
         AND ${sqlHorarioValido()}
         AND ${sqlDuracaoCabe()}
     )

@@ -16,7 +16,7 @@ describe("copilotContextService", () => {
             id: 2,
             nome: "Alongamento em gel",
             total: 12,
-        ativo: true,
+        ativo: true, agendavel: true,
             faturamento: 900,
           },
         ],
@@ -85,8 +85,16 @@ it("não inclui serviço desativado no contexto do gerador", () => {
   const context = buildCopilotShareContext({ dashboard: {
     ranking_servicos: [
       { nome: "Antigo", total: 8, ativo: false },
-      { nome: "Atual", total: 2, ativo: true },
+      { nome: "Atual", total: 2, ativo: true, agendavel: true },
     ],
   } });
   expect(context.servico_destaque).toEqual({ nome: "Atual", agendamentos: 2 });
+});
+
+it("exclui serviço ativo sem disponibilidade do contexto de divulgação", () => {
+  const context = buildCopilotShareContext({ dashboard: { ranking_servicos: [
+    { nome: "Sem habilitação", total: 8, ativo: true, agendavel: false },
+    { nome: "Agendável", total: 2, ativo: true, agendavel: true },
+  ] } });
+  expect(context.servico_destaque.nome).toBe("Agendável");
 });

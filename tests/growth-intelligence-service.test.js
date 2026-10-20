@@ -12,7 +12,7 @@ const {
 );
 
 const ATIVACAO_CONCLUIDA = Object.freeze({
-  possui_servico_ativo: true,
+  possui_servico_ativo: true, agendavel: true,
   negocio_publicado: true,
   primeiro_agendamento_recebido: true,
 });
@@ -53,7 +53,7 @@ describe("growthIntelligenceService", () => {
           agendamentos_concluidos: 8,
           taxa_conversao: 26.7,
         },
-        ranking_servicos: [{ id: 1, nome: "Manicure", total: 8, ativo: true }],
+        ranking_servicos: [{ id: 1, nome: "Manicure", total: 8, ativo: true, agendavel: true }],
       }, { ativacao });
 
       expect(result.status).toBe(GROWTH_INTELLIGENCE_STATUS.OPORTUNIDADE_PRIORIZADA);
@@ -87,7 +87,7 @@ describe("growthIntelligenceService", () => {
     const result = analyze({
       resumo: { servicos_vendidos: 8 },
       performance: { visitas_perfil: 30, agendamentos_concluidos: 8, taxa_conversao: 26.7 },
-      ranking_servicos: [{ id: 1, nome: "Manicure", total: 8, ativo: true }],
+      ranking_servicos: [{ id: 1, nome: "Manicure", total: 8, ativo: true, agendavel: true }],
     }, {
       ativacao: {
         ...ATIVACAO_CONCLUIDA,
@@ -252,8 +252,8 @@ describe("growthIntelligenceService", () => {
         favoritos_recebidos: 3,
       },
       ranking_servicos: [
-        { id: 1, nome: "Manicure", total: 4, ativo: true },
-        { id: 2, nome: "Pedicure", total: 4, ativo: true },
+        { id: 1, nome: "Manicure", total: 4, ativo: true, agendavel: true },
+        { id: 2, nome: "Pedicure", total: 4, ativo: true, agendavel: true },
       ],
     });
 
@@ -279,9 +279,9 @@ describe("growthIntelligenceService", () => {
         favoritos_recebidos: 0,
       },
       ranking_servicos: [
-        { id: 1, nome: "Alongamento em gel", total: 12, ativo: true },
-        { id: 2, nome: "Manicure", total: 5, ativo: true },
-        { id: 3, nome: "Pedicure", total: 3, ativo: true },
+        { id: 1, nome: "Alongamento em gel", total: 12, ativo: true, agendavel: true },
+        { id: 2, nome: "Manicure", total: 5, ativo: true, agendavel: true },
+        { id: 3, nome: "Pedicure", total: 3, ativo: true, agendavel: true },
       ],
     });
 
@@ -315,8 +315,8 @@ describe("growthIntelligenceService", () => {
         favoritos_recebidos: 0,
       },
       ranking_servicos: [
-        { id: 1, nome: "Alongamento", total: 8, ativo: true },
-        { id: 2, nome: "Manicure", total: 2, ativo: true },
+        { id: 1, nome: "Alongamento", total: 8, ativo: true, agendavel: true },
+        { id: 2, nome: "Manicure", total: 2, ativo: true, agendavel: true },
       ],
     });
 
@@ -340,11 +340,11 @@ describe("growthIntelligenceService", () => {
         favoritos_recebidos: 1,
       },
       ranking_servicos: [
-        { id: 1, nome: "Manicure", total: 6, ativo: true },
-        { id: 2, nome: "Pedicure", total: 5, ativo: true },
-        { id: 3, nome: "Escova", total: 4, ativo: true },
-        { id: 4, nome: "Corte", total: 3, ativo: true },
-        { id: 5, nome: "Sobrancelha", total: 2, ativo: true },
+        { id: 1, nome: "Manicure", total: 6, ativo: true, agendavel: true },
+        { id: 2, nome: "Pedicure", total: 5, ativo: true, agendavel: true },
+        { id: 3, nome: "Escova", total: 4, ativo: true, agendavel: true },
+        { id: 4, nome: "Corte", total: 3, ativo: true, agendavel: true },
+        { id: 5, nome: "Sobrancelha", total: 2, ativo: true, agendavel: true },
       ],
     });
 
@@ -398,7 +398,7 @@ describe("diagnóstico operacional pós-ativação", () => {
 describe("orientação para horários da equipe", () => {
   test.each(["SEM_HORARIOS", "DURACAO_INCOMPATIVEL"])("encaminha à equipe quando a dona não atende o serviço: %s", (motivo) => {
     const ativacao = {
-      possui_servico_ativo: true, negocio_publicado: true,
+      possui_servico_ativo: true, agendavel: true, negocio_publicado: true,
       possui_disponibilidade_agendavel: false, motivo_indisponibilidade: motivo,
       revisar_horarios_na_equipe: true,
       primeiro_agendamento_recebido: true,
@@ -414,7 +414,7 @@ describe("orientação para horários da equipe", () => {
      resumo: { servicos_vendidos: 10 },
      ranking_servicos: [
        { id: 1, nome: "Serviço antigo", total: 8, ativo },
-       { id: 2, nome: "Serviço atual", total: 2, ativo: true },
+       { id: 2, nome: "Serviço atual", total: 2, ativo: true, agendavel: true },
      ],
    });
    expect(signals.ranking_servicos).toHaveLength(2);
@@ -427,3 +427,15 @@ describe("orientação para horários da equipe", () => {
    });
    expect(JSON.stringify(result.oportunidades)).not.toContain("SERVICO_COM_TRACAO_CONCENTRADA");
  });
+
+test.each([false, undefined, null])("não divulga serviço ativo sem disponibilidade confirmada: %s", (agendavel) => {
+  const dashboard = { resumo: { servicos_vendidos: 10 }, ranking_servicos: [
+    { id: 1, nome: "Sem profissional ou faixa compatível", total: 8, ativo: true, agendavel },
+    { id: 2, nome: "Agendável", total: 2, ativo: true, agendavel: true },
+  ] };
+  const signals = buildGrowthSignals(dashboard);
+  expect(signals.ranking_servicos).toHaveLength(2);
+  expect(signals.servico_destaque.nome).toBe("Agendável");
+  expect(signals.participacao_servico_destaque).toBe(20);
+  expect(JSON.stringify(analyze(dashboard).oportunidades)).not.toContain("SERVICO_COM_TRACAO_CONCENTRADA");
+});
