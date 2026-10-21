@@ -370,7 +370,7 @@ for (const scenario of [
       negocio: { negocio_id: 11, nome: BUSINESS.nome, slug: BUSINESS.slug },
       ativacao: { negocio_publicado: true, primeiro_agendamento_recebido: true, ...scenario.activation },
       proxima_acao_ativacao: scenario.nextAction || { estado: "ATIVADO", concluido: true },
-      inteligencia_crescimento: scenario.insight
+      inteligencia_crescimento: { ...scenario.insight, periodo: "7dias" }
     }));
     await page.goto("/painel");
     const guidance = page.locator("section.dashboard-action-panel").filter({

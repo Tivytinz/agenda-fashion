@@ -235,3 +235,7 @@ com a mesma regra estrutural da ativação (profissional habilitada, faixas e
 duração considerando pausas). Outro serviço agendável não torna o destaque
 elegível. A atualização de período desmonta a recomendação e invalida o
 Copilot pendente; erro conserva indicadores anteriores, mas não sua divulgação.
+
+A pausa deve começar depois da abertura e terminar antes do fechamento. O
+editor valida esses limites antes de enviar, seguindo o mesmo contrato do
+backend; para iniciar mais tarde ou encerrar antes, ajuste o próprio expediente.

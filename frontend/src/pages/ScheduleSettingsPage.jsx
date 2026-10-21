@@ -117,8 +117,8 @@ export function validateSchedule(days, { requireActiveDay = false } = {}) {
 
     if (hasPauseStart && (
       day.intervaloInicio >= day.intervaloFim
-      || day.intervaloInicio < day.horaInicio
-      || day.intervaloFim > day.horaFim
+      || day.intervaloInicio <= day.horaInicio
+      || day.intervaloFim >= day.horaFim
     )) {
       return `Em ${dayName}, a pausa precisa estar dentro do horário de atendimento.`;
     }
