@@ -111,6 +111,14 @@ A mesma regra de elegibilidade deve ser usada pela publicação manual, pela pub
 
 A proprietária pode despublicar um perfil elegível manualmente. Essa escolha tem precedência sobre a automação: o backend registra `negocios.despublicado_manual_em` e mantém `publicado = FALSE` mesmo quando perfil e serviços continuam elegíveis. Alterar dados do negócio, criar/editar/reativar serviços ou recalcular elegibilidade não remove essa decisão. Somente a ação explícita `Mostrar na busca`/publicar novamente limpa o marcador e tenta publicar de novo, sempre revalidando a elegibilidade no backend.
 
+Na orientação do painel, o sinal `publicacao_pausada_manualmente` é derivado
+no backend de `negocios.despublicado_manual_em`. Quando o perfil está oculto
+por escolha da dona, essa condição tem precedência sobre convites para ativar
+serviços ou corrigir dados: a próxima ação mantém `REVISAR_PUBLICACAO`, explica
+a escolha e abre a gestão da publicação. Não há republicação automática nem
+alteração dos critérios de elegibilidade; a publicação continua sendo uma ação
+explícita em Meu negócio.
+
 Depois da primeira publicação válida, perder ou desativar o último serviço ativo
 não apaga automaticamente a presença pública do negócio. O perfil permanece
 acessível para preservar descoberta, identidade e links já compartilhados, mas
@@ -140,7 +148,7 @@ A existência dessa sugestão permite que o AF apresente uma agenda utilizável 
 
 A proprietária também pode abrir a disponibilidade de uma profissional ativa da equipe por `/painel/horarios?profissional=<id>`. O backend valida o vínculo no mesmo negócio, e essa edição não reabre o onboarding nem concede à profissional alvo poder sobre a política global de cancelamento. Todos os dias podem permanecer fechados; nesse caso não existem novos slots elegíveis.
 
-Ao salvar a agenda pelo fluxo atual, o backend marca `origem_horarios = personalizado` e a profissional pode editar dias, faixas, pausas, duração padrão, intervalos e antecedências quando quiser no painel. Na primeira jornada da dona, a confirmação da missão seguinte usa a projeção leve `GET /dashboard-dono/ativacao`, que deriva o mesmo estado canônico de ativação sem carregar métricas e rankings do dashboard. A conclusão usa o marcador navegável `?onboarding=divulgacao` em `/painel/horarios`; assim, refresh ou reabertura imediata pode preservar a missão sem depender apenas de estado transitório do React. Tanto imediatamente após o primeiro salvamento explícito quanto na restauração, o frontend confirma a próxima ação canônica no backend. O estado `CONQUISTAR_PRIMEIRO_AGENDAMENTO` não ganha um novo gate, mas seu CTA respeita a capacidade real de converter: quando `possui_disponibilidade_agendavel = false`, a tela permanece no editor e pede que pelo menos um dia de atendimento seja ativado; quando existe disponibilidade agendável, o compartilhamento é apresentado. O marcador de onboarding é preservado para que corrigir a agenda e salvar novamente retome a divulgação sem reiniciar a jornada. Se o primeiro agendamento já tiver colocado o negócio em `ATIVADO`, se houver regressão canônica para serviço/publicação ou se uma falha transitória impedir a confirmação da próxima ação durante a restauração, o fluxo volta ao painel sem afirmar uma missão não confirmada. Uma URL antiga não deve reapresentar onboarding concluído.
+Ao salvar a agenda pelo fluxo atual, o backend marca `origem_horarios = personalizado` e a profissional pode editar dias, faixas, pausas, duração padrão, intervalos e antecedências quando quiser no painel. Na primeira jornada da dona, a confirmação da missão seguinte usa a projeção leve `GET /dashboard-dono/ativacao`, que deriva o mesmo estado canônico de ativação sem carregar métricas e rankings do dashboard. A conclusão usa o marcador navegável `?onboarding=divulgacao` em `/painel/horarios`; assim, refresh ou reabertura imediata pode preservar a missão sem depender apenas de estado transitório do React. Tanto imediatamente após o primeiro salvamento explícito quanto na restauração, o frontend confirma a próxima ação canônica no backend. O estado `CONQUISTAR_PRIMEIRO_AGENDAMENTO` não ganha um novo gate, mas seu CTA respeita a capacidade real de converter: quando `possui_disponibilidade_agendavel = false`, a tela mantém os horários salvos e apresenta a orientação canônica correspondente à causa, incluindo acesso à equipe quando necessário; quando existe disponibilidade agendável, o compartilhamento é apresentado. O marcador de onboarding é preservado para que corrigir a agenda e salvar novamente retome a divulgação sem reiniciar a jornada. Se o primeiro agendamento já tiver colocado o negócio em `ATIVADO`, se houver regressão canônica para serviço/publicação ou se uma falha transitória impedir a confirmação da próxima ação durante a restauração, o fluxo volta ao painel sem afirmar uma missão não confirmada. Uma URL antiga não deve reapresentar onboarding concluído.
 
 A restauração da divulgação não pode substituir o editor enquanto houver alterações não salvas ou um salvamento em andamento. Iniciar uma edição ou salvar invalida a consulta de ativação anterior; a consulta após o PUT confirmado passa a ser a autoridade para a missão e para o link público. Leituras canceladas ou substituídas não podem alterar o contexto do negócio, remover os botões de compartilhamento nem redirecionar a dona, mesmo quando o transporte entrega uma resposta ou um erro atrasado. Se a dona desfizer as alterações e voltar à agenda salva, a restauração consulta novamente o estado canônico.
 
@@ -175,3 +183,59 @@ No dashboard, a missão de conquistar o primeiro agendamento deve aparecer antes
 No fluxo público de agendamento, compartilhar um serviço é uma ação secundária. Ela não deve competir com a escolha do serviço em cada card; pode ser oferecida depois que a cliente já tiver selecionado o serviço.
 
 Não criar um segundo mecanismo de compartilhamento. Reutilizar os links públicos rastreáveis e o `PublicShareButton` existentes.
+
+### Orientação conforme a causa da indisponibilidade
+
+A projeção canônica distingue falta de profissional ativa habilitada, ausência
+de horários e faixas insuficientes para a duração integral do serviço,
+considerando pausas. A primeira causa oferece acesso à equipe; as demais
+orientam a revisar horários com texto específico. Quando somente outra
+profissional está habilitada, a revisão passa pela equipe e pelo contexto
+`?profissional=<id>`, em vez de abrir a agenda pessoal da dona. Na restauração ou conclusão
+da etapa de horários, a interface reutiliza a mensagem canônica e oferece a
+mesma saída para a equipe, preservando os horários salvos e sem pedir para
+ativar dias quando o problema está na habilitação.
+
+### Saída explícita durante uma operação pendente
+
+Ao confirmar `Sair sem salvar` no negócio, no serviço ou nos horários, a interface
+invalida a geração das operações pendentes antes de liberar a navegação. A proteção
+não depende do unmount: uma rota carregada sob Suspense pode manter a tela antiga montada até o
+destino ficar pronto. Sucesso, erro e finalização da geração descartada não
+podem adotar o negócio na sessão, iniciar refresh, redirecionar ou alterar o
+editor atual. Serviços não iniciam os uploads restantes do lote descartado;
+horários não consultam a próxima etapa de ativação após uma resposta descartada.
+Consultas de ativação em andamento são canceladas na saída de Horários.
+Continuar editando ou fechar a confirmação por Escape preserva
+a operação. Concluir um salvamento normalmente não sinaliza descarte.
+
+A invalidação também acompanha mudanças de pathname/query aceitas pelo roteador,
+sem depender de rascunho: confirmar os horários sugeridos ou salvar um serviço
+sem editar não exige diálogo, mas sair ainda encerra as continuações locais.
+Tentativas bloqueadas, Continuar editando, Escape e mudanças apenas de state/hash
+preservam a operação. Se o salvamento terminar com uma saída já solicitada,
+o fluxo respeita esse destino antes de iniciar refresh, uploads ou onboarding.
+
+Essa invalidação protege efeitos locais posteriores à escolha de saída. Ela
+não desfaz uma criação ou alteração que o backend já tenha persistido. O teste
+de navegador mantém a página de planos carregando enquanto entrega a resposta
+da criação; também mantém Meu negócio carregando durante respostas de upload e
+salvamento de horários. A dona deve permanecer no destino que escolheu.
+
+### Contexto da divulgação
+
+O texto do Copilot pertence ao negócio, período e recomendação atuais. Trocar
+esse contexto ou sair cancela o pedido; respostas antigas não alteram texto,
+erro ou evento de geração. O ranking histórico mantém serviços desativados,
+mas somente serviços confirmados como ativos podem ser destacados na
+divulgação. A participação continua usando todos os agendamentos do período.
+
+O destaque exige também `agendavel: true` para o próprio serviço, calculado
+com a mesma regra estrutural da ativação (profissional habilitada, faixas e
+duração considerando pausas). Outro serviço agendável não torna o destaque
+elegível. A atualização de período desmonta a recomendação e invalida o
+Copilot pendente; erro conserva indicadores anteriores, mas não sua divulgação.
+
+A pausa deve começar depois da abertura e terminar antes do fechamento. O
+editor valida esses limites antes de enviar, seguindo o mesmo contrato do
+backend; para iniciar mais tarde ou encerrar antes, ajuste o próprio expediente.

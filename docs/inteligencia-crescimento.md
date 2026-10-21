@@ -32,7 +32,7 @@ Os módulos ficam em:
 
 A camada é secundária ao dashboard. Se a análise lançar uma exceção inesperada, `dashboardDonoService` devolve `INDISPONIVEL` e preserva as demais informações da tela. A inteligência nunca deve transformar uma consulta válida do dashboard em erro operacional.
 
-Se a consulta de eventos de perfil ou de favoritos falhar, `qualidade_dados` identifica a leitura indisponível e as métricas correspondentes são `null`, não zero. A inteligência devolve `INDISPONIVEL` após a ativação para não usar ausências artificiais como oportunidades. Ranking de profissionais é opcional; sua falha não derruba o resumo. O ranking nominal de clientes não integra a resposta do painel.
+Se a consulta de eventos de perfil ou de favoritos falhar, `qualidade_dados` identifica a leitura indisponível e as métricas correspondentes são `null`, não zero. A inteligência devolve `INDISPONIVEL` após a ativação para recomendações derivadas dessas métricas, sem usar ausências artificiais como oportunidades. A orientação estrutural de disponibilidade pode ter precedência porque usa um fato independente. Ranking de profissionais é opcional; sua falha não derruba o resumo. O ranking nominal de clientes não integra a resposta do painel.
 
 ## Contrato
 
@@ -99,6 +99,23 @@ dias ou mês corrente.
 
 Para participação de serviço, o denominador é `resumo.servicos_vendidos`, que cobre todos os agendamentos não cancelados do período. O `ranking_servicos` limitado aos primeiros itens serve somente para identificar o serviço líder; ele não é usado como denominador, evitando inflar artificialmente a participação quando existem mais serviços fora do top 5.
 
+## Orientação operacional e continuidade
+
+Depois de ATIVADO, `possui_disponibilidade_agendavel = false` prioriza
+`REVISAR_DISPONIBILIDADE` antes das recomendações de divulgação. Essa leitura
+estrutural independe da telemetria de marketing e não confirma um slot livre.
+A ação abre Horários, preservando uma pausa intencional e sem alterar
+publicação, disponibilidade ou o marco de ativação.
+
+Com `DADOS_INSUFICIENTES`, a interface oferece orientação básica de rotina,
+sem criar oportunidade analítica, afirmar baixo desempenho ou disparar
+eventos de oportunidade e chamadas ao Copilot. Os demais estados preservam
+o comportamento anterior.
+
+O campo interno `agendamentos_concluidos` permanece por compatibilidade,
+mas a comunicação usa **agendamentos não cancelados**. A métrica não confirma
+comparecimento, atendimento realizado ou pagamento.
+
 ## Oportunidades iniciais
 
 ### Conversão sem agendamento
@@ -111,7 +128,7 @@ Só é considerada com pelo menos 40 visitas e conversão de até 5%. O limite �
 
 ### Interesse sem conclusão proporcional
 
-Compara ações de interesse registradas com agendamentos concluídos. O texto usa linguagem de hipótese e não afirma que WhatsApp, Maps ou favoritos causaram perda de reservas.
+Compara ações de interesse registradas com agendamentos não cancelados. O texto usa linguagem de hipótese e não afirma que WhatsApp, Maps ou favoritos causaram perda de reservas.
 
 ### Recorrência baixa com amostra
 

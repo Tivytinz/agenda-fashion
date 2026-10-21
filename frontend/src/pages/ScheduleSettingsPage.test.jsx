@@ -1038,6 +1038,32 @@ describe("configuração de horários", () => {
     }])).toContain("preencha o início e o fim da pausa");
   });
 
+  it.each([
+    ["08:00", "10:00"],
+    ["16:00", "18:00"],
+    ["08:00", "18:00"],
+  ])("rejeita pausa encostada no expediente: %s–%s", (intervaloInicio, intervaloFim) => {
+    expect(validateSchedule([{
+      diaSemana: 1,
+      trabalha: true,
+      horaInicio: "08:00",
+      horaFim: "18:00",
+      intervaloInicio,
+      intervaloFim,
+    }])).toContain("a pausa precisa estar dentro do horário de atendimento");
+  });
+
+  it("aceita pausa estritamente dentro do expediente", () => {
+    expect(validateSchedule([{
+      diaSemana: 1,
+      trabalha: true,
+      horaInicio: "08:00",
+      horaFim: "18:00",
+      intervaloInicio: "12:00",
+      intervaloFim: "13:00",
+    }])).toBe("");
+  });
+
   it("permite uma semana inteira fechada sem criar gate de publicação", () => {
     const closedWeek = Array.from({ length: 7 }, (_, diaSemana) => ({
       diaSemana,

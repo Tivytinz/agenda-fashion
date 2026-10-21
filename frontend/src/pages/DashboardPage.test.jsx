@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
@@ -52,6 +52,7 @@ const DASHBOARD = {
   resumo_dias: [{ data: "27/09", agendamentos: 2, faturamento: 100 }],
   ativacao: {
     possui_servico_ativo: true,
+    possui_disponibilidade_agendavel: true,
     negocio_publicado: true,
     agenda_configurada: true,
     primeiro_agendamento_recebido: false
@@ -164,6 +165,69 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("dashboard", () => {
+  it("mantém o erro operacional no card e permite tentar a autorização novamente", async () => {
+    mockDashboardRequests({
+      account: {
+        usuario: { aceita_lembretes_whatsapp: true, aceita_alertas_operacionais_whatsapp: false }
+      }
+    });
+    const initialRequest = apiRequest.getMockImplementation();
+    let attempts = 0;
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/conta/preferencias-whatsapp" && options.method === "PUT") {
+        attempts += 1;
+        if (attempts === 1) return Promise.reject(new Error("Não foi possível salvar os avisos."));
+        return Promise.resolve({ preferencia: { aceita_alertas_operacionais_whatsapp: true } });
+      }
+      return initialRequest(path, options);
+    });
+
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+    const panel = await screen.findByRole("region", { name: "Acompanhe sua agenda pelo WhatsApp" });
+    const button = within(panel).getByRole("button", { name: "Ativar avisos de agendamento" });
+    fireEvent.click(button);
+    expect((await within(panel).findByRole("alert")).textContent).toContain("Não foi possível salvar os avisos.");
+    expect(button.disabled).toBe(false);
+    expect(screen.queryByRole("button", { name: "Ativar lembretes no WhatsApp" })).toBeNull();
+
+    fireEvent.click(button);
+    await waitFor(() => expect(screen.queryByRole("region", {
+      name: "Acompanhe sua agenda pelo WhatsApp"
+    })).toBeNull());
+    expect(screen.queryByText("Não foi possível salvar os avisos.")).toBeNull();
+    expect(attempts).toBe(2);
+    expect(apiRequest).toHaveBeenCalledWith("/conta/preferencias-whatsapp", {
+      method: "PUT", body: { aceitaAlertasOperacionais: true, origem: "painel" }
+    });
+  });
+
+  it("reconhece o perfil oculto e oferece gestão sem republicar ou divulgar", async () => {
+    mockDashboardRequests({
+      dashboard: {
+        ...DASHBOARD,
+        ativacao: {
+          ...DASHBOARD.ativacao,
+          negocio_publicado: false,
+          publicacao_pausada_manualmente: true
+        },
+        proxima_acao_ativacao: nextActionNavigate({
+          estado: "REVISAR_PUBLICACAO",
+          titulo: "Seu perfil está oculto",
+          mensagem: "Você escolheu ocultar o perfil. Essa escolha continua valendo.",
+          rotulo: "Gerenciar publicação",
+          destino: "/painel/negocio"
+        })
+      }
+    });
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+    expect(await screen.findByRole("heading", { name: "Seu perfil está oculto" })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Gerenciar publicação" }).getAttribute("href"))
+      .toBe("/painel/negocio");
+    expect(screen.queryByRole("button", { name: "Compartilhar perfil" })).toBeNull();
+    expect(apiRequest.mock.calls.every(([, options]) => !options?.method || options.method === "GET"))
+      .toBe(true);
+  });
+
   it("exibe a visão geral antes da origem dos clientes terminar de carregar", async () => {
     let resolveOrigin;
     const pendingOrigin = new Promise((resolve) => { resolveOrigin = resolve; });
@@ -174,6 +238,51 @@ describe("dashboard", () => {
     resolveOrigin(CUSTOMER_ORIGIN);
     await screen.findByText("Google Ads");
     expect(screen.queryByText("Carregando origem dos clientes...")).toBeNull();
+  });
+
+  it.each([false, true])("abre a equipe pela orientação canônica; pós-ativação: %s", async (posAtivacao) => {
+    const guidance = {
+      titulo: "Habilite uma profissional para seus serviços",
+      mensagem: "Nenhuma profissional ativa está habilitada.",
+      acao: { tipo: "NAVEGAR", rotulo: "Gerenciar serviços da equipe", destino: "/painel/profissionais" }
+    };
+    mockDashboardRequests({ dashboard: {
+      ...DASHBOARD,
+      ativacao: { ...DASHBOARD.ativacao, primeiro_agendamento_recebido: posAtivacao, possui_disponibilidade_agendavel: false },
+      proxima_acao_ativacao: posAtivacao ? { estado: "ATIVADO", concluido: true } : { estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO", ...guidance },
+      inteligencia_crescimento: posAtivacao ? {
+        status: "OPORTUNIDADE_PRIORIZADA",
+        periodo: "7dias",
+        oportunidade_principal: { codigo: "REVISAR_DISPONIBILIDADE", ...guidance }
+      } : { status: "AGUARDANDO_ATIVACAO" }
+    } });
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+    const link = await screen.findByRole("link", { name: "Gerenciar serviços da equipe" });
+    expect(link.getAttribute("href")).toBe("/painel/profissionais");
+    const today = screen.getByRole("region", { name: "Agenda de hoje" });
+    const panel = link.closest("section");
+    expect(Boolean(today.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(posAtivacao);
+  });
+
+  it.each([false, undefined])("não convida para divulgar com disponibilidade %s", (disponivel) => {
+    expect(getWhatsappConsentVisibility({
+      activation: { negocio_publicado: true, possui_servico_ativo: true, possui_disponibilidade_agendavel: disponivel, primeiro_agendamento_recebido: false },
+      reminders: { enabled: false, operationalEnabled: true }
+    })).toEqual({ operational: false, activation: false });
+  });
+
+  it("mantém avisos operacionais disponíveis mesmo sem horários", () => {
+    expect(getWhatsappConsentVisibility({
+      activation: { negocio_publicado: true, possui_disponibilidade_agendavel: false },
+      reminders: { enabled: false, operationalEnabled: false }
+    })).toEqual({ operational: true, activation: false });
+  });
+
+  it("não oferece marketing sem serviço ativo", () => {
+    expect(getWhatsappConsentVisibility({
+      activation: { negocio_publicado: true, possui_servico_ativo: false, possui_disponibilidade_agendavel: true },
+      reminders: { enabled: false, operationalEnabled: true }
+    }).activation).toBe(false);
   });
 
   it("não deixa convites de WhatsApp competir com a ativação antes da publicação", () => {
@@ -196,6 +305,8 @@ describe("dashboard", () => {
     expect(getWhatsappConsentVisibility({
       activation: {
         negocio_publicado: true,
+        possui_servico_ativo: true,
+        possui_disponibilidade_agendavel: true,
         primeiro_agendamento_recebido: false
       },
       reminders: {
@@ -210,6 +321,8 @@ describe("dashboard", () => {
     expect(getWhatsappConsentVisibility({
       activation: {
         negocio_publicado: true,
+        possui_servico_ativo: true,
+        possui_disponibilidade_agendavel: true,
         primeiro_agendamento_recebido: false
       },
       reminders: {
@@ -673,4 +786,31 @@ describe("dashboard", () => {
       })).toBeNull();
     });
   });
+});
+
+it.each(["success", "error"])("não permite Copilot com período anterior durante atualização: %s", async (outcome) => {
+  let resolvePeriod, rejectPeriod, resolveCopy;
+  const dashboard = (periodo) => ({ ...DASHBOARD, inteligencia_crescimento: {
+    status: "OPORTUNIDADE_PRIORIZADA", periodo,
+    oportunidade_principal: { codigo: "TRACAO", titulo: "Divulgação atual", acao: { tipo: "COMPARTILHAR_PERFIL" } },
+  } });
+  apiRequest.mockImplementation((path) => {
+    if (path === "/conta") return Promise.resolve({ usuario: {} });
+    if (path === "/dashboard-dono?periodo=7dias") return Promise.resolve(dashboard("7dias"));
+    if (path === "/dashboard-dono?periodo=30dias") return new Promise((resolve, reject) => { resolvePeriod = resolve; rejectPeriod = reject; });
+    if (path === "/dashboard-dono/copilot/divulgacao") return new Promise((resolve) => { resolveCopy = resolve; });
+    return Promise.resolve(null);
+  });
+  render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+  fireEvent.click(await screen.findByRole("button", { name: /Criar texto/ }));
+  fireEvent.click(screen.getByRole("button", { name: "30 dias" }));
+  expect(screen.queryByRole("button", { name: /Criar texto/ })).toBeNull();
+  await act(async () => resolveCopy({ texto: "Texto anterior" }));
+  expect(screen.queryByLabelText("Texto de divulgação")).toBeNull();
+  await act(async () => {
+    if (outcome === "success") resolvePeriod(dashboard("30dias"));
+    else rejectPeriod(new Error("Falha na atualização"));
+  });
+  if (outcome === "success") expect(await screen.findByRole("button", { name: /Criar texto/ })).not.toBeNull();
+  else expect(screen.queryByRole("button", { name: /Criar texto/ })).toBeNull();
 });

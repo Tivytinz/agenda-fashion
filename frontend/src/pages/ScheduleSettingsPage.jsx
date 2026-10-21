@@ -117,8 +117,8 @@ export function validateSchedule(days, { requireActiveDay = false } = {}) {
 
     if (hasPauseStart && (
       day.intervaloInicio >= day.intervaloFim
-      || day.intervaloInicio < day.horaInicio
-      || day.intervaloFim > day.horaFim
+      || day.intervaloInicio <= day.horaInicio
+      || day.intervaloFim >= day.horaFim
     )) {
       return `Em ${dayName}, a pausa precisa estar dentro do horário de atendimento.`;
     }
@@ -171,6 +171,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
   const [config, setConfig] = useState(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const contextActiveRef = useRef(true);
+  const operationGenerationRef = useRef(0);
   const activationControllerRef = useRef(null);
   const [days, setDays] = useState([]);
   const [savedSchedule, setSavedSchedule] = useState("");
@@ -185,6 +186,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
   const [businessContextLoading, setBusinessContextLoading] = useState(false);
   const [scheduleProfessional, setScheduleProfessional] = useState(null);
   const [availabilityPending, setAvailabilityPending] = useState(false);
+  const [availabilityGuidance, setAvailabilityGuidance] = useState(null);
   const shareOnboardingRequested = useMemo(
     () => new URLSearchParams(location.search).get("onboarding") === "divulgacao",
     [location.search]
@@ -193,6 +195,14 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
     && serializeSchedule(config, days) !== savedSchedule;
   const showActivationNextStep =
     activationNextStep && shareOnboardingRequested && !hasChanges;
+
+  function discardPendingOperations() {
+    // O descarte antecede a navegação; não depende do unmount sob Suspense.
+    operationGenerationRef.current += 1;
+    activationControllerRef.current?.abort();
+    setBusinessContextLoading(false);
+    setSaving(false);
+  }
 
   useEffect(() => {
     contextActiveRef.current = true;
@@ -400,6 +410,8 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
         activationState ===
           "CONQUISTAR_PRIMEIRO_AGENDAMENTO" &&
         hasBookableAvailability;
+      const guidance = dashboard?.proxima_acao_ativacao;
+      setAvailabilityGuidance(canShare ? null : guidance);
       const business =
         dashboard?.negocio || {};
 
@@ -424,6 +436,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
       return {
         activationState,
         canShare,
+        guidance,
         isCurrent,
       };
     } catch (requestError) {
@@ -454,7 +467,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
     loadCanonicalActivationContext(controller)
       .then((activationContext) => {
         if (!active || !activationContext?.isCurrent()) return;
-        const { activationState, canShare } = activationContext;
+        const { activationState, canShare, guidance } = activationContext;
 
         if (
           activationState ===
@@ -473,7 +486,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
           setActivationNextStep(false);
           setAvailabilityPending(true);
           setMessage(
-            "Seu perfil está publicado. Ative pelo menos um dia de atendimento antes de divulgar."
+            guidance?.mensagem || "Seu perfil está publicado. Revise a disponibilidade antes de divulgar."
           );
           return;
         }
@@ -516,6 +529,9 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
   async function submit(event) {
     event.preventDefault();
     if (saving || !config) return;
+    const generation = operationGenerationRef.current;
+    const isCurrent = () => contextActiveRef.current
+      && operationGenerationRef.current === generation;
     setError("");
     setMessage("");
 
@@ -618,7 +634,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
         },
         body
       });
-      if (!contextActiveRef.current) return;
+      if (!isCurrent()) return;
       const savedConfig = result.configuracao || {};
       const configuradoEm = savedConfig.configurado_em
         ?? savedConfig.configuradoEm
@@ -637,6 +653,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
         setConfig(updatedConfig);
         setSavedSchedule(serializeSchedule(updatedConfig, days));
       });
+      if (!isCurrent()) return;
       setMessage(result.mensagem || "Horários atualizados.");
 
       if (
@@ -673,7 +690,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
           activationContext =
             await loadCanonicalActivationContext();
         } catch {
-          if (!contextActiveRef.current) return;
+          if (!isCurrent()) return;
           navigate("/painel", {
             replace: true,
             state: {
@@ -683,7 +700,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
           return;
         }
 
-        if (!activationContext?.isCurrent()) return;
+        if (!isCurrent() || !activationContext?.isCurrent()) return;
 
         if (
           activationContext
@@ -711,7 +728,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
           setActivationNextStep(false);
           setAvailabilityPending(true);
           setMessage(
-            "Horários salvos. Ative pelo menos um dia de atendimento antes de divulgar."
+            `Horários salvos. ${activationContext.guidance?.mensagem || "Revise a disponibilidade antes de divulgar."}`
           );
 
           if (!shareOnboardingRequested) {
@@ -737,7 +754,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
         navigate("/painel", { replace: true });
       }
     } catch (requestError) {
-      if (!contextActiveRef.current) return;
+      if (!isCurrent()) return;
       setError(requestError.message);
       track("agenda_configuracao_erro", {
         page: "configuracao_agenda",
@@ -748,7 +765,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
         }
       });
     } finally {
-      if (contextActiveRef.current) setSaving(false);
+      if (isCurrent()) setSaving(false);
     }
   }
 
@@ -770,7 +787,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
 
   return (
     <main className={`workspace-page schedule-settings-page${!quickConfirmation && !showActivationNextStep ? " schedule-editor-page" : ""}`}>
-      <UnsavedChangesGuard when={hasChanges} />
+      <UnsavedChangesGuard when={hasChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">Disponibilidade</p>
@@ -1118,7 +1135,10 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
                   className="muted"
                   role="status"
                 >
-                  Seu perfil está publicado, mas ainda não há disponibilidade para novas reservas. Ative pelo menos um dia de atendimento antes de divulgar.
+                  {availabilityGuidance?.mensagem || "Seu perfil está publicado, mas ainda não há disponibilidade para novas reservas. Revise os dias e horários antes de divulgar."}
+                  {availabilityGuidance?.acao?.destino === "/painel/profissionais" && (
+                    <> <Link to="/painel/profissionais">{availabilityGuidance.acao.rotulo || "Abrir equipe"}</Link></>
+                  )}
                 </p>
               )}
               {error && <p className="form-error schedule-settings-error" role="alert">{error}</p>}

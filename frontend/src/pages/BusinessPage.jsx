@@ -160,7 +160,7 @@ export function BusinessPage({ create = false }) {
   const whatsappError = validateWhatsApp(form.whatsapp);
 
   useEffect(() => {
-    const context = { create };
+    const context = { create, generation: 0 };
     pageContextRef.current = context;
     operationRef.current = null;
     setSaving(false);
@@ -178,13 +178,29 @@ export function BusinessPage({ create = false }) {
   function beginOperation() {
     // Bloqueia ações simultâneas antes de o React desabilitar os controles.
     if (loading || operationRef.current || !pageContextRef.current) return null;
-    const operation = { context: pageContextRef.current };
+    const operation = {
+      context: pageContextRef.current,
+      generation: pageContextRef.current.generation,
+    };
     operationRef.current = operation;
     return operation;
   }
 
   function isCurrentOperation(operation) {
-    return pageContextRef.current === operation.context;
+    return pageContextRef.current === operation.context
+      && operation.context.generation === operation.generation;
+  }
+
+  function discardPendingOperations() {
+    // Suspense pode manter a tela antiga montada enquanto o destino carrega.
+    if (pageContextRef.current) pageContextRef.current.generation += 1;
+    operationRef.current = null;
+    cepRequestRef.current += 1;
+    setSaving(false);
+    setPhotoUploading(false);
+    setPublishing(false);
+    setClosingBusiness(false);
+    setCepLookup({ status: "idle", message: "" });
   }
 
   function finishOperation(operation) {
@@ -425,6 +441,7 @@ export function BusinessPage({ create = false }) {
         setForm(normalizedSaved);
         setSavedForm(normalizedSaved);
       });
+      if (!isCurrentOperation(operation)) return;
       setMessage(result.mensagem || (create ? "Negócio criado." : "Alterações salvas."));
       if (result.publicacao) setPublication(result.publicacao);
       const profileOnboarding =
@@ -706,7 +723,7 @@ export function BusinessPage({ create = false }) {
 
   return (
     <main className={create ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
-      <UnsavedChangesGuard when={unsavedChanges} />
+      <UnsavedChangesGuard when={unsavedChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
       {create && (
         <BackLink to={selectedPlan ? "/planos" : "/"}>
           {selectedPlan ? "Voltar aos planos" : "Voltar ao início"}

@@ -100,6 +100,22 @@ describe("dashboardRepository integrado", () => {
     );
   }
 
+  test("preserva ranking histórico e projeta disponibilidade por serviço", async () => {
+    const cliente = await criarCliente("Cliente elegibilidade");
+    await criarAgendamento(cliente, 0);
+    const ranking = () => dashboardRepository.buscarRankingServicos(cenario.negocioId, "");
+    expect((await ranking())[0]).toMatchObject({ ativo: true, agendavel: true, total: 1 });
+    await db.query("UPDATE servicos_negocio SET duracao_minutos = 1440 WHERE id = $1", [cenario.servico.id]);
+    expect((await ranking())[0]).toMatchObject({ ativo: true, agendavel: false, total: 1 });
+    await db.query("UPDATE servicos_negocio SET duracao_minutos = 60 WHERE id = $1", [cenario.servico.id]);
+    await db.query("UPDATE agenda_horarios SET trabalha = FALSE WHERE negocio_id = $1", [cenario.negocioId]);
+    expect((await ranking())[0].agendavel).toBe(false);
+    await db.query("DELETE FROM profissional_servicos WHERE servico_id = $1", [cenario.servico.id]);
+    expect((await ranking())[0]).toMatchObject({ ativo: true, agendavel: false, total: 1 });
+    await db.query("UPDATE servicos_negocio SET ativo = FALSE WHERE id = $1", [cenario.servico.id]);
+    expect((await ranking())[0]).toMatchObject({ ativo: false, agendavel: false, total: 1 });
+  });
+
   test("mantém preço histórico, exclui o futuro e conta somente a primeira visita do cliente", async () => {
     const clienteAntigo = await criarCliente("Cliente antigo");
     const clienteNovo = await criarCliente("Cliente novo");

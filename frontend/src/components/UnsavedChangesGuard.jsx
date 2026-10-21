@@ -1,7 +1,8 @@
 import { useContext, useEffect, useRef } from "react";
 import { UNSAFE_DataRouterContext, useBlocker } from "react-router-dom";
 
-function InternalNavigationGuard({ when }) {
+function InternalNavigationGuard({ when, onDiscard, onLeave }) {
+  const { router } = useContext(UNSAFE_DataRouterContext);
   const dialogRef = useRef(null);
   const blocker = useBlocker(({ currentLocation, nextLocation }) => (
     when && (
@@ -9,6 +10,19 @@ function InternalNavigationGuard({ when }) {
       || currentLocation.search !== nextLocation.search
     )
   ));
+
+  useEffect(() => {
+    if (!onLeave) return undefined;
+    let previousLocation = router.state.location;
+
+    // A rota muda antes de Suspense desmontar o editor antigo.
+    return router.subscribe(({ location }) => {
+      const changed = previousLocation.pathname !== location.pathname
+        || previousLocation.search !== location.search;
+      previousLocation = location;
+      if (changed) onLeave();
+    });
+  }, [onLeave, router]);
 
   useEffect(() => {
     if (blocker.state === "blocked") {
@@ -34,7 +48,12 @@ function InternalNavigationGuard({ when }) {
           <button autoFocus className="button" onClick={() => blocker.reset?.()} type="button">
             Continuar editando
           </button>
-          <button className="button button-secondary" onClick={() => blocker.proceed?.()} type="button">
+          <button className="button button-secondary" onClick={() => {
+            if (blocker.state !== "blocked") return;
+            onDiscard?.();
+            dialogRef.current?.close();
+            blocker.proceed?.();
+          }} type="button">
             Sair sem salvar
           </button>
         </div>
@@ -43,7 +62,7 @@ function InternalNavigationGuard({ when }) {
   );
 }
 
-export function UnsavedChangesGuard({ when }) {
+export function UnsavedChangesGuard({ when, onDiscard, onLeave }) {
   const dataRouter = useContext(UNSAFE_DataRouterContext);
 
   useEffect(() => {
@@ -56,5 +75,5 @@ export function UnsavedChangesGuard({ when }) {
     return () => window.removeEventListener("beforeunload", preventExit);
   }, [when]);
 
-  return dataRouter ? <InternalNavigationGuard when={when} /> : null;
+  return dataRouter ? <InternalNavigationGuard when={when} onDiscard={onDiscard} onLeave={onLeave} /> : null;
 }

@@ -1,15 +1,11 @@
-function sqlPossuiDisponibilidadeAgendavel(
-  negocioIdSql
-) {
+function sqlCandidatosDisponibilidade(negocioIdSql) {
   return `
-    EXISTS (
-      SELECT 1
       FROM usuarios_negocios disponibilidade_un
       INNER JOIN usuarios disponibilidade_u
         ON disponibilidade_u.id =
           disponibilidade_un.usuario_id
         AND disponibilidade_u.ativo = TRUE
-      INNER JOIN agenda_horarios disponibilidade_ah
+      LEFT JOIN agenda_horarios disponibilidade_ah
         ON disponibilidade_ah.profissional_id =
           disponibilidade_un.usuario_id
         AND disponibilidade_ah.negocio_id =
@@ -32,14 +28,21 @@ function sqlPossuiDisponibilidadeAgendavel(
           'dono',
           'profissional'
         )
-        AND disponibilidade_ah.trabalha = TRUE
+  `;
+}
+
+function sqlHorarioValido() {
+  return `disponibilidade_ah.trabalha = TRUE
         AND disponibilidade_ah.hora_inicio
           IS NOT NULL
         AND disponibilidade_ah.hora_fim
           IS NOT NULL
         AND disponibilidade_ah.hora_inicio <
-          disponibilidade_ah.hora_fim
-        AND (
+          disponibilidade_ah.hora_fim`;
+}
+
+function sqlDuracaoCabe() {
+  return `(
           CASE
             WHEN
               disponibilidade_ah.intervalo_inicio
@@ -73,8 +76,36 @@ function sqlPossuiDisponibilidadeAgendavel(
               )
             ) / 60
           END
-        ) >= disponibilidade_s.duracao_minutos
+        ) >= disponibilidade_s.duracao_minutos`;
+}
+
+function sqlPossuiDisponibilidadeAgendavel(negocioIdSql, servicoIdSql = null) {
+  return `
+    EXISTS (
+      SELECT 1
+      ${sqlCandidatosDisponibilidade(negocioIdSql)}
+        ${servicoIdSql ? `AND disponibilidade_s.id = ${servicoIdSql}` : ""}
+        AND ${sqlHorarioValido()}
+        AND ${sqlDuracaoCabe()}
     )
+  `;
+}
+
+function sqlDiagnosticoDisponibilidadeAgendavel(negocioIdSql) {
+  return `
+    SELECT CASE
+      WHEN COUNT(*) = 0 THEN 'SEM_PROFISSIONAL_HABILITADA'
+      WHEN BOOL_OR(${sqlHorarioValido()}) IS NOT TRUE THEN 'SEM_HORARIOS'
+      WHEN BOOL_OR((${sqlHorarioValido()}) AND (${sqlDuracaoCabe()}))
+        THEN NULL
+      ELSE 'DURACAO_INCOMPATIVEL'
+    END AS motivo_indisponibilidade,
+    (
+      COUNT(*) > 0
+      AND BOOL_OR(disponibilidade_un.papel = 'dono') IS NOT TRUE
+      AND BOOL_OR((${sqlHorarioValido()}) AND (${sqlDuracaoCabe()})) IS NOT TRUE
+    ) AS revisar_horarios_na_equipe
+    ${sqlCandidatosDisponibilidade(negocioIdSql)}
   `;
 }
 
@@ -97,5 +128,6 @@ function sqlPossuiPrimeiroAgendamentoValido(
 
 module.exports = {
   sqlPossuiDisponibilidadeAgendavel,
+  sqlDiagnosticoDisponibilidadeAgendavel,
   sqlPossuiPrimeiroAgendamentoValido,
 };

@@ -14,6 +14,20 @@ A sequência de produto acompanha o valor real do AF: estruturar o negócio, pub
 
 Personalizar horários é importante para a qualidade operacional, mas não é etapa obrigatória do onboarding nem gate de publicação. O AF inicializa uma disponibilidade sugerida e a profissional pode ajustá-la depois.
 
+Com pouca amostra após a ativação, o painel mantém orientação básica de rotina,
+sem recriar o checklist inicial ou inventar uma análise de desempenho.
+Ausência estrutural de disponibilidade tem precedência sobre divulgação,
+preservando a decisão da dona de manter a agenda fechada.
+
+Uma ocultação manual do perfil deve ser reconhecida como escolha da dona,
+sem ser apresentada como cadastro incompleto ou ausência de serviço. A
+orientação abre Meu negócio para gerenciar a publicação, sem efetuar escritas
+ou oferecer compartilhamento de um perfil oculto.
+
+Falhas ao autorizar avisos operacionais de WhatsApp devem aparecer no próprio
+card da ação, com mensagem acessível e nova tentativa disponível. Consentimento
+operacional e lembretes de ativação continuam separados.
+
 ## Catálogo e promessa de disponibilidade
 
 A experiência pública não deve prometer um horário específico sem validação real de disponibilidade pelo backend.
@@ -50,3 +64,14 @@ Estas mudanças devem ser avaliadas por métricas de funil, não apenas por cliq
 - recorrência e retenção dos negócios.
 
 Configuração ou personalização de horários pode ser acompanhada como qualidade operacional, mas não substitui os marcos canônicos acima.
+
+## Orientação operacional e prioridade da agenda
+
+Depois do primeiro agendamento válido, a agenda de hoje antecede oportunidades,
+upgrade e consentimentos no painel. Antes desse marco, a missão de ativação
+continua primeiro. A disponibilidade estrutural inclui habilitação de serviço,
+dias de atendimento e duração compatível com as faixas e pausas; a orientação
+explica a causa e direciona para equipe ou horários conforme o diagnóstico
+canônico. O convite de divulgação por WhatsApp exige publicação, serviço ativo,
+disponibilidade e ausência de primeiro agendamento válido. Esse consentimento
+não se confunde com avisos operacionais, que continuam úteis durante pausas.

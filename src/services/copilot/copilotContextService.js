@@ -1,3 +1,5 @@
+const { buildGrowthSignals } = require("../growthIntelligence/signalService");
+
 const CHAVES_EVIDENCIA_PERMITIDAS = new Set([
   "servico_destaque_agendamentos",
   "participacao_servico_destaque",
@@ -35,9 +37,7 @@ function normalizarEvidencias(evidencias) {
 }
 
 function buildCopilotShareContext({ dashboard = {}, oportunidade = {} } = {}) {
-  const servicoDestaque = Array.isArray(dashboard.ranking_servicos)
-    ? dashboard.ranking_servicos[0]
-    : null;
+  const servicoDestaque = buildGrowthSignals(dashboard).servico_destaque;
 
   return {
     finalidade: "divulgacao_perfil",

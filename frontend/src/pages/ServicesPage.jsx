@@ -379,7 +379,7 @@ export function ServiceEditorPage() {
   }, [form.foto_public_id, form.foto_url, gallery]);
 
   useEffect(() => {
-    const context = { id };
+    const context = { id, generation: 0 };
     editorContextRef.current = context;
     operationRef.current = null;
     setSaving(false);
@@ -394,13 +394,26 @@ export function ServiceEditorPage() {
   function beginOperation() {
     // O lock vale antes de o React renderizar os controles desabilitados.
     if (operationRef.current || !editorContextRef.current) return null;
-    const operation = { context: editorContextRef.current };
+    const operation = {
+      context: editorContextRef.current,
+      generation: editorContextRef.current.generation,
+    };
     operationRef.current = operation;
     return operation;
   }
 
   function isCurrentOperation(operation) {
-    return editorContextRef.current === operation.context;
+    return editorContextRef.current === operation.context
+      && operation.context.generation === operation.generation;
+  }
+
+  function discardPendingOperations() {
+    // Suspense pode manter este editor montado enquanto o destino carrega.
+    if (editorContextRef.current) editorContextRef.current.generation += 1;
+    operationRef.current = null;
+    setSaving(false);
+    setRemovingPhotoId(null);
+    setDefiningCoverId(null);
   }
 
   function finishOperation(operation) {
@@ -621,6 +634,7 @@ export function ServiceEditorPage() {
         }
         setPersistedId(String(savedId));
         flushSync(() => setSavedForm(form));
+        if (!isCurrentOperation(operation)) return;
       } catch (requestError) {
         if (isCurrentOperation(operation)) setError(requestError.message);
         return;
@@ -665,6 +679,7 @@ export function ServiceEditorPage() {
         setCover(null);
         setGalleryFiles([]);
       });
+      if (!isCurrentOperation(operation)) return;
       navigate("/painel/servicos", {
         replace: true,
         state: {
@@ -749,7 +764,7 @@ export function ServiceEditorPage() {
 
   return (
     <main className="workspace-page service-editor-page">
-      <UnsavedChangesGuard when={hasChanges} />
+      <UnsavedChangesGuard when={hasChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
       <div>
         <BackLink to="/painel/servicos">Voltar aos serviços</BackLink>
         {firstServiceOnboarding && (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
@@ -8,6 +8,7 @@ const ALLOWED_DESTINATIONS = new Set([
   "/painel/agenda",
   "/painel/servicos",
   "/painel/horarios",
+  "/painel/profissionais",
   "/painel/negocio",
 ]);
 
@@ -104,9 +105,42 @@ export function DashboardGrowthInsight({
     });
   }, [businessId, opportunityCategory, opportunityCode]);
 
+  const requestRef = useRef(null);
+  const composerContext = JSON.stringify([
+    businessId, businessName, businessSlug, period, opportunity,
+  ]);
+
   useEffect(() => {
     setComposer(EMPTY_COMPOSER);
-  }, [opportunityCode, period]);
+    return () => {
+      requestRef.current?.abort();
+      requestRef.current = null;
+    };
+  }, [composerContext]);
+
+  if (insight?.status === "DADOS_INSUFICIENTES") {
+    return (
+      <section
+        aria-labelledby="dashboard-growth-guidance-title"
+        className="panel dashboard-action-panel"
+      >
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Seu próximo passo</p>
+            <h2 id="dashboard-growth-guidance-title">
+              Continue cuidando do seu negócio
+            </h2>
+          </div>
+        </div>
+        <p className="muted dashboard-action-copy">
+          Ainda não há dados suficientes para recomendar uma ação de
+          crescimento. Enquanto isso, acompanhe sua agenda e mantenha os
+          horários de atendimento atualizados.
+        </p>
+        <Link className="button" to="/painel/agenda">Abrir agenda</Link>
+      </section>
+    );
+  }
 
   if (!opportunity) return null;
 
@@ -124,6 +158,11 @@ export function DashboardGrowthInsight({
 
   async function generateShareCopy() {
     if (!canGenerateShare || composer.status === "loading") return;
+
+    const controller = new AbortController();
+    requestRef.current?.abort();
+    requestRef.current = controller;
+    const isCurrent = () => requestRef.current === controller && !controller.signal.aborted;
 
     track("copilot_divulgacao_solicitada", {
       ...TRACKING_CONTEXT,
@@ -146,12 +185,15 @@ export function DashboardGrowthInsight({
         {
           method: "POST",
           timeoutMs: 12000,
+          signal: controller.signal,
           body: {
             periodo: period,
             canal: "whatsapp",
           },
         }
       );
+
+      if (!isCurrent()) return;
 
       const nextComposer = {
         status: "ready",
@@ -174,6 +216,7 @@ export function DashboardGrowthInsight({
         },
       });
     } catch (requestError) {
+      if (!isCurrent()) return;
       setComposer({
         ...EMPTY_COMPOSER,
         status: "error",
@@ -257,13 +300,13 @@ export function DashboardGrowthInsight({
         )}
       </div>
 
-      {composer.status === "error" && (
+      {canGenerateShare && composer.status === "error" && (
         <p className="form-error" role="alert">
           {composer.erro}
         </p>
       )}
 
-      {composer.status === "ready" && (
+      {canGenerateShare && composer.status === "ready" && (
         <div className="dashboard-copilot-composer">
           <p className="eyebrow">
             {composer.fonte === "openai" ? "Copilot AF" : "Sugestão automática"}

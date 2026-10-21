@@ -255,6 +255,161 @@ test("próxima ação de ativação cabe no celular e mostra somente a missão a
   expect(diagnostics.scrollWidth).toBe(diagnostics.clientWidth);
 });
 
+for (const scenario of [
+  {
+    name: "pouca amostra",
+    title: "Continue cuidando do seu negócio",
+    action: "Abrir agenda",
+    destination: /\/painel\/agenda$/,
+    insight: { status: "DADOS_INSUFICIENTES", oportunidade_principal: null }
+  },
+  {
+    name: "sem disponibilidade",
+    title: "Revise os horários antes de divulgar",
+    action: "Revisar horários",
+    destination: /\/painel\/horarios$/,
+    insight: {
+      status: "OPORTUNIDADE_PRIORIZADA",
+      oportunidade_principal: {
+        codigo: "REVISAR_DISPONIBILIDADE",
+        categoria: "operacao",
+        titulo: "Revise os horários antes de divulgar",
+        mensagem: "Se a pausa for intencional, mantenha sua configuração.",
+        acao: { tipo: "NAVEGAR", rotulo: "Revisar horários", destino: "/painel/horarios" }
+      }
+    }
+  },
+  {
+    name: "primeira reserva sem horários",
+    title: "Adicione horários para receber agendamentos",
+    action: "Configurar horários",
+    destination: /\/painel\/horarios$/,
+    activation: { primeiro_agendamento_recebido: false, possui_disponibilidade_agendavel: false, possui_servico_ativo: true },
+    nextAction: {
+      estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO", concluido: false,
+      titulo: "Adicione horários para receber agendamentos",
+      mensagem: "Revise os dias e horários antes de divulgar.",
+      acao: { tipo: "NAVEGAR", rotulo: "Configurar horários", destino: "/painel/horarios" }
+    },
+    insight: { status: "AGUARDANDO_ATIVACAO", oportunidade_principal: null }
+  },
+  {
+    name: "serviço sem profissional habilitada",
+    title: "Habilite uma profissional para seus serviços",
+    action: "Gerenciar serviços da equipe",
+    destination: /\/painel\/profissionais$/,
+    activation: { possui_disponibilidade_agendavel: false, motivo_indisponibilidade: "SEM_PROFISSIONAL_HABILITADA" },
+    insight: {
+      status: "OPORTUNIDADE_PRIORIZADA",
+      oportunidade_principal: {
+        codigo: "REVISAR_DISPONIBILIDADE", categoria: "operacao",
+        titulo: "Habilite uma profissional para seus serviços",
+        mensagem: "Revise os serviços oferecidos pela equipe antes de divulgar.",
+        acao: { tipo: "NAVEGAR", rotulo: "Gerenciar serviços da equipe", destino: "/painel/profissionais" }
+      }
+    }
+  },
+  {
+    name: "horários da equipe",
+    title: "Revise os horários antes de divulgar",
+    action: "Revisar horários da equipe",
+    destination: /\/painel\/profissionais$/,
+    activation: { possui_disponibilidade_agendavel: false, motivo_indisponibilidade: "SEM_HORARIOS", revisar_horarios_na_equipe: true },
+    insight: {
+      status: "OPORTUNIDADE_PRIORIZADA",
+      oportunidade_principal: {
+        codigo: "REVISAR_DISPONIBILIDADE", categoria: "operacao",
+        titulo: "Revise os horários antes de divulgar",
+        mensagem: "Abra a equipe e configure os horários de uma profissional habilitada.",
+        acao: { tipo: "NAVEGAR", rotulo: "Revisar horários da equipe", destino: "/painel/profissionais" }
+      }
+    }
+  },
+  {
+    name: "perfil oculto",
+    title: "Seu perfil está oculto",
+    action: "Gerenciar publicação",
+    destination: /\/painel\/negocio$/,
+    activation: { negocio_publicado: false, publicacao_pausada_manualmente: true },
+    nextAction: {
+      estado: "REVISAR_PUBLICACAO",
+      concluido: false,
+      titulo: "Seu perfil está oculto",
+      mensagem: "Você escolheu ocultar o perfil. Essa escolha continua valendo.",
+      acao: { tipo: "NAVEGAR", rotulo: "Gerenciar publicação", destino: "/painel/negocio" }
+    },
+    insight: { status: "AGUARDANDO_ATIVACAO", oportunidade_principal: null }
+  }
+]) {
+  test(`orientação do painel com ${scenario.name} cabe no celular`, async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("session_active", "1"));
+    await page.route("**/minha-sessao", route => json(route, {
+      usuario: { id: 4, nome: "Ana", email: "ana@example.com" },
+      negocio: { ...BUSINESS, publicado: scenario.activation?.negocio_publicado ?? true },
+      temNegocio: true,
+      administrador: null,
+      ehAdministrador: false
+    }));
+    await page.route("**/marketing/meta/config", route => json(route, { enabled: false }));
+    await page.route("**/marketing/google/config", route => json(route, { enabled: false }));
+    await page.route("**/minha-assinatura", route => json(route, {}));
+    await page.route("**/profissionais", route => json(route, {
+      profissionais: scenario.action === "Revisar horários da equipe" ? [{ id: 9, nome: "Ana", ativo: true }] : []
+    }));
+    await page.route("**/agenda-configuracao?profissionalId=9", route => json(route, {
+      profissional: { id: 9, nome: "Ana" },
+      configuracao: { origem_horarios: "personalizado", duracao_padrao: 60 },
+      horarios: [{ dia_semana: 1, trabalha: false, hora_inicio: null, hora_fim: null }]
+    }));
+    await page.route("**/conta", route => json(route, {
+      usuario: { aceita_lembretes_whatsapp: false, aceita_alertas_operacionais_whatsapp: true }
+    }));
+    await page.route("**/dashboard-dono/origem-clientes?periodo=7dias", route => json(route, { resumo: {}, origens: [] }));
+    await page.route("**/dashboard-dono?periodo=7dias", route => json(route, {
+      resumo: {}, performance: {}, ranking_servicos: [],
+      negocio: { negocio_id: 11, nome: BUSINESS.nome, slug: BUSINESS.slug },
+      ativacao: { negocio_publicado: true, primeiro_agendamento_recebido: true, ...scenario.activation },
+      proxima_acao_ativacao: scenario.nextAction || { estado: "ATIVADO", concluido: true },
+      inteligencia_crescimento: { ...scenario.insight, periodo: "7dias" }
+    }));
+    await page.goto("/painel");
+    const guidance = page.locator("section.dashboard-action-panel").filter({
+      has: page.getByRole("heading", { name: scenario.title, exact: true })
+    });
+    await expect(guidance).toBeVisible();
+    const today = page.getByRole("region", { name: "Agenda de hoje" });
+    await expect(today).toBeVisible();
+    const agendaBox = await today.boundingBox();
+    const guidanceBox = await guidance.boundingBox();
+    if (scenario.activation?.primeiro_agendamento_recebido === false) {
+      expect(guidanceBox.y + guidanceBox.height).toBeLessThanOrEqual(agendaBox.y);
+    } else {
+      expect(agendaBox.y + agendaBox.height).toBeLessThanOrEqual(guidanceBox.y);
+    }
+    await expect(page.getByRole("button", { name: "Ativar lembretes no WhatsApp" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Ativação concluída" })).toHaveCount(0);
+    await expect(guidance.getByRole("button", { name: /Compartilhar|Criar texto/i })).toHaveCount(0);
+    const action = guidance.getByRole("link", { name: scenario.action });
+    await action.scrollIntoViewIfNeeded();
+    await action.focus();
+    await expect(action).toBeFocused();
+    const diagnostics = await horizontalOverflowDiagnostics(page);
+    expect(diagnostics.scrollWidth).toBe(diagnostics.clientWidth);
+    await action.click();
+    await expect(page).toHaveURL(scenario.destination);
+    if (scenario.action.endsWith("da equipe")) {
+      await expect(page.getByRole("heading", { name: "Profissionais", exact: true })).toBeVisible();
+    }
+    if (scenario.action === "Revisar horários da equipe") {
+      await page.getByRole("link", { name: "Configurar horários", exact: true }).click();
+      await expect(page).toHaveURL(/\/painel\/horarios\?profissional=9$/);
+      await expect(page.locator(".workspace-heading").getByText("Ana", { exact: true })).toBeVisible();
+      const teamDiagnostics = await horizontalOverflowDiagnostics(page);
+      expect(teamDiagnostics.scrollWidth).toBe(teamDiagnostics.clientWidth);
+    }
+  });
+}
+
 test("ProfessionalShell mantém rotina curta, foco visível e sem overflow no celular", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("session_active", "1");

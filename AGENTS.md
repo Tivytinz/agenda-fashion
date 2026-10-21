@@ -53,6 +53,46 @@ organização, constância e direção, com orientação prática para a próxim
 empreende. Essa direção orienta a evolução do produto; não comprova uma
 funcionalidade implementada nem garante crescimento ou faturamento.
 
+Após a ativação, ausência estrutural de disponibilidade agendável prioriza
+revisão de horários antes de divulgação, sem alterar publicação ou reabrir a
+ativação. Amostra insuficiente mantém orientação básica de rotina sem
+inventar oportunidades analíticas. Reservas não canceladas não são
+apresentadas como atendimentos realizados ou receita.
+
+A orientação do painel reconhece a ocultação manual por sinal derivado no
+backend e oferece gestão da publicação, sem chamar a escolha da dona de
+cadastro incompleto ou republicar automaticamente. Erros de consentimento
+operacional de WhatsApp são exibidos no próprio card e permitem nova tentativa.
+
+O diagnóstico estrutural da disponibilidade distingue ausência de profissional
+ativa habilitada, ausência de horários e duração incompatível com as faixas e
+pausas. A orientação canônica encaminha para equipe ou horários conforme a
+causa, sem alterar publicação. Convites de divulgação no painel respeitam a
+mesma elegibilidade operacional da fila de WhatsApp. Depois do primeiro
+agendamento válido, a agenda de hoje antecede orientação, upgrade e
+consentimentos; a primeira jornada continua priorizando sua missão de ativação.
+
+Quando apenas outra profissional está habilitada, a orientação de horários
+passa pela equipe e pelo contexto explícito da profissional, sem abrir a agenda
+pessoal da dona como solução. No editor de serviços da equipe, cada leitura
+pertence à pessoa e à abertura atual da janela; fechar, trocar ou sair invalida
+respostas antigas, inclusive erros e conclusão de carregamento. O salvamento
+mantém esse contexto e permite nova tentativa após falha sem perder a seleção.
+
+No negócio, nos serviços e nos horários, confirmar `Sair sem salvar` invalida a
+geração das operações pendentes antes de liberar a navegação, inclusive enquanto
+Suspense mantém a tela antiga montada. Respostas descartadas não podem adotar negócio, atualizar
+sessão, redirecionar ou alterar o editor. Continuar editando e Escape preservam
+a operação; a invalidação local não desfaz persistência já confirmada no backend.
+No serviço, o descarte também impede iniciar os próximos uploads do lote. Em
+Horários, cancela consultas de ativação e impede que uma resposta descartada
+consulte ou restaure a próxima missão.
+A mudança de pathname ou query aceita pelo roteador também invalida essas
+operações, mesmo sem rascunho e sem diálogo de descarte. Tentativas bloqueadas,
+Continuar editando, Escape e mudanças apenas de state/hash não invalidam a
+operação. Se concluir o salvamento liberar uma saída já solicitada, a continuação
+antiga não pode iniciar uploads, refresh ou outra navegação.
+
 ## Integração contínua e merge
 
 Pull requests não draft direcionados à `main` devem habilitar auto-merge por squash automaticamente. Os gates obrigatórios de CI e as regras de proteção da branch continuam sendo a condição de integração: o PR só entra na `main` depois de satisfazê-los. Falha ou cancelamento de check não deve ser contornado por merge forçado.
@@ -1221,3 +1261,16 @@ mesmo conjunto de mudanças sempre que possível.
 ## Reativação idempotente da renovação
 
 Enquanto o período já pago permanecer válido, a dona pode reativar uma renovação cancelada sem cobrança imediata. Cada ciclo usa `assinaturas.reativacao_tentativa` como versão monotônica e uma `externalReference` determinística no Asaas. O estado transitório `REACTIVATING` não deve ser revertido por timeout ou erro ambíguo: uma execução posterior consulta a mesma referência; recorrência encontrada finaliza a reativação, ausência confirmada restaura `CANCELED` e falha de consulta preserva `REACTIVATING` para nova reconciliação. Chamadas ao Asaas permanecem fora de transações PostgreSQL.
+
+No Copilot, trocar negócio, período ou recomendação e desmontar o componente
+invalida o pedido anterior, incluindo sucesso, erro e telemetria de geração.
+O ranking histórico preserva serviços inativos; destaque de divulgação exige
+confirmação explícita de serviço atualmente ativo, mantendo todos os
+agendamentos do período no denominador da participação.
+
+O destaque de divulgação exige disponibilidade estrutural do próprio serviço,
+além de ativo: profissional ativa habilitada e duração compatível com faixas e
+pausas. A projeção reutiliza o SQL canônico de disponibilidade, sem remover
+histórico. Ao trocar período, recomendações ficam indisponíveis até confirmar
+os dados atuais; erro de atualização preserva métricas antigas, sem liberar
+divulgação baseada nelas.

@@ -49,6 +49,8 @@ export function getWhatsappConsentVisibility({
   const businessPublished = activation.negocio_publicado === true;
   const awaitingFirstBooking =
     businessPublished &&
+    activation.possui_servico_ativo === true &&
+    activation.possui_disponibilidade_agendavel === true &&
     activation.primeiro_agendamento_recebido !== true;
   const operational =
     businessPublished &&
@@ -311,13 +313,26 @@ export function DashboardPage() {
     />
   );
 
-  const growthPanel = (
+  const growthPeriodIsCurrent = !refreshing && !error &&
+    data.inteligencia_crescimento?.periodo === period;
+  const growthPanel = growthPeriodIsCurrent ? (
     <DashboardGrowthInsight
       insight={data.inteligencia_crescimento}
       businessId={data.negocio?.negocio_id}
       businessName={data.negocio?.nome}
       businessSlug={data.negocio?.slug}
     />
+  ) : null;
+
+  const prioritizeAgenda = data.ativacao?.primeiro_agendamento_recebido === true;
+  const todayPanel = (
+    <section className="panel dashboard-today" aria-label="Agenda de hoje">
+      <div>
+        <p className="eyebrow">Hoje</p>
+        <h2>{summary.agendamentos_hoje ?? 0} {Number(summary.agendamentos_hoje) === 1 ? "agendamento" : "agendamentos"}</h2>
+      </div>
+      <Link className="button" to="/painel/agenda">Abrir agenda</Link>
+    </section>
   );
 
   return (
@@ -342,6 +357,8 @@ export function DashboardPage() {
       )}
       {refreshing && <p className="data-refresh-status" role="status">Atualizando indicadores...</p>}
       {error && <p className="form-error" role="alert">{error} Os últimos dados carregados continuam visíveis.</p>}
+
+      {prioritizeAgenda && todayPanel}
 
       {activationCompleted ? (
         <>
@@ -401,6 +418,11 @@ export function DashboardPage() {
               Gerenciar em Minha conta
             </Link>
           </div>
+          {whatsappReminders.error && (
+            <p className="form-error" role="alert">
+              {whatsappReminders.error}
+            </p>
+          )}
         </section>
       )}
 
@@ -443,13 +465,7 @@ export function DashboardPage() {
         </section>
       )}
 
-      <section className="panel dashboard-today" aria-label="Agenda de hoje">
-        <div>
-          <p className="eyebrow">Hoje</p>
-          <h2>{summary.agendamentos_hoje ?? 0} {Number(summary.agendamentos_hoje) === 1 ? "agendamento" : "agendamentos"}</h2>
-        </div>
-        <Link className="button" to="/painel/agenda">Abrir agenda</Link>
-      </section>
+      {!prioritizeAgenda && todayPanel}
 
       <h2 className="dashboard-section-title">No período selecionado</h2>
 
