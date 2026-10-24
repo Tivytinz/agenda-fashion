@@ -27,6 +27,16 @@ export function LegalFooter() {
           <a href={`mailto:${LEGAL_CONTACT_EMAIL}`}>
             Suporte
           </a>
+          {!adminArea && (
+            <a
+              href="https://www.instagram.com/agendafashionbr/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram do Agenda Fashion (abre em nova aba)"
+            >
+              Instagram
+            </a>
+          )}
         </nav>
       </div>
     </footer>
