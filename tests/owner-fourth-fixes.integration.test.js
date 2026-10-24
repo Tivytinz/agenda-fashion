@@ -192,8 +192,8 @@ testNative.each(["ativação", "convite"])("QD-03: %s e inativação em duas con
     expect(results.map((result) => result.status)).toEqual(["fulfilled", "fulfilled"]);
     const members = (await db.query("SELECT usuario_id,ativo FROM usuarios_negocios WHERE negocio_id=$1 AND usuario_id=ANY($2::int[]) ORDER BY usuario_id", [studio.negocioId, [ana, bia]])).rows;
     expect(members).toEqual(operation === "ativação"
-      ? [{ usuario_id: ana, ativo: true }, { usuario_id: bia, ativo: false }]
-      : [{ usuario_id: bia, ativo: false }]);
+      ? [{ usuario_id: String(ana), ativo: true }, { usuario_id: String(bia), ativo: false }]
+      : [{ usuario_id: String(bia), ativo: false }]);
     if (operation === "convite") {
       expect((await db.query("SELECT status FROM convites_profissionais WHERE negocio_id=$1 AND usuario_convidado_id=$2", [studio.negocioId, ana])).rows)
         .toEqual([{ status: "pendente" }]);

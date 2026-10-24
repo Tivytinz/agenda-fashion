@@ -304,3 +304,22 @@ além das quatro limitações nativas documentadas na auditoria.
 
 Evidência local desta preparação:
 `/workspace/scratch/7eae87c29875/audit-harness/owner-ninth-fixes-20261024/`.
+
+### Ajustes encontrados no primeiro CI do PR #400
+
+O CI nativo executou 2.059 testes de backend: 2.057 passaram e duas asserções
+falharam por comparar `usuarios_negocios.usuario_id` (BIGINT retornado como texto
+pelo pg) com IDs numéricos do fixture. As duas operações concorrentes concluíram;
+a expectativa foi corrigida para o tipo real do driver, sem mudar parser ou
+lógica do produto. Os cinco casos não executados no harness local foram
+executados nesse CI. O frontend aprovou 118 arquivos e 802 testes.
+
+A auditoria de dependências bloqueou o gate com um aviso alto de `body-parser`.
+O lock do backend passa a usar `body-parser 2.4.0`, `fast-uri 3.1.9` e
+`ip-address 10.7.4`, com dependências compatíveis atualizadas pelo npm. O lock do
+frontend atualiza Vitest para 5.0.5 e suas dependências compatíveis. As auditorias
+dos dois locks retornaram zero vulnerabilidades nessa conferência; os gates
+continuam ativos para a nova execução.
+
+Referência primária do bloqueio:
+[GHSA-27r3-jxmh-p828](https://github.com/advisories/GHSA-27r3-jxmh-p828).
