@@ -1,16 +1,39 @@
 const db = require("../db/db");
 
+async function bloquearNegocioDoEvento(client, { subscriptionId = null, paymentId = null, assinaturaId = null, externalReference = null }) {
+  await client.query(`
+    SELECT n.id FROM negocios n
+    WHERE EXISTS (
+      SELECT 1 FROM assinaturas a
+      WHERE a.negocio_id = n.id AND (a.asaas_subscription_id = $1 OR a.id = $3
+        OR EXISTS (SELECT 1 FROM pagamentos p WHERE p.assinatura_id = a.id AND p.asaas_payment_id = $2)
+        OR EXISTS (SELECT 1 FROM assinatura_renovacao_operacoes o WHERE o.assinatura_id = a.id
+          AND (o.referencia_externa = $4 OR o.asaas_subscription_id = $1 OR o.recorrencia_anterior_id = $1)))
+    )
+    ORDER BY n.id FOR UPDATE OF n
+  `, [subscriptionId, paymentId, assinaturaId, externalReference]);
+}
+
 async function buscarPorSubscriptionParaAtualizar(
   client,
-  subscriptionId
+  subscriptionId,
+  { incluirHistorico = false } = {}
 ) {
   const resultado = await client.query(
     `
-      SELECT *
-      FROM assinaturas
-      WHERE asaas_subscription_id = $1
+      SELECT a.*
+      FROM assinaturas a
+      WHERE asaas_subscription_id = $1 OR EXISTS (
+        SELECT 1 FROM assinatura_renovacao_operacoes o
+        WHERE o.assinatura_id = a.id AND o.asaas_subscription_id = $1
+          AND o.estado IN ('PENDING', 'REMOVING')
+      )
+      ${incluirHistorico ? `OR EXISTS (
+        SELECT 1 FROM assinatura_renovacao_operacoes o
+        WHERE o.assinatura_id = a.id AND (o.recorrencia_anterior_id = $1 OR o.asaas_subscription_id = $1)
+      )` : ""}
       LIMIT 1
-      FOR UPDATE
+      FOR UPDATE OF a
     `,
     [subscriptionId]
   );
@@ -53,6 +76,7 @@ async function atualizarPorWebhook(
     valor,
     proximaCobranca,
     ativo,
+    renovacaoCancelada = false,
     eventoCriadoEm,
     eventoId,
   }
@@ -67,8 +91,10 @@ async function atualizarPorWebhook(
         forma_pagamento = COALESCE($4, forma_pagamento),
         periodicidade = COALESCE($5, periodicidade),
         valor = COALESCE($6, valor),
+        acesso_pago_ate = COALESCE(acesso_pago_ate, CASE WHEN ativo = TRUE AND acesso_pago_reconciliado = FALSE THEN data_proxima_cobranca END),
         data_proxima_cobranca = COALESCE($7, data_proxima_cobranca),
         ativo = $8,
+        renovacao_cancelada = renovacao_cancelada OR $12::boolean,
         asaas_ultimo_evento_em = CASE
           WHEN $9::timestamp IS NOT NULL THEN $9::timestamp
           ELSE asaas_ultimo_evento_em
@@ -98,6 +124,7 @@ async function atualizarPorWebhook(
       eventoCriadoEm,
       eventoId,
       assinaturaId,
+      renovacaoCancelada,
     ]
   );
 
@@ -182,14 +209,25 @@ async function buscarPorPagamentoParaAtualizar(
 
 async function suspenderAssinatura(
   client,
-  { assinaturaId, status, observacao }
+  { assinaturaId, status, observacao, acessoPagoAte }
 ) {
   const resultado = await client.query(
     `
-      UPDATE assinaturas
+      UPDATE assinaturas a
       SET
-        status = $1,
-        ativo = FALSE,
+        renovacao_cancelada = a.renovacao_cancelada OR UPPER(a.status) IN ('CANCELED', 'CANCELLED', 'REACTIVATING'),
+        acesso_pago_reconciliado = TRUE,
+        acesso_pago_ate = $4::date,
+        status = CASE WHEN $4::date > CURRENT_DATE AND NOT EXISTS (
+          SELECT 1 FROM assinaturas nova WHERE nova.negocio_id = a.negocio_id AND nova.id > a.id AND nova.ativo = TRUE
+        ) THEN CASE
+          WHEN EXISTS (SELECT 1 FROM assinatura_renovacao_operacoes o
+            WHERE o.assinatura_id = a.id AND o.tentativa = a.reativacao_tentativa AND o.estado IN ('PENDING', 'REMOVING')) THEN 'REACTIVATING'
+          WHEN a.renovacao_cancelada OR UPPER(a.status) IN ('CANCELED', 'CANCELLED') THEN 'CANCELED'
+          ELSE 'ACTIVE' END ELSE $1 END,
+        ativo = COALESCE($4::date > CURRENT_DATE, FALSE) AND NOT EXISTS (
+          SELECT 1 FROM assinaturas nova WHERE nova.negocio_id = a.negocio_id AND nova.id > a.id AND nova.ativo = TRUE
+        ),
         observacoes = CONCAT_WS(
           E'\n',
           NULLIF(observacoes, ''),
@@ -199,7 +237,7 @@ async function suspenderAssinatura(
       WHERE id = $3
       RETURNING *
     `,
-    [status, observacao, assinaturaId]
+    [status, observacao, assinaturaId, acessoPagoAte || null]
   );
 
   return resultado.rows[0] || null;
@@ -392,6 +430,7 @@ async function ativarAssinatura(
         asaas_subscription_id = $1,
         status = 'ACTIVE',
         data_proxima_cobranca = $2,
+        acesso_pago_ate = GREATEST(COALESCE(acesso_pago_ate, data_proxima_cobranca), $2::date),
         ativo = TRUE,
         observacoes = $3
       WHERE id = $4
@@ -424,6 +463,7 @@ async function atualizarPlanoNegocio(
 }
 
 module.exports = {
+  bloquearNegocioDoEvento,
   buscarPorSubscriptionParaAtualizar,
   buscarPorReferenciaParaAtualizar,
   atualizarPorWebhook,

@@ -632,8 +632,8 @@ async function buscarReceita(periodo = "30") {
           )
           AND pl.valor > 0
           AND NOT (
-            a.data_proxima_cobranca IS NOT NULL
-            AND a.data_proxima_cobranca <= CURRENT_DATE
+            COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca) IS NOT NULL
+            AND COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca) <= CURRENT_DATE
           )
       ),
       cancelamentos_encerrados AS (
@@ -663,8 +663,8 @@ async function buscarReceita(periodo = "30") {
             'CANCELED',
             'CANCELLED'
           )
-          AND a.data_proxima_cobranca IS NOT NULL
-          AND a.data_proxima_cobranca <= CURRENT_DATE
+          AND COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca) IS NOT NULL
+          AND COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca) <= CURRENT_DATE
           AND pl.valor > 0
       ),
       lifecycle_eventos AS (
@@ -712,8 +712,8 @@ async function buscarReceita(periodo = "30") {
               'CANCELED',
               'CANCELLED'
             )
-            AND a.data_proxima_cobranca IS NOT NULL
-            AND a.data_proxima_cobranca <= CURRENT_DATE
+            AND COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca) IS NOT NULL
+            AND COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca) <= CURRENT_DATE
           )
       )
       SELECT
@@ -786,8 +786,8 @@ async function buscarReceita(periodo = "30") {
             'CANCELED',
             'CANCELLED'
           )
-          AND a.data_proxima_cobranca IS NOT NULL
-          AND a.data_proxima_cobranca <= CURRENT_DATE
+          AND COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca) IS NOT NULL
+          AND COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca) <= CURRENT_DATE
         )
       GROUP BY pl.id, pl.nome, pl.slug
       ORDER BY COUNT(*) DESC, pl.nome ASC

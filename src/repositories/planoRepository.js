@@ -123,6 +123,8 @@ async function buscarUsoPlano(
         FROM assinaturas a
         WHERE a.negocio_id = n.id
           AND a.ativo = TRUE
+          AND (UPPER(a.status) NOT IN ('CANCELED', 'CANCELLED', 'REACTIVATING')
+            OR COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca) > CURRENT_DATE)
         ORDER BY a.id DESC
         LIMIT 1
       ) assinatura_ativa ON TRUE

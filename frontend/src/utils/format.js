@@ -56,11 +56,19 @@ export function formatLocation(business) {
 }
 
 export function formatDate(value, long = false) {
-  const date = new Date(`${value}T12:00:00`);
+  // Datas civis da API não são instantes. Conteúdo ausente ou inválido não
+  // pode interromper a tela inteira, inclusive no histórico de pagamentos.
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return "Data não informada";
+  }
+  const date = new Date(`${value}T12:00:00.000Z`);
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+    return "Data não informada";
+  }
 
   return new Intl.DateTimeFormat("pt-BR", long
-    ? { weekday: "long", day: "2-digit", month: "long" }
-    : { weekday: "short", day: "2-digit", month: "short" }
+    ? { weekday: "long", day: "2-digit", month: "long", timeZone: "UTC" }
+    : { weekday: "short", day: "2-digit", month: "short", timeZone: "UTC" }
   ).format(date);
 }
 

@@ -217,7 +217,7 @@ describe("Autorização da agenda profissional", () => {
 
     expect(remocaoComCompromissoAtivo.statusCode).toBe(409);
     expect(remocaoComCompromissoAtivo.body.erro).toContain(
-      "agendamento futuro ativo"
+      "agendamento pendente"
     );
 
     await db.query(

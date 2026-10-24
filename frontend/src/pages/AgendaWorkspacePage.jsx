@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
@@ -17,6 +17,7 @@ function getStatusLabel(status) {
     bloqueado: "Bloqueado",
     agendado: "Agendado",
     confirmado: "Confirmado",
+    ocupado: "Ocupado",
     realizado: "Realizado",
     falta: "Falta",
     passado: "Encerrado"
@@ -30,6 +31,13 @@ function getDatePageSize() {
   if (window.innerWidth >= 920) return 4;
   if (window.innerWidth >= 680) return 3;
   return 2;
+}
+
+function getRescheduleProfessionals(professionals, serviceId, currentProfessionalId) {
+  return professionals.filter((professional) => professional.ativo !== false
+    && (String(professional.id) === String(currentProfessionalId)
+      || !serviceId
+      || (professional.servico_ids || []).some((id) => String(id) === String(serviceId))));
 }
 
 function getLocalDateKey(
@@ -121,6 +129,9 @@ function SlotSummary({ slot, statusLabel }) {
   return (
     <>
       <strong>{String(slot.hora).slice(0, 5)}</strong>
+      {slot.continuacao && (
+        <small>Continua desde {formatDate(slot.data_agendamento)} às {slot.hora_agendamento}</small>
+      )}
       <span className="slot-status">
         {slot.status === "bloqueado" && <LockIcon />}
         <span>{statusLabel}</span>
@@ -148,38 +159,68 @@ export function AgendaWorkspacePage({ owner = false }) {
   const [rescheduleProfessionalId, setRescheduleProfessionalId] = useState("");
   const [datePageSize, setDatePageSize] = useState(getDatePageSize);
   const [datePageStart, setDatePageStart] = useState(0);
+  const [windowStart, setWindowStart] = useState("");
+  const [refreshing, setRefreshing] = useState(true);
+  const [readFailed, setReadFailed] = useState(false);
+  const [loadedView, setLoadedView] = useState("");
+  const readRef = useRef(null);
+  const mutationRef = useRef(null);
+  const viewKey = JSON.stringify([owner, windowStart]);
+  const viewRef = useRef(viewKey);
+  viewRef.current = viewKey;
 
   const load = useCallback(async () => {
+    readRef.current?.abort();
+    const controller = new AbortController();
+    readRef.current = controller;
+    const isCurrent = () => readRef.current === controller
+      && !controller.signal.aborted && viewRef.current === viewKey;
     setError("");
+    setRefreshing(true);
     try {
-      const result = await apiRequest(
-        owner
-          ? "/agenda-geral"
-          : "/agenda-profissional",
-        {
-          headers: {
-            "X-AF-Contexto":
-              owner
-                ? "dono"
-                : "profissional"
-          }
-        }
-      );
+      const path = owner
+        ? `/agenda-geral${windowStart ? `?data_inicio=${encodeURIComponent(windowStart)}` : ""}`
+        : "/agenda-profissional";
+      const result = await apiRequest(path, {
+        headers: { "X-AF-Contexto": owner ? "dono" : "profissional" },
+        signal: controller.signal,
+      });
+      if (!isCurrent()) return false;
       setData(result);
-      const firstDay = getValidAgendaDays(result.agenda)[0];
-      const firstDate = firstDay?.data || "";
-      setSelectedDate((current) => current || firstDate);
+      setLoadedView(viewKey);
+      setReadFailed(false);
+      const days = getValidAgendaDays(result.agenda);
+      const firstDay = days[0];
+      setSelectedDate((current) => days.some((day) => day.data === current) ? current : firstDay?.data || "");
       if (owner) {
-        const firstProfessional = getValidProfessionals(firstDay?.profissionais)[0]?.id;
-        setSelectedProfessional((current) => current || String(firstProfessional || ""));
+        const people = getValidProfessionals(firstDay?.profissionais);
+        setSelectedProfessional((current) => people.some((person) => String(person.id) === current)
+          ? current : String(people[0]?.id || ""));
       }
+      return true;
     } catch (requestError) {
-      setError(requestError.message);
-      throw requestError;
+      if (isCurrent()) {
+        setReadFailed(true);
+        setError(requestError.message);
+      }
+      return false;
+    } finally {
+      if (isCurrent()) setRefreshing(false);
     }
-  }, [owner]);
+  }, [owner, windowStart, viewKey]);
 
-  useEffect(() => { void load().catch(() => {}); }, [load]);
+  useEffect(() => {
+    mutationRef.current = null;
+    setUpdating("");
+    setCancelTarget(null);
+    setRescheduleTarget(null);
+    void load();
+    return () => {
+      readRef.current?.abort();
+      readRef.current = null;
+      mutationRef.current = null;
+    };
+  }, [load]);
 
   useEffect(() => {
     function handleResize() {
@@ -230,23 +271,13 @@ export function AgendaWorkspacePage({ owner = false }) {
   const dates = getValidAgendaDays(data?.agenda);
   const activeDay = dates.find((day) => day.data === selectedDate) || dates[0];
   const professionals = owner ? getValidProfessionals(activeDay?.profissionais) : [];
-  const eligibleRescheduleProfessionals =
-    owner && rescheduleTarget?.servico_id
-      ? professionals.filter(
-          (professional) =>
-            (professional.servico_ids || [])
-              .some(
-                (id) =>
-                  String(id) ===
-                  String(
-                    rescheduleTarget.servico_id
-                  )
-              )
-        )
-      : professionals;
   const activeProfessional = owner
     ? professionals.find((item) => String(item.id) === selectedProfessional) || professionals[0]
     : null;
+  const eligibleRescheduleProfessionals = getRescheduleProfessionals(
+    professionals, rescheduleTarget?.servico_id,
+    rescheduleTarget?.profissional_id || activeProfessional?.id
+  );
   const slots = getValidSlots(owner ? activeProfessional?.horarios : activeDay?.horarios);
   const maxDatePageStart = Math.max(0, dates.length - datePageSize);
   const safeDatePageStart = Math.min(datePageStart, maxDatePageStart);
@@ -287,7 +318,7 @@ export function AgendaWorkspacePage({ owner = false }) {
     setRescheduleTarget(null);
     setRescheduleDate("");
     setRescheduleTime("");
-        setRescheduleProfessionalId("");
+    setRescheduleProfessionalId("");
     if (owner) {
       const firstProfessional = getValidProfessionals(day.profissionais)[0];
       setSelectedProfessional(String(firstProfessional?.id || ""));
@@ -302,59 +333,70 @@ export function AgendaWorkspacePage({ owner = false }) {
     setDatePageStart((current) => Math.min(maxDatePageStart, current + datePageSize));
   }
 
-  async function toggleSlot(slot) {
-    if (!["livre", "bloqueado"].includes(slot.status)) return;
-    const key = `bloqueio-${selectedDate}-${slot.hora}-${activeProfessional?.id || "self"}`;
+  const canWrite = loadedView === viewKey && !refreshing && !readFailed && !updating;
+  const canBlock = canWrite && (!owner || activeProfessional?.ativo !== false);
+
+  async function mutate({ key, path, options, onSuccess }) {
+    if (mutationRef.current || !canWrite) return;
+    const operation = { key, viewKey };
+    mutationRef.current = operation;
+    const isCurrent = () => mutationRef.current === operation && viewRef.current === operation.viewKey;
     setUpdating(key);
     setError("");
     setMessage("");
     try {
-      const result = await apiRequest("/bloqueios-horario", {
+      const result = await apiRequest(path, options);
+      if (!isCurrent()) return;
+      onSuccess?.(result);
+      setMessage(result.mensagem);
+      const refreshed = await load();
+      if (isCurrent() && !refreshed) {
+        setError("Alteração salva. Não foi possível atualizar a agenda. Atualize a agenda para continuar.");
+      }
+    } catch (requestError) {
+      if (!isCurrent()) return;
+      const status = Number(requestError.status || requestError.statusCode);
+      if (!status || status >= 500 || status === 408) {
+        setCancelTarget(null);
+        setRescheduleTarget(null);
+        setReadFailed(true);
+        setError("Não foi possível confirmar a alteração. Atualize a agenda antes de tentar novamente.");
+      } else {
+        setError(requestError.message);
+      }
+    } finally {
+      if (mutationRef.current === operation) {
+        mutationRef.current = null;
+        setUpdating("");
+      }
+    }
+  }
+
+  async function toggleSlot(slot) {
+    if (!canBlock || !["livre", "bloqueado"].includes(slot.status)) return;
+    return mutate({
+      key: `bloqueio-${selectedDate}-${slot.hora}-${activeProfessional?.id || "self"}`,
+      path: "/bloqueios-horario",
+      options: {
         method: "POST",
-        headers: {
-          "X-AF-Contexto":
-            owner
-              ? "dono"
-              : "profissional"
-        },
+        headers: { "X-AF-Contexto": owner ? "dono" : "profissional" },
         body: {
           data: selectedDate,
           hora: slot.hora,
-          ...(owner && activeProfessional ? { profissional_id: activeProfessional.id } : {})
-        }
-      });
-      setMessage(result.mensagem);
-      await load();
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setUpdating("");
-    }
+          bloqueado: slot.status === "livre",
+          ...(owner && activeProfessional ? { profissional_id: activeProfessional.id } : {}),
+        },
+      },
+    });
   }
 
   async function updateAttendance(slot, status) {
     if (!slot.agendamento_id) return;
-
-    const key = `atendimento-${slot.agendamento_id}-${status}`;
-    setUpdating(key);
-    setError("");
-    setMessage("");
-
-    try {
-      const result = await apiRequest(
-        `/agendamentos/${slot.agendamento_id}/atendimento`,
-        {
-          method: "PATCH",
-          body: { status }
-        }
-      );
-      setMessage(result.mensagem);
-      await load();
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setUpdating("");
-    }
+    return mutate({
+      key: `atendimento-${slot.agendamento_id}-${status}`,
+      path: `/agendamentos/${slot.agendamento_id}/atendimento`,
+      options: { method: "PATCH", body: { status } },
+    });
   }
 
   function openCancellation(slot) {
@@ -375,33 +417,19 @@ export function AgendaWorkspacePage({ owner = false }) {
 
   async function cancelAppointment() {
     if (!cancelTarget?.agendamento_id) return;
-
-    const key = `cancelamento-${cancelTarget.agendamento_id}`;
-    setUpdating(key);
-    setError("");
-    setMessage("");
-
-    try {
-      const result = await apiRequest(
-        `/agendamentos/${cancelTarget.agendamento_id}/cancelar-operacional`,
-        {
-          method: "PATCH",
-          body: {
-            motivo_tipo: cancelReasonType,
-            motivo: cancelReason.trim() || null
-          }
-        }
-      );
-      setCancelTarget(null);
-      setCancelReasonType("");
-      setCancelReason("");
-      setMessage(result.mensagem);
-      await load();
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setUpdating("");
-    }
+    return mutate({
+      key: `cancelamento-${cancelTarget.agendamento_id}`,
+      path: `/agendamentos/${cancelTarget.agendamento_id}/cancelar-operacional`,
+      options: {
+        method: "PATCH",
+        body: { motivo_tipo: cancelReasonType, motivo: cancelReason.trim() || null },
+      },
+      onSuccess: () => {
+        setCancelTarget(null);
+        setCancelReasonType("");
+        setCancelReason("");
+      },
+    });
   }
 
   function openReschedule(slot) {
@@ -411,15 +439,12 @@ export function AgendaWorkspacePage({ owner = false }) {
     setCancelReasonType("");
     setCancelReason("");
     setRescheduleTarget(slot);
-    setRescheduleDate(selectedDate);
-    setRescheduleTime(String(slot.hora || "").slice(0, 5));
-    setRescheduleProfessionalId(
-      String(
-        slot.profissional_id ||
-        activeProfessional?.id ||
-        ""
-      )
-    );
+    setRescheduleDate(slot.data_agendamento || selectedDate);
+    setRescheduleTime(String(slot.hora_agendamento || slot.hora || "").slice(0, 5));
+    const currentId = slot.profissional_id || activeProfessional?.id;
+    const eligible = getRescheduleProfessionals(professionals, slot.servico_id, currentId);
+    const nextProfessional = eligible.find((person) => String(person.id) === String(currentId)) || eligible[0];
+    setRescheduleProfessionalId(String(nextProfessional?.id || ""));
     setError("");
     setMessage("");
   }
@@ -430,62 +455,55 @@ export function AgendaWorkspacePage({ owner = false }) {
     setRescheduleTarget(null);
     setRescheduleDate("");
     setRescheduleTime("");
-        setRescheduleProfessionalId("");
+    setRescheduleProfessionalId("");
   }
 
   async function rescheduleAppointment() {
-    if (
-      !rescheduleTarget?.agendamento_id ||
-      !rescheduleDate ||
-      !rescheduleTime
-    ) {
-      return;
-    }
-
-    const key = `reagendamento-${rescheduleTarget.agendamento_id}`;
-    setUpdating(key);
-    setError("");
-    setMessage("");
-
-    try {
-      const result = await apiRequest(
-        `/agendamentos/${rescheduleTarget.agendamento_id}/reagendar-operacional`,
-        {
-          method: "PATCH",
-          body: {
-            data: rescheduleDate,
-            horario: rescheduleTime,
-            ...(owner &&
-              rescheduleProfessionalId
-              ? {
-                  profissional_id:
-                    Number(
-                      rescheduleProfessionalId
-                    )
-                }
-              : {})
-          }
-        }
-      );
-
-      setRescheduleTarget(null);
-      setRescheduleDate("");
-      setRescheduleTime("");
+    if (!rescheduleTarget?.agendamento_id || !rescheduleDate || !rescheduleTime) return;
+    return mutate({
+      key: `reagendamento-${rescheduleTarget.agendamento_id}`,
+      path: `/agendamentos/${rescheduleTarget.agendamento_id}/reagendar-operacional`,
+      options: {
+        method: "PATCH",
+        body: {
+          data: rescheduleDate,
+          horario: rescheduleTime,
+          ...(owner && rescheduleProfessionalId ? { profissional_id: Number(rescheduleProfessionalId) } : {}),
+        },
+      },
+      onSuccess: () => {
+        setRescheduleTarget(null);
+        setRescheduleDate("");
+        setRescheduleTime("");
         setRescheduleProfessionalId("");
-      setMessage(result.mensagem);
-      await load();
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setUpdating("");
-    }
+      },
+    });
+  }
+
+  function changeWindow(value) {
+    if (mutationRef.current) return;
+    setSelectedDate("");
+    setDatePageStart(0);
+    setMessage("");
+    if (value === windowStart) void load();
+    else setWindowStart(value);
+  }
+
+  function moveWeek(days) {
+    const start = windowStart || dates[0]?.data;
+    if (!start) return;
+    const day = new Date(`${start}T12:00:00Z`);
+    day.setUTCDate(day.getUTCDate() + days);
+    if (!Number.isFinite(day.getTime()) || day.getUTCFullYear() < 1 || day.getUTCFullYear() > 9999
+      || day.toISOString().slice(0, 10) > "9999-12-25") return;
+    changeWindow(day.toISOString().slice(0, 10));
   }
 
   if (!data && !error) return <main className="workspace-page"><LoadingState>Carregando agenda...</LoadingState></main>;
-  if (!data && error) return <main className="workspace-page"><ErrorState message={error} onRetry={() => void load().catch(() => {})} /></main>;
+  if (!data && error) return <main className="workspace-page"><ErrorState message={error} onRetry={() => void load()} /></main>;
 
   return (
-    <main className="workspace-page agenda-workspace-page">
+    <main aria-busy={refreshing} className="workspace-page agenda-workspace-page">
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">{owner ? "Seu negócio em movimento" : "Seu dia de trabalho"}</p>
@@ -493,6 +511,29 @@ export function AgendaWorkspacePage({ owner = false }) {
           <p>Bloqueie horários livres, registre cancelamentos operacionais e finalize atendimentos com o estado correto.</p>
         </div>
       </header>
+
+      {owner && (
+        <section className="panel agenda-period-controls" aria-label="Período da agenda">
+          <label>
+            Data inicial
+            <input type="date" value={windowStart || dates[0]?.data || ""}
+              disabled={Boolean(updating)}
+              min="0001-01-01"
+              max="9999-12-25"
+              onChange={(event) => { if (event.target.value) changeWindow(event.target.value); }} />
+          </label>
+          <button className="button button-secondary button-small" type="button" disabled={Boolean(updating)} onClick={() => moveWeek(-7)}>Semana anterior</button>
+          <button className="button button-secondary button-small" type="button" disabled={Boolean(updating)} onClick={() => changeWindow("")}>Hoje</button>
+          <button className="button button-secondary button-small" type="button" disabled={Boolean(updating)} onClick={() => moveWeek(7)}>Próxima semana</button>
+        </section>
+      )}
+      {refreshing && <p role="status">Atualizando agenda...</p>}
+      {error && !cancelTarget && !rescheduleTarget && (
+        <div className="form-error" role="alert">
+          <p>{error}</p>
+          {readFailed && <button className="button button-secondary button-small" type="button" disabled={refreshing || Boolean(updating)} onClick={() => void load()}>Atualizar agenda</button>}
+        </div>
+      )}
 
       {dates.length === 0 ? (
         owner ? (
@@ -518,7 +559,7 @@ export function AgendaWorkspacePage({ owner = false }) {
               <button
                 aria-label="Ver datas anteriores"
                 className="agenda-date-arrow"
-                disabled={!canShowPreviousDates}
+                disabled={!canShowPreviousDates || Boolean(updating)}
                 onClick={showPreviousDates}
                 type="button"
               >
@@ -526,7 +567,7 @@ export function AgendaWorkspacePage({ owner = false }) {
               </button>
               <div className="date-switcher" aria-label="Escolha uma data">
                 {visibleDates.map((day) => (
-                  <button aria-pressed={selectedDate === day.data} className={selectedDate === day.data ? "active" : ""} key={day.data} onClick={() => selectDate(day)} type="button">
+                  <button aria-pressed={selectedDate === day.data} className={selectedDate === day.data ? "active" : ""} key={day.data} disabled={Boolean(updating) || refreshing || readFailed || loadedView !== viewKey} onClick={() => selectDate(day)} type="button">
                     {formatAgendaDate(
                       day.data,
                       data?.fuso_horario
@@ -537,7 +578,7 @@ export function AgendaWorkspacePage({ owner = false }) {
               <button
                 aria-label="Ver próximas datas"
                 className="agenda-date-arrow"
-                disabled={!canShowNextDates}
+                disabled={!canShowNextDates || Boolean(updating)}
                 onClick={showNextDates}
                 type="button"
               >
@@ -547,16 +588,15 @@ export function AgendaWorkspacePage({ owner = false }) {
             {owner && professionals.length > 1 && (
               <label>
                 Profissional
-                <select onChange={(event) => setSelectedProfessional(event.target.value)} value={activeProfessional?.id || ""}>
+                <select disabled={Boolean(updating) || refreshing || readFailed || loadedView !== viewKey} onChange={(event) => setSelectedProfessional(event.target.value)} value={activeProfessional?.id || ""}>
                   {professionals.map((professional) => (
-                    <option key={professional.id} value={professional.id}>{professional.nome}</option>
+                    <option key={professional.id} value={professional.id}>{professional.nome}{professional.ativo === false ? " (inativa)" : ""}</option>
                   ))}
                 </select>
               </label>
             )}
           </section>
 
-          {error && <p className="form-error" role="alert">{error}</p>}
           {message && (
             <div className="agenda-feedback-toast" role="status">
               <ConfirmationIcon className="agenda-feedback-icon" />
@@ -565,12 +605,18 @@ export function AgendaWorkspacePage({ owner = false }) {
             </div>
           )}
 
+          {owner && activeProfessional?.ativo === false && (
+            <p className="muted">Profissional inativa. Você pode gerenciar os agendamentos existentes.</p>
+          )}
+
           {owner && professionals.length === 0 ? (
             <EmptyState title="Nenhuma profissional disponível neste dia">
               Confira a equipe e os horários configurados para esta data.
             </EmptyState>
           ) : !owner && activeDay?.trabalha === false && slots.length === 0 ? (
             <EmptyState title="Dia de folga">Você marcou este dia como indisponível.</EmptyState>
+          ) : owner && activeProfessional?.ativo === false && slots.length === 0 ? (
+            <EmptyState title="Nenhum agendamento neste dia">Escolha outra data para consultar as reservas dessa profissional.</EmptyState>
           ) : slots.length === 0 ? (
             <EmptyState title="Nenhum horário configurado">
               Ajuste os horários de atendimento para disponibilizar este dia.
@@ -581,17 +627,11 @@ export function AgendaWorkspacePage({ owner = false }) {
                 const blockKey = `bloqueio-${selectedDate}-${slot.hora}-${activeProfessional?.id || "self"}`;
                 const isBlockUpdating = updating === blockKey;
                 const isAppointment = Boolean(slot.agendamento_id);
-                const attendanceUpdating = updating.startsWith(
-                  `atendimento-${slot.agendamento_id || "nenhum"}-`
-                );
-                const slotCancellationUpdating = updating ===
-                  `cancelamento-${slot.agendamento_id || "nenhum"}`;
                 const slotRescheduleUpdating = updating ===
                   `reagendamento-${slot.agendamento_id || "nenhum"}`;
-                const slotUpdating =
-                  attendanceUpdating ||
-                  slotCancellationUpdating ||
-                  slotRescheduleUpdating;
+                const slotUpdating = slotRescheduleUpdating
+                  || updating === `cancelamento-${slot.agendamento_id}`
+                  || updating.startsWith(`atendimento-${slot.agendamento_id}-`);
                 const statusLabel = isBlockUpdating
                   ? slot.status === "livre" ? "Bloqueando..." : "Liberando..."
                   : getStatusLabel(slot.status);
@@ -601,7 +641,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                     <button
                       aria-busy={isBlockUpdating || undefined}
                       className={`slot-card slot-${slot.status}${isBlockUpdating ? " is-updating" : ""}`}
-                      disabled={isBlockUpdating}
+                      disabled={!canBlock}
                       key={`${slot.hora}-${slot.agendamento_id || ""}`}
                       onClick={() => toggleSlot(slot)}
                       type="button"
@@ -625,7 +665,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                             {slot.pode_reagendar && (
                               <button
                                 className="button button-secondary button-small"
-                                disabled={slotUpdating}
+                                disabled={!canWrite}
                                 onClick={() => openReschedule(slot)}
                                 type="button"
                               >
@@ -635,7 +675,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                             {slot.pode_cancelar && (
                               <button
                                 className="button button-secondary button-small slot-cancel-button"
-                                disabled={slotUpdating}
+                                disabled={!canWrite}
                                 onClick={() => openCancellation(slot)}
                                 type="button"
                               >
@@ -645,7 +685,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                             {slot.pode_iniciar_atendimento && (
                               <button
                                 className="button button-small"
-                                disabled={slotUpdating}
+                                disabled={!canWrite}
                                 onClick={() => updateAttendance(slot, "iniciado")}
                                 type="button"
                               >
@@ -656,7 +696,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                             )}
                             <button
                               className="button button-small"
-                              disabled={slotUpdating || !slot.pode_marcar_realizado}
+                              disabled={!canWrite || !slot.pode_marcar_realizado}
                               onClick={() => updateAttendance(slot, "realizado")}
                               type="button"
                             >
@@ -666,7 +706,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                             </button>
                             <button
                               className="button button-secondary button-small"
-                              disabled={slotUpdating || !slot.pode_marcar_falta}
+                              disabled={!canWrite || !slot.pode_marcar_falta}
                               onClick={() => updateAttendance(slot, "falta")}
                               type="button"
                             >
@@ -680,7 +720,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                             {slot.pode_iniciar_atendimento ? (
                               <button
                                 className="button button-small slot-primary-action"
-                                disabled={slotUpdating}
+                                disabled={!canWrite}
                                 onClick={() => updateAttendance(slot, "iniciado")}
                                 type="button"
                               >
@@ -691,7 +731,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                             ) : slot.pode_marcar_realizado ? (
                               <button
                                 className="button button-small slot-primary-action"
-                                disabled={slotUpdating}
+                                disabled={!canWrite}
                                 onClick={() => updateAttendance(slot, "realizado")}
                                 type="button"
                               >
@@ -712,7 +752,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                                   {slot.pode_reagendar && (
                                     <button
                                       className="button button-secondary button-small"
-                                      disabled={slotUpdating}
+                                      disabled={!canWrite}
                                       onClick={() => openReschedule(slot)}
                                       type="button"
                                     >
@@ -722,7 +762,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                                   {slot.pode_cancelar && (
                                     <button
                                       className="button button-secondary button-small slot-cancel-button"
-                                      disabled={slotUpdating}
+                                      disabled={!canWrite}
                                       onClick={() => openCancellation(slot)}
                                       type="button"
                                     >
@@ -733,7 +773,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                                     slot.pode_marcar_realizado && (
                                       <button
                                         className="button button-secondary button-small"
-                                        disabled={slotUpdating}
+                                        disabled={!canWrite}
                                         onClick={() => updateAttendance(slot, "realizado")}
                                         type="button"
                                       >
@@ -745,7 +785,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                                                                     {slot.pode_marcar_falta && (
                                     <button
                                       className="button button-secondary button-small"
-                                      disabled={slotUpdating}
+                                      disabled={!canWrite}
                                       onClick={() => updateAttendance(slot, "falta")}
                                       type="button"
                                     >
@@ -792,12 +832,14 @@ export function AgendaWorkspacePage({ owner = false }) {
             <p>
               O horário antigo só será liberado depois que o novo horário for validado com sucesso.
             </p>
+            {error && <p className="form-error" role="alert">{error}</p>}
 
             <div className="agenda-cancel-reason">
               <label htmlFor="agenda-reschedule-date">
                 Nova data
               </label>
               <input
+                disabled={Boolean(updating)}
                 id="agenda-reschedule-date"
                 min={getLocalDateKey(
                   new Date(),
@@ -812,6 +854,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                 Novo horário
               </label>
               <input
+                disabled={Boolean(updating)}
                 id="agenda-reschedule-time"
                 onChange={(event) => setRescheduleTime(event.target.value)}
                 type="time"
@@ -824,6 +867,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                     Profissional responsável
                   </label>
                   <select
+                    disabled={Boolean(updating)}
                     id="agenda-reschedule-professional"
                     onChange={(event) =>
                       setRescheduleProfessionalId(
@@ -868,7 +912,7 @@ export function AgendaWorkspacePage({ owner = false }) {
               <button
                 className="button"
                 disabled={
-                  rescheduleUpdating ||
+                  !canWrite ||
                   !rescheduleDate ||
                   !rescheduleTime ||
                   (
@@ -911,11 +955,13 @@ export function AgendaWorkspacePage({ owner = false }) {
             <p>
               O horário será liberado na agenda. Lembretes pendentes serão cancelados e as notificações de cancelamento configuradas serão enfileiradas.
             </p>
+            {error && <p className="form-error" role="alert">{error}</p>}
             <div className="agenda-cancel-reason">
               <label htmlFor="agenda-cancel-reason-type">
                 Motivo do cancelamento
               </label>
               <select
+                disabled={Boolean(updating)}
                 id="agenda-cancel-reason-type"
                 onChange={(event) => setCancelReasonType(event.target.value)}
                 required
@@ -933,6 +979,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                   : "Detalhes adicionais (opcional)"}
               </label>
               <textarea
+                disabled={Boolean(updating)}
                 id="agenda-cancel-reason"
                 maxLength={240}
                 onChange={(event) => setCancelReason(event.target.value)}
@@ -957,7 +1004,7 @@ export function AgendaWorkspacePage({ owner = false }) {
               <button
                 className="button agenda-cancel-confirm"
                 disabled={
-                  cancellationUpdating ||
+                  !canWrite ||
                   !cancelReasonType ||
                   (cancelReasonType === "outro" && !cancelReason.trim())
                 }

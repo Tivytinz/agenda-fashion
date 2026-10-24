@@ -47,7 +47,7 @@ verdade de pagamento. Mesmo depois que a proprietária a utiliza, o plano pago
 só volta a ficar vigente após um evento financeiro válido atualizar o pagamento
 e reativar a assinatura.
 
-As recorrências substituídas são marcadas localmente como `CANCELED` com a observação de substituição. Essa marca torna a limpeza recuperável: se o DELETE no Asaas falhar depois do commit, o webhook pode tentar novamente sem depender de estado apenas em memória.
+Desde a migration 120, a criação inicial é registrada em `assinatura_checkout_operacoes` antes do POST. A substituição de plano grava a obrigação de remover o ID anterior na mesma transação que ativa o novo. Referência, cliente, pagamento, início reservado, ID externo, estado, concessão e versão sobrevivem a estorno, atraso e replay obsoleto. A observação de substituição identifica apenas o legado; o status financeiro não controla a fila de remoção.
 
 Uma confirmação que já é obsoleta no preflight não cria recorrência. Quando o evento veio do worker do webhook e a assinatura alvo ainda não possui vínculo local, o AF faz somente uma consulta por `externalReference`; se encontrar uma recorrência externa sem qualquer vínculo local, remove-a. Isso permite limpar uma recorrência órfã deixada por uma tentativa anterior sem criar uma nova apenas para compensá-la.
 
@@ -76,7 +76,7 @@ No retry:
 
 - a assinatura alvo já vinculada é reutilizada;
 - nenhuma nova recorrência é criada quando o vínculo local já existe;
-- a marca local das recorrências substituídas permite repetir o DELETE;
+- a operação persistida de remoção permite repetir o DELETE, mesmo se a assinatura anterior já estiver `REFUNDED`;
 - o DELETE é idempotente, inclusive quando o Asaas responde que a assinatura já não existe;
 - uma recorrência órfã de tentativa anterior pode ser reconciliada por `externalReference` antes de um evento obsoleto ser encerrado como `IGNORED`.
 
@@ -117,3 +117,37 @@ Os testes da saga e da fila devem proteger pelo menos estes comportamentos:
 ## Reativação idempotente da renovação
 
 Enquanto o período já pago permanecer válido, a dona pode reativar uma renovação cancelada sem cobrança imediata. Cada ciclo usa `assinaturas.reativacao_tentativa` como versão monotônica e uma `externalReference` determinística no Asaas. O estado transitório `REACTIVATING` não deve ser revertido por timeout ou erro ambíguo: uma execução posterior consulta a mesma referência; recorrência encontrada finaliza a reativação, ausência confirmada restaura `CANCELED` e falha de consulta preserva `REACTIVATING` para nova reconciliação. Chamadas ao Asaas permanecem fora de transações PostgreSQL.
+
+## Recuperação do checkout inicial e da substituição
+
+`assinaturaCheckoutRepository` mantém operações `CREATE` e `REMOVE` com estados
+`PENDING`, `REMOVING`, `COMPLETED` e `CANCELED`. A reserva de execução é atômica,
+com versão e concessão de dois minutos. A identidade da criação inicial é a
+referência estável da assinatura; uma resposta tardia com outro ID cria uma
+obrigação de remoção própria, sem sobrescrever o ID conhecido.
+
+GET da conta e worker consultam a referência sem criar recorrências. Se o
+pagamento persistido continua válido, a finalização relê e bloqueia o negócio,
+pagamento, assinatura e operação antes de adotar a recorrência. Essa recuperação
+não reescreve o status financeiro a partir do webhook antigo. Estorno, período
+vencido, cancelamento ou assinatura mais nova impedem a ativação e levam à
+remoção da recorrência sem vínculo. Uma consulta vazia com pagamento válido
+preserva a operação para replay; não autoriza POST pelo worker.
+
+A remoção fica `REMOVING` até o DELETE idempotente ser confirmado. Consulta de
+ausência só conclui se o ID não tiver mudado. `SUBSCRIPTION_CREATED/UPDATED`
+com referência e cliente exatos pode registrar um ID tardio e reabrir remoção,
+sem conceder benefício por programação externa. HTTP permanece fora de
+transações. Versão antiga não conclui nem marca falha da execução seguinte.
+
+As pendências bloqueiam checkout adicional, reativação e arquivamento e usam o
+indicador existente `renovacao_pendente` da conta. A saúde operacional mostra
+**Recorrências de checkout**, com quantidade, falhas e idade, sem payloads ou
+credenciais. O worker registra falhas de consulta, contexto e remoção. Após falha,
+a seleção automática espera dois minutos; GET e replay podem antecipar a
+conferência sem contornar a concessão em curso.
+
+A migration recupera criações sem vínculo que possuem cliente e pagamento datado
+e remoções identificadas pela marca histórica de substituição, inclusive com
+status financeiro diferente de `CANCELED`. Não inventa IDs externos, recebimentos
+ou benefícios, nem comprova o estado de produção.

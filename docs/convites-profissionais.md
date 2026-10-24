@@ -1,6 +1,6 @@
 # Convite de profissionais
 
-> **Papel documental:** documento especializado de convite, aceite, capacidade de plano e ativação de profissionais na equipe.
+> **Papel documental:** documento especializado de convite, aceite, capacidade de plano, ativação e inativação de profissionais na equipe.
 
 ## Regra permanente
 
@@ -30,6 +30,57 @@ Convites expiram em 7 dias. Aceitar sem capacidade não deixa o convite pendente
 a intenção da profissional é persistida e a limitação passa a ser tratada pelo
 negócio.
 
+## Inativação manual e reativação
+
+A dona pode usar `POST /profissionais/:id/inativar` para pausar uma profissional
+ativa do próprio negócio, inclusive com reservas pendentes. O vínculo permanece
+com o mesmo `id`, `created_at` e `ativado_em`; serviços habilitados, configuração,
+reservas e histórico também permanecem. A migration 116 admite o motivo
+`inativado_pela_dona`. A ação não altera papel, status ou responsável das reservas.
+Repetir a ação não reescreve o motivo de um vínculo já inativo.
+
+O backend revalida conta, vínculo de dona e negócio ativos dentro da transação;
+a dona não pode inativar a si mesma. Ativação e inativação seguem a ordem
+`conta da dona → capacidade → vínculos`, com a mesma conexão transacional.
+A conta usa `FOR NO KEY UPDATE`, compatível com a validação `KEY SHARE` das FKs
+de ator e convite, mas conflitante com a desativação/remoção da conta. Assim,
+convites e outros registros com referência à dona podem concluir sem criar um
+ciclo de espera com a inativação. O lock de capacidade serializa alterações da
+equipe e o lock do vínculo é o mesmo exigido pelo trigger de novas reservas.
+A profissional inativa não consome vaga nem recebe novos agendamentos.
+
+Reservas próprias existentes seguem a RN50 de `docs/ciclo-atendimento.md`:
+consulta e registro de realizado/falta conforme o relógio, sem workspace,
+cancelamento ou reagendamento. A dona administra cancelamentos e reagendamentos
+durante a pausa. Remover continua sendo uma ação distinta, sujeita à RN45.
+
+`POST /profissionais/:id/ativar` também aceita `inativado_pela_dona`, sob os mesmos
+guards de capacidade, conta/negócio ativos e ausência de vínculo profissional
+ativo em outro negócio. Upgrade não reativa automaticamente. Um convite pendente
+antigo retorna `409 VINCULO_INATIVADO_PELA_DONA` quando tentado durante essa pausa;
+a conta convidada não pode reativar o vínculo por esse caminho.
+
+Vínculos inativos por `inativado_pela_dona` ou `excedente_limite_plano` não
+recebem novo convite. O envio retorna `409 VINCULO_PROFISSIONAL_INATIVO` antes
+de persistir um convite e orienta usar `Ativar profissional` na equipe. A espera
+de vaga mantém a validação específica existente. Isso evita confirmar um convite
+que o guard de pausa recusaria no aceite.
+
+### Fatos de inativação e reativação
+
+Cada transição real registra `business_professional_deactivated` ou
+`business_professional_reactivated` em `analytics_eventos`, com `origem=backend`,
+UUID, instante e propriedades `business_id`, `professional_id`, `actor_type` e
+`actor_id`. Inativação inclui `reason` quando disponível. A ação da dona usa
+`OWNER`; aceite válido que reativa um vínculo legado usa `PROFESSIONAL`;
+downgrade automático usa `SYSTEM`, com `actor_id` nulo.
+
+O evento usa o mesmo executor transacional da mudança. Falha de persistência
+do fato desfaz a transição; repetição sem mudança de estado não gera evento.
+Não são emitidos fatos retroativos para vínculos já inativos ou ativos.
+Os eventos não transportam contato da conta ou da cliente e não ampliam os
+nomes de eventos aceitos pelo endpoint de telemetria do navegador.
+
 ## Privacidade
 
 A busca interna pelo identificador nunca deve devolver o contato alternativo.
@@ -53,8 +104,9 @@ Novas integrações devem usar:
 - `GET /profissionais/convites/recebidos`
 - `POST /profissionais/convites/:id/aceitar`
 - `POST /profissionais/convites/:id/recusar`
-- `POST /profissionais/:id/ativar` para a dona liberar um vínculo que já
-  aceitou o convite e está aguardando capacidade
+- `POST /profissionais/:id/ativar` para a dona reativar um vínculo preservado
+  por capacidade ou pausa manual
+- `POST /profissionais/:id/inativar` para a dona pausar uma profissional ativa
 
 ## Frontend e UX
 
@@ -79,7 +131,18 @@ automática após upgrade: a dona escolhe qual profissional ocupará a vaga, e o
 backend revalida todas as regras no momento da ação.
 
 Estados de carregamento, vazio, erro de leitura, erro de ação e sucesso são
-tratados explicitamente.
+tratados explicitamente. A inativação exige confirmação e informa o destino das
+reservas; a dona não recebe essa ação no próprio cartão. Pausa manual aparece
+como `Inativa por escolha da dona`, sem contar como espera de vaga no plano.
+
+As leituras da equipe e da oferta auxiliar de plano pertencem à geração atual.
+Nova leitura, alteração ou saída invalida respostas anteriores. Uma alteração
+por vez fica disponível, incluindo a atualização posterior; PUT de serviços e
+alterações da equipe também não podem se sobrepor. Respostas confirmadas de
+ativação/inativação atualizam imediatamente o cartão. Se o GET seguinte falhar,
+a interface conserva esse fato e exige `Atualizar equipe`, que só faz GET.
+Resultado de escrita incerto fecha a confirmação e também exige consulta antes
+de repetir; erros de validação mantêm a confirmação para correção.
 
 O menu autenticado mantém `Convites de equipe` acessível tanto antes quanto
 depois do vínculo.

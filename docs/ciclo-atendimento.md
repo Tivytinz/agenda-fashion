@@ -87,6 +87,13 @@ Cancelamento não cria um novo horário nem representa reagendamento. O
 reagendamento operacional possui endpoint e transação próprios para preservar o
 mesmo booking sem misturar os dois fatos de domínio.
 
+A detecção de uma tentativa de reagendar sem mudar o início ou a responsável
+compara `inicio_previsto_em` ao novo instante resolvido. Comparar somente textos
+de data e horário locais não é suficiente após corrigir o fuso do negócio:
+o mesmo texto pode representar outro instante, e outro texto pode representar
+o início já reservado. Os snapshots comerciais e de cancelamento permanecem
+preservados nessa correção.
+
 ## Autorização
 
 A transição é backend-authoritative.
@@ -135,7 +142,7 @@ O predicado compartilhado dos repositories exige vínculo `profissional` inativo
 conta ativa e não encerrada, negócio ativo e não arquivado, mesmo negócio e
 responsável. A criação do booking deve ser igual ou posterior à criação do
 vínculo preservado: remover e recriar um vínculo não recupera reservas de uma
-relação anterior. São aceitos os motivos atuais de plano e o motivo nulo dos
+relação anterior. São aceitos os motivos atuais de plano, `inativado_pela_dona` e o motivo nulo dos
 vínculos legados; motivos futuros exigem revisão explícita. A espera de vaga
 sem reservas não concede acesso a outros dados do negócio.
 

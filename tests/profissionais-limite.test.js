@@ -1,3 +1,4 @@
+jest.mock("../src/services/equipeAnalyticsService", () => ({ registrarTransicao: jest.fn() }));
 jest.mock("../src/db/db", () => ({
   executarTransacao: jest.fn(),
 }));

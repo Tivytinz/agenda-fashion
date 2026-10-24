@@ -1,3 +1,8 @@
+jest.mock("../src/repositories/assinaturaCheckoutRepository");
+beforeEach(() => {
+  require("../src/repositories/assinaturaCheckoutRepository").listarPendentes.mockResolvedValue([]);
+  require("../src/repositories/assinaturaCheckoutRepository").listarNegociosPendentes.mockResolvedValue([]);
+});
 jest.mock(
   "../src/db/db",
   () => ({
@@ -41,7 +46,7 @@ jest.mock(
 );
 
 jest.mock(
-  "../src/services/assinaturaServiceCore",
+  "../src/services/assinaturaPagamentoService",
   () => ({
     sincronizarPagamentoPorWebhook:
       jest.fn()
@@ -61,7 +66,7 @@ const {
 const {
   sincronizarPagamentoPorWebhook
 } = require(
-  "../src/services/assinaturaServiceCore"
+  "../src/services/assinaturaPagamentoService"
 );
 const {
   ativarAssinaturaPorPagamento

@@ -1,5 +1,6 @@
 const assinaturaService = require("../services/assinaturaService");
 const registrador = require("../utils/registrador");
+const { serializarRespostaAssinatura } = require("../services/assinaturaContaDto");
 
 async function buscarMinhaAssinatura(req, res, next) {
   try {
@@ -8,7 +9,7 @@ async function buscarMinhaAssinatura(req, res, next) {
         usuarioId: req.user?.id
       });
 
-    return res.json(resultado);
+    return res.json(serializarRespostaAssinatura(resultado));
   } catch (err) {
     next(err);
   }
@@ -22,7 +23,7 @@ async function cancelarMinhaAssinatura(req, res, next) {
           usuarioId: req.user?.id
         });
 
-    return res.json(resultado);
+    return res.json(serializarRespostaAssinatura(resultado));
   } catch (err) {
     registrador.erro("Não foi possível cancelar a assinatura.", {
       mensagem: err.message,
@@ -44,7 +45,7 @@ async function reativarMinhaAssinatura(req, res, next) {
           usuarioId: req.user?.id
         });
 
-    return res.json(resultado);
+    return res.json(serializarRespostaAssinatura(resultado));
   } catch (err) {
     registrador.erro(
       "Não foi possível reativar a renovação da assinatura.",

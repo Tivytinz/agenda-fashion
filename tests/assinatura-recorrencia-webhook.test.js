@@ -1,3 +1,9 @@
+jest.mock("../src/repositories/assinaturaCheckoutRepository");
+beforeEach(() => {
+  require("../src/repositories/assinaturaCheckoutRepository").listarPendentes.mockResolvedValue([]);
+  require("../src/repositories/assinaturaCheckoutRepository").listarNegociosPendentes.mockResolvedValue([]);
+});
+jest.mock("../src/repositories/assinaturaRenovacaoRepository");
 jest.mock(
   "../src/services/equipePlanoService",
   () => ({
@@ -131,6 +137,10 @@ describe(
   () => {
     beforeEach(() => {
       jest.clearAllMocks();
+      require("../src/repositories/assinaturaRenovacaoRepository").possuiPendenteDaAssinatura.mockResolvedValue(false);
+      require("../src/repositories/assinaturaRepository").listarPagamentos.mockResolvedValue([
+        { status: "RECEIVED", data_pagamento: "2026-08-28" },
+      ]);
       mockClient.query
         .mockReset();
 
@@ -319,9 +329,10 @@ describe(
           ),
           [
             "sub_1",
-            "2026-09-28",
+            "2026-08-28",
             "Assinatura mensal ativa no Asaas.",
-            20
+            20,
+            "2026-09-28"
           ]
         );
 
@@ -860,6 +871,12 @@ describe(
             removida: true
           });
 
+        const checkout = require("../src/repositories/assinaturaCheckoutRepository");
+        const operacao = { id: "op1", estado: "PENDING", asaas_customer_id: "cus_1", referencia_externa: "ref", inicio_cobranca: "2026-08-29", execucao_versao: 1 };
+        checkout.garantirCriacao.mockResolvedValue(operacao);
+        checkout.registrarRecorrencia.mockResolvedValue(operacao);
+        checkout.reservar.mockResolvedValue(operacao);
+        checkout.bloquear.mockResolvedValue({ ...operacao, asaas_subscription_id: "sub_nova" });
         const assinatura =
           await ativarAssinaturaPorPagamento(
             "pay_novo_plano",
@@ -869,11 +886,7 @@ describe(
             }
           );
 
-        expect(
-          removerAssinaturaAsaas
-        ).toHaveBeenCalledWith(
-          "sub_antiga"
-        );
+        expect(checkout.garantirRemocoes).toHaveBeenCalledWith(expect.anything(), 7, 30);
 
         expect(
           mockClient.query
@@ -1101,7 +1114,7 @@ describe(
                 ) &&
                 sqlContem(
                   sql,
-                  "ativo = FALSE"
+                  "acesso_pago_reconciliado = TRUE"
                 )
               ) {
                 return {

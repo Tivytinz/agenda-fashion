@@ -1,5 +1,22 @@
 /* Refinos específicos da agenda profissional e agenda geral. */
 
+.agenda-period-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.agenda-period-controls label {
+  display: grid;
+  gap: 6px;
+}
+
+.agenda-period-controls input {
+  min-height: 44px;
+  max-width: 100%;
+}
+
 .agenda-workspace-page .agenda-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -370,4 +387,10 @@
   .agenda-cancel-actions .button {
     width: 100%;
   }
+}
+
+.agenda-workspace-page .slot-ocupado {
+  background: var(--surface-muted, #f1f0f3);
+  border-color: var(--border, #dedbe4);
+  color: var(--text-muted, #625d6b);
 }

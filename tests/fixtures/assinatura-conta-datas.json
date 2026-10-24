@@ -1,0 +1,11 @@
+{
+  "assinatura": { "data_proxima_cobranca": "2099-12-01" },
+  "pagamentos": [
+    { "data_vencimento": null, "data_pagamento": null },
+    { "data_vencimento": "2099-11-01", "data_pagamento": "2099-11-01" }
+  ],
+  "upgrade_pendente": {
+    "assinatura": { "data_proxima_cobranca": "2099-12-02" },
+    "pagamento": { "data_vencimento": "2099-11-02", "data_pagamento": null }
+  }
+}

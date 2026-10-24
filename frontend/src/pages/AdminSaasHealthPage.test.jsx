@@ -192,6 +192,17 @@ describe("ativação profissional no admin", () => {
     ).not.toBeNull();
   });
 
+  it.each([["renovacoes_assinatura", "Renovações de assinatura"], ["checkouts_assinatura", "Recorrências de checkout"]])("mostra pendências e falhas de %s", async (nome, rotulo) => {
+    apiRequest.mockImplementation((path) => Promise.resolve(path === "/admin/saude/operacional"
+      ? {...OPERATIONAL_RESULT,filas:[{nome,pendentes:3,falhas:1,atrasoMaisAntigoSegundos:600}]}
+      : RESULT));
+    renderPage();
+    const label=await screen.findByText(rotulo);
+    const card=label.closest("article");
+    expect(within(card).getByText("3")).not.toBeNull();
+    expect(within(card).getByText("1 falhas · atraso 10min")).not.toBeNull();
+  });
+
   it("inicializa filtro e busca a partir do deep link", async () => {
     renderPage("/admin/saude?pendencia=disponibilidade&busca=Ana%20Souza");
 

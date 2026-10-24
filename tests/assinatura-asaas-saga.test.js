@@ -1,3 +1,9 @@
+jest.mock("../src/repositories/assinaturaCheckoutRepository");
+beforeEach(() => {
+  require("../src/repositories/assinaturaCheckoutRepository").listarPendentes.mockResolvedValue([]);
+  require("../src/repositories/assinaturaCheckoutRepository").listarNegociosPendentes.mockResolvedValue([]);
+});
+jest.mock("../src/repositories/assinaturaRepository");
 let emTransacao = false;
 
 jest.mock(
@@ -51,7 +57,7 @@ jest.mock(
 );
 
 jest.mock(
-  "../src/services/assinaturaServiceCore",
+  "../src/services/assinaturaPagamentoService",
   () => ({
     sincronizarPagamentoPorWebhook: jest.fn()
   })
@@ -86,7 +92,7 @@ const {
 const {
   sincronizarPagamentoPorWebhook
 } = require(
-  "../src/services/assinaturaServiceCore"
+  "../src/services/assinaturaPagamentoService"
 );
 const assinaturaLifecycleService = require(
   "../src/services/assinaturaLifecycleService"
@@ -119,7 +125,17 @@ function contexto(overrides = {}) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  require("../src/repositories/assinaturaRepository").listarPagamentos.mockResolvedValue([
+    { status: "RECEIVED", data_pagamento: "2026-09-13" },
+  ]);
   emTransacao = false;
+  const checkout = require("../src/repositories/assinaturaCheckoutRepository");
+  const op = { id: "op1", estado: "PENDING", asaas_customer_id: "cus_1", referencia_externa: "assinatura:20;negocio:7;plano:3", inicio_cobranca: "2026-10-13", execucao_versao: 1 };
+  checkout.garantirCriacao.mockResolvedValue(op);
+  checkout.registrarRecorrencia.mockResolvedValue(op);
+  checkout.reservar.mockResolvedValue(op);
+  checkout.bloquear.mockResolvedValue({ ...op, asaas_subscription_id: "sub_new" });
+  checkout.mudarEstado.mockImplementation(async (_client, operacao, estado) => ({ ...operacao, estado, asaas_subscription_id: "sub_new" }));
 
   sincronizarPagamentoPorWebhook
     .mockResolvedValue({
@@ -243,8 +259,8 @@ test(
     });
     expect(criarAssinaturaAsaas)
       .toHaveBeenCalledTimes(1);
-    expect(removerAssinaturaAsaas)
-      .toHaveBeenCalledWith("sub_old");
+    expect(require("../src/repositories/assinaturaCheckoutRepository").garantirRemocoes)
+      .toHaveBeenCalledWith(expect.anything(), 7, 20);
     expect(
       assinaturaAtivacaoRepository
         .buscarAssinaturaAtivaMaisNova

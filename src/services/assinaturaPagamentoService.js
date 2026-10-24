@@ -1,4 +1,5 @@
 const db = require("../db/db");
+const renovacaoRepository = require("../repositories/assinaturaRenovacaoRepository");
 const pagamentoRepository = require(
   "../repositories/pagamentoRepository"
 );
@@ -11,6 +12,7 @@ const {
 } = require("./asaasService");
 const {
   calcularProximaCobranca,
+  dataValida,
   normalizarFormaPagamento,
 } = require("./assinaturaCalculos");
 const {
@@ -19,6 +21,7 @@ const {
 const assinaturaLifecycleService = require(
   "./assinaturaLifecycleService"
 );
+const { calcularFimDoPeriodoPago } = require("./assinaturaPeriodoPagoService");
 
 async function garantirPagamentoRecorrente(
   client,
@@ -43,7 +46,8 @@ async function garantirPagamentoRecorrente(
   const assinaturaRecorrente = await assinaturaWebhookRepository
     .buscarPorSubscriptionParaAtualizar(
       client,
-      subscriptionId
+      subscriptionId,
+      { incluirHistorico: true }
     );
 
   if (!assinaturaRecorrente) {
@@ -173,6 +177,9 @@ async function suspenderAssinaturaPorPagamento(
   }
 
   return db.executarTransacao(async (client) => {
+    await assinaturaWebhookRepository.bloquearNegocioDoEvento(client, {
+      paymentId, subscriptionId: dadosPagamento.subscription || null,
+    });
     const assinatura = await garantirPagamentoRecorrente(
       client,
       paymentId,
@@ -219,18 +226,27 @@ async function suspenderAssinaturaPorPagamento(
       );
     }
 
+    await renovacaoRepository.garantirOperacaoLegada(assinatura.negocio_id, client);
+
+    const acessoPagoAte = await calcularFimDoPeriodoPago(assinatura, client, {
+      reconciliar: true, permitirAusente: true,
+    });
+
     const suspensao = await assinaturaWebhookRepository
       .suspenderAssinatura(
         client,
         {
           assinaturaId: assinatura.id,
           status,
+          acessoPagoAte,
           observacao:
-            "Acesso suspenso automaticamente após evento financeiro do Asaas.",
+            "Cobertura paga reconciliada após evento financeiro do Asaas.",
         }
       );
 
-    await assinaturaWebhookRepository
+    if (suspensao?.ativo === true) {
+      await assinaturaWebhookRepository.atualizarPlanoNegocio(client, assinatura.negocio_id, assinatura.plano_id);
+    } else await assinaturaWebhookRepository
       .atualizarPlanoNegocioSeSemOutraAssinatura(
         client,
         {
@@ -251,7 +267,7 @@ async function suspenderAssinaturaPorPagamento(
       assinatura,
       pagamentoId: assinatura.pagamento_id,
       status,
-      planoNovoId: planoGratis.id,
+      planoNovoId: suspensao?.ativo ? assinatura.plano_id : planoGratis.id,
     });
 
     return suspensao;
@@ -336,9 +352,9 @@ async function ativarAssinaturaPorPagamento(
       !asaasSubscriptionId
     ) {
       dataProximaCobranca = calcularProximaCobranca(
-        assinatura.data_pagamento ||
-        assinatura.data_vencimento ||
-        new Date()
+        dataValida(assinatura.data_pagamento) ||
+        dataValida(assinatura.data_vencimento) ||
+        new Date().toISOString().slice(0, 10)
       );
 
       const assinaturaAsaas = await criarAssinaturaAsaas({
@@ -367,15 +383,15 @@ async function ativarAssinaturaPorPagamento(
     } else if (
       assinatura.asaas_subscription_id &&
       (
-        dadosPagamento.paymentDate ||
-        dadosPagamento.confirmedDate ||
-        dadosPagamento.dueDate
+        dataValida(dadosPagamento.paymentDate) ||
+        dataValida(dadosPagamento.confirmedDate) ||
+        dataValida(dadosPagamento.dueDate)
       )
     ) {
       dataProximaCobranca = calcularProximaCobranca(
-        dadosPagamento.paymentDate ||
-        dadosPagamento.confirmedDate ||
-        dadosPagamento.dueDate
+        dataValida(dadosPagamento.paymentDate) ||
+        dataValida(dadosPagamento.confirmedDate) ||
+        dataValida(dadosPagamento.dueDate)
       );
     }
 

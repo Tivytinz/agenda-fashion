@@ -19,7 +19,8 @@ const ValidationError = require("../errors/ValidationError");
 
 function gerarDatasAgenda(
   quantidadeDias = 7,
-  fusoHorario
+  fusoHorario,
+  dataInicio
 ) {
   const datas = [];
   const agoraLocal =
@@ -28,9 +29,17 @@ function gerarDatasAgenda(
         fusoHorario
       )
     );
-  const dataBase = new Date(
-    `${agoraLocal.data}T12:00:00Z`
-  );
+  const inicio = dataInicio === undefined ? agoraLocal.data : dataInicio;
+  const dataBase = typeof inicio === "string" && /^\d{4}-\d{2}-\d{2}$/.test(inicio)
+    ? new Date(`${inicio}T12:00:00Z`)
+    : new Date(NaN);
+  if (
+    !Number.isFinite(dataBase.getTime())
+    || dataBase.getUTCFullYear() < 1
+    || dataBase.toISOString().slice(0, 10) !== inicio
+  ) {
+    throw new ValidationError("Informe uma data inicial válida no formato AAAA-MM-DD.");
+  }
 
   for (
     let indice = 0;
@@ -45,9 +54,13 @@ function gerarDatasAgenda(
       dataBase.getUTCDate() +
       indice
     );
+    if (data.getUTCFullYear() > 9999) {
+      throw new ValidationError("A semana solicitada está fora do intervalo de datas permitido.");
+    }
 
-    const ano =
-      data.getUTCFullYear();
+    const ano = String(
+      data.getUTCFullYear()
+    ).padStart(4, "0");
     const mes = String(
       data.getUTCMonth() + 1
     ).padStart(2, "0");
@@ -323,22 +336,7 @@ function gerarHorariosConfigurados({
 function obterDiaSemana(
   data
 ) {
-  const [
-    ano,
-    mes,
-    dia,
-  ] = String(data)
-    .split("-")
-    .map(Number);
-
-  return new Date(
-    Date.UTC(
-      ano,
-      mes - 1,
-      dia,
-      12
-    )
-  ).getUTCDay();
+  return new Date(`${data}T12:00:00Z`).getUTCDay();
 }
 
 function horarioJaPassou({
@@ -626,7 +624,8 @@ async function alternarBloqueioHorario({
   hora,
   profissionalIdSolicitado,
   negocioIdContexto,
-  papelContexto
+  papelContexto,
+  bloqueado
 }) {
   exigirUsuario(usuarioId);
   exigirCampo(data, "Data é obrigatória.");
@@ -635,6 +634,9 @@ async function alternarBloqueioHorario({
     negocioIdContexto,
     "Contexto do negócio é obrigatório."
   );
+  if (bloqueado !== undefined && typeof bloqueado !== "boolean") {
+    throw new ValidationError("O estado de bloqueio deve ser verdadeiro ou falso.");
+  }
 
   const negocioId = Number(negocioIdContexto);
   let profissionalId = Number(usuarioId);
@@ -690,6 +692,13 @@ async function alternarBloqueioHorario({
       );
 
     if (bloqueio) {
+      if (bloqueado === true) {
+        return {
+          sucesso: true,
+          status: "bloqueado",
+          mensagem: "Horário bloqueado com sucesso.",
+        };
+      }
       await agendaRepository.removerBloqueioHorario(
         bloqueio.id,
         negocioId,
@@ -717,6 +726,14 @@ async function alternarBloqueioHorario({
       );
     }
 
+    if (bloqueado === false) {
+      return {
+        sucesso: true,
+        status: "livre",
+        mensagem: "Horário liberado com sucesso.",
+      };
+    }
+
     try {
       await agendaRepository.criarBloqueioHorario(
         profissionalId,
@@ -741,7 +758,7 @@ async function alternarBloqueioHorario({
   });
 }
 
-async function buscarAgendaGeral({ usuarioId }) {
+async function buscarAgendaGeral({ usuarioId, dataInicio: dataInicioSolicitada }) {
   exigirUsuario(usuarioId);
 
   const vinculoDono =
@@ -763,15 +780,11 @@ async function buscarAgendaGeral({ usuarioId }) {
     resolverFusoHorario(
       vinculoDono.fuso_horario
     );
-  const profissionais =
-    await agendaRepository
-      .buscarProfissionaisDoNegocio(
-        negocioId
-      );
   const datas =
     gerarDatasAgenda(
       7,
-      fusoResolvido
+      fusoResolvido,
+      dataInicioSolicitada
     );
   const dataInicio =
     datas[0];
@@ -779,6 +792,12 @@ async function buscarAgendaGeral({ usuarioId }) {
     datas[
       datas.length - 1
     ];
+  const profissionais =
+    await agendaRepository.buscarProfissionaisDoNegocio(
+      negocioId,
+      dataInicio,
+      dataFim
+    );
   const profissionalIds =
     profissionais
       .map(
@@ -908,6 +927,17 @@ async function buscarAgendaGeral({ usuarioId }) {
           profissionais:
             profissionais.map(
               (profissional) => {
+                if (profissional.ativo === false) {
+                  return {
+                    id: profissional.id,
+                    nome: profissional.nome,
+                    foto_url: profissional.foto_url,
+                    ativo: false,
+                    servico_ids: [],
+                    trabalha: false,
+                    horarios: [],
+                  };
+                }
                 const profissionalId =
                   Number(
                     profissional.id

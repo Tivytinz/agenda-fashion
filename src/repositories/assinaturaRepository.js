@@ -16,11 +16,12 @@ async function criarAssinatura(client, dados) {
       valor,
       data_proxima_cobranca,
       ativo,
-      observacoes
+      observacoes,
+      acesso_pago_reconciliado
     )
     VALUES (
       $1, $2, $3, $4, $5,
-      $6, $7, $8, $9, $10, $11
+      $6, $7, $8, $9, $10, $11, TRUE
     )
     RETURNING *
     `,
@@ -251,24 +252,43 @@ async function buscarUltimaAssinaturaPorNegocio(negocioId) {
   return result.rows[0] || null;
 }
 
+async function buscarAssinaturaParaCancelar(client, { assinaturaId, negocioId }) {
+  // Mesma ordem da finalização financeira: negócio antes da assinatura.
+  await client.query("SELECT id FROM negocios WHERE id = $1 FOR UPDATE", [negocioId]);
+  const result = await client.query(`
+    SELECT * FROM assinaturas
+    WHERE id = $1 AND negocio_id = $2
+    FOR UPDATE
+  `, [assinaturaId, negocioId]);
+  return result.rows[0] || null;
+}
+
 async function registrarCancelamento(
   client,
   {
     assinaturaId,
     negocioId,
+    asaasSubscriptionId,
+    reativacaoTentativa,
     acessoAte,
     observacoes
   }
 ) {
   const executor = client || db;
 
+  if (!asaasSubscriptionId || !Number.isSafeInteger(reativacaoTentativa) || reativacaoTentativa < 0) {
+    throw new TypeError("Identidade da recorrência de cancelamento inválida.");
+  }
+
   const result = await executor.query(
     `
     UPDATE assinaturas
     SET
       status = 'CANCELED',
+      renovacao_cancelada = TRUE,
       ativo = TRUE,
-      data_proxima_cobranca = $3,
+      acesso_pago_ate = CASE WHEN acesso_pago_reconciliado THEN $3::date
+        ELSE GREATEST(COALESCE(acesso_pago_ate, data_proxima_cobranca), $3::date) END,
       observacoes = CONCAT_WS(
         E'\n',
         NULLIF(observacoes, ''),
@@ -278,36 +298,19 @@ async function registrarCancelamento(
     WHERE id = $1
       AND negocio_id = $2
       AND ativo = TRUE
+      AND asaas_subscription_id = $5
+      AND reativacao_tentativa = $6
+      AND UPPER(status) IN ('ACTIVE', 'CANCELED', 'CANCELLED')
     RETURNING *
     `,
     [
       assinaturaId,
       negocioId,
       acessoAte,
-      observacoes
+      observacoes,
+      asaasSubscriptionId,
+      reativacaoTentativa
     ]
-  );
-
-  return result.rows[0] || null;
-}
-
-async function buscarReativacaoAbandonada(
-  negocioId,
-  executor = db
-) {
-  const result = await executor.query(
-    `
-    SELECT *
-    FROM assinaturas
-    WHERE negocio_id = $1
-      AND ativo = TRUE
-      AND UPPER(status) = 'REACTIVATING'
-      AND updated_at
-        < NOW() - INTERVAL '2 minutes'
-    ORDER BY id DESC
-    LIMIT 1
-    `,
-    [negocioId]
   );
 
   return result.rows[0] || null;
@@ -324,20 +327,49 @@ async function reservarReativacao(
 
   const result = await executor.query(
     `
-    UPDATE assinaturas
-    SET
-      status = 'REACTIVATING',
-      reativacao_tentativa =
-        reativacao_tentativa + 1,
-      updated_at = NOW()
-    WHERE id = $1
-      AND negocio_id = $2
-      AND ativo = TRUE
-      AND UPPER(status) IN (
-        'CANCELED',
-        'CANCELLED'
+    WITH negocio_travado AS MATERIALIZED (
+      SELECT id FROM negocios WHERE id = $2 FOR UPDATE
+    ), reservada AS (
+      UPDATE assinaturas a
+      SET status = 'REACTIVATING',
+        renovacao_cancelada = TRUE,
+        acesso_pago_ate = COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca),
+        reativacao_inicio_cobranca = COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca),
+        renovacao_chave_versao = 1,
+        reativacao_tentativa = reativacao_tentativa + 1,
+        updated_at = NOW()
+      FROM negocio_travado n
+      WHERE a.id = $1 AND a.negocio_id = n.id AND a.ativo = TRUE
+        AND (UPPER(a.status) IN ('CANCELED', 'CANCELLED') OR a.renovacao_cancelada = TRUE)
+        AND COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca) > CURRENT_DATE
+        AND NOT EXISTS (
+          SELECT 1 FROM assinatura_renovacao_operacoes o
+          INNER JOIN assinaturas outra ON outra.id = o.assinatura_id
+          WHERE outra.negocio_id = n.id AND o.estado IN ('PENDING', 'REMOVING')
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM assinaturas pendente
+          WHERE pendente.negocio_id = n.id AND pendente.ativo = FALSE
+            AND UPPER(pendente.status) IN ('PENDING', 'PENDING_PAYMENT')
+            AND (pendente.created_at >= NOW() - INTERVAL '15 minutes'
+              OR EXISTS (SELECT 1 FROM pagamentos pg WHERE pg.assinatura_id = pendente.id
+                AND UPPER(pg.status) IN ('PENDING', 'CREATED', 'AWAITING_PAYMENT')
+                AND (pg.data_vencimento IS NULL OR pg.data_vencimento >= CURRENT_DATE)))
+        )
+      RETURNING a.*
+    ), operacao AS (
+      INSERT INTO assinatura_renovacao_operacoes (
+        assinatura_id, tentativa, referencia_externa, inicio_cobranca, recorrencia_anterior_id, lease_ate
       )
-    RETURNING *
+      SELECT id, reativacao_tentativa,
+        'assinatura-reativada:' || id || ';tentativa:' || reativacao_tentativa ||
+          ';inicio:' || TO_CHAR(reativacao_inicio_cobranca, 'YYYY-MM-DD'),
+        reativacao_inicio_cobranca, asaas_subscription_id, NOW() + INTERVAL '2 minutes'
+      FROM reservada
+      RETURNING execucao_versao, assinatura_id
+    )
+    SELECT reservada.*, operacao.execucao_versao
+    FROM reservada INNER JOIN operacao ON operacao.assinatura_id = reservada.id
     `,
     [
       assinaturaId,
@@ -348,30 +380,42 @@ async function reservarReativacao(
   return result.rows[0] || null;
 }
 
+function validarTentativaReativacao(valor) {
+  const tentativa = Number(valor);
+  if (!Number.isSafeInteger(tentativa) || tentativa < 1) {
+    throw new TypeError("Tentativa de reativação inválida.");
+  }
+  return tentativa;
+}
+
 async function restaurarCancelamentoReativacao(
   client,
   {
     assinaturaId,
-    negocioId
+    negocioId,
+    reativacaoTentativa
   }
 ) {
   const executor = client || db;
+  const tentativa = validarTentativaReativacao(reativacaoTentativa);
 
   const result = await executor.query(
     `
     UPDATE assinaturas
     SET
       status = 'CANCELED',
+      renovacao_cancelada = TRUE,
       updated_at = NOW()
     WHERE id = $1
       AND negocio_id = $2
-      AND ativo = TRUE
       AND UPPER(status) = 'REACTIVATING'
+      AND reativacao_tentativa = $3
     RETURNING *
     `,
     [
       assinaturaId,
-      negocioId
+      negocioId,
+      tentativa
     ]
   );
 
@@ -385,10 +429,12 @@ async function registrarReativacao(
     negocioId,
     asaasSubscriptionId,
     dataProximaCobranca,
-    observacoes
+    observacoes,
+    reativacaoTentativa
   }
 ) {
   const executor = client || db;
+  const tentativa = validarTentativaReativacao(reativacaoTentativa);
 
   const result = await executor.query(
     `
@@ -396,8 +442,11 @@ async function registrarReativacao(
     SET
       asaas_subscription_id = $3,
       status = 'ACTIVE',
+      renovacao_cancelada = FALSE,
+      renovacao_chave_versao = 1,
       ativo = TRUE,
-      data_proxima_cobranca = $4,
+      acesso_pago_ate = COALESCE(acesso_pago_ate, data_proxima_cobranca),
+      data_proxima_cobranca = $4::date,
       observacoes = CONCAT_WS(
         E'\n',
         NULLIF(observacoes, ''),
@@ -408,6 +457,9 @@ async function registrarReativacao(
       AND negocio_id = $2
       AND ativo = TRUE
       AND UPPER(status) = 'REACTIVATING'
+      AND reativacao_tentativa = $6
+      AND COALESCE(acesso_pago_ate, data_proxima_cobranca) = $4::date
+      AND COALESCE(acesso_pago_ate, data_proxima_cobranca) > CURRENT_DATE
     RETURNING *
     `,
     [
@@ -415,7 +467,8 @@ async function registrarReativacao(
       negocioId,
       asaasSubscriptionId,
       dataProximaCobranca,
-      observacoes
+      observacoes,
+      tentativa
     ]
   );
 
@@ -438,11 +491,12 @@ async function expirarCancelamentoSeNecessario(
           AND a.ativo = TRUE
           AND UPPER(a.status) IN (
             'CANCELED',
-            'CANCELLED'
+            'CANCELLED',
+            'REACTIVATING'
           )
-          AND a.data_proxima_cobranca
+          AND COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca)
             IS NOT NULL
-          AND a.data_proxima_cobranca
+          AND COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca)
             <= CURRENT_DATE
           AND pl.valor > 0
         FOR UPDATE OF a
@@ -505,6 +559,18 @@ async function expirarCancelamentoSeNecessario(
   return result.rows[0] || null;
 }
 
+async function bloquearNegocioSePeriodoVencido(negocioId, executor = db) {
+  const result = await executor.query(`
+    SELECT n.id FROM negocios n WHERE n.id = $1 AND EXISTS (
+      SELECT 1 FROM assinaturas a INNER JOIN planos p ON p.id = a.plano_id
+      WHERE a.negocio_id = n.id AND a.ativo = TRUE AND p.valor > 0
+        AND UPPER(a.status) IN ('CANCELED', 'CANCELLED', 'REACTIVATING')
+        AND COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca) <= CURRENT_DATE
+    ) FOR UPDATE OF n
+  `, [negocioId]);
+  return result.rows[0] || null;
+}
+
 async function buscarPlano(planoId) {
   const result = await db.query(
     `
@@ -559,8 +625,8 @@ async function buscarUltimoPagamentoPendente(
   return result.rows[0] || null;
 }
 
-async function listarPagamentos(assinaturaId) {
-  const result = await db.query(
+async function listarPagamentos(assinaturaId, executor = db, limite = 12) {
+  const result = await executor.query(
     `
     SELECT
       id,
@@ -575,9 +641,9 @@ async function listarPagamentos(assinaturaId) {
     FROM pagamentos
     WHERE assinatura_id = $1
     ORDER BY id DESC
-    LIMIT 12
+    LIMIT $2
     `,
-    [assinaturaId]
+    [assinaturaId, limite]
   );
 
   return result.rows;
@@ -750,21 +816,22 @@ async function listarNegociosComCancelamentoExpirado(
     `
     SELECT
       a.negocio_id,
-      MIN(a.data_proxima_cobranca) AS acesso_ate
+      MIN(COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca)) AS acesso_ate
     FROM assinaturas a
     INNER JOIN planos pl
       ON pl.id = a.plano_id
     WHERE a.ativo = TRUE
       AND a.status IN (
         'CANCELED',
-        'CANCELLED'
+        'CANCELLED',
+        'REACTIVATING'
       )
-      AND a.data_proxima_cobranca IS NOT NULL
-      AND a.data_proxima_cobranca <= CURRENT_DATE
+      AND COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca) IS NOT NULL
+      AND COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca) <= CURRENT_DATE
       AND pl.valor > 0
     GROUP BY a.negocio_id
     ORDER BY
-      MIN(a.data_proxima_cobranca) ASC,
+      MIN(COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca)) ASC,
       a.negocio_id ASC
     LIMIT $1
     `,
@@ -785,12 +852,13 @@ module.exports = {
   buscarUltimaAssinaturaPorNegocio,
   buscarAssinaturaPendentePorNegocio,
   expirarCheckoutsPendentes,
+  buscarAssinaturaParaCancelar,
   registrarCancelamento,
-  buscarReativacaoAbandonada,
   reservarReativacao,
   restaurarCancelamentoReativacao,
   registrarReativacao,
   expirarCancelamentoSeNecessario,
+  bloquearNegocioSePeriodoVencido,
   buscarPlano,
   buscarUltimoPagamentoPendente,
   listarPagamentos,

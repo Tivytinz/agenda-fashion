@@ -18,6 +18,10 @@ Antes do arquivamento, a mesma transação revalida:
 - ausência de checkout pendente/processando;
 - ausência de operação financeira pendente suportada pelo schema atual.
 
+Tentativas externas de renovação em `PENDING` ou `REMOVING` também são pendências,
+mesmo após estorno, suspensão ou fim do acesso. Arquivar o negócio não pode
+tornar uma recorrência criada invisível à recuperação do worker.
+
 Se existir pendência, a API responde `409 ENCERRAMENTO_COM_PENDENCIAS` e
 retorna categorias seguras e acionáveis. O frontend deve mostrar essas
 pendências em vez de esconder o erro.

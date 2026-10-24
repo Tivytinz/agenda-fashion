@@ -98,7 +98,8 @@ async function listarProfissionaisDoNegocio(negocioId) {
           AND un.ativo = FALSE
           AND un.motivo_inatividade IN (
             'aguardando_vaga_plano',
-            'excedente_limite_plano'
+            'excedente_limite_plano',
+            'inativado_pela_dona'
           )
         )
       )
@@ -181,7 +182,7 @@ async function removerVinculo(usuarioId, negocioId) {
     if (!vinculoAtual) {
       return {
         removido: null,
-        agendamentosFuturos: 0,
+        agendamentosPendentes: 0,
       };
     }
 
@@ -189,29 +190,21 @@ async function removerVinculo(usuarioId, negocioId) {
       `
       SELECT COUNT(*)::int AS total
       FROM agendamentos a
-      INNER JOIN negocios n
-        ON n.id = a.negocio_id
       WHERE a.profissional_id = $1
         AND a.negocio_id = $2
         AND a.status IN ('agendado', 'confirmado')
-        AND (a.data + a.horario) > (
-          CURRENT_TIMESTAMP AT TIME ZONE COALESCE(
-            NULLIF(n.fuso_horario, ''),
-            'America/Sao_Paulo'
-          )
-        )
       `,
       [usuarioId, negocioId]
     );
 
-    const agendamentosFuturos = Number(
+    const agendamentosPendentes = Number(
       compromissos.rows[0]?.total || 0
     );
 
-    if (agendamentosFuturos > 0) {
+    if (agendamentosPendentes > 0) {
       return {
         removido: null,
-        agendamentosFuturos,
+        agendamentosPendentes,
       };
     }
 
@@ -226,7 +219,7 @@ async function removerVinculo(usuarioId, negocioId) {
 
     return {
       removido: result.rows[0] || null,
-      agendamentosFuturos: 0,
+      agendamentosPendentes: 0,
     };
   });
 }
@@ -300,6 +293,45 @@ async function verificarVinculo(
     [usuarioId, negocioId]
   );
 
+  return result.rows[0] || null;
+}
+
+async function bloquearContaDonaAtiva(usuarioId, executor = db) {
+  // Serializa mudanças da conta sem bloquear KEY SHARE das FKs de ator/convite.
+  // Mesma ordem do encerramento: conta da dona antes dos vínculos do negócio.
+  const result = await executor.query(`
+    SELECT id FROM usuarios
+    WHERE id = $1 AND ativo = TRUE AND encerrado_definitivo_em IS NULL
+    FOR NO KEY UPDATE
+  `, [usuarioId]);
+  return result.rows[0] || null;
+}
+
+async function bloquearVinculoProfissionalDaDona({ usuarioId, profissionalId, negocioId, executor = db }) {
+  const result = await executor.query(`
+    SELECT un.id, un.papel, un.ativo, un.motivo_inatividade
+    FROM usuarios_negocios un
+    INNER JOIN usuarios_negocios dona
+      ON dona.negocio_id = un.negocio_id AND dona.usuario_id = $1
+      AND dona.papel = 'dono' AND dona.ativo = TRUE
+    INNER JOIN usuarios u ON u.id = dona.usuario_id
+      AND u.ativo = TRUE AND u.encerrado_definitivo_em IS NULL
+    INNER JOIN negocios n ON n.id = un.negocio_id
+      AND n.ativo = TRUE AND n.arquivado_em IS NULL
+    WHERE un.usuario_id = $2 AND un.negocio_id = $3
+      AND un.papel = 'profissional' AND un.usuario_id <> dona.usuario_id
+    FOR UPDATE OF un, dona
+  `, [usuarioId, profissionalId, negocioId]);
+  return result.rows[0] || null;
+}
+
+async function inativarVinculoProfissional(vinculoId, executor = db) {
+  const result = await executor.query(`
+    UPDATE usuarios_negocios
+    SET ativo = FALSE, motivo_inatividade = 'inativado_pela_dona', updated_at = NOW()
+    WHERE id = $1 AND papel = 'profissional' AND ativo = TRUE
+    RETURNING id, ativo, motivo_inatividade
+  `, [vinculoId]);
   return result.rows[0] || null;
 }
 
@@ -431,7 +463,8 @@ async function ativarVinculoProfissionalInativo(
       AND un.ativo = FALSE
       AND un.motivo_inatividade IN (
         'aguardando_vaga_plano',
-        'excedente_limite_plano'
+        'excedente_limite_plano',
+        'inativado_pela_dona'
       )
       AND u.id = un.usuario_id
       AND u.ativo = TRUE
@@ -715,6 +748,9 @@ module.exports = {
   buscarProfissionalPorEmailWhatsapp,
   ativarPerfilProfissionalConta,
   verificarVinculo,
+  bloquearContaDonaAtiva,
+  bloquearVinculoProfissionalDaDona,
+  inativarVinculoProfissional,
   buscarVinculoProfissionalAtivo,
   criarVinculo,
   criarOuMarcarVinculoAguardandoVaga,

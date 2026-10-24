@@ -25,16 +25,16 @@ function subscriptionStatus(plan, subscription) {
 
   const status = normalizeStatus(subscription.status);
 
-  if (ACTIVE_STATUSES.has(status) || (subscription.ativo === true && !CANCELED_STATUSES.has(status))) {
-    return { label: "Assinatura ativa", tone: "success", active: true };
-  }
-
   if (status === "REACTIVATING") {
     return {
       label: "Reativando renovação",
       tone: "warning",
       active: true
     };
+  }
+
+  if (ACTIVE_STATUSES.has(status) || (subscription.ativo === true && !CANCELED_STATUSES.has(status))) {
+    return { label: "Assinatura ativa", tone: "success", active: true };
   }
 
   if (PENDING_STATUSES.has(status)) {
@@ -149,6 +149,9 @@ export function SubscriptionPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const dialogRef = useRef(null);
+  const readRef = useRef(null);
+  const writeRef = useRef(null);
+  const readyRef = useRef(false);
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState(() =>
@@ -156,19 +159,49 @@ export function SubscriptionPage() {
       ? "Pagamento confirmado. Estamos concluindo a ativação do seu plano."
       : ""
   );
-  const [canceling, setCanceling] = useState(false);
+  const [updating, setUpdating] = useState("");
+  const [refreshing, setRefreshing] = useState(true);
+  const [readFailed, setReadFailed] = useState(false);
+  const canceling = updating === "cancelar";
   const [cancelError, setCancelError] = useState("");
-  const [reactivating, setReactivating] = useState(false);
+  const reactivating = updating === "reativar";
   const [reactivationError, setReactivationError] = useState("");
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
+    readRef.current?.abort();
+    const controller = new AbortController();
+    readRef.current = controller;
+    readyRef.current = false;
+    const isCurrent = () => readRef.current === controller && !controller.signal.aborted;
+    setRefreshing(true);
     setError("");
-    apiRequest("/minha-assinatura")
-      .then(setData)
-      .catch((requestError) => setError(requestError.message));
+    try {
+      const result = await apiRequest("/minha-assinatura", { signal: controller.signal });
+      if (!isCurrent()) return false;
+      setData(result);
+      setReadFailed(false);
+      readyRef.current = true;
+      return true;
+    } catch (requestError) {
+      if (isCurrent()) {
+        setReadFailed(true);
+        setError(requestError.message);
+      }
+      return false;
+    } finally {
+      if (isCurrent()) setRefreshing(false);
+    }
   }, []);
 
-  useEffect(load, [load]);
+  useEffect(() => {
+    void load();
+    return () => {
+      readRef.current?.abort();
+      readRef.current = null;
+      writeRef.current = null;
+      readyRef.current = false;
+    };
+  }, [load]);
 
   useEffect(() => {
     if (location.state?.payment) {
@@ -176,44 +209,67 @@ export function SubscriptionPage() {
     }
   }, [location.pathname, location.state, navigate]);
 
-  async function cancel() {
-    setCanceling(true);
+  async function mutateSubscription(kind) {
+    if (!readyRef.current || writeRef.current) return;
+    const context = {};
+    writeRef.current = context;
+    readyRef.current = false;
+    readRef.current?.abort();
+    readRef.current = null;
+    setUpdating(kind);
     setCancelError("");
-    try {
-      const result = await apiRequest("/minha-assinatura", { method: "DELETE" });
-      setMessage(result.mensagem);
-      dialogRef.current?.close();
-      load();
-    } catch (requestError) {
-      setCancelError(requestError.message);
-    } finally {
-      setCanceling(false);
-    }
-  }
-
-  async function reactivate() {
-    setReactivating(true);
     setReactivationError("");
-
+    setError("");
+    setMessage("");
+    const isCurrent = () => writeRef.current === context;
     try {
       const result = await apiRequest(
-        "/minha-assinatura/reativar",
-        { method: "POST" }
+        kind === "cancelar" ? "/minha-assinatura" : "/minha-assinatura/reativar",
+        { method: kind === "cancelar" ? "DELETE" : "POST" }
       );
+      if (!isCurrent()) return;
+      // O resultado confirmado é preservado mesmo se a leitura seguinte falhar.
+      if (result.assinatura) {
+        setData((current) => ({ ...current, assinatura: result.assinatura,
+          estado_assinatura: null, pagamento_recuperavel: null }));
+      }
       setMessage(result.mensagem);
-      load();
+      dialogRef.current?.close();
+      const loaded = await load();
+      if (isCurrent() && !loaded) {
+        setError("Alteração salva. Não foi possível atualizar a assinatura. Atualize os dados para continuar.");
+      }
     } catch (requestError) {
-      setReactivationError(requestError.message);
+      if (!isCurrent()) return;
+      const uncertain = !requestError.status || requestError.status >= 500 || requestError.status === 408;
+      const subscriptionChanged = requestError.status === 409 &&
+        requestError.data?.codigo === "ASSINATURA_ALTERADA";
+      if (uncertain || subscriptionChanged || (kind === "reativar" && requestError.status === 409)) {
+        dialogRef.current?.close();
+        setReadFailed(true);
+        setError(uncertain
+          ? "Não foi possível confirmar a alteração. Atualize a assinatura antes de tentar novamente."
+          : `${requestError.message} Atualize a assinatura antes de tentar novamente.`);
+      } else {
+        readyRef.current = true;
+        if (kind === "cancelar") setCancelError(requestError.message);
+        else setReactivationError(requestError.message);
+      }
     } finally {
-      setReactivating(false);
+      if (isCurrent()) {
+        writeRef.current = null;
+        setUpdating("");
+      }
     }
   }
+
+  const actionsDisabled = refreshing || readFailed || Boolean(updating);
 
   if (!data && !error) {
     return <main className="workspace-page"><LoadingState>Carregando assinatura...</LoadingState></main>;
   }
   if (!data && error) {
-    return <main className="workspace-page"><ErrorState message={error} onRetry={load} /></main>;
+    return <main className="workspace-page"><ErrorState message={error} onRetry={() => void load()} /></main>;
   }
 
   const plan = data.plano || {};
@@ -238,14 +294,18 @@ export function SubscriptionPage() {
   const needsSubscription =
     !isFree && !subscription && !hasPendingUpgrade;
   const rawStatus = normalizeStatus(subscription?.status);
+  const renewalPending = data.renovacao_pendente === true || rawStatus === "REACTIVATING";
   const renewalCanceled =
     billingState === "CANCELAMENTO_AGENDADO" ||
     CANCELED_STATUSES.has(rawStatus);
+  const billingDate = renewalCanceled || renewalPending
+    ? subscription?.acesso_pago_ate ?? subscription?.data_proxima_cobranca
+    : subscription?.data_proxima_cobranca;
   const canCancel =
-    ACTIVE_STATUSES.has(rawStatus) &&
+    !renewalPending && ACTIVE_STATUSES.has(rawStatus) &&
     subscription?.ativo !== false;
   const canReactivate =
-    CANCELED_STATUSES.has(rawStatus) &&
+    !renewalPending && CANCELED_STATUSES.has(rawStatus) &&
     subscription?.ativo === true;
   const planSlug = String(plan.slug || "").trim();
   const checkoutTarget = planSlug
@@ -286,6 +346,17 @@ export function SubscriptionPage() {
       </header>
 
       {error && <p className="form-error" role="alert">{error}</p>}
+      {renewalPending && (
+        <p className="form-message" role="status">
+          Estamos conferindo sua renovação. Atualize a assinatura para acompanhar a conclusão.
+        </p>
+      )}
+      {(readFailed || renewalPending) && data && (
+        <button className="button button-secondary" disabled={refreshing || Boolean(updating)}
+          onClick={() => void load()} type="button">
+          {refreshing ? "Atualizando assinatura..." : "Atualizar assinatura"}
+        </button>
+      )}
       {reactivationError && <p className="form-error" role="alert">{reactivationError}</p>}
       {message && <p className="form-success" role="status">{message}</p>}
 
@@ -388,10 +459,10 @@ export function SubscriptionPage() {
                 <dd>{formatPaymentMethod(subscription.forma_pagamento)}</dd>
               </div>
               <div>
-                <dt>{renewalCanceled ? "Acesso até" : "Próxima cobrança"}</dt>
+                <dt>{renewalCanceled || renewalPending ? "Acesso até" : "Próxima cobrança"}</dt>
                 <dd>
-                  {subscription.data_proxima_cobranca
-                    ? formatDate(subscription.data_proxima_cobranca)
+                  {billingDate
+                    ? formatDate(billingDate)
                     : renewalCanceled
                       ? "Fim do período não informado"
                       : state.active
@@ -407,7 +478,7 @@ export function SubscriptionPage() {
                   ? "Seu plano gratuito não possui cobrança mensal."
                   : `A assinatura ainda não foi ativada. Ative o ${plan.nome || "plano"} para liberar os novos limites.`}
               </p>
-              {needsSubscription && (
+              {needsSubscription && !renewalPending && (
                 <Link className="button subscription-primary-action" to={checkoutTarget}>
                   {plan.nome ? `Assinar ${plan.nome}` : "Assinar plano"}
                 </Link>
@@ -418,6 +489,7 @@ export function SubscriptionPage() {
           {canCancel && (
             <button
               className="text-button danger-text subscription-cancel-action"
+              disabled={actionsDisabled}
               onClick={() => {
                 setCancelError("");
                 dialogRef.current?.showModal();
@@ -430,8 +502,8 @@ export function SubscriptionPage() {
           {canReactivate && (
             <button
               className="button button-secondary subscription-primary-action"
-              disabled={reactivating}
-              onClick={() => void reactivate()}
+              disabled={actionsDisabled}
+              onClick={() => void mutateSubscription("reativar")}
               type="button"
             >
               {reactivating ? "Reativando..." : "Reativar renovação"}
@@ -546,7 +618,7 @@ export function SubscriptionPage() {
         aria-labelledby="cancel-subscription-title"
         className="cancel-dialog"
         onCancel={(event) => {
-          if (canceling) event.preventDefault();
+          if (updating) event.preventDefault();
         }}
         ref={dialogRef}
       >
@@ -567,7 +639,7 @@ export function SubscriptionPage() {
             >
               Manter plano
             </button>
-            <button className="button button-danger" disabled={canceling} onClick={cancel} type="button">
+            <button className="button button-danger" disabled={actionsDisabled} onClick={() => void mutateSubscription("cancelar")} type="button">
               {canceling ? "Cancelando..." : "Sim, cancelar"}
             </button>
           </div>

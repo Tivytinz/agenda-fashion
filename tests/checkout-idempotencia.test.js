@@ -1,3 +1,4 @@
+jest.mock("../src/repositories/assinaturaRenovacaoRepository");
 const mockClient = {
   query: jest.fn()
 };
@@ -78,6 +79,8 @@ describe(
   () => {
     beforeEach(() => {
       jest.clearAllMocks();
+      require("../src/repositories/assinaturaRenovacaoRepository").possuiPendente.mockResolvedValue(false);
+      require("../src/repositories/assinaturaRenovacaoRepository").buscarPendente.mockResolvedValue(null);
 
       checkoutRepository
         .buscarNegocioDono

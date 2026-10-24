@@ -68,9 +68,9 @@ describe("equipe por convite", () => {
       .mockResolvedValueOnce({ profissionais: [
         { id: 1, nome: "Dona", papel: "dono", foto_url: null }
       ] })
-      .mockRejectedValueOnce(new Error(
+      .mockRejectedValueOnce(Object.assign(new Error(
         "Profissional não encontrado. Ele precisa criar uma conta primeiro."
-      ));
+      ), { status: 404 }));
 
     render(<MemoryRouter><ProfessionalsPage /></MemoryRouter>);
     await screen.findByRole("heading", { name: "Profissionais" });
@@ -217,9 +217,9 @@ describe("equipe por convite", () => {
         { id: 1, nome: "Dona", papel: "dono", foto_url: null },
         { id: 9, nome: "Ana", papel: "profissional", foto_url: null }
       ] })
-      .mockRejectedValueOnce(new Error(
+      .mockRejectedValueOnce(Object.assign(new Error(
         "Existe 1 agendamento futuro ativo para esta profissional."
-      ));
+      ), { status: 409 }));
 
     render(<MemoryRouter><ProfessionalsPage /></MemoryRouter>);
     await screen.findByRole("heading", { name: "Ana" });

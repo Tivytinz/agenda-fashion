@@ -1,4 +1,5 @@
 const db = require("../db/db");
+const renovacaoRepository = require("../repositories/assinaturaRenovacaoRepository");
 const assinaturaRepository = require(
   "../repositories/assinaturaRepository"
 );
@@ -11,10 +12,10 @@ const {
   reconciliarReativacaoAbandonada
 } = require("./assinaturaReativacaoService");
 const {
-  calcularProximaCobranca,
   criarErro,
   dataValida,
 } = require("./assinaturaCalculos");
+const { calcularFimDoPeriodoPago } = require("./assinaturaPeriodoPagoService");
 const assinaturaLifecycleService = require(
   "./assinaturaLifecycleService"
 );
@@ -243,7 +244,7 @@ function estadoAssinatura({
     );
 
     return {
-      codigo: ["CANCELED", "CANCELLED"].includes(status)
+      codigo: status === "REACTIVATING" ? "REATIVANDO" : ["CANCELED", "CANCELLED"].includes(status)
         ? "CANCELAMENTO_AGENDADO"
         : "ATIVA",
       status_provedor: status || null,
@@ -333,6 +334,8 @@ async function buscarMinhaAssinatura({ usuarioId }) {
   await reconciliarReativacaoAbandonada(
     negocio.id
   );
+  // Importação local evita o ciclo da fachada interna de assinaturas.
+  await require("./assinaturaAtivacaoAsaasService").reconciliarCheckoutsPendentes(negocio.id);
 
   await assinaturaRepository
     .expirarCheckoutsPendentes(negocio.id);
@@ -392,6 +395,7 @@ async function buscarMinhaAssinatura({ usuarioId }) {
   return {
     plano,
     assinatura,
+    renovacao_pendente: await renovacaoRepository.possuiPendente(negocio.id),
     estado_assinatura: estado,
     upgrade_contextual: upgradeContextual,
     pagamento_recuperavel:
@@ -425,46 +429,6 @@ async function buscarMinhaAssinatura({ usuarioId }) {
   };
 }
 
-async function calcularFimDoPeriodoPago(assinatura) {
-  const pagamentosLocais = await assinaturaRepository
-    .listarPagamentos(assinatura.id);
-  const pagamentoRecebido = pagamentosLocais.find(
-    (pagamento) => [
-      "CONFIRMED",
-      "RECEIVED",
-      "RECEIVED_IN_CASH",
-    ].includes(
-      String(pagamento?.status || "").trim().toUpperCase()
-    )
-  );
-  const pagamentoComData = pagamentoRecebido ||
-    pagamentosLocais.find(
-      (pagamento) =>
-        dataValida(pagamento?.data_pagamento) ||
-        dataValida(pagamento?.data_vencimento)
-    );
-
-  if (pagamentoComData) {
-    return calcularProximaCobranca(
-      pagamentoComData.data_pagamento ||
-      pagamentoComData.data_vencimento
-    );
-  }
-
-  const dataLocal = dataValida(
-    assinatura.data_proxima_cobranca
-  );
-
-  if (dataLocal) {
-    return dataLocal;
-  }
-
-  throw criarErro(
-    "Não foi possível identificar até quando o plano já está pago.",
-    409
-  );
-}
-
 async function cancelarMinhaAssinatura({ usuarioId }) {
   if (!usuarioId) {
     throw criarErro("Usuário não autenticado.", 401);
@@ -495,7 +459,7 @@ async function cancelarMinhaAssinatura({ usuarioId }) {
     return {
       mensagem: "A renovação desta assinatura já está cancelada.",
       assinatura,
-      acesso_ate: assinatura.data_proxima_cobranca,
+      acesso_ate: assinatura.acesso_pago_ate ?? assinatura.data_proxima_cobranca,
     };
   }
 
@@ -513,22 +477,32 @@ async function cancelarMinhaAssinatura({ usuarioId }) {
     );
   }
 
-  const acessoAte = await calcularFimDoPeriodoPago(assinatura);
+  // Falta de evidência deve ser rejeitada antes de operar o provedor.
+  await calcularFimDoPeriodoPago(assinatura);
   await removerAssinaturaAsaas(
     assinatura.asaas_subscription_id
   );
 
-  const observacoes =
-    "Renovação cancelada pelo titular. " +
-    `Acesso mantido até ${acessoAte}.`;
   const assinaturaCancelada = await db.executarTransacao(
     async (client) => {
+      const atual = await assinaturaRepository.buscarAssinaturaParaCancelar(client, {
+        assinaturaId: assinatura.id, negocioId: negocio.id,
+      });
+      if (!atual || atual.ativo !== true ||
+        atual.asaas_subscription_id !== assinatura.asaas_subscription_id ||
+        Number(atual.reativacao_tentativa ?? 0) !== Number(assinatura.reativacao_tentativa ?? 0) ||
+        !["ACTIVE", "CANCELED", "CANCELLED"].includes(String(atual.status).toUpperCase())) return null;
+
+      const acessoAte = await calcularFimDoPeriodoPago(atual, client);
+      const observacoes = "Renovação cancelada pelo titular. " + `Acesso mantido até ${acessoAte}.`;
       const cancelada =
         await assinaturaRepository.registrarCancelamento(
           client,
           {
             assinaturaId: assinatura.id,
             negocioId: negocio.id,
+            asaasSubscriptionId: assinatura.asaas_subscription_id,
+            reativacaoTentativa: assinatura.reativacao_tentativa ?? 0,
             acessoAte,
             observacoes,
           }
@@ -539,7 +513,7 @@ async function cancelarMinhaAssinatura({ usuarioId }) {
           .registrarCancelamentoRenovacao({
             client,
             assinatura: cancelada,
-            acessoAte,
+            acessoAte: dataValida(cancelada.acesso_pago_ate ?? cancelada.data_proxima_cobranca),
             origem: "conta",
             motivo: "CANCELAMENTO_VOLUNTARIO",
           });
@@ -550,10 +524,12 @@ async function cancelarMinhaAssinatura({ usuarioId }) {
   );
 
   if (!assinaturaCancelada) {
-    throw criarErro(
-      "A recorrência foi encerrada, mas não foi possível atualizar a assinatura local. Tente novamente para sincronizar.",
+    const erro = criarErro(
+      "A assinatura mudou durante o cancelamento. Atualize os dados para conferir a renovação atual.",
       409
     );
+    erro.codigo = "ASSINATURA_ALTERADA";
+    throw erro;
   }
 
   return {
@@ -561,7 +537,7 @@ async function cancelarMinhaAssinatura({ usuarioId }) {
       "Renovação cancelada com sucesso. " +
       "O plano continuará disponível até o fim do período já pago.",
     assinatura: assinaturaCancelada,
-    acesso_ate: assinaturaCancelada.data_proxima_cobranca,
+    acesso_ate: assinaturaCancelada.acesso_pago_ate ?? assinaturaCancelada.data_proxima_cobranca,
   };
 }
 

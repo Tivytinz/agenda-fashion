@@ -9,6 +9,10 @@ import { MediaThumb } from "../components/profile/MediaThumb";
 export function ProfessionalsPage() {
   const session = useSession();
   const removeDialogRef = useRef(null);
+  const inactivateDialogRef = useRef(null);
+  const teamReadRef = useRef(null);
+  const teamWriteRef = useRef(null);
+  const teamReadyRef = useRef(false);
   const servicesDialogRef = useRef(null);
   const servicesReadRef = useRef(null);
   const servicesSaveRef = useRef(null);
@@ -18,7 +22,12 @@ export function ProfessionalsPage() {
   const [pendingRemove, setPendingRemove] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [teamUpdating, setTeamUpdating] = useState("");
+  const [refreshing, setRefreshing] = useState(true);
+  const [readFailed, setReadFailed] = useState(false);
+  const [pendingInactivate, setPendingInactivate] = useState(null);
+  const [inactivateError, setInactivateError] = useState("");
+  const saving = Boolean(teamUpdating);
   const [removeError, setRemoveError] = useState("");
   const [servicesTarget, setServicesTarget] = useState(null);
   const [serviceOptions, setServiceOptions] = useState([]);
@@ -26,47 +35,104 @@ export function ProfessionalsPage() {
   const [servicesReady, setServicesReady] = useState(false);
   const [servicesSaving, setServicesSaving] = useState(false);
   const [servicesError, setServicesError] = useState("");
-  const [activatingId, setActivatingId] = useState(null);
+  const activatingId = teamUpdating.startsWith("ativar-") ? teamUpdating.slice(7) : null;
   const [upgradeContextual, setUpgradeContextual] = useState(null);
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
+    teamReadRef.current?.controller.abort();
+    const context = { controller: new AbortController() };
+    teamReadRef.current = context;
+    teamReadyRef.current = false;
+    const isCurrent = () => teamReadRef.current === context
+      && !context.controller.signal.aborted;
+    setRefreshing(true);
     setError("");
-    apiRequest("/profissionais")
-      .then(async (result) => {
-        const professionals = result.profissionais || [];
-        const blockedByPlan = professionals.some(
-          (professional) =>
-            professional.ativo === false &&
-            [
-              "aguardando_vaga_plano",
-              "excedente_limite_plano"
-            ].includes(professional.motivo_inatividade)
-        );
-
-        setItems(professionals);
-
-        if (!blockedByPlan) {
-          setUpgradeContextual(null);
-          return;
-        }
-
-        try {
-          const subscription = await apiRequest("/minha-assinatura");
-          setUpgradeContextual(subscription?.upgrade_contextual || null);
-        } catch {
-          setUpgradeContextual(null);
-        }
-      })
-      .catch((requestError) => setError(requestError.message));
+    setUpgradeContextual(null);
+    try {
+      const result = await apiRequest("/profissionais", { signal: context.controller.signal });
+      if (!isCurrent()) return false;
+      const professionals = result.profissionais || [];
+      setItems(professionals);
+      setReadFailed(false);
+      teamReadyRef.current = true;
+      const blockedByPlan = professionals.some((professional) => professional.ativo === false
+        && ["aguardando_vaga_plano", "excedente_limite_plano"].includes(professional.motivo_inatividade));
+      if (blockedByPlan) {
+        // A consulta auxiliar não mantém as ações da equipe bloqueadas.
+        void apiRequest("/minha-assinatura", { signal: context.controller.signal })
+          .then((subscription) => {
+            if (isCurrent()) setUpgradeContextual(subscription?.upgrade_contextual || null);
+          }).catch(() => {
+            if (isCurrent()) setUpgradeContextual(null);
+          });
+      }
+      return true;
+    } catch (requestError) {
+      if (isCurrent()) {
+        setReadFailed(true);
+        setError(requestError.message);
+      }
+      return false;
+    } finally {
+      if (isCurrent()) setRefreshing(false);
+    }
   }, []);
 
-  useEffect(load, [load]);
+  useEffect(() => {
+    void load();
+    return () => {
+      teamReadRef.current?.controller.abort();
+      teamReadRef.current = null;
+      teamWriteRef.current = null;
+      teamReadyRef.current = false;
+      servicesReadRef.current?.controller.abort();
+      servicesReadRef.current = null;
+      servicesSaveRef.current = null;
+    };
+  }, [load]);
 
-  useEffect(() => () => {
-    servicesReadRef.current?.controller.abort();
-    servicesReadRef.current = null;
-    servicesSaveRef.current = null;
-  }, []);
+  async function mutateTeam({ key, path, options, applyResult, onSuccess, onUncertain,
+    onError = setError, refresh = true }) {
+    if (!teamReadyRef.current || teamWriteRef.current || servicesSaveRef.current) return;
+    const context = {};
+    teamWriteRef.current = context;
+    teamReadyRef.current = false;
+    teamReadRef.current?.controller.abort();
+    teamReadRef.current = null;
+    setUpgradeContextual(null);
+    setTeamUpdating(key);
+    setError("");
+    setMessage("");
+    const isCurrent = () => teamWriteRef.current === context;
+    try {
+      const result = await apiRequest(path, options);
+      if (!isCurrent()) return;
+      applyResult?.(result);
+      onSuccess?.(result);
+      setMessage(result.mensagem || "Equipe atualizada.");
+      if (refresh) {
+        const loaded = await load();
+        if (!isCurrent()) return;
+        if (!loaded) setError("Alteração salva. Não foi possível atualizar a equipe. Atualize a lista para continuar.");
+      } else teamReadyRef.current = true;
+    } catch (requestError) {
+      if (!isCurrent()) return;
+      const uncertain = !requestError.status || requestError.status >= 500 || requestError.status === 408;
+      if (uncertain) {
+        setReadFailed(true);
+        onUncertain?.();
+        setError("Não foi possível confirmar a alteração. Atualize a equipe antes de tentar novamente.");
+      } else {
+        teamReadyRef.current = true;
+        onError(requestError.message);
+      }
+    } finally {
+      if (isCurrent()) {
+        teamWriteRef.current = null;
+        setTeamUpdating("");
+      }
+    }
+  }
 
   function closeServices() {
     servicesReadRef.current?.controller.abort();
@@ -82,74 +148,72 @@ export function ProfessionalsPage() {
 
   async function sendInvite(event) {
     event.preventDefault();
-    setSaving(true);
-    setError("");
-    setMessage("");
+    if (!teamReadyRef.current || teamWriteRef.current || servicesSaveRef.current) return;
     setLastInvite(null);
+    return mutateTeam({
+      key: "convite", path: "/profissionais/convites",
+      options: { method: "POST", body: { emailOuWhatsapp: invite.trim() } },
+      refresh: false,
+      onSuccess: (result) => {
+        setLastInvite(result.convite || null);
+        setInvite("");
+      },
+    });
+  }
 
-    try {
-      const result = await apiRequest("/profissionais/convites", {
-        method: "POST",
-        body: { emailOuWhatsapp: invite.trim() }
-      });
-
-      setMessage(
-        result.mensagem ||
-        "Convite enviado. A profissional precisa aceitar antes de entrar na equipe."
-      );
-      setLastInvite(result.convite || null);
-      setInvite("");
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setSaving(false);
-    }
+  function reconcileProfessional(professionalId, result) {
+    setItems((current) => current?.map((professional) =>
+      Number(professional.id) === Number(result.profissional_id || professionalId)
+        ? { ...professional, ativo: result.ativo, motivo_inatividade: result.motivo_inatividade || null }
+        : professional));
   }
 
   async function activateProfessional(professionalId) {
-    setActivatingId(Number(professionalId));
-    setError("");
-    setMessage("");
+    return mutateTeam({
+      key: `ativar-${professionalId}`,
+      path: `/profissionais/${professionalId}/ativar`, options: { method: "POST" },
+      applyResult: (result) => reconcileProfessional(professionalId, result),
+    });
+  }
 
-    try {
-      const result = await apiRequest(
-        `/profissionais/${professionalId}/ativar`,
-        { method: "POST" }
-      );
-      setMessage(
-        result.mensagem ||
-        "Profissional ativada na equipe."
-      );
-      load();
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setActivatingId(null);
-    }
+  function closeInactivate() {
+    inactivateDialogRef.current?.close();
+    setPendingInactivate(null);
+    setInactivateError("");
+  }
+
+  async function inactivateProfessional() {
+    if (!pendingInactivate) return;
+    const professionalId = pendingInactivate.id;
+    setInactivateError("");
+    return mutateTeam({
+      key: `inativar-${professionalId}`,
+      path: `/profissionais/${professionalId}/inativar`, options: { method: "POST" },
+      applyResult: (result) => reconcileProfessional(professionalId, result),
+      onSuccess: closeInactivate, onUncertain: closeInactivate, onError: setInactivateError,
+    });
+  }
+
+  function closeRemove() {
+    removeDialogRef.current?.close();
+    setPendingRemove(null);
+    setRemoveError("");
   }
 
   async function remove() {
     if (!pendingRemove) return;
-    setSaving(true);
+    const professionalId = pendingRemove.id;
     setRemoveError("");
-
-    try {
-      const result = await apiRequest(`/profissionais/${pendingRemove.id}`, {
-        method: "DELETE"
-      });
-      setMessage(result.mensagem);
-      removeDialogRef.current?.close();
-      setPendingRemove(null);
-      load();
-    } catch (requestError) {
-      setRemoveError(requestError.message);
-    } finally {
-      setSaving(false);
-    }
+    return mutateTeam({
+      key: `remover-${professionalId}`, path: `/profissionais/${professionalId}`,
+      options: { method: "DELETE" },
+      applyResult: () => setItems((current) => current?.filter((item) => item.id !== professionalId)),
+      onSuccess: closeRemove, onUncertain: closeRemove, onError: setRemoveError,
+    });
   }
 
   async function openServices(professional) {
-    if (servicesSaveRef.current) return;
+    if (servicesSaveRef.current || teamWriteRef.current || !teamReadyRef.current) return;
     servicesReadRef.current?.controller.abort();
     const context = {
       controller: new AbortController(),
@@ -199,7 +263,7 @@ export function ProfessionalsPage() {
     const context = servicesReadRef.current;
     if (!servicesTarget || !context?.ready || servicesLoading
       || context.professionalId !== Number(servicesTarget.id)
-      || servicesSaveRef.current) return;
+      || servicesSaveRef.current || teamWriteRef.current || !teamReadyRef.current) return;
     servicesSaveRef.current = context;
     const isCurrent = () => servicesReadRef.current === context
       && !context.controller.signal.aborted;
@@ -239,6 +303,8 @@ export function ProfessionalsPage() {
     }
   }
 
+  const actionsDisabled = saving || refreshing || readFailed || !items || servicesSaving;
+
   const blockedByPlanCount = (items || []).filter(
     (professional) =>
       professional.ativo === false &&
@@ -277,13 +343,20 @@ export function ProfessionalsPage() {
           </small>
         </label>
 
-        <button className="button" disabled={saving} type="submit">
-          {saving ? "Enviando convite..." : "Enviar convite"}
+        <button className="button" disabled={actionsDisabled} type="submit">
+          {teamUpdating === "convite" ? "Enviando convite..." : "Enviar convite"}
         </button>
       </form>
 
       {error && items && (
         <p className="form-error" role="alert">{error}</p>
+      )}
+
+      {items && readFailed && (
+        <button className="button button-secondary" disabled={saving || refreshing}
+          onClick={() => void load()} type="button">
+          {refreshing ? "Atualizando equipe..." : "Atualizar equipe"}
+        </button>
       )}
 
       {message && (
@@ -325,7 +398,7 @@ export function ProfessionalsPage() {
       )}
 
       {!items && error && (
-        <ErrorState message={error} onRetry={load} />
+        <ErrorState message={error} onRetry={() => void load()} />
       )}
 
       {items?.length === 0 && (
@@ -348,8 +421,9 @@ export function ProfessionalsPage() {
               professional.ativo === false &&
               professional.motivo_inatividade ===
                 "excedente_limite_plano";
-            const inactiveByPlan =
-              waitingForCapacity || inactiveByDowngrade;
+            const manuallyInactive = professional.ativo === false
+              && professional.motivo_inatividade === "inativado_pela_dona";
+            const canActivate = waitingForCapacity || inactiveByDowngrade || manuallyInactive;
 
             return (
               <article
@@ -372,18 +446,18 @@ export function ProfessionalsPage() {
                         ? "Aceitou o convite · aguardando vaga no plano"
                         : inactiveByDowngrade
                           ? "Inativa · excedente do limite do plano"
-                          : "Profissional"}
+                          : manuallyInactive
+                            ? "Inativa por escolha da dona"
+                            : "Profissional"}
                   </p>
                 </div>
 
                 <div className="professional-card-actions">
-                  {inactiveByPlan ? (
+                  {canActivate ? (
                     <>
                       <button
                         className="button button-small"
-                        disabled={
-                          Number(activatingId) === Number(professional.id)
-                        }
+                        disabled={actionsDisabled}
                         onClick={() =>
                           void activateProfessional(professional.id)
                         }
@@ -394,10 +468,11 @@ export function ProfessionalsPage() {
                           : "Ativar profissional"}
                       </button>
                     </>
-                  ) : (
+                  ) : professional.ativo !== false ? (
                     <>
                       <button
                         className="text-button"
+                        disabled={actionsDisabled}
                         onClick={() => void openServices(professional)}
                         type="button"
                       >
@@ -413,11 +488,23 @@ export function ProfessionalsPage() {
                         </Link>
                       )}
                     </>
+                  ) : null}
+
+                  {!owner && professional.ativo !== false && (
+                    <button className="text-button" disabled={actionsDisabled}
+                      onClick={() => {
+                        setInactivateError("");
+                        setPendingInactivate(professional);
+                        inactivateDialogRef.current?.showModal();
+                      }} type="button">
+                      Inativar profissional
+                    </button>
                   )}
 
                   {!owner && (
                     <button
                       className="text-button danger-text"
+                      disabled={actionsDisabled}
                       onClick={() => {
                         setRemoveError("");
                         setPendingRemove(professional);
@@ -527,6 +614,28 @@ export function ProfessionalsPage() {
         </div>
       </dialog>
 
+      <dialog aria-labelledby="inactivate-professional-title" className="cancel-dialog"
+        ref={inactivateDialogRef} onCancel={(event) => {
+          if (saving) event.preventDefault();
+          else closeInactivate();
+        }}>
+        <div className="cancel-dialog-content">
+          <h2 id="inactivate-professional-title">Inativar profissional?</h2>
+          <p>{pendingInactivate?.nome || "Esta profissional"} deixará de receber novos agendamentos e não ocupará uma vaga no plano.</p>
+          <p>As reservas e o histórico serão preservados. Ela poderá consultar as próprias reservas existentes e registrar realizado ou falta no horário permitido. Cancelamentos e reagendamentos ficam com você enquanto ela estiver inativa.</p>
+          <p className="muted">Você poderá reativá-la quando houver vaga no plano e ela não estiver ativa em outro negócio.</p>
+          {inactivateError && <p className="form-error" role="alert">{inactivateError}</p>}
+          <div className="cancel-dialog-actions">
+            <button className="button button-secondary" disabled={saving}
+              onClick={closeInactivate} type="button">Manter ativa</button>
+            <button className="button button-danger" disabled={saving}
+              onClick={() => void inactivateProfessional()} type="button">
+              {saving ? "Inativando..." : "Sim, inativar"}
+            </button>
+          </div>
+        </div>
+      </dialog>
+
       <dialog
         aria-labelledby="remove-professional-title"
         className="cancel-dialog"
@@ -544,7 +653,7 @@ export function ProfessionalsPage() {
           <p>
             {pendingRemove?.ativo === false
               ? (
-                `O vínculo de ${pendingRemove?.nome || "esta profissional"} aguardando vaga será removido. A conta pessoal continuará existindo.`
+                `O vínculo de ${pendingRemove?.nome || "esta profissional"} será removido. A conta pessoal continuará existindo.`
               )
               : (
                 `${pendingRemove?.nome || "Esta profissional"} perderá o acesso a este negócio. A conta pessoal continuará existindo.`
@@ -552,9 +661,9 @@ export function ProfessionalsPage() {
           </p>
 
           <p className="muted">
-            {pendingRemove?.ativo === false
-              ? "Ela precisará receber e aceitar um novo convite para voltar à fila."
-              : "A remoção só é permitida quando não existem agendamentos futuros ativos dessa profissional neste negócio."}
+            A remoção só é permitida depois de concluir, cancelar ou registrar falta
+            em todos os agendamentos pendentes dessa profissional neste negócio,
+            inclusive os de dias anteriores.
           </p>
 
           {removeError && (

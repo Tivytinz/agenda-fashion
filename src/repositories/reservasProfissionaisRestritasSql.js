@@ -14,7 +14,7 @@ const VINCULO_RESTRITO_SQL = `
   AND (
     un.motivo_inatividade IS NULL
     OR un.motivo_inatividade IN (
-      'aguardando_vaga_plano', 'excedente_limite_plano'
+      'aguardando_vaga_plano', 'excedente_limite_plano', 'inativado_pela_dona'
     )
   )
 `;

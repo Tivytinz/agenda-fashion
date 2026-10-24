@@ -281,7 +281,7 @@ describe("Fluxo de profissionais com banco real", () => {
       .delete(`/profissionais/${profissionalDisponivel.id}`)
       .set("Authorization", `Bearer ${tokenDonoA}`);
     expect(bloqueada.statusCode).toBe(409);
-    expect(bloqueada.body.erro).toContain("1 agendamento futuro ativo");
+    expect(bloqueada.body.erro).toContain("1 agendamento pendente");
 
     const vinculoPreservado = await db.query(
       `SELECT ativo FROM usuarios_negocios WHERE usuario_id = $1 AND negocio_id = $2`,

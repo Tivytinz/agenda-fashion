@@ -1,6 +1,7 @@
 const assinaturaEventoRepository = require(
   "../repositories/assinaturaEventoRepository"
 );
+const { dataValida } = require("./assinaturaCalculos");
 
 function chavePagamento(pagamentoId, tipo) {
   return `pagamento:${pagamentoId}:${tipo}`;
@@ -324,6 +325,17 @@ async function registrarCancelamentoRenovacao({
     return null;
   }
 
+  const diaAcessoAte = dataValida(acessoAte);
+  const tentativa = Number(assinatura.reativacao_tentativa ?? 0);
+  if (!Number.isSafeInteger(tentativa) || tentativa < 0) {
+    throw new TypeError("Geração de cancelamento inválida.");
+  }
+  const chaveBase = chaveAssinatura(assinatura.id, "RENOVACAO_CANCELADA");
+  const legado = Number(assinatura.renovacao_chave_versao ?? 1) === 0;
+  const chaveCancelamento = legado
+    ? `${chaveBase}:${diaAcessoAte || "sem-data"}`
+    : `${chaveBase}:geracao:${tentativa}:recorrencia:${assinatura.asaas_subscription_id || "sem-id"}`;
+
   return assinaturaEventoRepository.registrar(
     client,
     {
@@ -335,7 +347,11 @@ async function registrarCancelamentoRenovacao({
       planoNovoId: assinatura.plano_id || null,
       origem,
       detalhes: {
-        acesso_ate: acessoAte || null,
+        acesso_ate: diaAcessoAte,
+        ...(!legado && {
+          reativacao_tentativa: tentativa,
+          asaas_subscription_id: assinatura.asaas_subscription_id || null,
+        }),
       },
       valorMensalAnterior:
         snapshotMonetario(assinatura).valorMensal,
@@ -344,11 +360,7 @@ async function registrarCancelamentoRenovacao({
       periodicidadeSnapshot:
         snapshotMonetario(assinatura).periodicidade,
       ocorridoEm,
-      chaveIdempotencia:
-        `${chaveAssinatura(
-          assinatura.id,
-          "RENOVACAO_CANCELADA"
-        )}:${acessoAte || "sem-data"}`,
+      chaveIdempotencia: chaveCancelamento,
     }
   );
 }
@@ -397,7 +409,7 @@ async function registrarEncerramentoAcesso({
       detalhes: {
         ...detalhes,
         acesso_ate:
-          assinatura.data_proxima_cobranca || null,
+          dataValida(assinatura.acesso_pago_ate ?? assinatura.data_proxima_cobranca),
       },
       valorMensalAnterior:
         snapshotMonetario(assinatura).valorMensal,
@@ -418,7 +430,7 @@ async function registrarEncerramentoAcesso({
             "ACESSO_PAGO_ENCERRADO"
           )}:${
             referenciaIdempotencia ||
-            assinatura.data_proxima_cobranca ||
+            dataValida(assinatura.acesso_pago_ate ?? assinatura.data_proxima_cobranca) ||
             motivoFinal ||
             "sem-referencia"
           }`,

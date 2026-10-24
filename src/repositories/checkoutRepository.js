@@ -63,6 +63,7 @@ async function bloquearCheckoutDoNegocio(
     `,
     [Number(negocioId)]
   );
+  await client.query("SELECT id FROM negocios WHERE id = $1 FOR UPDATE", [negocioId]);
 }
 
 async function buscarAssinaturaPendenteDoNegocio(

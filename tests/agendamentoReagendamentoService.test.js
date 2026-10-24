@@ -75,6 +75,7 @@ describe("agendamentoReagendamentoService", () => {
     status: "confirmado",
     data: "2026-09-18",
     horario: "10:00",
+    inicio_previsto_em: "2026-09-18T10:00:00.000Z",
     servico_nome: "Manicure",
     valor_servico: "70.00",
     duracao_minutos: 60,
