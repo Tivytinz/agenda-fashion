@@ -54,50 +54,11 @@ describe(
         expect(sql).toContain(
           "'CANCELLED'"
         );
-        expect(sql).not.toContain(
-          "INTERVAL '2 minutes'"
-        );
+        expect(sql).toContain("INSERT INTO assinatura_renovacao_operacoes");
         expect(params)
           .toEqual([20, 7]);
       }
     );
 
-    test(
-      "recuperação abandonada apenas seleciona para reconciliação externa",
-      async () => {
-        const executor = {
-          query: jest.fn()
-            .mockResolvedValue({
-              rows: []
-            })
-        };
-
-        await repository
-          .buscarReativacaoAbandonada(
-            7,
-            executor
-          );
-
-        const [sql, params] =
-          executor.query.mock.calls[0];
-
-        expect(
-          sql.trim().startsWith(
-            "SELECT"
-          )
-        ).toBe(true);
-        expect(sql).toContain(
-          "UPPER(status) = 'REACTIVATING'"
-        );
-        expect(sql).toContain(
-          "INTERVAL '2 minutes'"
-        );
-        expect(sql).not.toContain(
-          "UPDATE assinaturas"
-        );
-        expect(params)
-          .toEqual([7]);
-      }
-    );
   }
 );

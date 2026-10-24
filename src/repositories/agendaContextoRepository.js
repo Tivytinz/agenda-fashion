@@ -1,3 +1,4 @@
+const { FIM_LOCAL_SQL, PERIODO_AGENDA_SQL } = require("./intervaloAgendaSql");
 const db = require("../db/db");
 const { VINCULO_RESTRITO_SQL } = require("./reservasProfissionaisRestritasSql");
 
@@ -74,6 +75,7 @@ async function listarAgendamentosProfissionalPorPeriodo({
   const result = await db.query(
     `
       SELECT
+        TO_CHAR(${FIM_LOCAL_SQL}, 'YYYY-MM-DD"T"HH24:MI:SS') AS ocupacao_fim_local,
         CASE
           WHEN a.negocio_id = $2 THEN a.id
           ELSE NULL
@@ -245,22 +247,7 @@ async function listarAgendamentosProfissionalPorPeriodo({
         ON s.id = a.servico_id
         AND a.negocio_id = $2
       WHERE a.profissional_id = $1
-        AND COALESCE(
-          (
-            a.inicio_previsto_em
-              AT TIME ZONE COALESCE(
-                NULLIF(
-                  BTRIM(
-                    negocio_contexto
-                      .fuso_horario
-                  ),
-                  ''
-                ),
-                'America/Sao_Paulo'
-              )
-          )::date,
-          a.data
-        ) BETWEEN $3 AND $4
+        AND ${PERIODO_AGENDA_SQL}
         AND (
           (
             a.negocio_id = $2

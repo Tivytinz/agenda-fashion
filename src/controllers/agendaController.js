@@ -48,7 +48,8 @@ async function alternarBloqueioHorario(req, res, next) {
       negocioIdContexto:
         req.agendaContexto?.negocioId,
       papelContexto:
-        req.agendaContexto?.papel
+        req.agendaContexto?.papel,
+      ...(req.body.bloqueado !== undefined ? { bloqueado: req.body.bloqueado } : {}),
     });
 
     return res.json(resultado);
@@ -60,7 +61,8 @@ async function alternarBloqueioHorario(req, res, next) {
 async function buscarAgendaGeral(req, res, next) {
   try {
     const resultado = await agendaOperacionalService.buscarAgendaGeral({
-      usuarioId: req.user?.id
+      usuarioId: req.user?.id,
+      ...(req.query?.data_inicio !== undefined ? { dataInicio: req.query.data_inicio } : {}),
     });
 
     return res.json(resultado);

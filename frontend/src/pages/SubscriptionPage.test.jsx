@@ -409,7 +409,7 @@ describe("plano e assinatura", () => {
         uso: {},
         pagamentos: []
       })
-      .mockRejectedValueOnce(new Error("Não foi possível cancelar agora"));
+      .mockRejectedValueOnce(Object.assign(new Error("Não foi possível cancelar agora"), { status: 409 }));
 
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: "Cancelar renovação" }));

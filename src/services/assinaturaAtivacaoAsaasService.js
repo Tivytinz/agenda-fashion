@@ -1,4 +1,7 @@
 const db = require("../db/db");
+const renovacaoRepository = require("../repositories/assinaturaRenovacaoRepository");
+const checkoutRepository = require("../repositories/assinaturaCheckoutRepository");
+const registrador = require("../utils/registrador");
 const pagamentoRepository = require(
   "../repositories/pagamentoRepository"
 );
@@ -12,51 +15,15 @@ const {
 } = require("./asaasService");
 const {
   sincronizarPagamentoPorWebhook
-} = require("./assinaturaServiceCore");
+} = require("./assinaturaPagamentoService");
 const {
   reconciliarLimiteProfissionais
 } = require("./equipePlanoService");
 const assinaturaLifecycleService = require(
   "./assinaturaLifecycleService"
 );
-
-function calcularProximaCobranca(
-  dataBase = new Date()
-) {
-  const data = new Date(dataBase);
-
-  if (Number.isNaN(data.getTime())) {
-    throw new Error(
-      "Não foi possível calcular a próxima cobrança da assinatura."
-    );
-  }
-
-  const ano = data.getUTCFullYear();
-  const mesSeguinte =
-    data.getUTCMonth() + 1;
-  const diaAtual = data.getUTCDate();
-  const ultimoDiaDoMesSeguinte =
-    new Date(
-      Date.UTC(
-        ano,
-        mesSeguinte + 1,
-        0
-      )
-    ).getUTCDate();
-
-  return new Date(
-    Date.UTC(
-      ano,
-      mesSeguinte,
-      Math.min(
-        diaAtual,
-        ultimoDiaDoMesSeguinte
-      )
-    )
-  )
-    .toISOString()
-    .slice(0, 10);
-}
+const { calcularProximaCobranca, dataValida } = require("./assinaturaCalculos");
+const { calcularFimDoPeriodoPago } = require("./assinaturaPeriodoPagoService");
 
 function dadosEvento(
   dadosPagamento,
@@ -68,9 +35,9 @@ function dadosEvento(
       dadosPagamento.status ||
       "CONFIRMED",
     data_pagamento:
-      dadosPagamento.paymentDate ||
-      dadosPagamento.confirmedDate ||
-      new Date(),
+      dataValida(dadosPagamento.paymentDate) ||
+      dataValida(dadosPagamento.confirmedDate) ||
+      null,
     confirmacao_observada_em:
       dadosPagamento.webhookRecebidoEm ||
       null,
@@ -86,7 +53,7 @@ function dadosEvento(
 }
 
 function assinaturaCancelada(assinatura) {
-  return [
+  return assinatura?.renovacao_cancelada === true || [
     "CANCELED",
     "CANCELLED"
   ].includes(
@@ -113,15 +80,15 @@ function proximaCobrancaExistente(
   if (
     assinatura.asaas_subscription_id &&
     (
-      dadosPagamento.paymentDate ||
-      dadosPagamento.confirmedDate ||
-      dadosPagamento.dueDate
+      dataValida(dadosPagamento.paymentDate) ||
+      dataValida(dadosPagamento.confirmedDate) ||
+      dataValida(dadosPagamento.dueDate)
     )
   ) {
     return calcularProximaCobranca(
-      dadosPagamento.paymentDate ||
-      dadosPagamento.confirmedDate ||
-      dadosPagamento.dueDate
+      dataValida(dadosPagamento.paymentDate) ||
+      dataValida(dadosPagamento.confirmedDate) ||
+      dataValida(dadosPagamento.dueDate)
     );
   }
 
@@ -179,11 +146,19 @@ async function prepararAtivacao(
         };
       }
 
-      if (assinaturaCancelada(assinatura)) {
+      if (assinaturaCancelada(assinatura) && !assinatura.asaas_subscription_id &&
+        assinatura.status !== "REACTIVATING" && !assinatura.renovacao_em_resolucao) {
         return {
           ...assinatura,
           ativacao_ignorada: true
         };
+      }
+
+      if (assinatura.acesso_pago_reconciliado === true) {
+        const fimPago = await calcularFimDoPeriodoPago(assinatura, client, { permitirAusente: true });
+        if (!fimPago || !await assinaturaAtivacaoRepository.periodoPagoVigente(client, fimPago)) {
+          return { ...assinatura, ativacao_ignorada: true };
+        }
       }
 
       return assinatura;
@@ -197,6 +172,7 @@ async function criarOuReutilizarRecorrencia(
 ) {
   if (
     assinatura.forma_pagamento !== "pix" ||
+    assinaturaCancelada(assinatura) ||
     assinatura.asaas_subscription_id
   ) {
     return {
@@ -214,29 +190,44 @@ async function criarOuReutilizarRecorrencia(
 
   const proximaCobranca =
     calcularProximaCobranca(
-      assinatura.data_pagamento ||
-      assinatura.data_vencimento ||
-      new Date()
+      dataValida(assinatura.data_pagamento) ||
+      dataValida(assinatura.data_vencimento) ||
+      new Date().toISOString().slice(0, 10)
     );
 
-  const recorrencia =
-    await criarAssinaturaAsaas({
+  const registrada = await db.executarTransacao(async client => {
+    await assinaturaAtivacaoRepository.bloquearNegocio(client, assinatura.negocio_id);
+    return checkoutRepository.garantirCriacao(client, assinatura, proximaCobranca);
+  });
+  const operacao = await checkoutRepository.reservar(registrada.id);
+  if (!operacao || operacao.estado !== "PENDING") {
+    const erro = new Error("A recorrência do checkout precisa ser conferida antes de outra tentativa.");
+    erro.codigo = "CHECKOUT_RECURRENCIA_PENDENTE";
+    throw erro;
+  }
+  let recorrencia;
+  try {
+    recorrencia = await criarAssinaturaAsaas({
       customerId:
-        assinatura.asaas_customer_id,
+        operacao.asaas_customer_id,
       valor: assinatura.valor,
       descricao:
         "Agenda Fashion - Assinatura mensal",
       formaPagamento: "pix",
       externalReference:
-        referenciaRecorrencia(assinatura),
-      proximaCobranca,
+        operacao.referencia_externa,
+      proximaCobranca: dataValida(operacao.inicio_cobranca),
       reutilizarPorExternalReference: true
     });
 
-  if (!recorrencia?.id) {
-    throw new Error(
-      "O Asaas não retornou o identificador da assinatura."
-    );
+    if (!recorrencia?.id) {
+      throw new Error("O Asaas não retornou o identificador da assinatura.");
+    }
+    const conhecida = await checkoutRepository.registrarRecorrencia(operacao, recorrencia.id);
+    if (!conhecida) throw new Error("A identidade da recorrência mudou durante a criação do checkout.");
+  } catch (erro) {
+    await checkoutRepository.registrarFalha(operacao, "CRIACAO_ASAAS_FALHOU").catch(() => {});
+    throw erro;
   }
 
   return {
@@ -245,7 +236,8 @@ async function criarOuReutilizarRecorrencia(
     dataProximaCobranca:
       recorrencia.nextDueDate ||
       proximaCobranca,
-    criadaAgora: true
+    criadaAgora: true,
+    operacao,
   };
 }
 
@@ -253,7 +245,8 @@ async function finalizarAtivacao({
   paymentId,
   statusPagamento,
   dadosPagamento,
-  recorrencia
+  recorrencia,
+  recuperacao = false,
 }) {
   return db.executarTransacao(
     async (client) => {
@@ -299,8 +292,15 @@ async function finalizarAtivacao({
         return null;
       }
 
+      if (recorrencia.operacao) {
+        const operacao = await checkoutRepository.bloquear(client, recorrencia.operacao);
+        if (!operacao || operacao.estado !== "PENDING" ||
+          operacao.asaas_subscription_id !== recorrencia.asaasSubscriptionId) return null;
+      }
+
       const pagamentoAtualizado =
-        await pagamentoRepository
+        recuperacao ? (["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes(assinatura.pagamento_status)
+          ? assinatura : null) : await pagamentoRepository
           .atualizarStatusPagamento(
             client,
             paymentId,
@@ -314,9 +314,14 @@ async function finalizarAtivacao({
         return null;
       }
 
-      if (assinaturaCancelada(assinatura)) {
+      if (assinaturaCancelada(assinatura) && !assinatura.asaas_subscription_id &&
+        assinatura.status !== "REACTIVATING" && !assinatura.renovacao_em_resolucao) {
         return null;
       }
+
+      const fimPago = await calcularFimDoPeriodoPago(assinatura, client);
+      if (assinatura.acesso_pago_reconciliado === true &&
+        !await assinaturaAtivacaoRepository.periodoPagoVigente(client, fimPago)) return null;
 
       await assinaturaLifecycleService
         .registrarConfirmacaoPagamento({
@@ -332,6 +337,24 @@ async function finalizarAtivacao({
             assinatura.data_pagamento ||
             null
         });
+
+      const pagamentoAnterior = dadosPagamento.subscription &&
+        dadosPagamento.subscription !== assinatura.asaas_subscription_id;
+      const realinhamento = assinatura.status === "ACTIVE" && pagamentoAnterior &&
+        fimPago > dataValida(assinatura.data_proxima_cobranca) &&
+        await renovacaoRepository.reabrirRemocao(client, assinatura);
+
+      if (assinaturaCancelada(assinatura) || realinhamento ||
+        String(assinatura.status).toUpperCase() === "REACTIVATING" || assinatura.renovacao_em_resolucao) {
+        const preservada = await assinaturaAtivacaoRepository.atualizarPeriodoPagoSemRenovar(client, {
+          assinaturaId: assinatura.id, dataProximaCobranca: fimPago,
+        });
+        if (preservada?.ativo) {
+          await assinaturaAtivacaoRepository.atualizarPlanoNegocio(client, assinatura.negocio_id, assinatura.plano_id);
+          await reconciliarLimiteProfissionais(assinatura.negocio_id, client);
+        }
+        return preservada ? { assinatura: preservada, recorrenciasParaCancelar: [] } : null;
+      }
 
       const asaasSubscriptionId =
         assinatura.asaas_subscription_id ||
@@ -354,8 +377,9 @@ async function finalizarAtivacao({
                 assinatura.id,
               asaasSubscriptionId,
               dataProximaCobranca:
-                recorrencia
-                  .dataProximaCobranca,
+                dataValida(assinatura.asaas_subscription_id
+                  ? assinatura.data_proxima_cobranca : recorrencia.dataProximaCobranca),
+              acessoPagoAte: fimPago,
               observacoes:
                 asaasSubscriptionId
                   ? "Assinatura mensal ativa no Asaas."
@@ -387,6 +411,12 @@ async function finalizarAtivacao({
             assinatura.id
           );
 
+      // A obrigação de remover existe no mesmo commit que substitui o plano.
+      await checkoutRepository.garantirRemocoes(client, assinatura.negocio_id, assinatura.id);
+      if (recorrencia.operacao) {
+        await checkoutRepository.mudarEstado(client, recorrencia.operacao, "COMPLETED");
+      }
+
       return {
         assinatura: ativada,
         recorrenciasParaCancelar
@@ -412,10 +442,88 @@ async function compensarRecorrenciaSeOrfa(
       );
 
   if (!vinculada) {
-    await removerAssinaturaAsaas(
-      recorrencia.asaasSubscriptionId
-    );
+    if (recorrencia.operacao) {
+      const removendo = await checkoutRepository.mudarEstado(db, recorrencia.operacao, "REMOVING");
+      if (removendo) await removerOperacaoCheckout(removendo);
+    } else await removerAssinaturaAsaas(recorrencia.asaasSubscriptionId);
   }
+}
+
+async function removerOperacaoCheckout(operacao) {
+  try {
+    await removerAssinaturaAsaas(operacao.asaas_subscription_id);
+    return await checkoutRepository.mudarEstado(db, operacao, "CANCELED");
+  } catch (erro) {
+    erro.checkoutErroCodigo = "REMOCAO_ASAAS_FALHOU";
+    await checkoutRepository.registrarFalha(operacao, "REMOCAO_ASAAS_FALHOU").catch(() => {});
+    throw erro;
+  }
+}
+
+async function reconciliarCheckoutsPendentes(negocioId, { propagarFalha = false, respeitarBackoff = false } = {}) {
+  let resolvidas = 0;
+  for (const pendente of await checkoutRepository.listarPendentes(negocioId, { respeitarBackoff })) {
+    const operacao = await checkoutRepository.reservar(pendente.id, { respeitarBackoff });
+    if (!operacao) continue;
+    let codigo = "PERSISTENCIA_FALHOU";
+    try {
+      if (operacao.estado === "REMOVING" && operacao.asaas_subscription_id) {
+        await removerOperacaoCheckout(operacao);
+        resolvidas += 1;
+        continue;
+      }
+      if (!operacao.asaas_customer_id) {
+        codigo = "CONTEXTO_INDISPONIVEL";
+        throw new Error("Checkout sem contexto para consultar o provedor.");
+      }
+      codigo = "CONSULTA_ASAAS_FALHOU";
+      const externa = await buscarAssinaturaPorReferencia({
+        externalReference: operacao.referencia_externa, customerId: operacao.asaas_customer_id,
+      });
+      codigo = "PERSISTENCIA_FALHOU";
+      if (externa?.id) await checkoutRepository.registrarRecorrencia(operacao, externa.id);
+      const atual = await checkoutRepository.bloquear(db, operacao);
+      if (!atual || !["PENDING", "REMOVING"].includes(atual.estado)) continue;
+      if (!externa?.id && !atual.asaas_subscription_id) {
+        const contexto = pendente.asaas_payment_id &&
+          await assinaturaAtivacaoRepository.buscarContextoPagamento(null, pendente.asaas_payment_id);
+        if (contexto && ["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes(contexto.pagamento_status) &&
+          !assinaturaCancelada(contexto)) {
+          // Consulta vazia não autoriza criar pelo worker nem inutiliza o replay
+          // da confirmação válida. A referência reservada permanece a mesma.
+          await checkoutRepository.adiarConsulta(operacao);
+          continue;
+        }
+        await checkoutRepository.mudarEstado(db, operacao, "CANCELED");
+        resolvidas += 1;
+        continue;
+      }
+      const recorrencia = { asaasSubscriptionId: atual.asaas_subscription_id,
+        dataProximaCobranca: externa?.nextDueDate || dataValida(atual.inicio_cobranca), operacao };
+      const finalizacao = atual.estado === "PENDING" && externa?.id &&
+        (!externa.status || externa.status === "ACTIVE") && pendente.asaas_payment_id
+        ? await finalizarAtivacao({ paymentId: pendente.asaas_payment_id, dadosPagamento: {}, recorrencia, recuperacao: true }) : null;
+      if (!finalizacao) {
+        // Pode ser a resposta antiga de um checkout já finalizado. Uma recorrência
+        // vinculada não é órfã; a remoção de substituídas tem operação própria.
+        if (await assinaturaAtivacaoRepository.existeVinculoRecorrenciaAsaas(atual.asaas_subscription_id)) {
+          await checkoutRepository.mudarEstado(db, operacao, "COMPLETED");
+        } else {
+          const removendo = await checkoutRepository.mudarEstado(db, operacao, "REMOVING");
+          if (removendo) await removerOperacaoCheckout({ ...removendo, asaas_subscription_id: atual.asaas_subscription_id });
+        }
+      }
+      resolvidas += 1;
+    } catch (erro) {
+      const falha = erro.checkoutErroCodigo || codigo;
+      await checkoutRepository.registrarFalha(operacao, falha).catch(() => {});
+      registrador.aviso("Billing: não foi possível conciliar recorrência de checkout.", {
+        negocio_id: negocioId, operacao_id: operacao.id, codigo: falha,
+      });
+      if (propagarFalha) throw erro;
+    }
+  }
+  return resolvidas;
 }
 
 async function reconciliarRecorrenciaOrfaIgnorada(
@@ -458,29 +566,6 @@ async function reconciliarRecorrenciaOrfaIgnorada(
   }
 }
 
-async function cancelarRecorrenciasSubstituidas(
-  recorrencias,
-  recorrenciaAtual
-) {
-  const ids = new Set(
-    (recorrencias || [])
-      .map(
-        (id) => String(id || "").trim()
-      )
-      .filter(
-        (id) =>
-          id &&
-          id !== recorrenciaAtual
-      )
-  );
-
-  for (const recorrenciaId of ids) {
-    await removerAssinaturaAsaas(
-      recorrenciaId
-    );
-  }
-}
-
 async function ativarAssinaturaPorPagamento(
   paymentId,
   statusPagamento = "CONFIRMED",
@@ -503,10 +588,13 @@ async function ativarAssinaturaPorPagamento(
     );
 
   if (!preparada) {
+    const contexto = await assinaturaAtivacaoRepository.buscarContextoPagamento(null, pagamentoId);
+    if (contexto) await reconciliarCheckoutsPendentes(contexto.negocio_id, { propagarFalha: true });
     return null;
   }
 
   if (preparada.ativacao_ignorada) {
+    await reconciliarCheckoutsPendentes(preparada.negocio_id, { propagarFalha: true });
     /*
      * O worker financeiro usa webhookEventoId. Para esse fluxo,
      * uma confirmação obsoleta deve ser IGNORED (null) e não uma
@@ -558,15 +646,12 @@ async function ativarAssinaturaPorPagamento(
     return null;
   }
 
-  await cancelarRecorrenciasSubstituidas(
-    finalizacao.recorrenciasParaCancelar,
-    finalizacao.assinatura
-      .asaas_subscription_id
-  );
+  await reconciliarCheckoutsPendentes(preparada.negocio_id, { propagarFalha: true });
 
   return finalizacao.assinatura;
 }
 
 module.exports = {
-  ativarAssinaturaPorPagamento
+  ativarAssinaturaPorPagamento,
+  reconciliarCheckoutsPendentes,
 };

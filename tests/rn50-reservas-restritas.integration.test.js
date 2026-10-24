@@ -56,7 +56,7 @@ afterAll(async () => {
   } finally { await db.end(); }
 });
 
-test.each([null, "excedente_limite_plano", "aguardando_vaga_plano"])("consulta própria com motivo %s sem conceder workspace", async (motivo) => {
+test.each([null, "excedente_limite_plano", "aguardando_vaga_plano", "inativado_pela_dona"])("consulta própria com motivo %s sem conceder workspace", async (motivo) => {
   await inativar(motivo);
   const result = await listar();
   expect(result.status).toBe(200);

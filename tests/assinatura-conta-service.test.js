@@ -1,3 +1,9 @@
+jest.mock("../src/repositories/assinaturaCheckoutRepository");
+beforeEach(() => {
+  require("../src/repositories/assinaturaCheckoutRepository").listarPendentes.mockResolvedValue([]);
+  require("../src/repositories/assinaturaCheckoutRepository").listarNegociosPendentes.mockResolvedValue([]);
+});
+jest.mock("../src/repositories/assinaturaRenovacaoRepository");
 jest.mock(
   "../src/db/db",
   () => ({
@@ -44,6 +50,8 @@ describe(
   () => {
     beforeEach(() => {
       jest.clearAllMocks();
+      require("../src/repositories/assinaturaRenovacaoRepository").possuiPendente.mockResolvedValue(false);
+      require("../src/repositories/assinaturaRenovacaoRepository").buscarPendente.mockResolvedValue(null);
 
       assinaturaRepository
         .buscarNegocioDono

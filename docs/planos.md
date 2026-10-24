@@ -289,4 +289,235 @@ negócio e conversão para plano pago.
 
 ## Reativação idempotente da renovação
 
-Enquanto o período já pago permanecer válido, a dona pode reativar uma renovação cancelada sem cobrança imediata. Cada ciclo usa `assinaturas.reativacao_tentativa` como versão monotônica e uma `externalReference` determinística no Asaas. O estado transitório `REACTIVATING` não deve ser revertido por timeout ou erro ambíguo: uma execução posterior consulta a mesma referência; recorrência encontrada finaliza a reativação, ausência confirmada restaura `CANCELED` e falha de consulta preserva `REACTIVATING` para nova reconciliação. Chamadas ao Asaas permanecem fora de transações PostgreSQL.
+Enquanto o período já pago permanecer válido, a dona pode reativar a renovação
+sem cobrança imediata. Cada tentativa usa `assinaturas.reativacao_tentativa` e
+referência externa determinística. Encontrar uma recorrência não basta para
+adotá-la: geração, acesso vigente e data externa precisam ser conferidos. Desde
+a migration 118, a obrigação externa fica em `assinatura_renovacao_operacoes`,
+independente do status financeiro e de `ativo`. Timeout não comprova ausência;
+HTTP com o Asaas permanece fora das transações PostgreSQL.
+
+Os UPDATEs de restauração e finalização exigem a mesma tentativa que originou
+a operação. A versão é obrigatória, positiva e conferida junto do status; uma
+resposta obsoleta produz no-op, inclusive se outra reconciliação já tiver
+restaurado o cancelamento e a dona iniciado a tentativa seguinte. Uma referência
+determinística por tentativa não substitui essa proteção da persistência.
+
+Desde a migration 117, a reserva congela `reativacao_inicio_cobranca` a partir
+da data observada dentro do UPDATE. A referência externa usa esse dia até o fim
+da tentativa, mesmo se um recebimento ampliar o acesso durante a espera. Reservas
+legadas sem snapshot mantêm o fallback da data persistida; se receberem um
+pagamento durante a tentativa, o snapshot é capturado antes de ampliar o período.
+O DTO da conta não expõe esse metadado nem a versão interna da chave do ledger.
+
+A confirmação financeira preserva `REACTIVATING`, o ID ainda persistido e a
+geração. Ela pode ampliar o acesso quitado, mas somente a finalização ou
+reconciliação da tentativa pode vincular a nova recorrência e marcar a renovação
+como ativa. Eventos de assinatura recebidos para a recorrência anterior durante
+essa reserva são ignorados para não sobrescrever a intenção. Finalização mantém
+o maior fim de acesso conhecido. Falha externa ambígua continua recuperável pela
+mesma referência, sem criar outra recorrência.
+
+O cancelamento também confere atomicamente o `asaas_subscription_id` removido
+e a `reativacao_tentativa` observada (zero na geração inicial). A chamada externa
+continua fora da transação. Se um webhook já permitiu reativar e iniciar outro
+ciclo, a resposta antiga não altera esse ciclo e não registra outro fato. A API
+responde `409` com `codigo = ASSINATURA_ALTERADA`; a dona consulta o estado atual
+antes de decidir uma nova ação. Confirmação do webhook antes da resposta do
+DELETE permanece válida quando recorrência e geração ainda são as mesmas.
+
+A validação inicial do cancelamento exige evidência temporal antes do DELETE externo.
+Depois da resposta, a transação bloqueia primeiro o negócio e depois a assinatura,
+revalida recorrência/geração/estado e relê os pagamentos nessa conexão. Essa ordem
+é compartilhada com a finalização financeira. O fim pago resulta do maior período
+entre recebimentos válidos e o acesso já persistido; IDs ou recebimentos antigos
+não encurtam esse fim. A janela de 12 pagamentos da tela não limita essa evidência.
+Um pagamento processado após o cancelamento também amplia
+o acesso legítimo sem restaurar a renovação.
+
+Sem contexto válido para consultar o provedor, a reconciliação preserva a
+operação e o estado financeiro atual, registrando um aviso seguro. Falta de
+contexto não comprova ausência externa nem libera outra criação às cegas.
+
+### Período pago e operação externa independentes
+
+`assinaturas.acesso_pago_ate` guarda o fim exclusivo do acesso quitado. A
+migration 118 copia o fim conhecido no rollout; confirmações válidas estendem
+esse campo. Eventos de programação alteram `data_proxima_cobranca`, sem reduzir
+acesso. Uma data futura em checkout ainda não ativo não comprova pagamento.
+Cancelamento, expiração, capacidade, ledger e projeções usam o fim pago.
+
+Desde a migration 119, `renovacao_cancelada` guarda a intenção independentemente
+do status financeiro. Cancelamento, exclusão e inativação da recorrência a
+preservam; recebimentos posteriores restauram somente o acesso que comprovarem.
+Estorno e atraso não fazem um ID removido voltar a representar renovação ativa.
+Somente uma reativação explicitamente pedida e conferida limpa o marcador.
+Inativação externa não encerra o período ainda quitado nem reduz a equipe.
+
+`acesso_pago_reconciliado` distingue o máximo legado de uma projeção dos
+pagamentos atualmente válidos. Falha financeira recalcula essa projeção dentro
+da transação, desconsiderando a cobrança invalidada e conservando outras
+coberturas confirmadas. Ela pode reduzir ou limpar `acesso_pago_ate`, ao
+contrário de um evento de programação. Depois desse marco, a data histórica e a
+programação externa não são fallback financeiro. Um recebimento de ciclo já
+vencido é registrado sem recuperar benefícios de outro ciclo estornado.
+Recebimento realmente novo e vigente continua permitindo recuperação.
+
+Novas assinaturas criadas pelo checkout usam a projeção desde o início. Sem
+cobertura vigente, a confirmação não cria recorrência nem ativa benefícios.
+O fim é exclusivo e a comparação usa o dia do banco. Os marcadores de intenção
+e de reconciliação são internos e não aparecem no DTO da conta.
+
+A migration recupera cancelamentos identificáveis da geração atual; fatos de
+gerações anteriores não cancelam uma renovação posterior. Ela preserva os
+benefícios e o ledger existentes no rollout e não inventa pagamentos ou
+concessões para estados históricos sem evidência.
+
+No DTO, `acesso_pago_ate` é explícito. Para compatibilidade, quando o status é
+`CANCELED`, `CANCELLED` ou `REACTIVATING`, `data_proxima_cobranca` também apresenta
+o fim pago, como nos clientes anteriores; isso não modifica a programação no
+banco. Para `ACTIVE`, a tela mostra a data conhecida do provedor como próxima
+cobrança. A tela cancelada/reativando usa o fim pago como **Acesso até**.
+
+`assinatura_renovacao_operacoes` persiste assinatura, geração, referência, início
+reservado, recorrência anterior, novo ID quando conhecido e obrigação de
+resolução. O vínculo anterior permite reconhecer recebimentos atrasados sem
+aceitar eventos antigos de assinatura como alterações da recorrência atual.
+
+| Estado da operação | Significado | Recuperação |
+| --- | --- | --- |
+| `PENDING` | Resultado da criação precisa ser conferido | Consultar a referência original; adotar somente se geração, acesso e data coincidirem. |
+| `REMOVING` | Recorrência conhecida não deve permanecer ativa | Remover o mesmo ID; falha preserva a obrigação. |
+| `COMPLETED` | Recorrência conferida e vinculada | Pagamento da recorrência anterior que amplie o acesso pode reabrir conferência. |
+| `CANCELED` | Ausência ou remoção confirmada | Resposta antiga com ID externo reabre apenas sua remoção, sem alterar a geração atual. |
+
+Cada execução usa uma concessão de dois minutos e versão monotônica, conferida
+nas continuações. Uma resposta de execução anterior ainda registra o ID criado
+para tratamento, mas não pode adotar ou cancelar uma tentativa posterior.
+
+Se o período crescer durante a criação, a recorrência incompatível é removida
+antes de outra criação. O pedido pode fazer **uma substituição automática**, com
+nova geração e referência. Nova mudança ou falha retorna pendência para consulta.
+GET e worker não criam recorrências: resolvem a existente e, após remoção,
+permitem que a dona reative na data correta. A remoção de uma preparação não é
+um novo cancelamento voluntário no ledger.
+
+A integração usa remoção da assinatura, pois alterar `nextDueDate` não altera
+vencimentos de faturas já geradas. O contrato do Asaas informa que remover a
+assinatura também remove cobranças pendentes/vencidas, preservando as pagas:
+[atualização](https://docs.asaas.com/reference/atualizar-assinatura-existente) e
+[remoção](https://docs.asaas.com/reference/remover-assinatura).
+
+Na reativação, a geração é reservada antes de confirmar a remoção da recorrência
+anterior, inclusive se o provedor a marcou apenas como inativa. Só depois do
+DELETE confirmado pode ocorrer uma criação. Falha deixa a tentativa durável
+para conferência; GET/worker não iniciam a criação. Essa confirmação adicional
+é idempotente também para um ID anteriormente removido.
+
+Estorno, atraso ou chargeback durante criação podem suspender o acesso, mas não
+apagam a operação externa. Um webhook de criação com referência e cliente
+corretos registra o ID sem antecipar adoção, permitindo reconhecer pagamento da
+nova recorrência antes da resposta HTTP original.
+
+O acesso vence na data quitada mesmo durante `REACTIVATING` ou falha de consulta;
+não existe carência implícita. O worker expira benefícios, reconcilia a equipe e
+continua resolvendo a operação mesmo com assinatura inativa. As transações locais
+bloqueiam negócio antes de assinatura/operação, sem manter locks em chamadas
+externas. Checkout e arquivamento aguardam a resolução da operação.
+
+A conta expõe `renovacao_pendente`, inclusive quando o plano efetivo já voltou
+ao grátis, e oferece atualização por GET. O status agregado `REATIVANDO` impede
+oferta de upgrade contextual enquanto a renovação está sendo conferida.
+
+Falhas da recuperação persistem `ultima_falha_em` e `ultimo_erro_codigo` na mesma
+versão da operação, sem corpo de resposta ou credenciais. O worker solicita
+propagação da falha, contabiliza o negócio e continua o lote. GET preserva a
+pendência e a apresentação recuperável. Disputa normal de execução não conta
+como falha; a fila `renovacoes_assinatura` na saúde operacional mostra pendentes,
+falhas ainda não resolvidas e idade do item mais antigo. Operações concluídas
+saem desses totais, conservando seu registro histórico.
+
+A seleção do lote de renovação usa a última tentativa persistida, com ID como
+desempate. Falhas de contexto aguardam 15 minutos na seleção automática; demais
+falhas aguardam dois minutos. GET continua permitindo conferência antes desse
+backoff, respeitando a concessão. Falhas no começo do lote não conservam prioridade
+por terem IDs menores. A ordem não depende de cursor em memória.
+
+Desde a migration 120, `assinatura_checkout_operacoes` também mantém a obrigação
+de conciliar a criação inicial e remover recorrências substituídas. Estorno não
+retira essas operações da recuperação. A conta, o bloqueio de novas operações,
+o worker e o arquivamento consideram as pendências. GET/worker podem adotar uma
+criação existente a partir de pagamento ainda válido ou remover a órfã; não
+iniciam uma criação. Ver `asaas-ativacao-recorrencia.md`.
+
+## Datas de calendário da cobrança
+
+`data_proxima_cobranca`, `acesso_pago_ate`, `data_vencimento` e `data_pagamento` representam dias
+civis. O parser padrão do `pg` devolve `DATE` como um objeto `Date` à meia-noite no fuso do
+processo. A normalização financeira aceita esse formato e texto de data válido,
+confere o calendário real e extrai os campos locais do `Date`. Converter esse
+objeto para UTC antes da extração pode mudar o dia em fusos positivos.
+
+O mesmo contrato vale para reativação, reconciliação, fallback de cancelamento
+e preservação do acesso no webhook. Cancelar a renovação preserva acesso e
+equipe até o fim pago; vencimento real continua retornando ao grátis e aplicando
+capacidade. O cálculo do fim do período considera pagamentos `CONFIRMED`,
+`RECEIVED` e `RECEIVED_IN_CASH` com `data_pagamento` válida, usando vencimento
+válido se necessário. Ambos são normalizados como dias civis antes de somar o
+ciclo, preservando o maior fim conhecido. Um recebimento sem datas não impede
+considerar outro recebimento válido; sem essa evidência, usar o fim válido já
+persistido na assinatura. Cobrança pendente não
+comprova extensão do acesso. Sem qualquer data confiável, retornar conflito
+antes do DELETE externo. `null` nunca representa janeiro de 1970.
+
+Nos três endpoints da conta (`GET /minha-assinatura`, `DELETE /minha-assinatura`
+e `POST /minha-assinatura/reativar`), os campos civis são normalizados antes de
+`res.json` para `AAAA-MM-DD` ou `null`. Isso inclui `acesso_ate`, pagamentos,
+pagamento recuperável e assinatura/pagamento de upgrade pendente. Instantes
+`TIMESTAMPTZ`, como criação e confirmação observada, mantêm a precisão temporal.
+Atualização sem `paymentDate` e `confirmedDate` preserva `data_pagamento`
+conhecida. A observação usa `confirmacao_observada_em`; o relógio do processamento
+não substitui o dia financeiro nem concede outro mês. Vencimento válido pode
+fundamentar o cálculo quando a data financeira estiver ausente.
+
+Data ausente ou incompatível recebe indicação explícita na UI sem interromper
+as ações da assinatura; a UI não tenta adivinhar o dia de um ISO legado ambíguo.
+
+`RENOVACAO_CANCELADA` usa o dia civil canônico em `detalhes.acesso_ate`. A chave
+de novos ciclos é `assinatura:<id>:RENOVACAO_CANCELADA:geracao:<n>:recorrencia:<id>`.
+Conta e webhook do mesmo cancelamento geram um fato, com origem e motivo do
+primeiro registro. Reativar e cancelar novamente gera outro fato mesmo que a
+data do acesso seja a mesma; ampliar o período não cria outro cancelamento.
+
+`renovacao_chave_versao` faz o cutover: a migration 117 marca linhas preexistentes
+com zero e preserva o formato legado desse ciclo; novas assinaturas usam um.
+Reserva ou finalização de reativação adota um para o novo ciclo. Os fatos antigos
+não são reescritos, apagados ou associados especulativamente a outra geração.
+
+O checkout inicial e o caminho financeiro legado usam o mesmo cálculo mensal
+de `assinaturaCalculos`, normalizando os campos SQL `DATE` antes de calcular.
+Não existe mais um calculador mensal próprio na saga de ativação.
+
+A correção é localizada no domínio de cobrança e não troca o parser global de
+`pg`. Os testes usam o parser instalado em processos UTC, São Paulo, Los Angeles
+e Kiritimati, além das integrações com SQL.
+
+
+## Recuperação da tela de assinatura
+
+Após cancelamento ou reativação confirmados, a tela adota a assinatura retornada
+antes da consulta de atualização. Status derivado antigo não pode contradizer
+esse resultado. Somente uma alteração fica disponível até a reconciliação
+terminar; consultas pertencem à geração atual e são invalidadas por nova consulta,
+alteração ou saída. Conclusão de uma escrita após a saída não inicia outro GET.
+
+Falha da leitura depois de sucesso mantém o estado confirmado e oferece
+`Atualizar assinatura`, que faz apenas GET. Resultado incerto e conflito de
+reativação e `ASSINATURA_ALTERADA` no cancelamento também exigem consulta antes
+de repetir a ação. Rejeição de validação do cancelamento permanece dentro da
+confirmação. `REACTIVATING` é exibido como
+`Reativando renovação`, com atualização disponível, sem liberar cancelamento ou
+outra tentativa de reativar enquanto o processamento persistir.
+
+Isso complementa a idempotência financeira do backend; uma atualização da tela
+nunca reenvia a operação de cobrança/renovação.

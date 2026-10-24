@@ -1,4 +1,5 @@
 const db = require("../db/db");
+const { PERIODO_EQUIPE_SQL } = require("./intervaloAgendaSql");
 
 async function buscarProfissionalPorSlug(slugNegocio, slugProfissional) {
   const result = await db.query(
@@ -401,13 +402,14 @@ async function buscarNegocioDoUsuario(usuarioId) {
   return result.rows[0] || null;
 }
 
-async function buscarProfissionaisDoNegocio(negocioId) {
+async function buscarProfissionaisDoNegocio(negocioId, dataInicio, dataFim) {
   const result = await db.query(
     `
     SELECT
       u.id,
       COALESCE(un.nome_exibicao, u.nome) AS nome,
       u.foto_url,
+      (un.ativo AND u.ativo) AS ativo,
       COALESCE(
         ARRAY_AGG(
           ps.servico_id
@@ -420,6 +422,8 @@ async function buscarProfissionaisDoNegocio(negocioId) {
     FROM usuarios u
     INNER JOIN usuarios_negocios un
       ON un.usuario_id = u.id
+    INNER JOIN negocios negocio_contexto
+      ON negocio_contexto.id = un.negocio_id
     LEFT JOIN profissional_servicos ps
       ON ps.negocio_id = un.negocio_id
       AND ps.profissional_id = un.usuario_id
@@ -428,14 +432,24 @@ async function buscarProfissionaisDoNegocio(negocioId) {
       AND s.negocio_id = ps.negocio_id
       AND s.ativo = TRUE
     WHERE un.negocio_id = $1
-      AND un.ativo = TRUE
-      AND u.ativo = TRUE
+      AND (
+        (un.ativo = TRUE AND u.ativo = TRUE)
+        OR EXISTS (
+          SELECT 1 FROM agendamentos a
+          INNER JOIN negocios n_agendamento ON n_agendamento.id = a.negocio_id
+          WHERE a.negocio_id = un.negocio_id
+            AND a.profissional_id = un.usuario_id
+            AND ${PERIODO_EQUIPE_SQL}
+            AND a.status <> 'cancelado'
+        )
+      )
     GROUP BY
       u.id,
-      un.nome_exibicao
+      un.nome_exibicao,
+      un.ativo
     ORDER BY COALESCE(un.nome_exibicao, u.nome) ASC
     `,
-    [negocioId]
+    [negocioId, dataInicio, dataFim]
   );
 
   return result.rows;

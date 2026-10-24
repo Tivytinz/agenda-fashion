@@ -16,11 +16,16 @@ async function buscarContextoPagamento(
     `
     SELECT
       p.id AS pagamento_id,
+      p.status AS pagamento_status,
+      p.confirmacao_observada_em,
       p.data_pagamento,
       p.data_vencimento,
       p.asaas_ultimo_evento_em AS pagamento_ultimo_evento_em,
       p.asaas_ultimo_evento_id AS pagamento_ultimo_evento_id,
-      a.*
+      a.*,
+      EXISTS (SELECT 1 FROM assinatura_renovacao_operacoes o
+        WHERE o.assinatura_id = a.id AND o.tentativa = a.reativacao_tentativa
+          AND o.estado IN ('PENDING', 'REMOVING')) AS renovacao_em_resolucao
     FROM pagamentos p
     INNER JOIN assinaturas a
       ON a.id = p.assinatura_id
@@ -156,12 +161,37 @@ async function desativarAssinaturasConcorrentes(
   );
 }
 
+async function atualizarPeriodoPagoSemRenovar(client, { assinaturaId, dataProximaCobranca }) {
+  const result = await client.query(`
+    UPDATE assinaturas
+    SET status = CASE WHEN UPPER(status) = 'REACTIVATING' OR EXISTS (
+          SELECT 1 FROM assinatura_renovacao_operacoes o
+          WHERE o.assinatura_id = assinaturas.id AND o.tentativa = assinaturas.reativacao_tentativa
+            AND o.estado IN ('PENDING', 'REMOVING')) THEN 'REACTIVATING' ELSE 'CANCELED' END,
+        renovacao_cancelada = TRUE,
+        reativacao_inicio_cobranca = CASE
+          WHEN UPPER(status) = 'REACTIVATING'
+            THEN COALESCE(reativacao_inicio_cobranca, acesso_pago_ate, data_proxima_cobranca)
+          ELSE reativacao_inicio_cobranca END,
+        acesso_pago_ate = $2::date,
+        ativo = $2::date > CURRENT_DATE,
+        updated_at = CASE WHEN UPPER(status) = 'REACTIVATING' THEN updated_at ELSE NOW() END
+    WHERE id = $1 AND (renovacao_cancelada = TRUE OR UPPER(status) IN ('CANCELED', 'CANCELLED', 'REACTIVATING')
+      OR EXISTS (SELECT 1 FROM assinatura_renovacao_operacoes o
+        WHERE o.assinatura_id = assinaturas.id AND o.tentativa = assinaturas.reativacao_tentativa
+          AND o.estado IN ('PENDING', 'REMOVING')))
+    RETURNING *
+  `, [assinaturaId, dataProximaCobranca]);
+  return result.rows[0] || null;
+}
+
 async function ativarAssinatura(
   client,
   {
     assinaturaId,
     asaasSubscriptionId,
     dataProximaCobranca,
+    acessoPagoAte,
     observacoes
   }
 ) {
@@ -172,21 +202,31 @@ async function ativarAssinatura(
       asaas_subscription_id = $1,
       status = 'ACTIVE',
       data_proxima_cobranca = $2,
+      acesso_pago_ate = CASE WHEN acesso_pago_reconciliado THEN $5::date
+        ELSE GREATEST(acesso_pago_ate, $5::date) END,
       ativo = TRUE,
       observacoes = $3,
       updated_at = NOW()
     WHERE id = $4
+      AND UPPER(status) NOT IN ('CANCELED', 'CANCELLED', 'REACTIVATING')
+      AND renovacao_cancelada = FALSE
     RETURNING *
     `,
     [
       asaasSubscriptionId || null,
       dataProximaCobranca || null,
       observacoes || null,
-      assinaturaId
+      assinaturaId,
+      acessoPagoAte || null,
     ]
   );
 
   return resultado.rows[0] || null;
+}
+
+async function periodoPagoVigente(client, fimPago) {
+  const result = await client.query('SELECT $1::date > CURRENT_DATE AS vigente', [fimPago]);
+  return result.rows[0]?.vigente === true;
 }
 
 async function atualizarPlanoNegocio(
@@ -213,9 +253,8 @@ async function listarRecorrenciasSubstituidas(
   assinaturaId
 ) {
   /*
-   * A marca CANCELED + observação é durável. Se o DELETE no
-   * Asaas falhar depois do commit, o próximo retry encontra
-   * novamente essas recorrências e repete a limpeza.
+   * A obrigação externa é registrada em assinatura_checkout_operacoes.
+   * O status financeiro pode mudar sem retirar esta identidade da limpeza.
    */
   const resultado = await client.query(
     `
@@ -226,7 +265,6 @@ async function listarRecorrenciasSubstituidas(
     WHERE negocio_id = $1
       AND id <> $2
       AND asaas_subscription_id IS NOT NULL
-      AND status = 'CANCELED'
       AND COALESCE(observacoes, '') LIKE
         '%Recorrência substituída por uma nova assinatura.%'
     ORDER BY id ASC
@@ -271,7 +309,9 @@ module.exports = {
   buscarAssinaturaAtivaMaisNova,
   vincularRecorrenciaAsaas,
   desativarAssinaturasConcorrentes,
+  atualizarPeriodoPagoSemRenovar,
   ativarAssinatura,
+  periodoPagoVigente,
   atualizarPlanoNegocio,
   listarRecorrenciasSubstituidas,
   existeVinculoRecorrenciaAsaas

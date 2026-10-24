@@ -12,18 +12,17 @@ A reserva pertence operacionalmente ao negócio e deve continuar rastreável at�
 
 ## Remoção de profissional da equipe
 
-A remoção de um vínculo em `usuarios_negocios` não pode ser usada para apagar ou esconder compromissos futuros.
+A remoção de um vínculo em `usuarios_negocios` não pode ser usada para apagar ou esconder compromissos ainda sem desfecho.
 
 Regra atual:
 
 - apenas a dona do negócio pode remover uma profissional;
 - a dona não pode remover o próprio vínculo;
-- se a profissional possuir agendamento futuro com status `agendado` ou `confirmado` naquele negócio, a remoção deve ser bloqueada com conflito (`409`);
-- a verificação de futuro considera `negocios.fuso_horario`, com fallback legado `America/Sao_Paulo`;
+- RN45/CA-EQP-05: se a profissional possuir qualquer agendamento com status `agendado` ou `confirmado` naquele negócio, a remoção deve ser bloqueada com conflito (`409`), inclusive quando a data já passou ou o vínculo está inativo;
 - agendamentos de outro negócio não entram nessa decisão;
-- compromissos cancelados ou que já ficaram no passado não impedem a remoção.
+- compromissos com desfecho `cancelado`, `realizado` ou `falta` não impedem a remoção; a passagem do relógio, sozinha, não é um desfecho.
 
-Enquanto existir compromisso futuro ativo, a interface deve orientar a dona a resolvê-lo antes de remover a profissional. O sistema não transfere nem cancela reservas implicitamente.
+Enquanto existir compromisso ativo, a interface deve orientar a dona a resolvê-lo por uma transição válida do lifecycle antes de remover a profissional. O sistema não transfere nem cancela reservas implicitamente. Esta regra substitui a interpretação anterior deste documento, que considerava somente compromissos futuros.
 
 ### Concorrência entre remoção e novo agendamento
 
@@ -60,12 +59,34 @@ Regra atual:
 
 - um agendamento persistido deve aparecer na agenda operacional pelo horário real de início, mesmo que esse horário não exista mais na grade configurada;
 - se o dia estiver atualmente marcado como fechado, compromissos já existentes continuam visíveis; o fechamento impede nova disponibilidade, mas não apaga reservas anteriores;
+- a responsável atual ativa continua disponível para reagendar uma reserva existente mesmo se o serviço foi desativado; a troca de responsável continua exigindo serviço elegível e profissional ativa habilitada, sem alterar snapshots;
+- reservas ativas ocupam todo o intervalo `[início, fim)` da grade, usando a duração congelada e o fuso consultado, inclusive quando começam antes da janela e atravessam a meia-noite. Pontos intermediários aparecem como `ocupado`, sem ações duplicadas; esse é um estado visual, não um novo status de `agendamentos`;
+- quando uma reserva ativa começou antes do dia consultado e ainda o ocupa, o cartão de `00:00` identifica explicitamente a continuação e preserva `data_agendamento`/`hora_agendamento` originais. Abrir o reagendamento usa esse início original; o instante persistido não é alterado pela projeção. Integrantes inativas entram na seleção por sobreposição e exibem apenas suas reservas próprias, inclusive continuações;
 - a Agenda Geral inclui horários reais de reservas e bloqueios mesmo quando eles não coincidem com a grade horária fixa usada como base visual;
+- a dona pode escolher uma data ou navegar entre semanas para encontrar reservas antigas ainda abertas e reservas futuras fora da janela inicial. `GET /agenda-geral?data_inicio=AAAA-MM-DD` sempre consulta sete dias a partir de uma data real validada; sem parâmetro, começa em hoje no fuso do negócio. O período não amplia o escopo de autorização;
+- integrantes inativas com reservas não canceladas no período também aparecem para gestão pela dona. Sua grade contém somente essas reservas do negócio, sem horários livres, bloqueios manuais ou ocupações redigidas de outro negócio. A pessoa inativa não é destino de reagendamento; a interface escolhe uma responsável ativa e habilitada, preservando a autorização do backend e sem reativar o vínculo;
 - a resposta da agenda profissional preserva o status persistido do agendamento. A simples passagem do horário não transforma `agendado` ou `confirmado` em `realizado`;
 - ocupação da mesma profissional em outro negócio pode bloquear/materializar o horário para evitar dupla reserva, mas dados de cliente, serviço e demais detalhes do outro negócio permanecem redigidos;
 - a camada `agendaOperacionalService` é responsável por materializar esses compromissos sobre a grade já produzida pela agenda existente, mantendo a correção isolada e reversível enquanto a arquitetura de disponibilidade multi-negócio não é concluída.
 
 `realizado` deve representar um fato de atendimento persistido, nunca uma inferência baseada apenas em data e hora.
+
+## Recuperação de alterações e bloqueios
+
+O frontend envia `bloqueado: true|false` no POST `/bloqueios-horario` para indicar
+o estado desejado. Repetir o mesmo pedido conserva o estado, sob o mesmo lock e
+transação já usados para validar reservas e bloqueios do negócio. O campo é
+opcional para compatibilidade: omiti-lo mantém o toggle dos clientes antigos.
+Reservas ativas e bloqueios globais legados continuam protegidos.
+
+A interface permite uma escrita por vez. Se a escrita for confirmada e a leitura
+seguinte falhar, informa que a alteração foi salva e desabilita novas ações até
+atualizar a agenda. Resultado de escrita incerto também exige consulta antes de
+nova tentativa; o diálogo é fechado para deixar essa recuperação acessível.
+`Atualizar agenda` faz apenas GET, sem repetir o POST/PATCH. Rejeições de
+validação preservam o formulário e exibem o erro no diálogo. Leituras antigas
+ou conclusões de escritas de uma tela encerrada não podem iniciar atualizações
+na nova tela. Cancelar uma leitura local não desfaz uma escrita já enviada.
 
 ## Pontos ainda pendentes da agenda operacional
 
@@ -82,9 +103,13 @@ Estas proteções resolvem falhas concretas, mas não encerram a arquitetura ope
 
 Mudanças relacionadas devem manter cobertura para:
 
-- bloqueio da remoção com compromisso futuro ativo;
+- bloqueio da remoção com compromisso ativo futuro ou passado, inclusive vínculo inativo;
 - preservação do vínculo quando a remoção é bloqueada;
 - liberação da remoção depois que o compromisso ativo é resolvido;
+- navegação para reservas antigas e fora da semana inicial com consulta limitada e isolada;
+- gestão das reservas de profissionais inativas pela dona, sem novas disponibilidades ou destino de reagendamento inativo;
+- repetição idempotente de bloquear/liberar, compatibilidade do toggle e proteção de bloqueios legados;
+- falha de leitura após escrita confirmada sem reenvio da alteração, exclusão entre escritas e descarte de respostas antigas;
 - rejeição de novo agendamento quando o vínculo profissional-negócio não existe mais;
 - tradução da constraint `agendamentos_profissional_negocio_vinculo` para conflito operacional;
 - isolamento por negócio;

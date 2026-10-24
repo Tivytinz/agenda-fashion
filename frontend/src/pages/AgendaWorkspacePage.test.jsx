@@ -75,7 +75,8 @@ describe("agenda do negócio", () => {
         headers: {
           "X-AF-Contexto":
             "profissional"
-        }
+        },
+        signal: expect.any(AbortSignal),
       }
     ]);
 
@@ -140,7 +141,7 @@ describe("agenda do negócio", () => {
     expect(
       screen.getByRole(
         "button",
-        { name: /Hoje/i }
+        { name: /Hoje,/i }
       )
     ).not.toBeNull();
 

@@ -260,6 +260,34 @@ As regras transversais obrigatórias continuam resumidas em `AGENTS.md`.
 Estes documentos são úteis para rastrear cobertura e evolução, mas não devem
 virar uma segunda fonte de regra quando o domínio já possui documento canônico:
 
+- [auditoria-fluxo-dona-2026-10-21.md](./auditoria-fluxo-dona-2026-10-21.md):
+  evidência da revisão da jornada da dona e das correções locais de gestão da
+  agenda, bloqueios e remoção da equipe.
+- [auditoria-fluxos-dona-revisao-2026-10-21.md](./auditoria-fluxos-dona-revisao-2026-10-21.md):
+  segunda revisão sobre as correções preparadas, incluindo regressão de
+  reagendamento, ocupação da grade, atualização da equipe e inativação manual.
+- [auditoria-fluxos-dona-terceira-revisao-2026-10-21.md](./auditoria-fluxos-dona-terceira-revisao-2026-10-21.md):
+  terceira revisão sobre `19947a8`, com recuperação da assinatura, convites para
+  vínculo pausado, continuidade de reservas e rastreabilidade da equipe.
+- [auditoria-fluxos-dona-quarta-revisao-2026-10-21.md](./auditoria-fluxos-dona-quarta-revisao-2026-10-21.md):
+  quarta revisão sobre `099cef9`, com contrato de datas financeiras, isolamento
+  de tentativas de reativação e ordem de locks nas transições da equipe.
+- [auditoria-fluxos-dona-quinta-revisao-2026-10-22.md](./auditoria-fluxos-dona-quinta-revisao-2026-10-22.md):
+  quinta revisão sobre `14955aa`, com datas no JSON da assinatura, cancelamento
+  obsoleto, pagamento sem datas e idempotência do histórico financeiro.
+- [auditoria-fluxos-dona-sexta-revisao-2026-10-23.md](./auditoria-fluxos-dona-sexta-revisao-2026-10-23.md):
+  sexta revisão sobre `c4bec0b`, com confirmação financeira durante cancelamento
+  e reativação, identidade dos fatos entre gerações e data do primeiro ciclo.
+- [auditoria-fluxos-dona-setima-revisao-2026-10-23.md](./auditoria-fluxos-dona-setima-revisao-2026-10-23.md):
+  sétima revisão sobre `0231f98`, com programação externa versus período pago,
+  webhooks que encurtam acesso, estorno durante criação e tentativa vencida.
+- [auditoria-fluxos-dona-oitava-revisao-2026-10-23.md](./auditoria-fluxos-dona-oitava-revisao-2026-10-23.md):
+  oitava revisão sobre `dfd92b0`, com intenção de renovação após suspensão,
+  inativação externa, recuperação de período estornado e diagnóstico do worker.
+  Inclui as correções preparadas com a migration 119 e sua validação local.
+- [auditoria-fluxos-dona-nona-revisao-2026-10-24.md](./auditoria-fluxos-dona-nona-revisao-2026-10-24.md):
+  nona revisão sobre `5375d78`, com recuperação de recorrências do checkout,
+  preservação da data financeira e seleção do lote de renovações.
 - [cobertura-criterios-aceitacao.md](./cobertura-criterios-aceitacao.md):
   cobertura dos critérios de aceitação e fechamentos por wave.
 - [wave-16-produto-ux.md](./wave-16-produto-ux.md): evidência do primeiro

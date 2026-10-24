@@ -109,6 +109,16 @@ async function buscarPendenciasNegocio(
               'CHARGEBACK_DISPUTE',
               'AWAITING_CHARGEBACK_REVERSAL'
             )
+        ) OR EXISTS (
+          SELECT 1 FROM assinatura_renovacao_operacoes o
+          INNER JOIN assinaturas a ON a.id = o.assinatura_id
+          WHERE a.negocio_id = $1 AND o.estado IN ('PENDING', 'REMOVING')
+        ) OR EXISTS (
+          SELECT 1 FROM assinatura_checkout_operacoes o JOIN assinaturas a ON a.id = o.assinatura_id
+          WHERE a.negocio_id = $1 AND o.estado IN ('PENDING', 'REMOVING')
+        ) OR EXISTS (
+          SELECT 1 FROM assinaturas a
+          WHERE a.negocio_id = $1 AND UPPER(a.status) = 'REACTIVATING'
         ) AS operacao_financeira_pendente,
 
         EXISTS (

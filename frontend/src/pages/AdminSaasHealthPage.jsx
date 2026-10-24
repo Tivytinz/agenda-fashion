@@ -467,7 +467,7 @@ export function AdminSaasHealthPage() {
               {(Array.isArray(operational?.filas) ? operational.filas : [])
                 .map((queue) => (
                   <article className="metric-card saas-health-metric-card" key={queue.nome}>
-                    <span>{queue.nome.replaceAll("_", " ")}</span>
+                    <span>{queue.nome === "renovacoes_assinatura" ? "Renovações de assinatura" : queue.nome === "checkouts_assinatura" ? "Recorrências de checkout" : queue.nome.replaceAll("_", " ")}</span>
                     <strong>{queue.pendentes ?? 0}</strong>
                     <small>
                       {queue.falhas ?? 0} falhas · atraso {formatDelay(queue.atrasoMaisAntigoSegundos)}

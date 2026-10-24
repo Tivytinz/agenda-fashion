@@ -455,12 +455,7 @@ async function reagendarOperacional({
           Number(
             atual.profissional_id
           ) &&
-        novaData ===
-          String(atual.data) &&
-        novoHorario ===
-          normalizarHorario(
-            atual.horario
-          )
+        novoInicio === Date.parse(String(atual.inicio_previsto_em))
       ) {
         throw criarErro(
           "Escolha um novo horário ou profissional para reagendar.",

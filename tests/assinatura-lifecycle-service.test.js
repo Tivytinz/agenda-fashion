@@ -324,6 +324,21 @@ describe("assinaturaLifecycleService", () => {
       .not.toHaveBeenCalled();
   });
 
+  test("cancelamento usa a mesma chave e dia civil com Date do pg e texto", async () => {
+    const { types } = require("pg");
+    for (const acessoAte of [types.getTypeParser(1082)("2099-12-01"), "2099-12-01"]) {
+      await service.registrarCancelamentoRenovacao({ client, assinatura: assinatura(), acessoAte });
+    }
+    const dados = repository.registrar.mock.calls.map(([, evento]) => evento);
+    expect(dados).toHaveLength(2);
+    for (const evento of dados) {
+      expect(evento).toMatchObject({
+        chaveIdempotencia: "assinatura:20:RENOVACAO_CANCELADA:geracao:0:recorrencia:sem-id",
+        detalhes: { acesso_ate: "2099-12-01" },
+      });
+    }
+  });
+
   test("encerramento herda o motivo do cancelamento canônico", async () => {
     repository.buscarUltimoPorAssinaturaETipo
       .mockResolvedValue({

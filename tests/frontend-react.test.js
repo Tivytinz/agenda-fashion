@@ -373,10 +373,10 @@ describe(
           '"/agenda-configuracao"'
         );
         expect(profissionais).toContain(
-          'apiRequest("/profissionais/convites"'
+          '"/profissionais/convites"'
         );
         expect(profissionais).toContain(
-          'apiRequest("/profissionais")'
+          'apiRequest("/profissionais",'
         );
         expect(profissionais).not.toContain(
           "perfil-negocio"

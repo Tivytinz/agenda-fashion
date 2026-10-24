@@ -1,3 +1,10 @@
+jest.mock("../src/repositories/assinaturaCheckoutRepository");
+beforeEach(() => {
+  require("../src/repositories/assinaturaCheckoutRepository").listarPendentes.mockResolvedValue([]);
+  require("../src/repositories/assinaturaCheckoutRepository").listarNegociosPendentes.mockResolvedValue([]);
+});
+jest.mock("../src/repositories/assinaturaRenovacaoRepository");
+jest.mock("../src/services/assinaturaReativacaoService", () => ({ reconciliarReativacaoAbandonada: jest.fn() }));
 const mockListar = jest.fn();
 const mockListarInadimplentes = jest.fn();
 const mockExpirar = jest.fn();
@@ -41,6 +48,7 @@ describe("worker de reconciliação financeira", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    require("../src/repositories/assinaturaRenovacaoRepository").listarNegociosPendentes.mockResolvedValue([]);
     process.env = {
       ...envOriginal,
       BILLING_RECONCILIATION_BATCH_SIZE: "25",
@@ -74,6 +82,8 @@ describe("worker de reconciliação financeira", () => {
       ignorado: false,
       candidatos: 2,
       cancelamentosReconciliados: 1,
+      renovacoesReconciliadas: 0,
+      checkoutsReconciliados: 0,
       inadimplenciasTerminalizadas: 0,
       reconciliados: 1,
       falhas: 0,
@@ -146,6 +156,8 @@ describe("worker de reconciliação financeira", () => {
       ignorado: false,
       candidatos: 2,
       cancelamentosReconciliados: 1,
+      renovacoesReconciliadas: 0,
+      checkoutsReconciliados: 0,
       inadimplenciasTerminalizadas: 0,
       reconciliados: 1,
       falhas: 1,
@@ -158,5 +170,19 @@ describe("worker de reconciliação financeira", () => {
       "billing_reconciliation",
       expect.any(Error)
     );
+  });
+
+  test("falha de renovação é contabilizada sem interromper o próximo negócio", async () => {
+    mockListar.mockResolvedValue([]);
+    require("../src/repositories/assinaturaRenovacaoRepository").listarNegociosPendentes
+      .mockResolvedValue([{negocio_id:7},{negocio_id:8}]);
+    const reconcile = require("../src/services/assinaturaReativacaoService").reconciliarReativacaoAbandonada;
+    reconcile.mockRejectedValueOnce(new Error("timeout")).mockResolvedValueOnce({id:22});
+    await expect(worker.executarReconciliacao()).resolves.toMatchObject({
+      candidatos:2,renovacoesReconciliadas:1,falhas:1,
+    });
+    expect(reconcile).toHaveBeenNthCalledWith(1,7,{propagarFalha:true});
+    expect(reconcile).toHaveBeenNthCalledWith(2,8,{propagarFalha:true});
+    expect(mockMetricas.registrarExecucaoConcluida).not.toHaveBeenCalled();
   });
 });

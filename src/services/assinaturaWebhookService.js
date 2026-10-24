@@ -1,4 +1,6 @@
 const db = require("../db/db");
+const renovacaoRepository = require("../repositories/assinaturaRenovacaoRepository");
+const checkoutRepository = require("../repositories/assinaturaCheckoutRepository");
 const assinaturaWebhookRepository = require(
   "../repositories/assinaturaWebhookRepository"
 );
@@ -85,6 +87,27 @@ async function sincronizarAssinaturaPorWebhook(
   }
 
   return db.executarTransacao(async (client) => {
+    const referencia = extrairReferenciaAssinatura(dadosAssinatura.externalReference);
+    await assinaturaWebhookRepository.bloquearNegocioDoEvento(client, {
+      subscriptionId, assinaturaId: referencia.assinatura || null,
+      externalReference: dadosAssinatura.externalReference || null,
+    });
+    if (["SUBSCRIPTION_CREATED", "SUBSCRIPTION_UPDATED"].includes(tipoEvento) && dadosAssinatura.customer) {
+      const checkout = await checkoutRepository.registrarWebhook(client, {
+        externalReference: dadosAssinatura.externalReference || null,
+        customerId: dadosAssinatura.customer, subscriptionId,
+      });
+      // Não vincular nem conceder benefícios por um evento de programação.
+      // Mesmo uma resposta tardia após consulta de ausência reabre a remoção.
+      if (checkout && checkout.estado !== "COMPLETED") return null;
+    }
+    if (["SUBSCRIPTION_CREATED", "SUBSCRIPTION_UPDATED"].includes(tipoEvento) &&
+      String(dadosAssinatura.externalReference || "").startsWith("assinatura-reativada:") && dadosAssinatura.customer) {
+      await renovacaoRepository.registrarRecorrenciaRecebida(client, {
+        externalReference: dadosAssinatura.externalReference, customerId: dadosAssinatura.customer,
+        subscriptionId,
+      });
+    }
     const assinatura = await localizarAssinaturaPorWebhook(
       client,
       subscriptionId,
@@ -95,24 +118,33 @@ async function sincronizarAssinaturaPorWebhook(
       return null;
     }
 
+    // Enquanto a tentativa está reservada, este ID ainda é o da recorrência
+    // anterior. Seu reconhecimento tardio não conclui nem desfaz a reativação.
+    if (String(assinatura.status).toUpperCase() === "REACTIVATING" ||
+      await renovacaoRepository.possuiPendenteDaAssinatura(assinatura.id, client)) return null;
+
     const eventoEncerramento = [
       "SUBSCRIPTION_INACTIVATED",
       "SUBSCRIPTION_DELETED",
-    ].includes(tipoEvento);
+    ].includes(tipoEvento) || (tipoEvento === "SUBSCRIPTION_UPDATED" &&
+      String(dadosAssinatura.status).toUpperCase() === "INACTIVE");
     const manterPeriodoPago =
-      tipoEvento === "SUBSCRIPTION_DELETED" &&
+      eventoEncerramento &&
       acessoPagoAindaValido(assinatura);
 
     let status = assinatura.status;
 
     if (manterPeriodoPago) {
       status = "CANCELED";
-    } else if (eventoEncerramento) {
+    } else if (eventoEncerramento && !["REFUNDED", "RECEIVED_IN_CASH_UNDONE", "CHARGEBACK_REQUESTED",
+      "CHARGEBACK_DISPUTE", "AWAITING_CHARGEBACK_REVERSAL", "OVERDUE", "PAST_DUE",
+      "PAYMENT_FAILED", "CREDIT_CARD_CAPTURE_REFUSED"].includes(assinatura.status)) {
       status = tipoEvento === "SUBSCRIPTION_DELETED"
         ? "DELETED"
         : "INACTIVE";
     } else if (
       assinatura.ativo === true &&
+      assinatura.renovacao_cancelada !== true &&
       !["CANCELED", "CANCELLED"].includes(
         String(assinatura.status || "").trim().toUpperCase()
       ) &&
@@ -142,6 +174,7 @@ async function sincronizarAssinaturaPorWebhook(
           proximaCobranca:
             dadosAssinatura.nextDueDate || null,
           ativo,
+          renovacaoCancelada: eventoEncerramento,
           eventoCriadoEm:
             dadosAssinatura.webhookEventoCriadoEm || null,
           eventoId:
@@ -178,6 +211,8 @@ async function sincronizarAssinaturaPorWebhook(
           client,
           assinatura: assinaturaAtualizada,
           acessoAte:
+            assinaturaAtualizada.acesso_pago_ate ||
+            assinatura.acesso_pago_ate ||
             assinaturaAtualizada.data_proxima_cobranca ||
             assinatura.data_proxima_cobranca ||
             null,

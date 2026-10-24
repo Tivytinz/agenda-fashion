@@ -1,5 +1,6 @@
 const profissionaisRepository = require("../repositories/profissionaisRepository");
 const db = require("../db/db");
+const equipeAnalyticsService = require("./equipeAnalyticsService");
 const {
   buscarUsoPlano,
   criarErroLimite
@@ -227,12 +228,12 @@ async function editarProfissional({
   };
 }
 
-function criarErroAgendamentosFuturos(quantidade) {
+function criarErroAgendamentosPendentes(quantidade) {
   const total = Number(quantidade || 0);
   const erro = new Error(
     total === 1
-      ? "Esta profissional possui 1 agendamento futuro ativo neste negócio. Resolva esse compromisso antes de removê-la da equipe."
-      : `Esta profissional possui ${total} agendamentos futuros ativos neste negócio. Resolva esses compromissos antes de removê-la da equipe.`
+      ? "Esta profissional possui 1 agendamento pendente neste negócio. Conclua, cancele ou registre falta antes de removê-la da equipe."
+      : `Esta profissional possui ${total} agendamentos pendentes neste negócio. Conclua, cancele ou registre falta antes de removê-la da equipe.`
   );
   erro.status = 409;
   erro.statusCode = 409;
@@ -267,9 +268,9 @@ async function removerProfissional({
       vinculo.negocio_id
     );
 
-  if (Number(resultado?.agendamentosFuturos || 0) > 0) {
-    throw criarErroAgendamentosFuturos(
-      resultado.agendamentosFuturos
+  if (Number(resultado?.agendamentosPendentes || 0) > 0) {
+    throw criarErroAgendamentosPendentes(
+      resultado.agendamentosPendentes
     );
   }
 
@@ -351,6 +352,15 @@ async function criarConviteProfissional({
       ) {
         throw new ValidationError(
           "Esta profissional já aceitou o convite e está aguardando uma vaga no plano."
+        );
+      }
+
+      if (vinculo?.papel === "profissional" && vinculo.ativo === false
+        && ["inativado_pela_dona", "excedente_limite_plano"].includes(vinculo.motivo_inatividade)) {
+        throw criarErroStatus(
+          "Esta profissional já faz parte da equipe e está inativa. Use Ativar profissional na equipe quando houver uma vaga no plano.",
+          409,
+          "VINCULO_PROFISSIONAL_INATIVO"
         );
       }
 
@@ -522,6 +532,10 @@ async function aceitarConviteProfissional({
           client
         );
 
+      if (vinculoMesmoNegocio?.motivo_inatividade === "inativado_pela_dona") {
+        return { erro: "INATIVADO_PELA_DONA" };
+      }
+
       if (vinculoMesmoNegocio?.ativo) {
         await profissionaisRepository
           .ativarPerfilProfissionalConta(
@@ -618,6 +632,10 @@ async function aceitarConviteProfissional({
               409
             );
           }
+          await equipeAnalyticsService.registrarTransicao({
+            negocioId: convite.negocio_id, profissionalId: usuarioId,
+            ativo: true, actorType: "PROFESSIONAL", actorId: usuarioId, executor: client,
+          });
         } else {
           await profissionaisRepository.criarVinculo(
             usuarioId,
@@ -681,6 +699,14 @@ async function aceitarConviteProfissional({
     );
   }
 
+  if (resultado.erro === "INATIVADO_PELA_DONA") {
+    throw criarErroStatus(
+      "Este vínculo foi inativado pela dona. A reativação deve ser feita por ela na equipe.",
+      409,
+      "VINCULO_INATIVADO_PELA_DONA"
+    );
+  }
+
   if (resultado.erro === "CONTEXTO_INATIVO") {
     throw criarErroStatus(
       "Não é possível aceitar este convite porque a conta ou o negócio está inativo.",
@@ -741,17 +767,18 @@ async function ativarProfissional({
 
   const resultado = await db.executarTransacao(
     async (client) => {
+      // Mesma ordem da inativação/encerramento e da FK do ator no evento.
+      const conta = await profissionaisRepository.bloquearContaDonaAtiva(usuarioId, client);
+      exigirPermissao(conta, "A conta da dona não está ativa.");
       await profissionaisRepository.bloquearCadastroProfissional(
         client,
         dono.negocio_id
       );
 
       const vinculo =
-        await profissionaisRepository.verificarVinculo(
-          profissionalId,
-          dono.negocio_id,
-          client
-        );
+        await profissionaisRepository.bloquearVinculoProfissionalDaDona({
+          usuarioId, profissionalId, negocioId: dono.negocio_id, executor: client,
+        });
 
       if (
         !vinculo ||
@@ -767,6 +794,7 @@ async function ativarProfissional({
       const motivoPermitido = new Set([
         "aguardando_vaga_plano",
         "excedente_limite_plano",
+        "inativado_pela_dona",
       ]);
 
       if (
@@ -804,6 +832,11 @@ async function ativarProfissional({
       if (!ativado) {
         return { erro: "NAO_ATIVADO" };
       }
+
+      await equipeAnalyticsService.registrarTransicao({
+        negocioId: dono.negocio_id, profissionalId, ativo: true,
+        actorType: "OWNER", actorId: usuarioId, executor: client,
+      });
 
       return { jaAtivo: false };
     }
@@ -845,6 +878,43 @@ async function ativarProfissional({
       : "Profissional ativada na equipe.",
     profissional_id: Number(profissionalId),
     ativo: true,
+  };
+}
+
+async function inativarProfissional({ usuarioId, profissionalId }) {
+  exigirUsuario(usuarioId);
+  const targetId = Number(profissionalId);
+  if (!Number.isSafeInteger(targetId) || targetId <= 0) {
+    throw new ValidationError("Profissional inválido.");
+  }
+  if (targetId === Number(usuarioId)) {
+    throw new ForbiddenError("A dona não pode inativar o próprio vínculo.");
+  }
+  const dono = await profissionaisRepository.buscarNegocioDono(usuarioId);
+  exigirPermissao(dono, "Apenas a dona pode inativar profissionais.");
+
+  const resultado = await db.executarTransacao(async (client) => {
+    const conta = await profissionaisRepository.bloquearContaDonaAtiva(usuarioId, client);
+    exigirPermissao(conta, "A conta da dona não está ativa.");
+    await profissionaisRepository.bloquearCadastroProfissional(client, dono.negocio_id);
+    const vinculo = await profissionaisRepository.bloquearVinculoProfissionalDaDona({
+      usuarioId, profissionalId: targetId, negocioId: dono.negocio_id, executor: client,
+    });
+    if (!vinculo) throw criarErroStatus("Profissional não encontrada neste negócio.", 404);
+    if (!vinculo.ativo) return vinculo;
+    const inativado = await profissionaisRepository.inativarVinculoProfissional(vinculo.id, client);
+    await equipeAnalyticsService.registrarTransicao({
+      negocioId: dono.negocio_id, profissionalId: targetId, ativo: false,
+      actorType: "OWNER", actorId: usuarioId, motivo: inativado.motivo_inatividade, executor: client,
+    });
+    return inativado;
+  });
+
+  return {
+    mensagem: "Profissional inativada. As reservas existentes foram preservadas.",
+    profissional_id: targetId,
+    ativo: false,
+    motivo_inatividade: resultado.motivo_inatividade,
   };
 }
 
@@ -944,6 +1014,7 @@ module.exports = {
   listarConvitesRecebidos,
   aceitarConviteProfissional,
   ativarProfissional,
+  inativarProfissional,
   recusarConviteProfissional,
   editarProfissional,
   removerProfissional

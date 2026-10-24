@@ -1,3 +1,4 @@
+jest.mock("../src/services/equipeAnalyticsService", () => ({ registrarTransicao: jest.fn() }));
 jest.mock("../src/db/db", () => ({
   executarTransacao: jest.fn(),
 }));
@@ -28,6 +29,7 @@ describe("Convites de profissionais", () => {
     jest.clearAllMocks();
     db.executarTransacao.mockImplementation(async (callback) => callback(client));
     profissionaisRepository.buscarNegocioDono.mockResolvedValue({ negocio_id: 7 });
+    profissionaisRepository.bloquearContaDonaAtiva.mockResolvedValue({ id: 1 });
     profissionaisRepository.buscarProfissionalPorEmailWhatsapp.mockResolvedValue({
       id: 20,
       nome: "Profissional Teste",
@@ -298,7 +300,7 @@ describe("Convites de profissionais", () => {
   });
 
   test("dona ativa vínculo aguardando vaga quando o plano possui capacidade", async () => {
-    profissionaisRepository.verificarVinculo.mockResolvedValue({
+    profissionaisRepository.bloquearVinculoProfissionalDaDona.mockResolvedValue({
       id: 501,
       papel: "profissional",
       ativo: false,
@@ -328,7 +330,7 @@ describe("Convites de profissionais", () => {
   });
 
   test("CA-PLN-06: dona pode reativar profissional inativada por downgrade quando há vaga", async () => {
-    profissionaisRepository.verificarVinculo.mockResolvedValue({
+    profissionaisRepository.bloquearVinculoProfissionalDaDona.mockResolvedValue({
       id: 502,
       papel: "profissional",
       ativo: false,
@@ -357,7 +359,7 @@ describe("Convites de profissionais", () => {
   });
 
   test("ativação mantém vínculo aguardando quando o plano continua sem vaga", async () => {
-    profissionaisRepository.verificarVinculo.mockResolvedValue({
+    profissionaisRepository.bloquearVinculoProfissionalDaDona.mockResolvedValue({
       id: 501,
       papel: "profissional",
       ativo: false,

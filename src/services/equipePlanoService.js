@@ -1,6 +1,7 @@
 const profissionaisRepository = require(
   "../repositories/profissionaisRepository"
 );
+const equipeAnalyticsService = require("./equipeAnalyticsService");
 
 async function reconciliarLimiteProfissionais(
   negocioId,
@@ -21,11 +22,18 @@ async function reconciliarLimiteProfissionais(
       negocioId
     );
 
-  return profissionaisRepository
+  const inativadas = await profissionaisRepository
     .inativarProfissionaisExcedentesPlano(
       negocioId,
       executor
     );
+  for (const profissional of inativadas) {
+    await equipeAnalyticsService.registrarTransicao({
+      negocioId, profissionalId: profissional.usuario_id, ativo: false,
+      actorType: "SYSTEM", motivo: profissional.motivo_inatividade, executor,
+    });
+  }
+  return inativadas;
 }
 
 module.exports = {

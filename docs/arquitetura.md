@@ -102,6 +102,10 @@ que ainda contêm SQL, evitando que novas exceções entrem silenciosamente.
 No domínio de assinaturas, a fachada pública delega casos de uso separados para
 registro, conta, webhooks e pagamentos. As consultas financeiras ficam em
 repositories, reduzindo o impacto de mudanças sobre checkout e recorrência.
+A validade quitada (`acesso_pago_ate`) é independente da programação do provedor.
+Reativação usa operações duráveis por geração, com concessão de execução e
+compensação; expiração compartilha o mesmo caso de uso entre leitura e worker.
+Suspender acesso não apaga uma obrigação externa de criação/remoção.
 
 Os fluxos de configuração separam normalização/elegibilidade dos casos de uso.
 O agendamento público separa criação de agenda das ações posteriores da cliente.
@@ -452,7 +456,10 @@ de módulos locais.
 
 O endpoint administrativo autenticado `/admin/saude/operacional` agrega uptime
 e memória do processo, estado dos workers, volume pendente, falhas e idade do
-item mais antigo das filas de webhook, WhatsApp e conversões de marketing.
+item mais antigo das filas de webhook, WhatsApp, conversões de marketing e
+renovações de assinatura. A última fila deriva das operações `PENDING/REMOVING`;
+falhas da recuperação são persistidas por código seguro e contabilizadas pelo
+worker, sem confundir ausência de trabalho/disputa de concessão com erro externo.
 
 O fluxo normal é:
 

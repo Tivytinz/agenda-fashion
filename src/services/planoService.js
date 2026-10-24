@@ -1,6 +1,4 @@
 const db = require("../db/db");
-const assinaturaRepository =
-    require("../repositories/assinaturaRepository");
 const {
     reconciliarReativacaoAbandonada
 } = require("./assinaturaReativacaoService");
@@ -10,15 +8,10 @@ const planoRepository = require(
 const UnauthorizedError = require(
     "../errors/UnauthorizedError"
 );
-const equipePlanoService = require(
-    "./equipePlanoService"
-);
 const NotFoundError = require(
     "../errors/NotFoundError"
 );
-const assinaturaLifecycleService = require(
-    "./assinaturaLifecycleService"
-);
+const { expirarCancelamentoComReconciliacao } = require("./assinaturaExpiracaoService");
 
 function criarErroLimite(mensagem, codigo, uso = null) {
     const erro = new Error(mensagem);
@@ -67,63 +60,16 @@ async function buscarMeuPlano(usuarioId) {
     );
 }
 
-async function expirarCancelamentoComReconciliacao(
-    negocioId,
-    executor = db
-) {
-    const executar = async (client) => {
-        const expirada = await assinaturaRepository
-            .expirarCancelamentoSeNecessario(
-                negocioId,
-                client
-            );
-
-        if (
-            expirada &&
-            expirada.negocio_saiu_base_paga === true
-        ) {
-            await assinaturaLifecycleService
-                .registrarEncerramentoAcesso({
-                    client,
-                    assinatura: expirada,
-                    origem: "sistema",
-                    referenciaIdempotencia:
-                        expirada.data_proxima_cobranca ||
-                        "fim-periodo-pago"
-                });
-
-            await equipePlanoService
-                .reconciliarLimiteProfissionais(
-                    negocioId,
-                    client
-                );
-        }
-
-        return expirada;
-    };
-
-    if (executor === db) {
-        return db.executarTransacao(executar);
-    }
-
-    return executar(executor);
-}
-
 async function buscarUsoPlano(
     negocioId,
     executor = db,
     dataReferencia = null
 ) {
-    if (executor === db) {
-        await reconciliarReativacaoAbandonada(
-            negocioId
-        );
-    }
+    await expirarCancelamentoComReconciliacao(negocioId, executor);
 
-    await expirarCancelamentoComReconciliacao(
-        negocioId,
-        executor
-    );
+    if (executor === db) {
+        await reconciliarReativacaoAbandonada(negocioId);
+    }
 
     const plano = await planoRepository.buscarUsoPlano(
         negocioId,

@@ -44,8 +44,10 @@ describe("repositories financeiros críticos", () => {
       await checkoutRepository.buscarDadosClienteAsaas(client, 10, 7);
 
       expect(client.query.mock.calls[0][1]).toEqual([10]);
-      expect(client.query.mock.calls[1][1]).toEqual([10]);
-      expect(client.query.mock.calls[2][1]).toEqual([10, 7]);
+      expect(client.query.mock.calls[1][1]).toEqual(["10"]);
+      expect(client.query.mock.calls[1][0]).toContain("FOR UPDATE");
+      expect(client.query.mock.calls[2][1]).toEqual([10]);
+      expect(client.query.mock.calls[3][1]).toEqual([10, 7]);
     });
 
     test("salva customer Asaas somente quando ausente", async () => {
@@ -275,6 +277,8 @@ describe("repositories financeiros críticos", () => {
         assinaturaRepository.registrarCancelamento(client, {
           assinaturaId: 40,
           negocioId: 10,
+          asaasSubscriptionId: "sub_40",
+          reativacaoTentativa: 0,
           acessoAte: "2026-10-26",
           observacoes: "Cancelamento solicitado",
         })

@@ -43,6 +43,17 @@ async function ativarProfissional(req, res, next) {
   }
 }
 
+async function inativarProfissional(req, res, next) {
+  try {
+    return res.json(await profissionaisService.inativarProfissional({
+      usuarioId: req.user?.id,
+      profissionalId: req.params.id,
+    }));
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function removerProfissional(req, res, next) {
   try {
     const resultado =
@@ -133,6 +144,7 @@ module.exports = {
   listarConvitesRecebidos,
   aceitarConviteProfissional,
   ativarProfissional,
+  inativarProfissional,
   recusarConviteProfissional,
   editarProfissional,
   removerProfissional

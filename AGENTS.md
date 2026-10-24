@@ -342,6 +342,30 @@ de outro negócio, quando exibidos apenas como ocupação redigida, devem ser
 convertidos pelo instante canônico `inicio_previsto_em` para o fuso do contexto
 consultado.
 
+A Agenda Geral da dona mantém hoje como início padrão no fuso do negócio e
+permite navegar por semanas ou escolher uma data. `GET /agenda-geral` aceita
+`data_inicio=AAAA-MM-DD`, valida a data real e limita cada consulta a sete dias.
+Reservas passadas ainda abertas permanecem gerenciáveis pelo estado persistido.
+Reservas não canceladas de integrantes inativas também aparecem no período
+consultado, sem gerar horários livres ou permitir que essas pessoas sejam
+destino de reagendamento. A dona resolve os compromissos existentes pelo mesmo
+lifecycle; isso não reativa o vínculo nem amplia o acesso da profissional.
+Mudar o período ou sair invalida as leituras antigas. A interface serializa
+escritas e exige nova leitura após resultado incerto ou falha de atualização;
+repetir uma leitura não pode reenviar a alteração. O POST de bloqueios aceita
+`bloqueado` booleano como estado desejado idempotente, preservando o toggle
+legado somente quando o campo é omitido.
+A grade operacional ocupa todo o intervalo de reservas ativas, inclusive início
+fora da grade e passagem para outro dia, usando o instante e a duração congelados
+no fuso consultado. Pontos intermediários usam `ocupado`, sem duplicar ações ou
+expor dados de outro negócio; o fim do intervalo é exclusivo. Serviço desativado
+não impede reagendar a reserva existente com a responsável atual ativa;
+transferências continuam exigindo responsável ativa habilitada.
+Uma reserva ativa que atravessa a meia-noite também aparece nos dias seguintes
+como continuação, com data e hora originais preservadas para as ações. Isso vale
+para integrantes inativas, sem criar grade livre para elas. A seleção por período
+considera a sobreposição do intervalo, com fim exclusivo.
+
 A modelagem atual continua permitindo no máximo um vínculo ativo com papel
 `profissional` por conta, embora a mesma identidade possa simultaneamente ser
 dona do próprio negócio e profissional em outro. Por isso, endpoints de agenda
@@ -441,10 +465,15 @@ Regras duráveis:
 - reagendamento é uma operação transacional: o novo slot é validado antes da
   atualização da reserva e o booking atual é ignorado apenas na checagem do
   próprio conflito;
+- a detecção de reagendamento sem alteração compara responsável e instante
+  canônico, preservando o comportamento quando o fuso do negócio é corrigido;
 - serviço, preço, duração e antecedência de cancelamento permanecem snapshots do
   booking durante o reagendamento;
 - após o horário previsto, o booking ainda pode ser reagendado se o atendimento
   não tiver começado e o novo início for futuro;
+- RN45: qualquer reserva `agendado`/`confirmado` no negócio impede remover o
+  vínculo profissional, inclusive reserva passada e vínculo inativo. A passagem
+  do relógio não resolve a pendência; é necessário um desfecho válido do lifecycle;
 - `atendimento_iniciado_em`/`atendimento_iniciado_por` registram o início real
   do serviço; depois desse marco o booking não pode mais ser reagendado;
 - o histórico de reagendamento preserva ator, profissional anterior/novo e
@@ -517,6 +546,24 @@ inativa automaticamente apenas profissionais não proprietárias excedentes,
 começando pelas ativações mais recentes. Esses vínculos usam
 `motivo_inatividade = 'excedente_limite_plano'`; `ativado_em` registra a
 ativação mais recente para manter a ordem de downgrade determinística.
+
+A dona pode inativar manualmente uma profissional por
+`POST /profissionais/:id/inativar`, preservando o vínculo, sua criação, serviços,
+configuração e reservas. O motivo é `inativado_pela_dona`; a própria dona não
+pode ser inativada. Essa pausa libera capacidade e impede novas reservas.
+Reativação é uma decisão explícita da dona, sujeita a plano e vínculo ativo em
+outro negócio; aceitar convite antigo não contorna a pausa. A tela da equipe
+serializa alterações, descarta leituras antigas e preserva o estado confirmado
+pela resposta da escrita quando a atualização falha; a recuperação faz só GET.
+Novo convite para vínculo inativo por pausa manual ou downgrade é recusado com
+orientação para `Ativar profissional`, preservando a decisão da dona e os guards
+do aceite de convites anteriores. Transições reais de inativação/reativação
+registram eventos de backend na mesma transação: ator humano efetivo ou `SYSTEM`
+no downgrade, sem repetir fatos em pedidos idempotentes nem inventar histórico.
+Ativação e inativação bloqueiam primeiro a conta da dona, depois capacidade e
+vínculos. O lock da conta é `FOR NO KEY UPDATE`: impede mudança concorrente de
+estado da conta e continua compatível com `KEY SHARE` das FKs de ator/convite.
+Conta, vínculo de dona e negócio são revalidados dentro da transação.
 
 RN50 preserva acesso restrito às próprias reservas existentes de um vínculo
 profissional inativo. A profissional pode consultar essas reservas e registrar
@@ -1260,7 +1307,110 @@ mesmo conjunto de mudanças sempre que possível.
 
 ## Reativação idempotente da renovação
 
-Enquanto o período já pago permanecer válido, a dona pode reativar uma renovação cancelada sem cobrança imediata. Cada ciclo usa `assinaturas.reativacao_tentativa` como versão monotônica e uma `externalReference` determinística no Asaas. O estado transitório `REACTIVATING` não deve ser revertido por timeout ou erro ambíguo: uma execução posterior consulta a mesma referência; recorrência encontrada finaliza a reativação, ausência confirmada restaura `CANCELED` e falha de consulta preserva `REACTIVATING` para nova reconciliação. Chamadas ao Asaas permanecem fora de transações PostgreSQL.
+Enquanto o período já pago permanecer válido, a dona pode reativar a renovação
+sem cobrança imediata. Cada tentativa usa `assinaturas.reativacao_tentativa` e
+referência externa determinística. Encontrar uma recorrência não basta para
+adotá-la: geração, acesso vigente e data externa precisam ser conferidos. Desde
+a migration 118, a obrigação externa fica em `assinatura_renovacao_operacoes`,
+independente do status financeiro e de `ativo`. Timeout não comprova ausência;
+HTTP com o Asaas permanece fora das transações PostgreSQL.
+
+Restauração e finalização conferem atomicamente a mesma `reativacao_tentativa`
+observada. Resposta de uma geração anterior não cancela nem finaliza a seguinte.
+Sem contexto válido para consultar o Asaas, preservar a operação pendente e o
+estado financeiro atual, sem inferir ausência da recorrência. Datas `DATE` da cobrança aceitam o objeto
+devolvido pelo parser padrão do `pg` e texto válido, preservando o dia civil do
+banco. Não converter um `DATE` para UTC antes de extrair seus campos locais nem
+mudar globalmente o parser do banco para corrigir apenas esse domínio.
+
+No contrato HTTP de assinatura, os campos civis `data_proxima_cobranca`,
+`data_vencimento`, `data_pagamento`, `acesso_pago_ate` e `acesso_ate` são `AAAA-MM-DD` ou `null`,
+inclusive em pagamentos, upgrade pendente e respostas de escrita. A conversão
+ocorre antes da serialização JSON, preservando instantes `TIMESTAMPTZ`. Data
+ausente ou inválida não pode derrubar a tela. Para calcular o período pago no
+cancelamento, usar pagamento confirmado/recebido com data válida ou o fim já
+persistido na assinatura; cobrança não recebida não comprova extensão do acesso.
+Sem evidência temporal válida, recusar antes de remover a recorrência externa.
+
+A continuação local do cancelamento confere atomicamente o identificador Asaas
+removido e a `reativacao_tentativa` observada, incluindo a geração inicial zero.
+Resposta antiga não altera o ciclo seguinte nem registra seu cancelamento.
+Conflito `ASSINATURA_ALTERADA` exige nova leitura antes de outra ação. Conta e
+webhook reconhecem a mesma identidade de `RENOVACAO_CANCELADA`, conservando a
+origem do primeiro fato e sem reescrever o ledger histórico. Desde a migration
+117, novos ciclos usam assinatura + geração + recorrência; ciclos legados mantêm
+a chave anterior até a próxima reativação, com cutover persistido na assinatura.
+
+Após remover a recorrência, o cancelamento bloqueia negócio e assinatura, nessa
+ordem, e relê os recebimentos na mesma transação antes de definir o fim pago.
+O maior período validado ou já persistido não pode ser encurtado por uma resposta
+antiga, ordem de IDs dos pagamentos ou finalização de reativação. Pagamento após
+cancelamento preserva a renovação cancelada; durante reativação, mantém
+`REACTIVATING` e a geração reservada. Reconhecimentos de assinatura da recorrência
+anterior não concluem nem desfazem a tentativa.
+
+`reativacao_inicio_cobranca` congela a data usada na referência externa de cada
+tentativa. Ampliar o período pago durante a espera não muda essa referência.
+Retomada e finalização conferem a mesma geração e preservam o acesso ampliado;
+ausência externa confirmada restaura cancelamento sem apagar o pagamento. Esses
+metadados internos não fazem parte do DTO da conta.
+
+`acesso_pago_ate` é o fim exclusivo do período quitado; programação de cobrança
+não pode reduzi-lo. `data_proxima_cobranca` no banco conserva a programação
+conhecida do provedor. O DTO normaliza ambos como dias civis e mantém o alias
+legado de fim pago em `data_proxima_cobranca` para cancelado/reativando. Expiração,
+capacidade, ledger e projeções de cancelamento usam o fim pago.
+
+Desde a migration 119, `renovacao_cancelada` preserva a intenção de não renovar
+mesmo durante estorno, atraso ou reconhecimento tardio de exclusão. Somente a
+reativação conferida limpa esse marcador. Inativação da recorrência também
+preserva acesso e equipe ainda quitados. Antes de criar a substituta, a ação
+explícita confirma a remoção da recorrência anterior fora da transação, inclusive
+quando ela estava apenas inativa; falha impede outra criação.
+
+Após uma falha financeira, `acesso_pago_reconciliado` exige recalcular o fim
+exclusivamente pelos pagamentos atualmente confirmados/recebidos com data válida.
+O máximo histórico não restaura período estornado. Outro recebimento vigente
+preserva sua cobertura; recebimento de ciclo já vencido fica registrado sem
+conceder benefícios. Novos checkouts usam esse contrato desde a criação. O
+fallback de período legado continua restrito a assinaturas sem reconciliação
+financeira e não pode voltar a partir de `data_proxima_cobranca` após a reversão.
+Esses marcadores internos não são expostos no DTO da conta.
+
+A operação externa usa `PENDING`, `REMOVING`, `COMPLETED` e `CANCELED`, com
+concessão de execução por dois minutos e versão conferida em cada continuação.
+Recebimento que incompatibiliza a recorrência exige remoção confirmada antes de
+outra criação. O pedido pode fazer uma substituição automática; falha de remoção
+fica durável para GET/worker. Estorno ou vencimento não apagam essa obrigação.
+Vencer durante `REACTIVATING` encerra os benefícios e reconcilia a equipe sem
+liberar nova operação financeira ou arquivamento enquanto houver pendência.
+
+Falhas de consulta, remoção ou contexto da renovação ficam registradas por código
+seguro na operação e contam como falha no worker. Ausência de pendência ou disputa
+normal da concessão não é falha. A saúde operacional inclui quantidade, falhas e
+idade das renovações pendentes, sem payloads do provedor ou credenciais.
+
+Desde a migration 120, criação inicial e limpeza de recorrências substituídas
+usam `assinatura_checkout_operacoes`. A obrigação é persistida antes do POST ou
+na transação que substitui o plano e independe do status financeiro. GET/worker
+somente consultam, adotam criação existente com pagamento ainda válido ou
+removem a órfã. Resposta tardia pode reabrir remoção, sem conceder acesso por
+evento de programação. Pendências bloqueiam checkout, reativação e arquivamento.
+A saúde operacional inclui Recorrências de checkout. As continuações conferem
+versão e concessão, com HTTP fora das transações.
+
+O lote de renovação prioriza a última tentativa persistida, sem prioridade fixa
+por ID. Falha de contexto espera 15 minutos na seleção automática; demais falhas
+esperam dois. GET pode conferir antes, respeitando a concessão. Atualização sem
+datas factuais preserva o dia financeiro conhecido: o relógio do processamento
+não altera `data_pagamento` nem amplia o período pago.
+
+A tela de assinatura preserva a resposta canônica de cancelamento/reativação e
+serializa alterações até reconciliar. Leituras antigas e conclusões depois da
+saída são descartadas. Escrita incerta, conflito de geração, conflito de
+reativação e falha de leitura pedem atualização por GET antes de outra alteração.
+`REACTIVATING` permanece visível como processamento, com atualização disponível
+e sem outra ação financeira.
 
 No Copilot, trocar negócio, período ou recomendação e desmontar o componente
 invalida o pedido anterior, incluindo sucesso, erro e telemetria de geração.

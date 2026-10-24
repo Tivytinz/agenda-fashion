@@ -6,6 +6,10 @@ const assinaturaRepository = require(
   "../repositories/assinaturaRepository"
 );
 const planoService = require("./planoService");
+const renovacaoRepository = require("../repositories/assinaturaRenovacaoRepository");
+const checkoutRepository = require("../repositories/assinaturaCheckoutRepository");
+const { reconciliarCheckoutsPendentes } = require("./assinaturaAtivacaoAsaasService");
+const { reconciliarReativacaoAbandonada } = require("./assinaturaReativacaoService");
 const assinaturaInadimplenciaService = require(
   "./assinaturaInadimplenciaService"
 );
@@ -50,6 +54,8 @@ async function executarReconciliacao() {
     const [
       candidatosCancelamento,
       candidatosInadimplencia,
+      candidatosRenovacao,
+      candidatosCheckout,
     ] = await Promise.all([
       assinaturaRepository
         .listarNegociosComCancelamentoExpirado(
@@ -60,12 +66,28 @@ async function executarReconciliacao() {
           tamanhoLote(),
           inadimplenciaTerminalDias()
         ),
+      renovacaoRepository.listarNegociosPendentes(tamanhoLote()),
+      checkoutRepository.listarNegociosPendentes(tamanhoLote()),
     ]);
 
     let reconciliados = 0;
     let cancelamentosReconciliados = 0;
     let inadimplenciasTerminalizadas = 0;
     let falhas = 0;
+    let renovacoesReconciliadas = 0;
+    let checkoutsReconciliados = 0;
+
+    for (const candidato of candidatosCheckout) {
+      try {
+        if (await reconciliarCheckoutsPendentes(candidato.negocio_id, { propagarFalha: true, respeitarBackoff: true })) {
+          reconciliados += 1;
+          checkoutsReconciliados += 1;
+        }
+      } catch (erro) {
+        falhas += 1;
+        registrador.aviso("Billing: falha ao conciliar checkout pendente.", { negocio_id: candidato.negocio_id });
+      }
+    }
 
     for (const candidato of candidatosCancelamento) {
       try {
@@ -92,6 +114,20 @@ async function executarReconciliacao() {
             ).slice(0, 240),
           }
         );
+      }
+    }
+
+    for (const candidato of candidatosRenovacao) {
+      try {
+        if (await reconciliarReativacaoAbandonada(candidato.negocio_id, { propagarFalha: true })) {
+          reconciliados += 1;
+          renovacoesReconciliadas += 1;
+        }
+      } catch (erro) {
+        falhas += 1;
+        registrador.aviso("Billing: falha ao reconciliar renovação pendente.", {
+          negocio_id: candidato.negocio_id, codigo: erro?.code || null,
+        });
       }
     }
 
@@ -130,8 +166,10 @@ async function executarReconciliacao() {
       ignorado: false,
       candidatos:
         candidatosCancelamento.length +
-        candidatosInadimplencia.length,
+        candidatosInadimplencia.length + candidatosRenovacao.length + candidatosCheckout.length,
       cancelamentosReconciliados,
+      renovacoesReconciliadas,
+      checkoutsReconciliados,
       inadimplenciasTerminalizadas,
       reconciliados,
       falhas,
@@ -152,7 +190,7 @@ async function executarReconciliacao() {
 
     if (
       candidatosCancelamento.length > 0 ||
-      candidatosInadimplencia.length > 0
+      candidatosInadimplencia.length > 0 || candidatosRenovacao.length > 0 || candidatosCheckout.length > 0
     ) {
       registrador.informacao(
         "Billing: reconciliação temporal concluída.",

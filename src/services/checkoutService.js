@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const db = require("../db/db");
+const renovacaoRepository = require("../repositories/assinaturaRenovacaoRepository");
 
 const checkoutRepository = require("../repositories/checkoutRepository");
 const checkoutTentativaRepository = require(
@@ -135,6 +136,10 @@ async function obterAssinaturaCheckout({
           transactionClient,
           negocio.id
         );
+
+      if (await renovacaoRepository.possuiPendente(negocio.id, transactionClient)) {
+        throw new AppError("Aguarde a conferência da renovação antes de gerar outro PIX.", 409);
+      }
 
       const pendente = await checkoutRepository
         .buscarAssinaturaPendenteDoNegocio(
@@ -340,6 +345,10 @@ async function criarCheckout({
       "Publique seu negócio antes de iniciar um checkout pago.",
       409
     );
+  }
+
+  if (await renovacaoRepository.possuiPendente(negocio.id)) {
+    throw new AppError("Aguarde a conferência da renovação antes de gerar outro PIX.", 409);
   }
 
   const plano =

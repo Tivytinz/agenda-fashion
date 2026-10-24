@@ -53,6 +53,55 @@ function criarSlotsBaseConfiaveis(horarios) {
   );
 }
 
+// Somente reservas ativas ocupam a grade. O fim projetado pelo PostgreSQL usa
+// o instante e a duração congelados, no fuso da agenda que está sendo consultada.
+function ocuparIntervalos(slots, data, agendamentos) {
+  for (const agendamento of agendamentos || []) {
+    if (!STATUS_ATIVOS.has(agendamento.status)) continue;
+    const inicio = Date.parse(`${agendamento.data}T${normalizarHorario(agendamento.hora)}:00Z`);
+    const fim = agendamento.ocupacao_fim_local
+      ? Date.parse(`${agendamento.ocupacao_fim_local}Z`)
+      : inicio + Number(agendamento.duracao_minutos || 0) * 60000;
+    if (!Number.isFinite(inicio) || !Number.isFinite(fim) || fim <= inicio) continue;
+
+    for (const [hora] of slots) {
+      const instante = Date.parse(`${data}T${hora}:00Z`);
+      if (instante >= inicio && instante < fim) {
+        slots.set(hora, { hora, status: "ocupado" });
+      }
+    }
+  }
+}
+
+function projetarAgendamentoNoDia(agendamento, data) {
+  const hora = normalizarHorario(agendamento?.hora);
+  if (!agendamento?.data || !hora) return null;
+  if (String(agendamento.data) === data) return { ...agendamento, hora };
+  if (!agendamento.agendamento_id || !STATUS_ATIVOS.has(agendamento.status)
+    || String(agendamento.data) >= data) return null;
+  const inicio = Date.parse(`${agendamento.data}T${hora}:00Z`);
+  const fim = agendamento.ocupacao_fim_local
+    ? Date.parse(`${agendamento.ocupacao_fim_local}Z`)
+    : inicio + Number(agendamento.duracao_minutos || 0) * 60000;
+  if (!(fim > Date.parse(`${data}T00:00:00Z`))) return null;
+  return {
+    ...agendamento,
+    data,
+    hora: "00:00",
+    continuacao: true,
+    data_agendamento: agendamento.data,
+    hora_agendamento: hora,
+  };
+}
+
+function dadosContinuidade(agendamento) {
+  return agendamento.continuacao ? {
+    continuacao: true,
+    data_agendamento: agendamento.data_agendamento,
+    hora_agendamento: agendamento.hora_agendamento,
+  } : {};
+}
+
 function podeCancelarAgendamentoOperacional(agendamento) {
   const status = String(
     agendamento?.status || ""
@@ -78,6 +127,7 @@ function criarSlotDeAgendamento(agendamento) {
     servico: agendamento.servico || null,
     valor: agendamento.valor ?? null,
     duracao_minutos: agendamento.duracao_minutos || null,
+    ...dadosContinuidade(agendamento),
     pode_cancelar: podeCancelarAgendamentoOperacional(agendamento),
     pode_reagendar: Boolean(agendamento.pode_reagendar),
     pode_iniciar_atendimento: Boolean(agendamento.pode_iniciar_atendimento),
@@ -87,22 +137,13 @@ function criarSlotDeAgendamento(agendamento) {
 }
 
 function materializarAgendaProfissional(agenda, agendamentos) {
-  const agendamentosPorData = new Map();
-
-  for (const agendamento of agendamentos || []) {
-    const data = String(agendamento?.data || "");
-    const hora = normalizarHorario(agendamento?.hora);
-    if (!data || !hora) continue;
-
-    const itens = agendamentosPorData.get(data) || [];
-    itens.push({ ...agendamento, hora });
-    agendamentosPorData.set(data, itens);
-  }
-
   return (agenda || []).map((dia) => {
     const slots = criarSlotsBaseConfiaveis(dia.horarios);
+    ocuparIntervalos(slots, dia.data, agendamentos);
 
-    for (const agendamento of agendamentosPorData.get(dia.data) || []) {
+    for (const item of agendamentos || []) {
+      const agendamento = projetarAgendamentoNoDia(item, dia.data);
+      if (!agendamento) continue;
       const slotExistente = slots.get(agendamento.hora) || {};
       slots.set(agendamento.hora, {
         ...slotExistente,
@@ -124,20 +165,17 @@ function criarChaveProfissionalData(profissionalId, data) {
 }
 
 function materializarAgendaGeral(agenda, agendamentos, bloqueios) {
-  const agendamentosPorProfissionalData = new Map();
+  const agendamentosPorProfissional = new Map();
   const bloqueiosPorProfissionalData = new Map();
 
   for (const agendamento of agendamentos || []) {
     const hora = normalizarHorario(agendamento?.hora);
     if (!agendamento?.profissional_id || !agendamento?.data || !hora) continue;
 
-    const chave = criarChaveProfissionalData(
-      agendamento.profissional_id,
-      agendamento.data
-    );
-    const itens = agendamentosPorProfissionalData.get(chave) || [];
+    const chave = String(agendamento.profissional_id);
+    const itens = agendamentosPorProfissional.get(chave) || [];
     itens.push({ ...agendamento, hora });
-    agendamentosPorProfissionalData.set(chave, itens);
+    agendamentosPorProfissional.set(chave, itens);
   }
 
   for (const bloqueio of bloqueios || []) {
@@ -157,9 +195,9 @@ function materializarAgendaGeral(agenda, agendamentos, bloqueios) {
     ...dia,
     profissionais: (dia.profissionais || []).map((profissional) => {
       const chave = criarChaveProfissionalData(profissional.id, dia.data);
-      const slots = criarSlotsBaseConfiaveis(profissional.horarios);
+      const slots = criarSlotsBaseConfiaveis(profissional.ativo === false ? [] : profissional.horarios);
 
-      for (const bloqueio of bloqueiosPorProfissionalData.get(chave) || []) {
+      for (const bloqueio of profissional.ativo === false ? [] : bloqueiosPorProfissionalData.get(chave) || []) {
         if (!slots.has(bloqueio.hora)) {
           slots.set(bloqueio.hora, {
             hora: bloqueio.hora,
@@ -170,7 +208,13 @@ function materializarAgendaGeral(agenda, agendamentos, bloqueios) {
         }
       }
 
-      for (const agendamento of agendamentosPorProfissionalData.get(chave) || []) {
+      const reservas = agendamentosPorProfissional.get(String(profissional.id)) || [];
+      ocuparIntervalos(slots, dia.data, reservas);
+
+      for (const item of reservas) {
+        const agendamento = projetarAgendamentoNoDia(item, dia.data);
+        if (!agendamento) continue;
+        if (profissional.ativo === false && !agendamento.agendamento_id) continue;
         const slotExistente = slots.get(agendamento.hora) || {};
         slots.set(agendamento.hora, {
           ...slotExistente,
@@ -181,6 +225,8 @@ function materializarAgendaGeral(agenda, agendamentos, bloqueios) {
           cliente: agendamento.cliente || null,
           servico_id: agendamento.servico_id || null,
           servico: agendamento.servico || null,
+          duracao_minutos: agendamento.duracao_minutos ?? null,
+          ...dadosContinuidade(agendamento),
           pode_cancelar: podeCancelarAgendamentoOperacional(agendamento),
           pode_reagendar: Boolean(agendamento.pode_reagendar),
           pode_iniciar_atendimento: Boolean(agendamento.pode_iniciar_atendimento),
@@ -244,8 +290,11 @@ async function listarAgendaProfissional({
   };
 }
 
-async function buscarAgendaGeral({ usuarioId }) {
-  const resultado = await agendaService.buscarAgendaGeral({ usuarioId });
+async function buscarAgendaGeral({ usuarioId, dataInicio }) {
+  const resultado = await agendaService.buscarAgendaGeral({
+    usuarioId,
+    ...(dataInicio !== undefined ? { dataInicio } : {}),
+  });
   const periodo = obterPeriodoAgenda(resultado?.agenda);
 
   if (!periodo) return resultado;

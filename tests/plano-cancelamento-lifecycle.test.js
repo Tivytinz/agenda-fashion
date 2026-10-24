@@ -45,6 +45,7 @@ const {
 describe("expiração do período pago - lifecycle", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    assinaturaRepository.bloquearNegocioSePeriodoVencido.mockResolvedValue({ id: 7 });
   });
 
   test("registra saída da base paga antes de reconciliar a equipe", async () => {
