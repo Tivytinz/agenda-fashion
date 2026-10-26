@@ -11,6 +11,8 @@ const {
 
 const {
   listarServicos,
+  consultarTentativaCriacao,
+  consultarTentativaFoto,
   criarServico,
   editarServico,
   alterarAtivoServico,
@@ -57,6 +59,9 @@ const {
  *           schema:
  *             type: object
  *             properties:
+ *               negocio_id:
+ *                 type: integer
+ *                 description: Alvo explícito, obrigatório quando Idempotency-Key é enviado; a propriedade é validada no backend.
  *               nome:
  *                 type: string
  *                 example: Alongamento de unhas
@@ -69,6 +74,34 @@ const {
  *     responses:
  *       201:
  *         description: Serviço criado com sucesso
+ */
+
+/**
+ * @swagger
+ * /servicos/tentativa:
+ *   get:
+ *     summary: Recupera uma tentativa de criação sem repetir a escrita
+ *     tags: [Serviços]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: negocio_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: header
+ *         name: Idempotency-Key
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Tentativa ausente ou cadastro canônico confirmado; ausência mantém a mesma chave no cliente.
+ *       403:
+ *         description: Conta, negócio ou vínculo de dona sem autorização ativa.
+ *       410:
+ *         description: O serviço confirmado por esta tentativa foi removido.
  */
 
 /**
@@ -111,6 +144,7 @@ const {
  */
 
 router.get("/", auth, listarServicos);
+router.get("/tentativa", auth, consultarTentativaCriacao);
 router.post("/", auth, criarServico);
 router.put("/:id", auth, editarServico);
 router.patch("/:id/ativo", auth, alterarAtivoServico);
@@ -124,6 +158,32 @@ router.post(
 );
 
 router.get("/:id/fotos", auth, listarFotosServico);
+/**
+ * @swagger
+ * /servicos/{id}/fotos/tentativa:
+ *   get:
+ *     summary: Consulta o resultado de um upload sem reenviar o arquivo
+ *     tags: [Serviços]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: header
+ *         name: Idempotency-Key
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Foto confirmada ou tentativa ainda não encontrada; ausência preserva a chave.
+ *       410:
+ *         description: Foto removida, sem recriação pela tentativa anterior.
+ */
+router.get("/:id/fotos/tentativa", auth, consultarTentativaFoto);
 
 router.post(
   "/:id/fotos",

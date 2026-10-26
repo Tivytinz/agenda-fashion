@@ -349,6 +349,11 @@ close-account
 
 Isso evita criar vários booleans e permite adaptar textos/disabled por operação.
 
+Na conta, uma ref também impede duas escritas antes da próxima renderização.
+Todos os campos de edição ficam desabilitados durante a operação ativa; as
+respostas depois da saída são descartadas. O refresh auxiliar da sessão é
+silencioso e não transforma perfil, foto ou preferência já salvos em falha.
+
 Use esse padrão quando:
 
 - as operações são mutuamente exclusivas;
@@ -813,6 +818,14 @@ mídia e a seleção de arquivos ficam desabilitadas. A escolha de uma foto da
 galeria só substitui a capa e libera o arquivo previamente selecionado depois
 da confirmação da API; uma falha preserva essa seleção e seu guard de saída.
 
+Se a escolha de capa ou remoção tem resultado incerto (ou foto não encontrada),
+o editor protege novas escritas e oferece `Verificar fotos`. A conferência lê
+serviço e galeria por GET e aplica somente os campos de mídia, preservando o
+rascunho de texto, preço e duração. Falha de leitura mantém a proteção. O arquivo
+de capa pendente só é descartado quando a leitura confirma a escolha solicitada.
+Sair cancela essas leituras e invalida sua continuação. O botão de conferência
+não exige a validação dos campos do formulário, pois não grava esses dados.
+
 Sair ou trocar de serviço invalida as continuações assíncronas do editor.
 Uma resposta antiga não muda o rascunho, a fila de fotos, os estados ocupados
 nem a navegação da tela atual. Depois de sair durante um upload, sua resposta
@@ -990,6 +1003,17 @@ por e-mail.
 
 ## 44. BusinessPage
 
+Na criação, o POST recebe `Idempotency-Key` por tentativa e a referência técnica
+por conta fica no fragmento `cadastro-negocio`, sem os dados do formulário.
+Resultado incerto mantém o rascunho protegido e oferece `Verificar negócio`,
+somente `GET /criar-negocio/tentativa`. Falha na leitura permite repetir apenas
+a consulta. Reload e retorno do login restauram a referência e revalidam a conta;
+referência de outra conta é ignorada. Ausência permite corrigir dados mantendo a
+mesma chave contra POST tardio. Tentativa arquivada/removida oferece saída sem
+outro POST. Sucesso adota o negócio canônico na sessão e segue ao primeiro serviço,
+com a intenção de plano, sem depender do refresh auxiliar. A leitura é cancelada
+na saída e não pode adotar sessão ou navegar depois do descarte.
+
 É o principal exemplo de formulário complexo atual.
 
 Combina:
@@ -1017,8 +1041,12 @@ Salvamento dos dados, upload de foto, publicação/despublicação e encerrament
 compartilham um lock síncrono. Enquanto uma mutação estiver pendente, os controles
 das demais ficam desabilitados e seus handlers também recusam ações concorrentes.
 Isso impede uma resposta de salvamento ou foto de sobrescrever na tela o estado
-de publicação confirmado por uma ação posterior. Falhas liberam os controles e
-preservam o rascunho e as pendências retornadas pela API.
+de publicação confirmado por uma ação posterior. Falhas preservam o rascunho e
+as pendências retornadas pela API. Conflito de contexto protege as mutações até
+`Atualizar Meu negócio` concluir um GET canônico; falha dessa leitura mantém a
+proteção. O header `X-AF-Negocio` vem do negócio carregado, não do contexto
+principal que possa ter mudado durante a edição. Uma resposta com outro ID não
+é adotada como novo baseline.
 
 O contexto da página é invalidado ao sair ou mudar entre criação e edição. Uma
 resposta antiga não altera a interface, não adota negócio na sessão, não inicia
@@ -1090,6 +1118,77 @@ Ainda assim:
 - não aceitar limite enviado de volta pelo frontend como autoridade.
 
 Após ativar/desativar, a página atualiza a lista usando o resultado da API.
+
+Se a alteração ou remoção tiver resultado incerto, a página bloqueia novas
+escritas e oferece `Atualizar serviços`. A recuperação executa GET e pode ser
+repetida após erro de leitura, sem reenviar DELETE. Recusa definitiva como
+conflito com histórico permanece no diálogo, com orientação acionável.
+
+Na criação, o editor envia `Idempotency-Key` e `negocio_id` explícito, e conserva o mesmo payload e a
+mesma chave enquanto não souber o resultado. Os campos ficam protegidos e
+`Verificar cadastro` repete essa tentativa. A migration 121 registra a tentativa
+no mesmo commit do serviço e de sua habilitação, com escopo por negócio e conta
+dona e hash dos dados normalizados. Replay retorna o serviço canônico e a
+publicação persistida sem consumir outra vaga ou desfazer ocultação manual.
+Não existe adoção de cadastro pela coincidência de nome. Payload diferente com
+a mesma chave é conflito; serviço removido retorna 410 sem recriação. Conflitos
+definitivos permitem corrigir os dados e iniciar nova tentativa. Divergência de
+payload de uma tentativa já gravada exige recuperar o cadastro canônico.
+Clientes sem header mantêm o contrato legado; nome ativo duplicado retorna 409
+acionável. Criação com chave exige alvo explícito para não redirecionar uma
+tentativa antiga ao novo negócio da mesma conta.
+
+Antes do POST, o editor conserva no fragmento `cadastro-servico` somente a
+referência técnica da tentativa, com escopo de conta e negócio, sem formulário,
+fotos ou perfil. O fragmento sobrevive a reloads sem depender de storage e não
+é enviado no HTTP do documento ou no Referer. Ele não é uma capability.
+Na restauração, `GET /servicos/tentativa?negocio_id=...` recebe a chave pelo
+header e revalida a dona ativa. Sucesso recupera o cadastro atual e continua a
+jornada; falha de leitura mantém o editor protegido e oferece só GET. Serviço
+removido oferece volta ao catálogo sem recriação. A resposta usa `no-store`.
+Referência de outra conta ou negócio não é reutilizada.
+O retorno pelo login conserva também o fragmento de navegação. Uma expiração
+da sessão não transforma a restauração em um formulário vazio; a referência
+continua sujeita à conferência da conta e do negócio após autenticar.
+
+Ausência na consulta não prova que um POST anterior nunca chegará. O editor
+permite preencher novamente, mas mantém a mesma chave. Se o POST antigo concluir
+com outros dados, o conflito leva à leitura canônica em vez de outra criação.
+Leituras após saída ou troca de contexto são descartadas. O fragmento é retirado
+na navegação de sucesso ou no descarte de uma tentativa com erro definitivo.
+
+A criação revalida e bloqueia conta, negócio e vínculo dentro da mesma transação
+da tentativa e do serviço. Na criação ativa, a ordem é conta (`FOR NO KEY
+UPDATE`), advisory de capacidade e negócio/vínculo. O advisory antecede o
+negócio, como na edição que reativa e na reativação do catálogo, evitando espera
+circular entre esses caminhos. Arquivamento continua começando pela conta. Isso
+também protege serviços inativos e clientes sem header: uma autorização lida
+antes do arquivamento não permite gravar depois dele.
+
+Na galeria, cada arquivo selecionado recebe uma `Idempotency-Key` conservada
+durante a tentativa. Desde a migration 122, recibo e foto são persistidos no
+mesmo commit, com escopo de conta, negócio e serviço e hash do arquivo. Replay
+retorna a foto canônica, conteúdo diferente é conflito e foto removida retorna
+410 sem recriação. Clientes sem chave mantêm o contrato legado.
+
+Upload com resposta incerta protege os controles e oferece `Verificar fotos`.
+Essa ação faz apenas `GET /servicos/:id/fotos/tentativa`, com chave no header e
+resposta `no-store`, sem PUT do serviço ou novo upload. Confirmação retira o
+arquivo dos pendentes e adota a foto; ausência mantém a chave para o próximo
+envio, pois um pedido antigo ainda pode chegar. Foto removida sai da seleção
+com orientação; falha de leitura mantém a proteção. Sair invalida a continuação.
+
+HTTP com o provedor fica fora das transações. Envios simultâneos podem concluir
+transferências externas distintas, mas confirmam uma única foto no banco e
+limpam o asset excedente. Falha antes de preparar o commit limpa o asset sem uso.
+Confirmação de COMMIT perdida exige conferir o recibo antes de remover a imagem;
+se essa leitura também falhar, a imagem é preservada para recuperação posterior.
+
+Escolher capa e remover foto usam transação com revalidação da dona e da foto.
+O lock da conta precede serviço, negócio/vínculo e foto; o serviço vem antes do
+negócio como nas operações de edição/ativação. Assim, uma remoção que conclui
+antes da escolha impede adotá-la, e uma remoção posterior também limpa a capa.
+Limpeza no provedor fica fora da transação.
 
 ## 48. Checkout: idempotência
 
@@ -1256,6 +1355,11 @@ Use quando várias partes derivadas precisam ser reconciliadas.
 Use quando shell/roteamento/contexto de sessão depende da alteração.
 
 Uma mutação pode combinar essas estratégias.
+
+No encerramento do negócio, a resposta confirmada é aplicada por
+`adoptArchivedBusiness`, removendo apenas o vínculo correspondente do contexto
+local e invalidando leituras antigas. A navegação de sucesso não espera o refresh
+silencioso; uma falha de sincronização não autoriza repetir o arquivamento.
 
 Não usar reload de página como mecanismo padrão de sincronização.
 

@@ -1,6 +1,37 @@
 const db = require(
   "../db/db"
 );
+const criacaoTentativas = require("./negocioCriacaoTentativaRepository");
+
+async function bloquearContaCriacao(usuarioId, client) {
+  const result = await client.query(`
+    SELECT id, ativo FROM usuarios WHERE id = $1 FOR NO KEY UPDATE
+  `, [usuarioId]);
+  const usuario = result.rows[0];
+  if (!usuario || usuario.ativo === false) {
+    throw Object.assign(new Error(usuario ? "Conta desativada." : "Usuário não encontrado."), {
+      code: usuario ? "USUARIO_INATIVO" : "USUARIO_NAO_ENCONTRADO",
+    });
+  }
+}
+
+async function recuperarCriacao(usuarioId, tentativa, client) {
+  const atual = await buscarNegocioDoDono(usuarioId, client);
+  if (!atual || Number(atual.id) !== Number(tentativa.negocio_id)) {
+    throw Object.assign(new Error("O negócio desta tentativa foi arquivado ou removido. Volte ao início para continuar."), {
+      statusCode: 410, codigo: "NEGOCIO_TENTATIVA_ENCERRADA",
+    });
+  }
+  return { negocio: atual };
+}
+
+async function consultarTentativaCriacao(usuarioId, chave) {
+  return db.executarTransacao(async client => {
+    await bloquearContaCriacao(usuarioId, client);
+    const tentativa = await criacaoTentativas.buscar(usuarioId, chave, client);
+    return tentativa ? recuperarCriacao(usuarioId, tentativa, client) : null;
+  });
+}
 
 function normalizarId(
   valor
@@ -482,6 +513,7 @@ async function criarDisponibilidadePadrao(
 async function criarNegocioComDono({
   usuarioId,
   negocio,
+  tentativa,
 }) {
   const idUsuario =
     normalizarId(
@@ -498,52 +530,17 @@ async function criarNegocioComDono({
     async (
       client
     ) => {
-      const usuarioResultado =
-        await client.query(
-          `
-          SELECT
-            id,
-            ativo
-
-          FROM usuarios
-
-          WHERE id = $1
-
-          FOR UPDATE
-          `,
-          [
-            idUsuario,
-          ]
-        );
-
-      const usuario =
-        usuarioResultado
-          .rows[0];
-
-      if (!usuario) {
-        const erro =
-          new Error(
-            "Usuário não encontrado."
-          );
-
-        erro.code =
-          "USUARIO_NAO_ENCONTRADO";
-
-        throw erro;
-      }
-
-      if (
-        usuario.ativo === false
-      ) {
-        const erro =
-          new Error(
-            "Conta desativada."
-          );
-
-        erro.code =
-          "USUARIO_INATIVO";
-
-        throw erro;
+      await bloquearContaCriacao(idUsuario, client);
+      if (tentativa) {
+        const anterior = await criacaoTentativas.buscar(idUsuario, tentativa.chaveIdempotencia, client);
+        if (anterior) {
+          if (anterior.request_hash !== tentativa.requestHash) {
+            throw Object.assign(new Error("Esta tentativa já foi usada com outros dados. Verifique o negócio para continuar."), {
+              statusCode: 409, codigo: "NEGOCIO_TENTATIVA_DIVERGENTE",
+            });
+          }
+          return recuperarCriacao(idUsuario, anterior, client);
+        }
       }
 
       const negocioExistente =
@@ -610,6 +607,10 @@ async function criarNegocioComDono({
         client
       );
 
+      if (tentativa) await criacaoTentativas.concluir({
+        ...tentativa, usuarioId: idUsuario, negocioId: negocioCriado.id,
+      }, client);
+
       return {
         negocio: {
           ...negocioCriado,
@@ -638,4 +639,5 @@ module.exports = {
   criarVinculoDono,
   criarDisponibilidadePadrao,
   criarNegocioComDono,
+  consultarTentativaCriacao,
 };

@@ -12,7 +12,8 @@ vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 vi.mock("../analytics/track", () => ({ track: vi.fn() }));
 vi.mock("../auth/SessionContext", () => ({
   useSession: () => ({
-    usuario: { whatsapp: "11999999999" },
+    usuario: { id: 4, whatsapp: "11999999999" },
+    negocio: { id: 11, papel: "dono" },
     refresh: vi.fn().mockResolvedValue({}),
     adoptCreatedBusiness: vi.fn().mockReturnValue(true)
   })

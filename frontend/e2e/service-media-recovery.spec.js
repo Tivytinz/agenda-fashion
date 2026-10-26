@@ -100,6 +100,9 @@ test('falha ao escolher capa preserva o arquivo pendente e permite salvá-lo', a
   const dialog = page.getByRole('dialog', { name: 'Sair sem salvar?' });
   await expect(dialog).toBeVisible();
   await dialog.getByRole('button', { name: 'Continuar editando' }).click();
+  await page.getByRole('button', { name: 'Verificar fotos' }).click();
+  await expect(page.getByText('Fotos conferidas. Você pode continuar editando.')).toBeVisible();
+  await expect(page.getByAltText('Prévia da nova capa')).toBeVisible();
   await page.getByRole('button', { name: 'Salvar serviço' }).click();
   await expect(page).toHaveURL(/\/painel\/servicos$/);
   expect(uploaded).toBe('pendente.png');
@@ -136,6 +139,31 @@ test('um salvamento antigo não tira a dona do novo editor nem altera seu rascun
   await expect(page).toHaveURL(/\/painel\/servicos$/);
   expect(writes.map(write => write.id)).toEqual([12, 34]);
   expect(writes[1].body.nome).toBe('Pedicure corrigida');
+});
+
+test('remoção confirmada com resposta perdida é reconciliada só por GET sem perder texto', async ({ page }) => {
+  await setup(page);
+  let deleted = false;
+  const writes = [];
+  await page.route('**/servicos/fotos/31', route => {
+    writes.push(route.request().method()); deleted = true; return route.abort('failed');
+  });
+  await page.route('**/servicos', route => route.request().isNavigationRequest()
+    ? route.continue()
+    : json(route, { servicos: [deleted ? { ...SERVICE, foto_url: null, foto_public_id: null } : SERVICE, OTHER] }));
+  await page.route('**/servicos/12/fotos', route => json(route, deleted ? PHOTOS.filter(item => item.id !== 31) : PHOTOS));
+  await page.goto('/painel/servicos/12/editar');
+  await expect(page.getByText('Capa atual', { exact: true })).toBeVisible();
+  await page.getByLabel('Nome do serviço').fill('Manicure revisada');
+  await page.getByRole('button', { name: 'Remover foto da galeria' }).first().click();
+  await expect(page.getByRole('button', { name: 'Verificar fotos' })).toBeVisible();
+  await expect(page.getByLabel('Nome do serviço')).toBeDisabled();
+  await page.getByRole('button', { name: 'Verificar fotos' }).click();
+  await expect(page.getByText('Fotos conferidas. Você pode continuar editando.')).toBeVisible();
+  await expect(page.getByLabel('Nome do serviço')).toHaveValue('Manicure revisada');
+  await expect(page.getByRole('button', { name: 'Remover foto da galeria' })).toHaveCount(2);
+  await expect(page.getByText('Capa atual', { exact: true })).toHaveCount(0);
+  expect(writes).toEqual(['DELETE']);
 });
 
 test('ações de remover e adicionar foto têm área de toque de pelo menos 44px e o catálogo cabe na tela', async ({ page }) => {

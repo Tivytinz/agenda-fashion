@@ -89,6 +89,7 @@ async function criarNegocio(
       await negocioCriacaoService.criar({
         usuarioId:
           req.user?.id,
+        chaveIdempotencia: req.get("Idempotency-Key"),
 
         ...obterDadosCriacao(
           req
@@ -101,6 +102,15 @@ async function criarNegocio(
   } catch (erro) {
     return next(erro);
   }
+}
+
+async function consultarTentativaCriacao(req, res, next) {
+  res.set("Cache-Control", "no-store");
+  try {
+    return res.json(await negocioService.consultarTentativaCriacao({
+      usuarioId: req.user?.id, chaveIdempotencia: req.get("Idempotency-Key"),
+    }));
+  } catch (error) { return next(error); }
 }
 
 /*
@@ -192,6 +202,7 @@ async function entrarNoNegocio(
 
 module.exports = {
   criarNegocio,
+  consultarTentativaCriacao,
   buscarMeuNegocio,
   buscarNegocios,
   entrarNoNegocio,

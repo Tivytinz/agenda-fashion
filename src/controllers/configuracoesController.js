@@ -42,6 +42,8 @@ async function salvarConfiguracoes(
           usuarioId:
             req.user?.id,
 
+          negocioId: req.get("X-AF-Negocio") ?? dados.negocio_id ?? dados.id,
+
           dados,
         });
 
@@ -64,6 +66,8 @@ async function alterarPublicacao(
         .alterarPublicacao({
           usuarioId:
             req.user?.id,
+
+          negocioId: req.get("X-AF-Negocio") ?? req.body?.negocio_id,
 
           publicado:
             req.body?.publicado,
@@ -88,6 +92,8 @@ async function enviarFotoNegocio(
         .enviarFotoNegocio({
           usuarioId:
             req.user?.id,
+
+          negocioId: req.get("X-AF-Negocio"),
 
           arquivo:
             req.file,

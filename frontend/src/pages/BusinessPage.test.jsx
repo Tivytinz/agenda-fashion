@@ -296,6 +296,7 @@ describe("publicação do negócio", () => {
       .toBeNull();
     expect(apiRequest).toHaveBeenCalledWith("/criar-negocio", {
       method: "POST",
+      headers: { "Idempotency-Key": expect.stringMatching(/^negocio-/) },
       body: expect.objectContaining({
         nome: "Studio Victor",
         descricao: "Beleza e cuidados pessoais.",
@@ -392,6 +393,7 @@ describe("publicação do negócio", () => {
     await waitFor(() => {
       expect(apiRequest).toHaveBeenLastCalledWith("/configuracoes", {
         method: "PUT",
+        headers: { "X-AF-Negocio": String(BUSINESS.id) },
         body: expect.objectContaining({
           whatsapp: "11987654321",
           nome: "Beauty Vanessa",
@@ -603,6 +605,7 @@ describe("publicação do negócio", () => {
     await waitFor(() => {
       expect(apiRequest).toHaveBeenLastCalledWith("/configuracoes/foto", {
         method: "POST",
+        headers: { "X-AF-Negocio": String(BUSINESS.id) },
         body: expect.any(FormData)
       });
     });
@@ -638,6 +641,7 @@ describe("publicação do negócio", () => {
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith("/configuracoes/publicacao", {
         method: "PATCH",
+        headers: { "X-AF-Negocio": String(BUSINESS.id) },
         body: { publicado: true }
       });
     });
@@ -699,6 +703,7 @@ describe("publicação do negócio", () => {
         "/configuracoes/publicacao",
         {
           method: "PATCH",
+        headers: { "X-AF-Negocio": String(BUSINESS.id) },
           body: { publicado: false }
         }
       );
@@ -728,6 +733,7 @@ describe("publicação do negócio", () => {
         "/configuracoes/publicacao",
         {
           method: "PATCH",
+        headers: { "X-AF-Negocio": String(BUSINESS.id) },
           body: { publicado: true }
         }
       );
@@ -791,7 +797,7 @@ describe("publicação do negócio", () => {
     await waitFor(() => {
       expect(apiRequest).toHaveBeenLastCalledWith(
         "/negocio/encerrar",
-        { method: "POST" }
+        { method: "POST", body: { negocio_id: BUSINESS.id } }
       );
     });
 

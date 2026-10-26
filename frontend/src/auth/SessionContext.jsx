@@ -297,6 +297,25 @@ export function SessionProvider({ children }) {
     return true;
   }, [beginSessionTransition]);
 
+  const adoptArchivedBusiness = useCallback((business) => {
+    const businessId = Number(business?.id);
+    if (!Number.isInteger(businessId) || businessId <= 0 || !hasSession()) return false;
+    beginSessionTransition();
+    setState((current) => {
+      if (!current.authenticated) return current;
+      const remainingLinks = current.vinculos.filter((link) => Number(link?.id) !== businessId);
+      return {
+        ...current,
+        loading: false,
+        vinculos: remainingLinks,
+        negocioPrincipal: Number(current.negocioPrincipal?.id) === businessId
+          ? remainingLinks[0] || null : current.negocioPrincipal,
+        temNegocio: remainingLinks.length > 0,
+      };
+    });
+    return true;
+  }, [beginSessionTransition]);
+
   const logout = useCallback(async () => {
     beginSessionTransition();
     clearSession();
@@ -329,6 +348,7 @@ export function SessionProvider({ children }) {
     register,
     loginWithGoogle,
     adoptCreatedBusiness,
+    adoptArchivedBusiness,
     logout
   }), [
     routeSession,
@@ -337,6 +357,7 @@ export function SessionProvider({ children }) {
     register,
     loginWithGoogle,
     adoptCreatedBusiness,
+    adoptArchivedBusiness,
     logout
   ]);
 

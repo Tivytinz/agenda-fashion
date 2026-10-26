@@ -93,6 +93,77 @@ Continuar editando, Escape e mudanças apenas de state/hash não invalidam a
 operação. Se concluir o salvamento liberar uma saída já solicitada, a continuação
 antiga não pode iniciar uploads, refresh ou outra navegação.
 
+A criação de serviço usa `Idempotency-Key` por tentativa no editor. Desde a
+migration 121, a identificação, o hash dos dados normalizados e o vínculo com o
+serviço são persistidos atomicamente em `servico_criacao_tentativas`, com escopo
+de negócio e conta dona. Repetição autorizada recupera o serviço atual antes de
+validar nova capacidade; não infere identidade pelo nome, desfaz edição posterior
+ou republica perfil ocultado. Uma tentativa concluída cujo serviço foi removido
+não cria outro cadastro. Clientes legados sem header continuam compatíveis;
+unicidade do nome de serviço ativo retorna conflito acionável, sem erro 500.
+Enquanto o resultado da criação for incerto, o editor preserva a mesma chave e
+os mesmos dados e oferece verificação antes de liberar outra edição.
+A referência técnica da tentativa, com escopo de conta e negócio, fica no
+fragmento navegável, sem dados do formulário nem dependência de storage.
+Depois de reload, uma consulta autorizada recupera o serviço atual; ausência
+mantém a mesma chave para proteger contra POST ainda em trânsito. Referência
+não autoriza acesso. Criação com chave exige `negocio_id` explícito. Conta,
+negócio e vínculo são revalidados e bloqueados na transação da escrita. Na criação
+ativa, a ordem é conta → trava de capacidade → negócio/vínculo, compatível com
+edição e reativação, que também adquirem capacidade antes de escrever no negócio.
+Repetir a aquisição já protegida não muda essa ordem. O lock da
+conta é `FOR NO KEY UPDATE`, compatível com as FKs e com o arquivamento.
+O retorno autenticado preserva pathname, query e fragmento, permitindo recuperar
+a tentativa após expiração da sessão; a conta e o negócio continuam revalidados.
+
+No catálogo, remoção ou alteração de visibilidade com resultado incerto exige
+nova leitura antes de outra escrita. Atualizar serviços executa somente GET,
+inclusive após falha de leitura; isso não reenvia a remoção. Na conta, os campos
+e as gravações são protegidos pela mesma operação em andamento, preservando
+rascunhos e descartando respostas após saída. Atualização auxiliar da sessão não
+transforma um salvamento confirmado em falha. Arquivamento confirmado retira o
+negócio do contexto local e preserva outros vínculos e a conta autenticada;
+sincronização da sessão é auxiliar, sem repetir o encerramento.
+O encerramento exige o ID do negócio carregado na tela e valida a propriedade
+persistida. Repetição do mesmo alvo arquivado pela dona retorna o estado terminal
+sem alterar outro negócio criado depois; pedido sem alvo falha antes da escrita.
+Resposta principal incerta protege as demais edições e oferece verificação
+somente desse alvo.
+As escritas de perfil, publicação e foto também exigem o negócio carregado na
+tela, por `X-AF-Negocio` (o perfil aceita seu ID explícito por compatibilidade).
+O backend valida o alvo e revalida a dona ativa na transação; uma aba antiga não
+pode escrever no novo negócio da conta. Conflito de contexto protege o rascunho
+e oferece atualização por GET antes de outra escrita.
+
+A criação do negócio usa `Idempotency-Key` por conta. A migration 123 confirma
+negócio, vínculo, agenda padrão e recibo na mesma transação. A referência técnica
+`cadastro-negocio` no fragmento permite recuperar por GET após perda da resposta,
+reload ou autenticação, sem dados do formulário. `Verificar negócio` consulta
+somente a tentativa; ausência mantém a chave contra POST tardio. Divergência de
+dados exige leitura, e tentativa de negócio arquivado/removido não adota o
+sucessor nem cria outro. O resultado atual confirma a sessão local e continua
+no primeiro serviço com a intenção de plano preservada.
+
+Gravação de perfil não escreve `foto_url` nem `foto_public_id`. Trocar foto do
+negócio confere a persistência quando a confirmação do COMMIT se perde, e só
+limpa assets comprovadamente sem referência. Falha de leitura preserva a imagem.
+
+O upload atual da galeria usa `Idempotency-Key` por arquivo. A migration 122
+persiste recibo e foto no mesmo commit, com escopo de conta, negócio e serviço
+e hash do arquivo. Resultado incerto oferece `Verificar fotos`, somente por GET,
+sem repetir os dados do serviço ou reenviar arquivos. Ausência mantém a mesma
+chave; foto removida não é recriada. HTTP com o provedor fica fora das transações.
+Finalizações concorrentes confirmam uma foto e limpam o asset excedente. Falha
+ao confirmar COMMIT exige leitura antes da limpeza, preservando a imagem quando
+essa conferência estiver indisponível.
+
+Escolha de capa e remoção da galeria validam dona e alvo dentro da transação,
+com locks na ordem conta → serviço → negócio/vínculo → foto. O serviço precede
+o negócio como na edição/ativação; HTTP de limpeza continua após o commit.
+Resultado incerto dessas ações protege a mídia e oferece `Verificar fotos`,
+somente GET de serviço e galeria. A reconciliação preserva os demais rascunhos;
+falha de leitura mantém a proteção e sair cancela a consulta.
+
 ## Integração contínua e merge
 
 Pull requests não draft direcionados à `main` devem habilitar auto-merge por squash automaticamente. Os gates obrigatórios de CI e as regras de proteção da branch continuam sendo a condição de integração: o PR só entra na `main` depois de satisfazê-los. Falha ou cancelamento de check não deve ser contornado por merge forçado.

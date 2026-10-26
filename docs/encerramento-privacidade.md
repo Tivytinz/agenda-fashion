@@ -7,9 +7,18 @@ privacidade e encerramento da baseline v1.16.
 
 ## Negócio ARQUIVADO
 
-O encerramento voluntário é feito pela proprietária autenticada. O backend
-resolve o negócio pelo vínculo persistido da conta; nenhum identificador de
-negócio enviado pelo navegador é usado como autorização.
+O encerramento voluntário é feito pela proprietária autenticada.
+`POST /negocio/encerrar` exige `{ negocio_id }`, correspondente ao negócio
+carregado em Meu negócio. O ID seleciona o alvo; o backend valida propriedade,
+conta, vínculo e estado persistidos dentro da transação. Pedido sem alvo válido
+retorna `400 NEGOCIO_ALVO_OBRIGATORIO`, inclusive para bundles antigos, sem
+escolher silenciosamente o negócio operacional atual.
+
+A conta é bloqueada antes do negócio e do vínculo. Uma repetição para um alvo
+já arquivado pela mesma dona devolve o arquivamento canônico sem reexecutar
+efeitos nem alterar timestamps. Essa leitura exige propriedade histórica e
+`arquivado_por` correspondente; a referência não concede acesso a outra conta.
+Criar outro negócio depois não muda o alvo da tentativa anterior.
 
 Antes do arquivamento, a mesma transação revalida:
 
@@ -43,6 +52,16 @@ Quando as condições são satisfeitas:
 - depois do arquivamento seguro, a mesma conta pode criar um novo negócio próprio
   operacional sem que o histórico antigo seja apagado;
 - não existe rota normal de reativação de negócio arquivado.
+
+Depois da resposta de arquivamento, o frontend retira o negócio do contexto
+local, conserva a identidade autenticada e outros vínculos, e conclui a
+navegação de sucesso. A atualização de sessão é silenciosa e auxiliar. Sua
+lentidão ou falha não deve reapresentar o encerramento como malsucedido nem
+oferecer a repetição do POST já confirmado. Leituras de sessão anteriores ao
+arquivamento são invalidadas para não restaurar o vínculo encerrado.
+Se a resposta principal for perdida, `Verificar encerramento` repete somente o
+mesmo alvo explícito. As demais edições ficam protegidas até confirmar o estado;
+pendências confirmadas permitem resolver o negócio ainda operacional.
 
 ## Conta profissional e proprietária
 

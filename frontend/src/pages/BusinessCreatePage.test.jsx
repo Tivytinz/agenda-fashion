@@ -86,9 +86,9 @@ describe("criação do negócio", () => {
 
         if (path === "/criar-negocio") {
           return Promise.reject(
-            new Error(
+            Object.assign(new Error(
               "Esta conta já possui um negócio."
-            )
+            ), { status: 409 })
           );
         }
 

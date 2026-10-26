@@ -1,5 +1,20 @@
 const servicosService = require("../services/servicosService");
 const servicoAtivacaoService = require("../services/servicoAtivacaoService");
+const servicoFotoUploadService = require("../services/servicoFotoUploadService");
+const { disableDocumentCache } = require("../utils/httpCache");
+
+async function consultarTentativaCriacao(req, res, next) {
+  disableDocumentCache(res);
+  try {
+    return res.json(await servicosService.consultarTentativaCriacao({
+      usuarioId: req.user?.id,
+      negocioId: req.query.negocio_id,
+      chaveIdempotencia: req.get("Idempotency-Key"),
+    }));
+  } catch (err) {
+    next(err);
+  }
+}
 
 async function listarServicos(req, res, next) {
   try {
@@ -15,12 +30,14 @@ async function criarServico(req, res, next) {
   try {
     const resultado = await servicosService.criarServico({
       usuarioId: req.user?.id,
+      negocioId: req.body.negocio_id,
       nome: req.body.nome,
       descricao: req.body.descricao,
       valor: req.body.valor,
       duracaoMinutos: req.body.duracao_minutos,
       categoria: req.body.categoria,
       ativo: req.body.ativo,
+      chaveIdempotencia: req.get("Idempotency-Key"),
     });
 
     return res.status(201).json(resultado);
@@ -104,16 +121,28 @@ async function listarFotosServico(req, res, next) {
 
 async function adicionarFotoGaleriaServico(req, res, next) {
   try {
-    const resultado = await servicosService.adicionarFotoGaleriaServico({
+    const adicionar = req.get("Idempotency-Key") == null
+      ? servicosService.adicionarFotoGaleriaServico : servicoFotoUploadService.adicionar;
+    const resultado = await adicionar({
       usuarioId: req.user?.id,
       id: req.params.id,
       file: req.file,
+      chaveIdempotencia: req.get("Idempotency-Key"),
     });
 
     return res.status(201).json(resultado);
   } catch (err) {
     next(err);
   }
+}
+
+async function consultarTentativaFoto(req, res, next) {
+  disableDocumentCache(res);
+  try {
+    return res.json(await servicoFotoUploadService.consultar({
+      usuarioId: req.user?.id, id: req.params.id, chaveIdempotencia: req.get("Idempotency-Key"),
+    }));
+  } catch (err) { next(err); }
 }
 
 async function definirFotoCapaServico(req, res, next) {
@@ -145,6 +174,8 @@ async function removerFotoGaleriaServico(req, res, next) {
 
 module.exports = {
   listarServicos,
+  consultarTentativaCriacao,
+  consultarTentativaFoto,
   criarServico,
   editarServico,
   alterarAtivoServico,

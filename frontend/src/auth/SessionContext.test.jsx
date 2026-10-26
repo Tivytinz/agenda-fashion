@@ -21,6 +21,10 @@ function SessionProbe() {
     <>
       <span>{session.authenticated ? session.usuario?.nome : "Desconectada"}</span>
       <span data-testid="session-loading">{session.loading ? "Carregando" : "Pronta"}</span>
+      <span data-testid="business-links">{session.vinculos.map((link) => link.id).join(",")}</span>
+      <span data-testid="business-principal">{session.negocioPrincipal?.id || "nenhum"}</span>
+      <span data-testid="has-business">{String(session.temNegocio)}</span>
+      <button type="button" onClick={() => session.adoptArchivedBusiness({ id: 9 })}>Adotar arquivamento</button>
       <button type="button" onClick={session.logout}>Sair</button>
       <button type="button" onClick={() => session.refresh().catch(() => {})}>
         Sincronizar
@@ -81,6 +85,48 @@ afterEach(() => {
 });
 
 describe("sincronização da sessão", () => {
+  it("arquivamento confirmado retira só o negócio encerrado e preserva a conta e outro vínculo", async () => {
+    const owner = { id: 9, papel: "dono" };
+    const professional = { id: 22, papel: "profissional" };
+    apiRequest.mockResolvedValue({ usuario: { id: 1, nome: "Ana" }, negocio: owner, vinculos: [owner, professional], temNegocio: true });
+    renderSession();
+    await screen.findByText("Ana");
+    fireEvent.click(screen.getByRole("button", { name: "Adotar arquivamento" }));
+    expect(screen.getByTestId("business-links").textContent).toBe("22");
+    expect(screen.getByTestId("business-principal").textContent).toBe("22");
+    expect(screen.getByTestId("has-business").textContent).toBe("true");
+    expect(screen.getByText("Ana")).not.toBeNull();
+  });
+
+  it("não restaura negócio arquivado por uma leitura anterior atrasada", async () => {
+    const owner = { id: 9, papel: "dono" };
+    const original = { usuario: { id: 1, nome: "Ana" }, negocio: owner, vinculos: [owner], temNegocio: true };
+    apiRequest.mockResolvedValueOnce(original);
+    renderSession();
+    await screen.findByText("Ana");
+    let resolve;
+    apiRequest.mockImplementationOnce(() => new Promise((yes) => { resolve = yes; }));
+    fireEvent.click(screen.getByRole("button", { name: "Sincronizar silenciosamente" }));
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(2));
+    const pendingSignal = apiRequest.mock.calls[1][1].signal;
+    fireEvent.click(screen.getByRole("button", { name: "Adotar arquivamento" }));
+    expect(pendingSignal.aborted).toBe(true);
+    await act(() => resolve(original));
+    expect(screen.getByTestId("business-links").textContent).toBe("");
+    expect(screen.getByTestId("has-business").textContent).toBe("false");
+    expect(screen.getByText("Ana")).not.toBeNull();
+    expect(localStorage.getItem("session_active")).toBe("1");
+  });
+
+  it("arquivamento não reabre uma sessão encerrada", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+    await screen.findByText("Desconectada");
+    fireEvent.click(screen.getByRole("button", { name: "Adotar arquivamento" }));
+    expect(screen.getByText("Desconectada")).not.toBeNull();
+    expect(screen.getByTestId("has-business").textContent).toBe("false");
+  });
   it("atualiza a interface imediatamente quando a API expira a sessão", async () => {
     renderSession();
 

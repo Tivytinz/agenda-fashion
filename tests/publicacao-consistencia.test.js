@@ -25,6 +25,7 @@ describe("consistência da publicação do negócio", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockQuery.mockResolvedValue({ rows: [] });
+    jest.spyOn(servicosRepository, "bloquearContextoDono").mockResolvedValue({ negocio_id: 11 });
   });
 
   test("salvar perfil sincroniza a publicação pela elegibilidade atual", async () => {
@@ -64,7 +65,7 @@ describe("consistência da publicação do negócio", () => {
       localizacao_url: null,
       whatsapp_negocio: "62999999999",
       areas: []
-    });
+    }, 7);
 
     const sqlAtualizacao = mockQuery.mock.calls[3][0];
     const sqlPublicacao = mockQuery.mock.calls[4][0];
@@ -74,11 +75,12 @@ describe("consistência da publicação do negócio", () => {
       compactarSql(sqlAtualizacao);
 
     expect(sqlCompacto).toContain(
-      "AREAS=COALESCE($15::TEXT[],ARRAY[]::TEXT[])"
+      "AREAS=COALESCE($14::TEXT[],ARRAY[]::TEXT[])"
     );
     expect(sqlPublicacao).toMatch(
       /despublicado_manual_em\s+IS\s+NOT\s+NULL[\s\S]*THEN FALSE/i
     );
+    expect(sqlAtualizacao).not.toMatch(/foto_url\s*=/i);
     expect(sqlPublicacao).toMatch(
       /ELSE\s+e\.pode_permanecer_publicado/i
     );
@@ -124,7 +126,7 @@ describe("consistência da publicação do negócio", () => {
         .atualizarPublicacao(
           11,
           true
-        );
+        , 7);
 
     const [sqlDesbloqueio, paramsDesbloqueio] =
       mockQuery.mock.calls[0];
@@ -163,7 +165,7 @@ describe("consistência da publicação do negócio", () => {
         .atualizarPublicacao(
           11,
           false
-        );
+        , 7);
 
     const [sql, params] =
       mockQuery.mock.calls[0];

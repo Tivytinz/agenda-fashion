@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { ServiceEditorPage } from "./ServicesPage";
 import { ScheduleSettingsPage } from "./ScheduleSettingsPage";
-const session = vi.hoisted(() => ({ refresh: vi.fn() }));
+const session = vi.hoisted(() => ({ refresh: vi.fn(), usuario: { id: 4 }, negocio: { id: 11, papel: "dono" } }));
 vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 vi.mock("../auth/SessionContext", () => ({ useSession: () => session }));
 vi.mock("../analytics/track", () => ({ track: vi.fn() }));

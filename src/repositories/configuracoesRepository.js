@@ -5,6 +5,16 @@ const servicosRepository = require(
   "./servicosRepository"
 );
 
+async function protegerEscritaDoAlvo(usuarioId, negocioId, client) {
+  const contexto = usuarioId && await servicosRepository.bloquearContextoDono(usuarioId, negocioId, client);
+  if (!contexto) {
+    const erro = new Error("O contexto do negócio mudou. Atualize Meu negócio antes de continuar.");
+    erro.statusCode = 409;
+    erro.codigo = "NEGOCIO_CONTEXTO_ALTERADO";
+    throw erro;
+  }
+}
+
 /*
  * Busca o vínculo do usuário com um negócio.
  *
@@ -145,10 +155,12 @@ async function buscarNegocioPorId(
 
 async function atualizarNegocio(
   negocioId,
-  dados
+  dados,
+  usuarioId
 ) {
   return db.executarTransacao(
     async (client) => {
+      await protegerEscritaDoAlvo(usuarioId, negocioId, client);
       await client.query(
         `
           SELECT pg_advisory_xact_lock(
@@ -240,25 +252,24 @@ async function atualizarNegocio(
        SET
   nome = $1::TEXT,
   slug = $2::TEXT,
-  foto_url = $3::TEXT,
-  descricao = $4::TEXT,
-  setor = $5::TEXT,
-  cidade = $6::TEXT,
-  estado = $7::TEXT,
-  bairro = $8::TEXT,
-  endereco = $9::TEXT,
-  numero = $10::TEXT,
-  complemento = $11::TEXT,
-  cep = $12::TEXT,
-  localizacao_url = $13::TEXT,
-  whatsapp = $14::TEXT,
+  descricao = $3::TEXT,
+  setor = $4::TEXT,
+  cidade = $5::TEXT,
+  estado = $6::TEXT,
+  bairro = $7::TEXT,
+  endereco = $8::TEXT,
+  numero = $9::TEXT,
+  complemento = $10::TEXT,
+  cep = $11::TEXT,
+  localizacao_url = $12::TEXT,
+  whatsapp = $13::TEXT,
   areas = COALESCE(
-    $15::TEXT[],
+    $14::TEXT[],
     ARRAY[]::TEXT[]
   ),
           updated_at = NOW()
 
-        WHERE id = $16
+        WHERE id = $15
 
         RETURNING
           id,
@@ -327,7 +338,6 @@ async function atualizarNegocio(
       [
         dados.nome,
         dados.slug,
-        dados.foto_url,
         dados.descricao,
         dados.setor,
         dados.cidade,
@@ -369,101 +379,42 @@ async function atualizarNegocio(
   );
 }
 
-async function atualizarPublicacao(
-  negocioId,
-  publicado
-) {
-  if (publicado === true) {
-    return db.executarTransacao(
-      async (client) => {
-        const desbloqueio =
-          await client.query(
-            `
-              UPDATE negocios
-              SET
-                despublicado_manual_em = NULL,
-                updated_at = NOW()
-              WHERE id = $1
-              RETURNING id
-            `,
-            [negocioId]
-          );
-
-        if (!desbloqueio.rows[0]) {
-          return null;
-        }
-
-        return servicosRepository
-          .sincronizarPublicacaoAutomatica(
-            negocioId,
-            client
-          );
-      }
-    );
-  }
-
-  const resultado =
-    await db.query(
-      `
-        UPDATE negocios
-
-        SET
-          publicado = FALSE,
-          despublicado_manual_em = NOW(),
-          updated_at = NOW()
-
-        WHERE id = $1
-
-        RETURNING
-          id,
-          publicado,
-          despublicado_manual_em
-      `,
-      [
-        negocioId,
-      ]
-    );
-
-  return (
-    resultado.rows[0] ||
-    null
-  );
+async function atualizarPublicacao(negocioId, publicado, usuarioId) {
+  return db.executarTransacao(async (client) => {
+    await protegerEscritaDoAlvo(usuarioId, negocioId, client);
+    if (publicado === true) {
+      const desbloqueio = await client.query(`
+        UPDATE negocios SET despublicado_manual_em = NULL, updated_at = NOW()
+        WHERE id = $1 RETURNING id
+      `, [negocioId]);
+      if (!desbloqueio.rows[0]) return null;
+      return servicosRepository.sincronizarPublicacaoAutomatica(negocioId, client);
+    }
+    const resultado = await client.query(`
+      UPDATE negocios
+      SET publicado = FALSE, despublicado_manual_em = NOW(), updated_at = NOW()
+      WHERE id = $1 RETURNING id, publicado, despublicado_manual_em
+    `, [negocioId]);
+    return resultado.rows[0] || null;
+  });
 }
 
-async function atualizarFotoNegocio({
-  negocioId,
-  fotoUrl,
-  fotoPublicId,
-}) {
-  const resultado =
-    await db.query(
-      `
-        UPDATE negocios
+async function atualizarFotoNegocio({ negocioId, fotoUrl, fotoPublicId }, usuarioId) {
+  return db.executarTransacao(async (client) => {
+    await protegerEscritaDoAlvo(usuarioId, negocioId, client);
+    const resultado = await client.query(`
+      UPDATE negocios SET foto_url = $1, foto_public_id = $2, updated_at = NOW()
+      WHERE id = $3 RETURNING id, foto_url, foto_public_id, updated_at
+    `, [fotoUrl, fotoPublicId, negocioId]);
+    return resultado.rows[0] || null;
+  });
+}
 
-        SET
-          foto_url = $1,
-          foto_public_id = $2,
-          updated_at = NOW()
-
-        WHERE id = $3
-
-        RETURNING
-          id,
-          foto_url,
-          foto_public_id,
-          updated_at
-      `,
-      [
-        fotoUrl,
-        fotoPublicId,
-        negocioId,
-      ]
-    );
-
-  return (
-    resultado.rows[0] ||
-    null
-  );
+async function fotoEstaReferenciada(publicId) {
+  const result = await db.query(`
+    SELECT EXISTS (SELECT 1 FROM negocios WHERE foto_public_id = $1) AS em_uso
+  `, [publicId]);
+  return result.rows[0]?.em_uso === true;
 }
 
 module.exports = {
@@ -472,4 +423,5 @@ module.exports = {
   atualizarNegocio,
   atualizarFotoNegocio,
   atualizarPublicacao,
+  fotoEstaReferenciada,
 };

@@ -111,6 +111,40 @@ async function buscarServicoDoNegocio(id, negocioId, executor = db) {
   return result.rows[0] || null;
 }
 
+async function bloquearContextoDono(usuarioId, negocioId, executor = db, { capacidade = false, servicoId } = {}) {
+  // Conta antes do contexto, como no arquivamento. Quando há disputa de
+  // capacidade, o advisory precisa anteceder o negócio, como na reativação.
+  // NO KEY UPDATE preserva KEY SHARE das FKs inseridas na mesma operação.
+  const conta = await executor.query(`
+    SELECT id FROM usuarios
+    WHERE id = $1 AND ativo = TRUE AND encerrado_definitivo_em IS NULL
+    FOR NO KEY UPDATE
+  `, [usuarioId]);
+  if (!conta.rows[0]) return null;
+
+  if (capacidade) await bloquearCadastroServico(executor, negocioId);
+
+  // Mídia serializa serviço antes do negócio, como edição/ativação. O lock
+  // não altera a chave e continua compatível com as FKs da galeria.
+  if (servicoId != null) {
+    const servico = await executor.query(`
+      SELECT id FROM servicos_negocio WHERE id = $1 AND negocio_id = $2
+      FOR NO KEY UPDATE
+    `, [servicoId, negocioId]);
+    if (!servico.rows[0]) return null;
+  }
+
+  const result = await executor.query(`
+    SELECT n.id AS negocio_id
+    FROM negocios n
+    INNER JOIN usuarios_negocios un ON un.negocio_id = n.id
+    WHERE n.id = $2 AND n.ativo = TRUE AND n.arquivado_em IS NULL
+      AND un.usuario_id = $1 AND un.papel = 'dono' AND un.ativo = TRUE
+    FOR NO KEY UPDATE OF n, un
+  `, [usuarioId, negocioId]);
+  return result.rows[0] || null;
+}
+
 async function alterarAtivoServico(
   { id, negocioId, ativo },
   executor = db
@@ -397,7 +431,7 @@ async function listarFotosServico(servicoId, executor = db) {
   return result.rows;
 }
 
-async function buscarFotoGaleriaDoNegocio({ fotoId, negocioId }, executor = db) {
+async function buscarFotoGaleriaDoNegocio({ fotoId, negocioId, bloquear = false }, executor = db) {
   const result = await executor.query(
     `
     SELECT fs.id, fs.servico_id, fs.foto_url, fs.foto_public_id, fs.created_at
@@ -407,6 +441,7 @@ async function buscarFotoGaleriaDoNegocio({ fotoId, negocioId }, executor = db) 
     WHERE fs.id = $1
       AND s.negocio_id = $2
     LIMIT 1
+    ${bloquear ? "FOR UPDATE OF fs" : ""}
     `,
     [fotoId, negocioId]
   );
@@ -490,6 +525,7 @@ module.exports = {
   contarServicosAtivos,
   buscarNegocioUsuario,
   buscarNegocioDono,
+  bloquearContextoDono,
   buscarServicoDoNegocio,
   alterarAtivoServico,
   listarServicos,

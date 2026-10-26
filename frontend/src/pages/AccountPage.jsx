@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
@@ -61,6 +61,26 @@ export function AccountPage() {
   const [photoMessage, setPhotoMessage] = useState("");
   const [saving, setSaving] = useState("");
   const [closureResult, setClosureResult] = useState(null);
+  const operationRef = useRef(null);
+  const readRef = useRef(null);
+  const busy = Boolean(saving);
+
+  function beginSave(key) {
+    if (operationRef.current) return null;
+    const operation = {};
+    operationRef.current = operation;
+    setSaving(key);
+    return operation;
+  }
+
+  const isCurrentOperation = (operation) => operationRef.current === operation;
+
+  function finishSave(operation) {
+    if (isCurrentOperation(operation)) {
+      operationRef.current = null;
+      setSaving("");
+    }
+  }
   const insideNavigation = !clientContext && Boolean(
     session.temNegocio ||
     session.ehAdministrador
@@ -74,9 +94,14 @@ export function AccountPage() {
     : "container page-content account-page";
 
   const load = useCallback(() => {
+    readRef.current?.abort();
+    const controller = new AbortController();
+    readRef.current = controller;
+    const isCurrent = () => readRef.current === controller && !controller.signal.aborted;
     setError("");
-    apiRequest("/conta")
+    apiRequest("/conta", { signal: controller.signal })
       .then((result) => {
+        if (!isCurrent()) return;
         const nextProfile = profileSnapshot(result.usuario);
         const nextDailyReminders = result.usuario?.aceita_lembretes_whatsapp === true;
         const nextBookingNotifications = result.usuario?.aceita_notificacoes_whatsapp === true;
@@ -92,10 +117,16 @@ export function AccountPage() {
         setOperationalAlerts(nextOperationalAlerts);
         setSavedOperationalAlerts(nextOperationalAlerts);
       })
-      .catch((requestError) => setError(requestError.message));
+      .catch((requestError) => { if (isCurrent()) setError(requestError.message); });
   }, []);
 
-  useEffect(load, [load]);
+  useEffect(() => {
+    load();
+    return () => {
+      readRef.current?.abort();
+      operationRef.current = null;
+    };
+  }, [load]);
 
   const profileChanged = profile.nome.trim() !== savedProfile.nome.trim()
     || onlyDigits(profile.whatsapp) !== onlyDigits(savedProfile.whatsapp);
@@ -109,8 +140,9 @@ export function AccountPage() {
 
   async function saveProfile(event) {
     event.preventDefault();
-    if (!profileChanged || saving === "profile") return;
-    setSaving("profile");
+    if (!profileChanged) return;
+    const operation = beginSave("profile");
+    if (!operation) return;
     setError("");
     setMessage("");
     try {
@@ -118,6 +150,7 @@ export function AccountPage() {
         method: "PUT",
         body: { nome: profile.nome.trim(), whatsapp: onlyDigits(profile.whatsapp) }
       });
+      if (!isCurrentOperation(operation)) return;
       const updatedUser = result.usuario || {
         ...user,
         nome: profile.nome.trim(),
@@ -128,35 +161,38 @@ export function AccountPage() {
       setProfile(nextProfile);
       setSavedProfile(nextProfile);
       setMessage(result.mensagem);
-      await session.refresh();
+      void session.refresh({ silent: true }).catch(() => {});
     } catch (requestError) {
-      setError(requestError.message);
+      if (isCurrentOperation(operation)) setError(requestError.message);
     } finally {
-      setSaving("");
+      finishSave(operation);
     }
   }
 
   async function savePassword(event) {
     event.preventDefault();
+    if (operationRef.current) return;
     setError("");
     setMessage("");
     if (password.novaSenha !== password.confirmar) {
       setError("A confirmação da nova senha não confere.");
       return;
     }
-    setSaving("password");
+    const operation = beginSave("password");
+    if (!operation) return;
     try {
       const result = await apiRequest("/conta/senha", {
         method: "PUT",
         body: { senhaAtual: password.senhaAtual, novaSenha: password.novaSenha }
       });
+      if (!isCurrentOperation(operation)) return;
       setMessage(result.mensagem);
       setPassword({ senhaAtual: "", novaSenha: "", confirmar: "" });
       setPasswordVisibility({ atual: false, nova: false, confirmar: false });
     } catch (requestError) {
-      setError(requestError.message);
+      if (isCurrentOperation(operation)) setError(requestError.message);
     } finally {
-      setSaving("");
+      finishSave(operation);
     }
   }
 
@@ -164,9 +200,10 @@ export function AccountPage() {
     event.preventDefault();
     if (
       (!operationalAlertsChanged && !dailyRemindersChanged)
-      || saving === "whatsapp-preferences"
+      || operationRef.current
     ) return;
-    setSaving("whatsapp-preferences");
+    const operation = beginSave("whatsapp-preferences");
+    if (!operation) return;
     setError("");
     setMessage("");
 
@@ -184,6 +221,7 @@ export function AccountPage() {
         }
       );
 
+      if (!isCurrentOperation(operation)) return;
       const nextValue = result.preferencia?.aceita_lembretes_whatsapp === true;
       const nextOperationalValue = result.preferencia?.aceita_alertas_operacionais_whatsapp === true;
       setDailyReminders(nextValue);
@@ -192,16 +230,17 @@ export function AccountPage() {
       setSavedOperationalAlerts(nextOperationalValue);
       setMessage(result.mensagem);
     } catch (requestError) {
-      setError(requestError.message);
+      if (isCurrentOperation(operation)) setError(requestError.message);
     } finally {
-      setSaving("");
+      finishSave(operation);
     }
   }
 
   async function saveBookingNotifications(event) {
     event.preventDefault();
-    if (!bookingNotificationsChanged || saving === "booking-notifications") return;
-    setSaving("booking-notifications");
+    if (!bookingNotificationsChanged) return;
+    const operation = beginSave("booking-notifications");
+    if (!operation) return;
     setError("");
     setMessage("");
 
@@ -216,19 +255,21 @@ export function AccountPage() {
         }
       );
 
+      if (!isCurrentOperation(operation)) return;
       const nextValue = result.preferencia?.aceita_notificacoes_whatsapp === true;
       setBookingNotifications(nextValue);
       setSavedBookingNotifications(nextValue);
       setMessage(result.mensagem);
-      await session.refresh();
+      void session.refresh({ silent: true }).catch(() => {});
     } catch (requestError) {
-      setError(requestError.message);
+      if (isCurrentOperation(operation)) setError(requestError.message);
     } finally {
-      setSaving("");
+      finishSave(operation);
     }
   }
 
   async function deactivateAccount() {
+    if (operationRef.current) return;
     if (
       !window.confirm(
         "Desativar sua conta? Você perderá o acesso ao AF. Agendamentos de cliente confirmados serão preservados e, se existirem, você receberá acessos seguros para consultá-los."
@@ -237,7 +278,8 @@ export function AccountPage() {
       return;
     }
 
-    setSaving("deactivate-account");
+    const operation = beginSave("deactivate-account");
+    if (!operation) return;
     setError("");
     setMessage("");
 
@@ -245,16 +287,18 @@ export function AccountPage() {
       const result = await apiRequest("/conta/desativar", {
         method: "POST"
       });
+      if (!isCurrentOperation(operation)) return;
       setClosureResult(result);
       setMessage(result.mensagem);
     } catch (requestError) {
-      setError(requestError.message);
+      if (isCurrentOperation(operation)) setError(requestError.message);
     } finally {
-      setSaving("");
+      finishSave(operation);
     }
   }
 
   async function closeAccountPermanently() {
+    if (operationRef.current) return;
     if (
       !window.confirm(
         "Encerrar sua conta definitivamente? O acesso não poderá ser retomado pelo fluxo normal. Históricos necessários para reservas, segurança, auditoria e retenção serão preservados."
@@ -263,7 +307,8 @@ export function AccountPage() {
       return;
     }
 
-    setSaving("close-account");
+    const operation = beginSave("close-account");
+    if (!operation) return;
     setError("");
     setMessage("");
 
@@ -271,6 +316,7 @@ export function AccountPage() {
       await apiRequest("/conta", {
         method: "DELETE"
       });
+      if (!isCurrentOperation(operation)) return;
       await session.logout();
       navigate("/", {
         replace: true,
@@ -279,29 +325,31 @@ export function AccountPage() {
         }
       });
     } catch (requestError) {
-      setError(requestError.message);
+      if (isCurrentOperation(operation)) setError(requestError.message);
     } finally {
-      setSaving("");
+      finishSave(operation);
     }
   }
 
   async function uploadPhoto(event) {
     const file = event.target.files?.[0];
     if (!file) return;
-    setSaving("photo");
+    const operation = beginSave("photo");
+    if (!operation) return;
     setError("");
     setPhotoMessage("");
     const body = new FormData();
     body.append("foto", file);
     try {
       const result = await apiRequest("/conta/foto", { method: "POST", body });
+      if (!isCurrentOperation(operation)) return;
       setUser(result.usuario || { ...user, foto_url: result.foto });
       setPhotoMessage(result.mensagem || "Foto atualizada.");
-      await session.refresh();
+      void session.refresh({ silent: true }).catch(() => {});
     } catch (requestError) {
-      setError(requestError.message);
+      if (isCurrentOperation(operation)) setError(requestError.message);
     } finally {
-      setSaving("");
+      finishSave(operation);
       event.target.value = "";
     }
   }
@@ -335,6 +383,7 @@ export function AccountPage() {
         <span>{label}</span>
         <span className="account-password-input-wrap">
           <input
+            disabled={busy}
             autoComplete={autoComplete}
             minLength={key === "atual" ? undefined : 8}
             onChange={(event) => setPassword({ ...password, [valueKey]: event.target.value })}
@@ -376,12 +425,12 @@ export function AccountPage() {
             <div className="account-photo-actions">
               <label className="button button-secondary button-small">
                 {saving === "photo" ? "Enviando..." : "Trocar foto"}
-                <input accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={saving === "photo"} onChange={uploadPhoto} type="file" />
+                <input accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy} onChange={uploadPhoto} type="file" />
               </label>
               {photoMessage && <small className="account-photo-feedback" role="status">{photoMessage}</small>}
             </div>
           </div>
-          <label>Nome<input minLength="2" onChange={(e) => setProfile({ ...profile, nome: e.target.value })} required value={profile.nome} /></label>
+          <label>Nome<input disabled={busy} minLength="2" onChange={(e) => setProfile({ ...profile, nome: e.target.value })} required value={profile.nome} /></label>
           <label className="account-email-field">
             <span>E-mail</span>
             <input aria-describedby="account-email-help" readOnly type="email" value={user.email || ""} />
@@ -390,6 +439,7 @@ export function AccountPage() {
           <label>
             WhatsApp
             <input
+              disabled={busy}
               autoComplete="tel"
               inputMode="tel"
               maxLength="15"
@@ -403,7 +453,7 @@ export function AccountPage() {
             />
           </label>
           {(profileChanged || saving === "profile") && (
-            <button className="button account-profile-save" disabled={saving === "profile"} type="submit">
+            <button className="button account-profile-save" disabled={busy} type="submit">
               {saving === "profile" ? "Salvando..." : "Salvar perfil"}
             </button>
           )}
@@ -421,7 +471,7 @@ export function AccountPage() {
               {passwordsMatch ? "As senhas coincidem." : "As senhas não coincidem."}
             </small>
           )}
-          <button className="button" disabled={!passwordValid || saving === "password"} type="submit">{saving === "password" ? "Alterando..." : "Alterar senha"}</button>
+          <button className="button" disabled={!passwordValid || busy} type="submit">{saving === "password" ? "Alterando..." : "Alterar senha"}</button>
         </form>
       </section>
       {professionalContext && (
@@ -454,6 +504,7 @@ export function AccountPage() {
           <label className="switch-field account-switch-field">
             <input
               checked={bookingNotifications}
+              disabled={busy}
               onChange={(event) => setBookingNotifications(event.target.checked)}
               type="checkbox"
             />
@@ -465,7 +516,7 @@ export function AccountPage() {
           {(bookingNotificationsChanged || saving === "booking-notifications") && (
             <button
               className="button button-secondary account-preference-action"
-              disabled={saving === "booking-notifications"}
+              disabled={busy}
               type="submit"
             >
               {saving === "booking-notifications" ? "Salvando..." : "Salvar"}
@@ -486,6 +537,7 @@ export function AccountPage() {
             <label className="switch-field account-switch-field">
               <input
                 checked={operationalAlerts}
+                disabled={busy}
                 onChange={(event) => setOperationalAlerts(event.target.checked)}
                 type="checkbox"
               />
@@ -500,6 +552,7 @@ export function AccountPage() {
               <label className="switch-field account-switch-field">
                 <input
                   checked={dailyReminders}
+                  disabled={busy}
                   onChange={(event) => setDailyReminders(event.target.checked)}
                   type="checkbox"
                 />
@@ -514,7 +567,7 @@ export function AccountPage() {
             {(operationalAlertsChanged || dailyRemindersChanged || saving === "whatsapp-preferences") && (
               <button
                 className="button button-secondary account-preference-action"
-                disabled={saving === "whatsapp-preferences"}
+                disabled={busy}
                 type="submit"
               >
                 {saving === "whatsapp-preferences" ? "Salvando..." : "Salvar"}

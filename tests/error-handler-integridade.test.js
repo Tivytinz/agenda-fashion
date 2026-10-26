@@ -8,6 +8,21 @@ describe("errorHandler - integridade do histórico", () => {
     };
   }
 
+  test("nome de serviço ativo repetido retorna conflito seguro e acionável", () => {
+    const erro = Object.assign(new Error("duplicate key"), { code: "23505", constraint: "servicos_negocio_nome_ativo_unique" });
+    const res = criarResposta();
+    errorHandler(erro, { method: "POST", path: "/servicos" }, res, jest.fn());
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ codigo: "SERVICO_NOME_DUPLICADO", erro: expect.stringContaining("Edite o serviço existente") }));
+  });
+
+  test("não transforma outra unicidade em conflito de nome de serviço", () => {
+    const erro = Object.assign(new Error("duplicate key"), { code: "23505", constraint: "outra_constraint" });
+    const res = criarResposta();
+    errorHandler(erro, { method: "POST", path: "/teste" }, res, jest.fn());
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+
   test("traduz serviço referenciado por agendamento para conflito orientando desativação", () => {
     const erro = new Error(
       "update or delete on table servicos_negocio violates foreign key constraint"

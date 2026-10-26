@@ -57,6 +57,41 @@ bloqueando o horário da pessoa para evitar dupla reserva, mas dados de cliente,
 serviço, valor e identificadores de agendamento só podem ser revelados quando o
 agendamento pertence ao negócio do contexto profissional validado.
 
+## Escritas de Meu negócio
+
+A criação usa `Idempotency-Key`, com recibo por conta e hash dos dados
+normalizados em `negocio_criacao_tentativas` (migration 123). Negócio, vínculo,
+disponibilidade padrão e recibo são confirmados na mesma transação, protegida
+pelo lock `FOR NO KEY UPDATE` da conta ativa. Replay recupera o estado atual
+do mesmo negócio; não desfaz alterações nem adota outro negócio da conta.
+`GET /criar-negocio/tentativa` recebe a chave no header e responde `no-store`.
+Ausência não cancela um POST em trânsito. Dados diferentes retornam
+`409 NEGOCIO_TENTATIVA_DIVERGENTE`; negócio arquivado/removido retorna
+`410 NEGOCIO_TENTATIVA_ENCERRADA`. Clientes sem chave mantêm o contrato legado.
+
+Perfil (`PUT /configuracoes`), publicação (`PATCH /configuracoes/publicacao`) e
+foto (`POST /configuracoes/foto`) recebem `X-AF-Negocio` com o ID carregado na
+tela. O perfil também aceita `negocio_id` ou `id` explícito no corpo por
+compatibilidade. O header tem precedência e permanece apenas um seletor de alvo.
+Ausência de alvo retorna `400 NEGOCIO_ALVO_OBRIGATORIO`.
+
+O backend compara esse alvo com o vínculo persistido e revalida conta, negócio
+e vínculo de dona ativos na mesma transação da escrita. Depois de arquivar A e
+criar B, uma aba antiga de A recebe `409 NEGOCIO_CONTEXTO_ALTERADO`, sem alterar B
+ou iniciar seu upload. Se arquivar durante um upload já iniciado, a gravação é
+recusada e o asset novo sem uso é limpo. Perfil, foto e publicação não podem
+restaurar operação no negócio arquivado.
+
+O frontend preserva o rascunho e protege novas mutações em caso de conflito ou
+resposta com outro ID. `Atualizar Meu negócio` executa somente GET e carrega o
+contexto atual antes de permitir outra escrita. Falha nessa leitura mantém a
+proteção. Encerramento tem contrato próprio em `encerramento-privacidade.md`.
+
+Perfil não regrava os campos de imagem: `foto_url` e `foto_public_id` pertencem
+somente ao upload. Se a confirmação da transação de foto falhar, uma leitura
+canônica confere se a imagem nova foi gravada. Limpeza só remove assets sem
+referência no banco; indisponibilidade dessa conferência preserva a imagem.
+
 ## Disponibilidade recorrente e ocupação
 
 A disponibilidade recorrente pertence ao contexto **pessoa profissional +

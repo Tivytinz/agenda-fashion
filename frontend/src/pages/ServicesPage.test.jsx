@@ -8,7 +8,7 @@ import { ServicesPage, ServiceEditorPage } from "./ServicesPage";
 
 const refreshSession = vi.fn();
 vi.mock("../auth/SessionContext", () => ({
-  useSession: () => ({ refresh: refreshSession })
+  useSession: () => ({ refresh: refreshSession, usuario: { id: 4 }, negocio: { id: 11, papel: "dono" } })
 }));
 
 vi.mock("../api/client", () => ({
@@ -186,6 +186,7 @@ describe("editor de serviços", () => {
       .mockResolvedValueOnce({ servico: { id: 44 } })
       .mockResolvedValueOnce({ foto: { id: 1 } })
       .mockRejectedValueOnce(new Error("Falha na segunda foto"))
+      .mockResolvedValueOnce({ estado: "nao_encontrada" })
       .mockResolvedValueOnce({ servico: { id: 44 } })
       .mockResolvedValueOnce({ foto: { id: 2 } });
 
@@ -198,13 +199,18 @@ describe("editor de serviços", () => {
 
     expect((await screen.findByRole("alert")).textContent).toContain("algumas fotos não foram enviadas");
     expect(screen.getByText("1 foto selecionada.")).not.toBeNull();
+    const beforeRead = apiRequest.mock.calls.length;
+    fireEvent.click(screen.getByRole("button", { name: "Verificar fotos" }));
+    await screen.findByRole("button", { name: "Salvar serviço" });
+    expect(apiRequest.mock.calls.slice(beforeRead).every(([, options]) => !options.method)).toBe(true);
     submit();
 
     expect(await screen.findByRole("heading", { name: "Lista de serviços" })).not.toBeNull();
     const galleryUploads = apiRequest.mock.calls.filter(([path]) => path === "/servicos/44/fotos");
     expect(galleryUploads).toHaveLength(3);
     expect(galleryUploads[2][1].body.get("foto").name).toBe("segunda.jpg");
-    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(5));
+    expect(galleryUploads[1][1].headers["Idempotency-Key"]).toBe(galleryUploads[2][1].headers["Idempotency-Key"]);
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(6));
   });
 
   it("permite navegar pela galeria e escolher uma foto existente como capa", async () => {
@@ -367,7 +373,7 @@ describe("lista profissional de serviços", () => {
         });
       }
       if (path === "/servicos/8" && options.method === "DELETE") {
-        return Promise.reject(new Error("Não foi possível remover o serviço"));
+        return Promise.reject(Object.assign(new Error("Não foi possível remover o serviço"), { status: 409 }));
       }
       return Promise.reject(new Error(`Rota inesperada: ${path}`));
     });

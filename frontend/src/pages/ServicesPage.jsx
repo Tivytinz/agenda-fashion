@@ -8,7 +8,7 @@ import {
   useSearchParams
 } from "react-router-dom";
 import { apiRequest } from "../api/client";
-import { getPlanIntentPath, normalizePlanSlug } from "../auth/session";
+import { getBusinessContext, getPlanIntentPath, normalizePlanSlug } from "../auth/session";
 import { useSession } from "../auth/SessionContext";
 import { BackLink } from "../components/BackLink";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
@@ -18,6 +18,7 @@ import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState"
 import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatCurrency } from "../utils/format";
+import { readServiceCreationReference, serviceCreationReferenceHash } from "../utils/serviceCreationReference";
 
 const EMPTY_FORM = {
   nome: "",
@@ -48,6 +49,30 @@ function extractServices(result) {
   return Array.isArray(result) ? result : result?.servicos || [];
 }
 
+function uncertainWrite(error) {
+  const status = Number(error.status || error.statusCode);
+  return !status || status >= 500 || status === 408;
+}
+
+function operationKey(prefix) {
+  const unique = globalThis.crypto?.randomUUID?.()
+    || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${prefix}-${unique}`;
+}
+
+function serviceForm(service, fallback = EMPTY_FORM) {
+  return {
+    nome: service.nome ?? fallback.nome,
+    descricao: service.descricao === undefined ? fallback.descricao : service.descricao || "",
+    categoria: service.categoria ?? fallback.categoria,
+    valor: String(service.valor ?? fallback.valor),
+    duracao_minutos: String(service.duracao_minutos ?? fallback.duracao_minutos),
+    ativo: service.ativo === undefined ? fallback.ativo : service.ativo !== false,
+    foto_url: service.foto_url === undefined ? fallback.foto_url : service.foto_url || "",
+    foto_public_id: service.foto_public_id === undefined ? fallback.foto_public_id : service.foto_public_id || "",
+  };
+}
+
 function validateImage(file) {
   if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
     return "Use uma imagem JPG, PNG ou WEBP.";
@@ -58,10 +83,10 @@ function validateImage(file) {
   return "";
 }
 
-async function uploadImage(path, file) {
+async function uploadImage(path, file, key) {
   const body = new FormData();
   body.append("foto", file);
-  return apiRequest(path, { method: "POST", body });
+  return apiRequest(path, { method: "POST", body, ...(key ? { headers: { "Idempotency-Key": key } } : {}) });
 }
 
 function samePhoto(photo, fotoUrl, fotoPublicId) {
@@ -84,8 +109,14 @@ export function ServicesPage() {
   const [removeError, setRemoveError] = useState("");
   const [togglingId, setTogglingId] = useState(null);
   const [visibilityMessage, setVisibilityMessage] = useState("");
+  const [refreshing, setRefreshing] = useState(true);
+  const [readFailed, setReadFailed] = useState(false);
   const [message] = useState(() => location.state?.message || "");
   const loadRequestRef = useRef(0);
+  const readRef = useRef(null);
+  const writeRef = useRef(null);
+  const readyRef = useRef(false);
+  const actionsDisabled = refreshing || readFailed || removing || Boolean(togglingId);
 
   const activeCount = services?.filter((service) => service.ativo !== false).length || 0;
   const serviceLimit = serviceUsage?.limite_servicos === null || serviceUsage?.limite_servicos === undefined
@@ -93,28 +124,48 @@ export function ServicesPage() {
     : Number(serviceUsage.limite_servicos);
   const atServiceLimit = serviceLimit !== null && activeCount >= serviceLimit;
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     const requestId = ++loadRequestRef.current;
+    readRef.current?.abort();
+    const controller = new AbortController();
+    readRef.current = controller;
+    const isCurrent = () => requestId === loadRequestRef.current && !controller.signal.aborted;
+    readyRef.current = false;
+    setRefreshing(true);
     setError("");
-    apiRequest("/servicos")
+    setUpgradeContextual(null);
+    const servicesRequest = apiRequest("/servicos", { signal: controller.signal });
+    void apiRequest("/minha-assinatura", { signal: controller.signal })
       .then((result) => {
-        if (requestId === loadRequestRef.current) setServices(extractServices(result));
-      })
-      .catch((requestError) => {
-        if (requestId === loadRequestRef.current) setError(requestError.message);
-      });
-    apiRequest("/minha-assinatura")
-      .then((result) => {
-        if (requestId !== loadRequestRef.current) return;
+        if (!isCurrent()) return;
         setServiceUsage(result?.uso || null);
         setUpgradeContextual(result?.upgrade_contextual || null);
       })
       .catch(() => {});
+    try {
+      const result = await servicesRequest;
+      if (!isCurrent()) return;
+      setServices(extractServices(result));
+      setReadFailed(false);
+      readyRef.current = true;
+    } catch (requestError) {
+      if (isCurrent()) {
+        setReadFailed(true);
+        setError(requestError.message);
+      }
+    } finally {
+      if (isCurrent()) setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => {
-    load();
-    return () => { loadRequestRef.current += 1; };
+    void load();
+    return () => {
+      loadRequestRef.current += 1;
+      readRef.current?.abort();
+      writeRef.current = null;
+      readyRef.current = false;
+    };
   }, [load]);
 
   useEffect(() => {
@@ -124,13 +175,14 @@ export function ServicesPage() {
   }, [location.pathname, location.state, navigate]);
 
   function askRemove(service) {
+    if (!readyRef.current || writeRef.current) return;
     setRemoveError("");
     setPendingRemove(service);
     removeDialogRef.current?.showModal();
   }
 
   async function toggleServiceVisibility(service) {
-    if (togglingId) return;
+    if (!readyRef.current || writeRef.current) return;
 
     const nextActive = service.ativo === false;
 
@@ -139,6 +191,10 @@ export function ServicesPage() {
       return;
     }
 
+    const operation = {};
+    writeRef.current = operation;
+    readRef.current?.abort();
+    loadRequestRef.current += 1;
     setTogglingId(service.id);
     setError("");
     setVisibilityMessage("");
@@ -148,6 +204,7 @@ export function ServicesPage() {
         method: "PATCH",
         body: { ativo: nextActive }
       });
+      if (writeRef.current !== operation) return;
       const updated = result.servico || { ...service, ativo: nextActive };
 
       setServices((current) => current.map((item) => (
@@ -170,25 +227,48 @@ export function ServicesPage() {
           : "Serviço ocultado do perfil.")
       );
     } catch (requestError) {
-      setError(requestError.message);
+      if (writeRef.current !== operation) return;
+      if (uncertainWrite(requestError)) {
+        readyRef.current = false;
+        setReadFailed(true);
+        setError("Não foi possível confirmar a alteração. Atualize os serviços antes de tentar novamente.");
+      } else setError(requestError.message);
     } finally {
-      setTogglingId(null);
+      if (writeRef.current === operation) {
+        writeRef.current = null;
+        setTogglingId(null);
+      }
     }
   }
 
   async function remove() {
-    if (!pendingRemove || removing) return;
+    if (!pendingRemove || !readyRef.current || writeRef.current) return;
+    const operation = {};
+    writeRef.current = operation;
+    readRef.current?.abort();
+    loadRequestRef.current += 1;
     setRemoving(true);
     setRemoveError("");
     try {
       await apiRequest(`/servicos/${pendingRemove.id}`, { method: "DELETE" });
+      if (writeRef.current !== operation) return;
       setServices((current) => current.filter((item) => item.id !== pendingRemove.id));
       removeDialogRef.current?.close();
       setPendingRemove(null);
     } catch (requestError) {
-      setRemoveError(requestError.message);
+      if (writeRef.current !== operation) return;
+      if (uncertainWrite(requestError) || Number(requestError.status || requestError.statusCode) === 404) {
+        readyRef.current = false;
+        setReadFailed(true);
+        removeDialogRef.current?.close();
+        setPendingRemove(null);
+        setError("Não foi possível confirmar a remoção. Atualize os serviços para conferir o resultado.");
+      } else setRemoveError(requestError.message);
     } finally {
-      setRemoving(false);
+      if (writeRef.current === operation) {
+        writeRef.current = null;
+        setRemoving(false);
+      }
     }
   }
 
@@ -227,6 +307,10 @@ export function ServicesPage() {
       )}
 
       {error && services && <p className="form-error" role="alert">{error}</p>}
+      {services && readFailed && (
+        <button className="button button-secondary" disabled={refreshing || removing || Boolean(togglingId)}
+          onClick={() => void load()} type="button">{refreshing ? "Atualizando serviços..." : "Atualizar serviços"}</button>
+      )}
       {message && <p className="form-success" role="status">{message}</p>}
       {visibilityMessage && <p className="form-success" role="status">{visibilityMessage}</p>}
       {!services && !error && <LoadingState>Carregando serviços...</LoadingState>}
@@ -274,7 +358,7 @@ export function ServicesPage() {
                   <p>{service.duracao_minutos || 0} min · <strong>{formatCurrency(service.valor)}</strong></p>
                   <button
                     className={`button button-small service-visibility-toggle${active ? " button-secondary" : ""}`}
-                    disabled={Boolean(togglingId) || activatingBlocked}
+                    disabled={actionsDisabled || activatingBlocked}
                     onClick={() => toggleServiceVisibility(service)}
                     title={activatingBlocked ? `Desative um dos ${serviceLimit} serviços ativos para liberar esta vaga.` : undefined}
                     type="button"
@@ -283,7 +367,7 @@ export function ServicesPage() {
                   </button>
                   <div className="card-actions">
                     <Link className="button button-secondary button-small" to={`/painel/servicos/${service.id}/editar`}>Editar</Link>
-                    <button className="text-button danger-text" onClick={() => askRemove(service)} type="button">Remover</button>
+                    <button className="text-button danger-text" disabled={actionsDisabled} onClick={() => askRemove(service)} type="button">Remover</button>
                   </div>
                 </div>
               </article>
@@ -318,6 +402,8 @@ export function ServicesPage() {
 
 export function ServiceEditorPage() {
   const session = useSession();
+  const usuarioId = Number(session.usuario?.id) || 0;
+  const negocioId = Number(getBusinessContext(session, "dono")?.id) || 0;
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -327,6 +413,10 @@ export function ServiceEditorPage() {
   const galleryResourceRef = useRef(id);
   const editorContextRef = useRef(null);
   const operationRef = useRef(null);
+  const creationAttemptRef = useRef(null);
+  const uploadAttemptsRef = useRef(new Map());
+  const uploadRecoveryRef = useRef(null);
+  const mediaRecoveryRef = useRef(null);
   const editing = Boolean(id);
   const firstServiceOnboarding =
     !editing
@@ -343,18 +433,26 @@ export function ServiceEditorPage() {
   const [galleryFiles, setGalleryFiles] = useState([]);
   const [gallery, setGallery] = useState([]);
   const [persistedId, setPersistedId] = useState(id || "");
-  const [loading, setLoading] = useState(editing);
+  const [loading, setLoading] = useState(() => editing || Boolean(
+    readServiceCreationReference(location.hash, usuarioId, negocioId)
+  ));
   const [loadError, setLoadError] = useState("");
+  const [recoveryRemoved, setRecoveryRemoved] = useState(false);
+  const [recoveryMessage, setRecoveryMessage] = useState("");
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [galleryLoading, setGalleryLoading] = useState(editing);
   const [galleryError, setGalleryError] = useState("");
   const [galleryLoadAttempt, setGalleryLoadAttempt] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [creationUncertain, setCreationUncertain] = useState(false);
+  const [galleryUncertain, setGalleryUncertain] = useState(false);
+  const [mediaUncertain, setMediaUncertain] = useState(false);
   const [removingPhotoId, setRemovingPhotoId] = useState(null);
   const [definingCoverId, setDefiningCoverId] = useState(null);
   const [mediaMessage, setMediaMessage] = useState("");
   const [error, setError] = useState("");
-  const mediaBusy = saving || Boolean(removingPhotoId) || Boolean(definingCoverId);
+  const fieldsDisabled = saving || creationUncertain || galleryUncertain || mediaUncertain;
+  const mediaBusy = fieldsDisabled || Boolean(removingPhotoId) || Boolean(definingCoverId);
   const hasChanges = !loading && (
     JSON.stringify({ ...form, foto_url: "", foto_public_id: "" })
       !== JSON.stringify({ ...savedForm, foto_url: "", foto_public_id: "" })
@@ -379,17 +477,33 @@ export function ServiceEditorPage() {
   }, [form.foto_public_id, form.foto_url, gallery]);
 
   useEffect(() => {
-    const context = { id, generation: 0 };
+    const context = { id, usuarioId, negocioId, generation: 0 };
     editorContextRef.current = context;
     operationRef.current = null;
+    creationAttemptRef.current = id ? null : readServiceCreationReference(location.hash, usuarioId, negocioId);
+    uploadAttemptsRef.current = new Map();
+    uploadRecoveryRef.current?.abort();
+    uploadRecoveryRef.current = null;
+    mediaRecoveryRef.current = null;
+    setCreationUncertain(false);
+    setGalleryUncertain(false);
+    setMediaUncertain(false);
     setSaving(false);
     setRemovingPhotoId(null);
     setDefiningCoverId(null);
 
     return () => {
       if (editorContextRef.current === context) editorContextRef.current = null;
+      uploadRecoveryRef.current?.abort();
     };
-  }, [id]);
+  }, [id, usuarioId, negocioId]);
+
+  function retainCreationReference(key) {
+    const hash = serviceCreationReferenceHash(location.hash, key ? { key, usuarioId, negocioId } : null);
+    navigate({ pathname: location.pathname, search: location.search, hash }, {
+      replace: true, flushSync: true, state: location.state,
+    });
+  }
 
   function beginOperation() {
     // O lock vale antes de o React renderizar os controles desabilitados.
@@ -410,6 +524,7 @@ export function ServiceEditorPage() {
   function discardPendingOperations() {
     // Suspense pode manter este editor montado enquanto o destino carrega.
     if (editorContextRef.current) editorContextRef.current.generation += 1;
+    uploadRecoveryRef.current?.abort();
     operationRef.current = null;
     setSaving(false);
     setRemovingPhotoId(null);
@@ -432,15 +547,57 @@ export function ServiceEditorPage() {
 
   useEffect(() => {
     if (!editing) {
-      setLoading(false);
       setLoadError("");
+      setRecoveryRemoved(false);
+      setRecoveryMessage("");
       setForm(EMPTY_FORM);
       setSavedForm(EMPTY_FORM);
       setPersistedId("");
       setCover(null);
       setGalleryFiles([]);
       setError("");
-      return undefined;
+      const attempt = creationAttemptRef.current;
+      if (!attempt) {
+        setLoading(false);
+        return undefined;
+      }
+
+      const controller = new AbortController();
+      const context = editorContextRef.current;
+      const generation = context.generation;
+      let active = true;
+      const isCurrent = () => active && !controller.signal.aborted
+        && editorContextRef.current === context && context.generation === generation;
+      setLoading(true);
+      apiRequest(`/servicos/tentativa?negocio_id=${encodeURIComponent(negocioId)}`, {
+        headers: { "Idempotency-Key": attempt.key }, signal: controller.signal,
+      }).then((result) => {
+        if (!isCurrent()) return;
+        if (result.estado === "nao_encontrada") {
+          // Um POST antigo ainda pode chegar depois desta leitura. Conservar a
+          // chave impede outra criação mesmo se os dados forem preenchidos de novo.
+          setCreationUncertain(false);
+          setRecoveryMessage("Ainda não há cadastro confirmado para esta tentativa. Preencha os dados para continuar com segurança.");
+          return;
+        }
+        if (!result.servico?.id) throw new Error("Não foi possível recuperar o cadastro. Verifique novamente.");
+        const confirmed = serviceForm(result.servico);
+        flushSync(() => {
+          setForm(confirmed);
+          setSavedForm(confirmed);
+          setPersistedId(String(result.servico.id));
+        });
+        if (!isCurrent()) return;
+        if (firstServiceOnboarding) continueFirstServiceOnboarding(result);
+        else navigate(`/painel/servicos/${encodeURIComponent(result.servico.id)}/editar`, { replace: true });
+      }).catch((requestError) => {
+        if (!isCurrent()) return;
+        setLoadError(requestError.message);
+        setRecoveryRemoved(Number(requestError.status) === 410);
+      }).finally(() => {
+        if (isCurrent()) setLoading(false);
+      });
+      return () => { active = false; controller.abort(); };
     }
 
     const controller = new AbortController();
@@ -452,16 +609,7 @@ export function ServiceEditorPage() {
         if (!active) return;
         const service = extractServices(servicesResult).find((item) => Number(item.id) === Number(id));
         if (!service) throw new Error("Serviço não encontrado.");
-        const loadedForm = {
-          nome: service.nome || "",
-          descricao: service.descricao || "",
-          categoria: service.categoria || "",
-          valor: String(service.valor ?? ""),
-          duracao_minutos: String(service.duracao_minutos ?? 60),
-          ativo: service.ativo !== false,
-          foto_url: service.foto_url || "",
-          foto_public_id: service.foto_public_id || ""
-        };
+        const loadedForm = serviceForm(service);
         setForm(loadedForm);
         setSavedForm(loadedForm);
         setPersistedId(id);
@@ -480,7 +628,7 @@ export function ServiceEditorPage() {
       active = false;
       controller.abort();
     };
-  }, [editing, id, loadAttempt]);
+  }, [editing, id, usuarioId, negocioId, loadAttempt]);
 
   useEffect(() => {
     if (galleryResourceRef.current !== id) {
@@ -605,27 +753,105 @@ export function ServiceEditorPage() {
     });
   }
 
+  async function recoverGalleryUploads(operation, signal) {
+    let removed = false;
+    for (const [file, attempt] of uploadAttemptsRef.current) {
+      if (!attempt.uncertain) continue;
+      try {
+        const result = await apiRequest(`/servicos/${attempt.servicoId}/fotos/tentativa`, {
+          headers: { "Idempotency-Key": attempt.key },
+          signal,
+        });
+        if (!isCurrentOperation(operation)) return;
+        if (result.estado === "nao_encontrada") {
+          // Conservar a chave: o envio original ainda pode concluir depois do GET.
+          attempt.uncertain = false;
+          continue;
+        }
+        if (!result.foto?.id) throw new Error("Não foi possível identificar a foto salva.");
+        setGallery((current) => [...current.filter((photo) => photo.id !== result.foto.id), result.foto]);
+      } catch (failure) {
+        if (!isCurrentOperation(operation)) return;
+        if (Number(failure.status) !== 410) throw failure;
+        removed = true;
+      }
+      uploadAttemptsRef.current.delete(file);
+      setGalleryFiles((current) => current.filter((item) => item !== file));
+    }
+    if (!isCurrentOperation(operation)) return;
+    setGalleryUncertain(false);
+    setMediaMessage(removed
+      ? "A foto foi removida e não será reenviada. Selecione outra foto para continuar."
+      : "Fotos conferidas. Se houver arquivos pendentes, salve para concluir o envio.");
+  }
+
+  async function recoverMediaState(operation, signal) {
+    const [servicesResult, photosResult] = await Promise.all([
+      apiRequest("/servicos", { signal }),
+      apiRequest(`/servicos/${persistedId}/fotos`, { signal }),
+    ]);
+    if (!isCurrentOperation(operation)) return;
+    const confirmed = extractServices(servicesResult).find(item => Number(item.id) === Number(persistedId));
+    if (!confirmed) throw new Error("Serviço não encontrado. Volte aos serviços para continuar.");
+    const photos = Array.isArray(photosResult) ? photosResult : photosResult?.fotos;
+    if (!Array.isArray(photos)) throw new Error("Não foi possível confirmar as fotos atuais. Verifique novamente.");
+    const patch = { foto_url: confirmed.foto_url || "", foto_public_id: confirmed.foto_public_id || "" };
+    if (mediaRecoveryRef.current?.type === "cover" && samePhoto(mediaRecoveryRef.current.photo, patch.foto_url, patch.foto_public_id)) {
+      setCover(null);
+    }
+    // Somente mídia é reconciliada: preço, descrição e demais rascunhos ficam intactos.
+    setForm(current => ({ ...current, ...patch }));
+    setSavedForm(current => ({ ...current, ...patch }));
+    setGallery(photos);
+    mediaRecoveryRef.current = null;
+    setMediaUncertain(false);
+    setMediaMessage("Fotos conferidas. Você pode continuar editando.");
+  }
+
   async function submit(event) {
     event.preventDefault();
+    if (loading || loadError) return;
     const operation = beginOperation();
     if (!operation) return;
     setSaving(true);
     setError("");
     setMediaMessage("");
     try {
+      if (galleryUncertain || mediaUncertain) {
+        const controller = new AbortController();
+        uploadRecoveryRef.current = controller;
+        try {
+          if (mediaUncertain) await recoverMediaState(operation, controller.signal);
+          else await recoverGalleryUploads(operation, controller.signal);
+        }
+        catch (failure) {
+          if (isCurrentOperation(operation)) setError(`Não foi possível consultar o envio das fotos. ${failure.message}`);
+        }
+        finally {
+          if (uploadRecoveryRef.current === controller) uploadRecoveryRef.current = null;
+        }
+        return;
+      }
       let savedId = persistedId;
       let saveResult;
       try {
+        const body = {
+          nome: form.nome.trim(), descricao: form.descricao.trim(), categoria: form.categoria,
+          valor: Number(form.valor), duracao_minutos: Number(form.duracao_minutos), ativo: form.ativo,
+        };
+        if (!savedId) {
+          if (!usuarioId || !negocioId) throw Object.assign(new Error("Atualize sua sessão antes de cadastrar o serviço."), { status: 403 });
+          if (!creationAttemptRef.current) {
+            creationAttemptRef.current = { key: operationKey("servico") };
+            retainCreationReference(creationAttemptRef.current.key);
+          }
+          if (!isCurrentOperation(operation)) return;
+          creationAttemptRef.current.body ||= { ...body, negocio_id: negocioId };
+        }
         saveResult = await apiRequest(savedId ? `/servicos/${savedId}` : "/servicos", {
           method: savedId ? "PUT" : "POST",
-          body: {
-            nome: form.nome.trim(),
-            descricao: form.descricao.trim(),
-            categoria: form.categoria,
-            valor: Number(form.valor),
-            duracao_minutos: Number(form.duracao_minutos),
-            ativo: form.ativo
-          }
+          ...(!savedId ? { headers: { "Idempotency-Key": creationAttemptRef.current.key } } : {}),
+          body: savedId ? body : creationAttemptRef.current.body,
         });
         if (!isCurrentOperation(operation)) return;
         savedId = saveResult.servico?.id || savedId;
@@ -633,10 +859,36 @@ export function ServiceEditorPage() {
           throw new Error("O serviço foi salvo, mas não foi possível identificar o cadastro.");
         }
         setPersistedId(String(savedId));
-        flushSync(() => setSavedForm(form));
+        setCreationUncertain(false);
+        creationAttemptRef.current = null;
+        const confirmedForm = serviceForm(saveResult.servico || {}, form);
+        flushSync(() => {
+          setForm(confirmedForm);
+          setSavedForm(confirmedForm);
+        });
         if (!isCurrentOperation(operation)) return;
       } catch (requestError) {
-        if (isCurrentOperation(operation)) setError(requestError.message);
+        if (isCurrentOperation(operation)) {
+          if (!persistedId && requestError.data?.codigo === "SERVICO_TENTATIVA_DIVERGENTE") {
+            creationAttemptRef.current = { key: creationAttemptRef.current.key };
+            setLoadAttempt((attempt) => attempt + 1);
+            return;
+          }
+          if (!persistedId && Number(requestError.status) === 410) {
+            setLoadError(requestError.message);
+            setRecoveryRemoved(true);
+            return;
+          }
+          const uncertain = !persistedId && uncertainWrite(requestError);
+          setCreationUncertain(uncertain);
+          if (!uncertain && !persistedId) {
+            creationAttemptRef.current = null;
+            retainCreationReference(null);
+          }
+          setError(uncertain
+            ? "Não foi possível confirmar o cadastro. Verifique novamente para recuperar esta tentativa antes de alterar os dados."
+            : requestError.message);
+        }
         return;
       }
 
@@ -661,12 +913,30 @@ export function ServiceEditorPage() {
           setCover(null);
         }
         for (const file of galleryFiles) {
-          const uploaded = await uploadImage(`/servicos/${savedId}/fotos`, file);
+          let attempt = uploadAttemptsRef.current.get(file);
+          if (!attempt) {
+            attempt = { key: operationKey("foto"), servicoId: savedId, uncertain: false };
+            uploadAttemptsRef.current.set(file, attempt);
+          }
+          let uploaded;
+          try { uploaded = await uploadImage(`/servicos/${savedId}/fotos`, file, attempt.key); }
+          catch (failure) {
+            if (!isCurrentOperation(operation)) return;
+            if (uncertainWrite(failure)) {
+              attempt.uncertain = true;
+              setGalleryUncertain(true);
+            } else if (Number(failure.status) === 410) {
+              uploadAttemptsRef.current.delete(file);
+              setGalleryFiles((current) => current.filter((item) => item !== file));
+            }
+            throw failure;
+          }
           if (!isCurrentOperation(operation)) return;
           if (uploaded.foto) {
             setGallery((current) => [...current.filter((photo) => photo.id !== uploaded.foto.id), uploaded.foto]);
           }
           setGalleryFiles((current) => current.filter((item) => item !== file));
+          uploadAttemptsRef.current.delete(file);
         }
       } catch (requestError) {
         if (isCurrentOperation(operation)) {
@@ -697,7 +967,7 @@ export function ServiceEditorPage() {
   }
 
   async function chooseGalleryCover(photo) {
-    if (!persistedId || galleryLoading || isGalleryCover(photo) || photo.virtualCover) return;
+    if (!persistedId || mediaBusy || galleryLoading || isGalleryCover(photo) || photo.virtualCover) return;
     const operation = beginOperation();
     if (!operation) return;
 
@@ -721,7 +991,13 @@ export function ServiceEditorPage() {
       setSavedForm((current) => ({ ...current, ...coverPatch }));
       setMediaMessage("Foto escolhida como capa do serviço.");
     } catch (requestError) {
-      if (isCurrentOperation(operation)) setError(requestError.message);
+      if (isCurrentOperation(operation)) {
+        if (uncertainWrite(requestError) || Number(requestError.status || requestError.statusCode) === 404) {
+          mediaRecoveryRef.current = { type: "cover", photo };
+          setMediaUncertain(true);
+        }
+        setError(requestError.message);
+      }
     } finally {
       if (isCurrentOperation(operation)) {
         finishOperation(operation);
@@ -731,7 +1007,7 @@ export function ServiceEditorPage() {
   }
 
   async function removeGalleryPhoto(photo) {
-    if (galleryLoading || photo.virtualCover) return;
+    if (mediaBusy || galleryLoading || photo.virtualCover) return;
     const operation = beginOperation();
     if (!operation) return;
     const wasCover = isGalleryCover(photo);
@@ -750,7 +1026,13 @@ export function ServiceEditorPage() {
         setMediaMessage("Foto removida da galeria.");
       }
     } catch (requestError) {
-      if (isCurrentOperation(operation)) setError(requestError.message);
+      if (isCurrentOperation(operation)) {
+        if (uncertainWrite(requestError) || Number(requestError.status || requestError.statusCode) === 404) {
+          mediaRecoveryRef.current = { type: "remove" };
+          setMediaUncertain(true);
+        }
+        setError(requestError.message);
+      }
     } finally {
       if (isCurrentOperation(operation)) {
         finishOperation(operation);
@@ -759,8 +1041,8 @@ export function ServiceEditorPage() {
     }
   }
 
-  if (loading) return <main className="workspace-page"><LoadingState>Carregando serviço...</LoadingState></main>;
-  if (loadError) return <main className="workspace-page"><ErrorState message={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} /></main>;
+  if (loading) return <main className="workspace-page"><UnsavedChangesGuard onLeave={discardPendingOperations} /><LoadingState>Carregando serviço...</LoadingState></main>;
+  if (loadError) return <main className="workspace-page"><UnsavedChangesGuard onLeave={discardPendingOperations} /><BackLink to="/painel/servicos">Voltar aos serviços</BackLink><ErrorState message={loadError} onRetry={recoveryRemoved ? undefined : () => setLoadAttempt((attempt) => attempt + 1)} /></main>;
 
   return (
     <main className="workspace-page service-editor-page">
@@ -792,12 +1074,12 @@ export function ServiceEditorPage() {
           <div><p className="eyebrow">Informações</p><h2>Detalhes do serviço</h2></div>
           <label>
             Nome do serviço
-            <input disabled={saving} minLength="2" onChange={(event) => setForm({ ...form, nome: event.target.value })} required value={form.nome} />
+            <input disabled={fieldsDisabled} minLength="2" onChange={(event) => setForm({ ...form, nome: event.target.value })} required value={form.nome} />
           </label>
           <label>
             Categoria
             <select
-              disabled={saving}
+              disabled={fieldsDisabled}
               onChange={(event) => setForm({ ...form, categoria: event.target.value })}
               required
               value={form.categoria}
@@ -813,7 +1095,7 @@ export function ServiceEditorPage() {
             <label>
               Descrição
               <textarea
-                disabled={saving}
+                disabled={fieldsDisabled}
                 maxLength="1200"
                 onChange={(event) => setForm({ ...form, descricao: event.target.value })}
                 placeholder="Explique o resultado, materiais ou diferenciais."
@@ -826,16 +1108,16 @@ export function ServiceEditorPage() {
           <div className="form-grid">
             <label>
               Valor
-              <input disabled={saving} min="0" onChange={(event) => setForm({ ...form, valor: event.target.value })} required step="0.01" type="number" value={form.valor} />
+              <input disabled={fieldsDisabled} min="0" onChange={(event) => setForm({ ...form, valor: event.target.value })} required step="0.01" type="number" value={form.valor} />
             </label>
             <label>
               Duração em minutos
-              <input disabled={saving} min="5" onChange={(event) => setForm({ ...form, duracao_minutos: event.target.value })} required step="5" type="number" value={form.duracao_minutos} />
+              <input disabled={fieldsDisabled} min="5" onChange={(event) => setForm({ ...form, duracao_minutos: event.target.value })} required step="5" type="number" value={form.duracao_minutos} />
             </label>
           </div>
           {!firstServiceOnboarding && (
             <label className="switch-field">
-              <input checked={form.ativo} disabled={saving} onChange={(event) => setForm({ ...form, ativo: event.target.checked })} type="checkbox" />
+              <input checked={form.ativo} disabled={fieldsDisabled} onChange={(event) => setForm({ ...form, ativo: event.target.checked })} type="checkbox" />
               <span><strong>Serviço disponível</strong><small>Quando inativo, ele não aparece para novos agendamentos.</small></span>
             </label>
           )}
@@ -961,15 +1243,20 @@ export function ServiceEditorPage() {
           </section>
         )}
 
+        {recoveryMessage && <p className="service-editor-message" role="status">{recoveryMessage}</p>}
         {error && <p className="form-error service-editor-message" role="alert">{error}</p>}
         <div className="form-actions service-editor-actions">
           <Link className="button button-secondary" to="/painel/servicos">Cancelar</Link>
-          <button className="button" disabled={mediaBusy} type="submit">
+          <button className="button" disabled={saving || Boolean(removingPhotoId) || Boolean(definingCoverId)} formNoValidate={galleryUncertain || mediaUncertain || creationUncertain} type="submit">
             {saving
               ? "Salvando..."
-              : firstServiceOnboarding
-                ? "Salvar serviço e publicar"
-                : "Salvar serviço"}
+              : galleryUncertain || mediaUncertain
+                ? "Verificar fotos"
+                : creationUncertain
+                ? "Verificar cadastro"
+                : firstServiceOnboarding
+                  ? "Salvar serviço e publicar"
+                  : "Salvar serviço"}
           </button>
         </div>
       </form>

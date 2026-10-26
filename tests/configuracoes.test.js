@@ -10,6 +10,7 @@ jest.mock("../src/repositories/configuracoesRepository", () => ({
   atualizarNegocio: jest.fn(),
   atualizarFotoNegocio: jest.fn(),
   atualizarPublicacao: jest.fn(),
+  fotoEstaReferenciada: jest.fn().mockResolvedValue(false),
 }));
 
 jest.mock("../src/utils/uploadCloudinary", () => {
@@ -120,7 +121,8 @@ describe("Rotas de configurações", () => {
 
     const resposta = await request(app)
       .get("/configuracoes")
-      .set("Authorization", `Bearer ${token}`);
+      .set("Authorization", `Bearer ${token}`)
+      .set("X-AF-Negocio", "11");
 
     expect(resposta.status).toBe(200);
     expect(
@@ -147,7 +149,8 @@ describe("Rotas de configurações", () => {
 
     const resposta = await request(app)
       .get("/configuracoes")
-      .set("Authorization", `Bearer ${gerarToken()}`);
+      .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11");
 
     expect(resposta.status).toBe(404);
     expect(resposta.body.erro).toBe(
@@ -166,7 +169,8 @@ describe("Rotas de configurações", () => {
 
     const resposta = await request(app)
       .get("/configuracoes")
-      .set("Authorization", `Bearer ${gerarToken()}`);
+      .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11");
 
     expect(resposta.status).toBe(404);
     expect(resposta.body.erro).toBe("Negócio não encontrado.");
@@ -201,6 +205,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .put("/configuracoes")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({
         nome: "  Studio   Victor Premium  ",
         descricao: "  Beleza   e estética.  ",
@@ -223,7 +228,6 @@ describe("Rotas de configurações", () => {
     ).toHaveBeenCalledWith(11, {
       nome: "Studio Victor Premium",
       slug: "studio-victor-premium",
-      foto_url: "https://cdn.teste/studio.png",
       descricao: "Beleza e estética.",
       setor: "Unhas",
       cidade: "Goiânia",
@@ -236,7 +240,7 @@ describe("Rotas de configurações", () => {
       localizacao_url: "https://maps.google.com/?q=studio",
       whatsapp_negocio: "62988887777",
       areas: ["Unhas", "Cabelos"],
-    });
+    }, 7);
     expect(resposta.body).toMatchObject({
       mensagem: "Configurações salvas com sucesso.",
       negocio: {
@@ -265,6 +269,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .put("/configuracoes")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ nome: " Beauty Vanessa " });
 
     expect(resposta.status).toBe(409);
@@ -273,7 +278,7 @@ describe("Rotas de configurações", () => {
     ).toHaveBeenCalledWith(
       11,
       expect.objectContaining({ slug: "beauty-vanessa" })
-    );
+    , 7);
     expect(resposta.body.erro).toBe(
       "Já existe um negócio com um endereço igual ao gerado por esse nome. Diferencie o nome e tente novamente."
     );
@@ -293,6 +298,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .put("/configuracoes")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({
         descricao: "Nova descrição",
         slug: "slug-enviado-nao-deve-ser-usado",
@@ -307,7 +313,7 @@ describe("Rotas de configurações", () => {
         nome: "Studio Victor",
         slug: "studio-victor",
       })
-    );
+    , 7);
   });
 
   test("aceita o campo whatsapp do novo contrato", async () => {
@@ -327,6 +333,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .put("/configuracoes")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ whatsapp: "(62) 97777-6666" });
 
     expect(resposta.status).toBe(200);
@@ -337,7 +344,7 @@ describe("Rotas de configurações", () => {
       expect.objectContaining({
         whatsapp_negocio: "62977776666",
       })
-    );
+    , 7);
   });
 
   test("prioriza whatsapp quando o alias legado também é enviado", async () => {
@@ -357,6 +364,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .put("/configuracoes")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({
         whatsapp: "(11) 98765-4321",
         whatsapp_negocio: "62999999999",
@@ -370,7 +378,7 @@ describe("Rotas de configurações", () => {
       expect.objectContaining({
         whatsapp_negocio: "11987654321",
       })
-    );
+    , 7);
   });
 
   test("preserva campos que não foram enviados", async () => {
@@ -393,6 +401,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .put("/configuracoes")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ nome: "Novo nome" });
 
     expect(resposta.status).toBe(200);
@@ -402,7 +411,6 @@ describe("Rotas de configurações", () => {
       11,
       expect.objectContaining({
         nome: "Novo nome",
-        foto_url: negocioAtual.foto_url,
         descricao: negocioAtual.descricao,
         setor: "Unhas",
         cidade: negocioAtual.cidade,
@@ -415,7 +423,7 @@ describe("Rotas de configurações", () => {
         whatsapp_negocio: negocioAtual.whatsapp,
         areas: ["Unhas", "Cabelos"],
       })
-    );
+    , 7);
   });
 
   test("impede profissional de editar o negócio", async () => {
@@ -426,6 +434,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .put("/configuracoes")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ nome: "Alteração indevida" });
 
     expect(resposta.status).toBe(403);
@@ -455,12 +464,13 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .patch("/configuracoes/publicacao")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ publicado: true });
 
     expect(resposta.status).toBe(200);
     expect(
       configuracoesRepository.atualizarPublicacao
-    ).toHaveBeenCalledWith(11, true);
+    ).toHaveBeenCalledWith(11, true, 7);
     expect(resposta.body).toMatchObject({
       mensagem:
         "Seu negócio está publicado e já pode aparecer para clientes.",
@@ -488,6 +498,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .patch("/configuracoes/publicacao")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ publicado: true });
 
     expect(resposta.status).toBe(400);
@@ -510,6 +521,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .patch("/configuracoes/publicacao")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ publicado: true });
 
     expect(resposta.status).toBe(400);
@@ -532,6 +544,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .patch("/configuracoes/publicacao")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ publicado: true });
 
     expect(resposta.status).toBe(400);
@@ -564,12 +577,13 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .patch("/configuracoes/publicacao")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ publicado: true });
 
     expect(resposta.status).toBe(200);
     expect(
       configuracoesRepository.atualizarPublicacao
-    ).toHaveBeenCalledWith(11, true);
+    ).toHaveBeenCalledWith(11, true, 7);
     expect(resposta.body.publicacao).toMatchObject({
       publicado: true,
       pode_publicar: true,
@@ -595,6 +609,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .patch("/configuracoes/publicacao")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ publicado: true });
 
     expect(resposta.status).toBe(400);
@@ -616,6 +631,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .patch("/configuracoes/publicacao")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ publicado: true });
 
     expect(resposta.status).toBe(400);
@@ -642,6 +658,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .patch("/configuracoes/publicacao")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ publicado: false });
 
     expect(resposta.status).toBe(200);
@@ -656,6 +673,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .patch("/configuracoes/publicacao")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ publicado: true });
 
     expect(resposta.status).toBe(403);
@@ -675,6 +693,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .put("/configuracoes")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ nome: "A" });
 
     expect(resposta.status).toBe(400);
@@ -697,6 +716,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .put("/configuracoes")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ whatsapp: "123" });
 
     expect(resposta.status).toBe(400);
@@ -719,6 +739,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .put("/configuracoes")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ localizacao_url: "maps sem protocolo" });
 
     expect(resposta.status).toBe(400);
@@ -741,6 +762,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .put("/configuracoes")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .send({ especialidades: ["Veterinária"] });
 
     expect(resposta.status).toBe(400);
@@ -772,6 +794,7 @@ describe("Rotas de configurações", () => {
     const resposta = await request(app)
       .post("/configuracoes/foto")
       .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
       .attach(
         "foto",
         Buffer.from([
@@ -792,7 +815,7 @@ describe("Rotas de configurações", () => {
       negocioId: 11,
       fotoUrl: "https://cdn.teste/nova-foto.png",
       fotoPublicId: "negocios/nova-foto",
-    });
+    }, 7);
     expect(uploadToCloudinary.remover).toHaveBeenCalledWith(
       "negocios/studio-11"
     );
