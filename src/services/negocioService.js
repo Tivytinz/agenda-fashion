@@ -1,6 +1,26 @@
 const negocioRepository = require(
   "../repositories/negocioRepository"
 );
+const { createHash } = require("crypto");
+
+function normalizarChaveCriacao(valor, obrigatoria = false) {
+  if (valor == null && !obrigatoria) return null;
+  const chave = String(valor ?? "").trim();
+  if (!/^[A-Za-z0-9._:-]{16,120}$/.test(chave)) {
+    throw new AppError("Identificação da tentativa de criação inválida.", 400);
+  }
+  return chave;
+}
+
+async function consultarTentativaCriacao({ usuarioId, chaveIdempotencia }) {
+  const id = normalizarId(usuarioId);
+  if (!id) throw new AppError("Você precisa entrar na sua conta.", 401);
+  const chave = normalizarChaveCriacao(chaveIdempotencia, true);
+  try {
+    const result = await negocioRepository.consultarTentativaCriacao(id, chave);
+    return result ? { estado: "concluida", temNegocio: true, ...result } : { estado: "nao_encontrada" };
+  } catch (error) { converterErroRepository(error); }
+}
 
 const AppError = require(
   "../errors/AppError"
@@ -567,6 +587,7 @@ function converterErroRepository(
  */
 async function criar({
   usuarioId,
+  chaveIdempotencia,
   ...dadosRecebidos
 }) {
   const id =
@@ -581,7 +602,8 @@ async function criar({
     );
   }
 
-  const negocioExistente =
+  const chave = normalizarChaveCriacao(chaveIdempotencia);
+  const negocioExistente = chave === null &&
     await negocioRepository
       .buscarNegocioDoDono(id);
 
@@ -596,6 +618,10 @@ async function criar({
     validarDadosNegocio(
       dadosRecebidos
     );
+  const tentativa = chave === null ? null : {
+    chaveIdempotencia: chave,
+    requestHash: createHash("sha256").update(JSON.stringify({ ...negocio, areas: [...negocio.areas].sort() })).digest("hex"),
+  };
 
   /*
    * Repetimos somente em caso de colisão
@@ -603,9 +629,9 @@ async function criar({
    * simultâneas.
    */
   for (
-    let tentativa = 0;
-    tentativa < 5;
-    tentativa += 1
+    let colisao = 0;
+    colisao < 5;
+    colisao += 1
   ) {
     negocio.slug =
       await gerarSlugDisponivel(
@@ -620,6 +646,7 @@ async function criar({
               id,
 
             negocio,
+            ...(tentativa ? { tentativa } : {}),
           });
 
       return {
@@ -640,7 +667,7 @@ async function criar({
 
       if (
         colisaoSlug &&
-        tentativa < 4
+        colisao < 4
       ) {
         continue;
       }
@@ -727,6 +754,7 @@ async function entrarNoNegocio() {
 
 module.exports = {
   criar,
+  consultarTentativaCriacao,
   buscarMeuNegocio,
   buscarPorTermo,
   entrarNoNegocio,

@@ -9,7 +9,7 @@ import { ServiceEditorPage } from "./ServicesPage";
 
 vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 vi.mock("../auth/SessionContext", () => ({
-  useSession: () => ({ refresh: vi.fn().mockResolvedValue({}) })
+  useSession: () => ({ refresh: vi.fn().mockResolvedValue({}), usuario: { id: 4 }, negocio: { id: 11, papel: "dono" } })
 }));
 
 const photo = (id) => ({ id, foto_url: `https://img.example/${id}.png`, foto_public_id: `photo-${id}` });
@@ -104,6 +104,10 @@ describe("arquivos pendentes e ações de mídia coordenadas", () => {
     expect(screen.getByAltText("Prévia da nova capa")).toBeTruthy();
     await act(() => router.navigate("/saida"));
     fireEvent.click(await screen.findByRole("button", { name: "Continuar editando" }));
+    const beforeCheck = apiRequest.mock.calls.length;
+    await user.click(screen.getByRole("button", { name: "Verificar fotos" }));
+    await screen.findByText("Fotos conferidas. Você pode continuar editando.");
+    expect(apiRequest.mock.calls.slice(beforeCheck).map(([path]) => path)).toEqual(["/servicos", "/servicos/12/fotos"]);
     await user.click(screen.getByRole("button", { name: "Salvar serviço" }));
     await waitFor(() => expect(uploaded).toBe("pendente.png"));
     expect(router.state.location.pathname).toBe("/painel/servicos");
@@ -179,8 +183,10 @@ describe("respostas de operações encerradas no editor", () => {
     const save = deferred();
     apiRequest.mockImplementation((path, options = {}) => options.method === "PUT" ? save.promise : read(path));
     await mount();
+    fireEvent.change(screen.getByLabelText("Nome do serviço"), { target: { value: "Manicure revisada" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar serviço" }));
     await act(() => router.navigate("/saida"));
+    fireEvent.click(await screen.findByRole("button", { name: "Sair sem salvar" }));
     await screen.findByRole("heading", { name: "Destino" });
     await act(() => outcome === "sucesso" ? save.resolve({ servico: SERVICE }) : save.reject(new Error("Falha antiga")));
     expect(router.state.location.pathname).toBe("/saida");
@@ -195,9 +201,12 @@ describe("respostas de operações encerradas no editor", () => {
       return read(path);
     });
     await mount();
+    fireEvent.change(screen.getByLabelText("Nome do serviço"), { target: { value: "Manicure revisada" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar serviço" }));
     await act(() => router.navigate("/painel/servicos/34/editar"));
+    fireEvent.click(await screen.findByRole("button", { name: "Sair sem salvar" }));
     const name = await screen.findByDisplayValue("Pedicure");
+    fireEvent.change(name, { target: { value: "Pedicure revisada" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar serviço" }));
     await act(() => oldSave.resolve({ servico: SERVICE }));
     expect(router.state.location.pathname).toBe("/painel/servicos/34/editar");

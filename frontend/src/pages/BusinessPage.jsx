@@ -14,6 +14,7 @@ import { ErrorState, LoadingState } from "../components/ScreenState";
 import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatCep, formatWhatsApp } from "../utils/format";
+import { businessCreationReferenceHash, readBusinessCreationReference } from "../utils/businessCreationReference";
 import { buildPublicLink, copyPublicLink } from "../utils/publicLinks";
 import {
   BUSINESS_SPECIALTIES,
@@ -128,13 +129,14 @@ function validateCreationCompleteness(form) {
 
 export function BusinessPage({ create = false }) {
   const session = useSession();
+  const usuarioId = Number(session.usuario?.id) || 0;
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
   const [form, setForm] = useState(EMPTY);
   const [savedForm, setSavedForm] = useState(EMPTY);
-  const [loading, setLoading] = useState(!create);
+  const [loading, setLoading] = useState(() => !create || Boolean(readBusinessCreationReference(location.hash, usuarioId)));
   const [saving, setSaving] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [error, setError] = useState("");
@@ -142,13 +144,21 @@ export function BusinessPage({ create = false }) {
   const [publication, setPublication] = useState(null);
   const [publishing, setPublishing] = useState(false);
   const [closingBusiness, setClosingBusiness] = useState(false);
+  const [closureUncertain, setClosureUncertain] = useState(false);
+  const [contextInvalid, setContextInvalid] = useState(false);
+  const [creationUncertain, setCreationUncertain] = useState(false);
+  const [creationEnded, setCreationEnded] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [closurePendings, setClosurePendings] = useState([]);
   const [cepLookup, setCepLookup] = useState({ status: "idle", message: "" });
   const cepRequestRef = useRef(0);
   const addressEditsRef = useRef({ endereco: 0, bairro: 0, cidade: 0, estado: 0 });
   const pageContextRef = useRef(null);
   const operationRef = useRef(null);
-  const mutationBusy = saving || photoUploading || publishing || closingBusiness;
+  const archiveTargetRef = useRef(null);
+  const creationAttemptRef = useRef(null);
+  const creationReadRef = useRef(null);
+  const mutationBusy = saving || photoUploading || publishing || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded;
 
   const unsavedChanges = !loading
     && serializeBusinessForm(form) !== serializeBusinessForm(savedForm);
@@ -160,24 +170,30 @@ export function BusinessPage({ create = false }) {
   const whatsappError = validateWhatsApp(form.whatsapp);
 
   useEffect(() => {
-    const context = { create, generation: 0 };
+    const context = { create, usuarioId, generation: 0 };
     pageContextRef.current = context;
     operationRef.current = null;
     setSaving(false);
     setPhotoUploading(false);
     setPublishing(false);
     setClosingBusiness(false);
+    setClosureUncertain(false);
+    setCreationUncertain(false);
+    setCreationEnded(false);
+    creationAttemptRef.current = create ? readBusinessCreationReference(location.hash, usuarioId) : null;
+    archiveTargetRef.current = null;
     setCepLookup({ status: "idle", message: "" });
 
     return () => {
       if (pageContextRef.current === context) pageContextRef.current = null;
+      creationReadRef.current?.abort();
       cepRequestRef.current += 1;
     };
-  }, [create]);
+  }, [create, usuarioId]);
 
-  function beginOperation() {
+  function beginOperation({ archive = false, recovery = false } = {}) {
     // Bloqueia ações simultâneas antes de o React desabilitar os controles.
-    if (loading || operationRef.current || !pageContextRef.current) return null;
+    if (loading || contextInvalid || creationEnded || (creationUncertain && !recovery) || operationRef.current || !pageContextRef.current || (closureUncertain && !archive)) return null;
     const operation = {
       context: pageContextRef.current,
       generation: pageContextRef.current.generation,
@@ -194,6 +210,14 @@ export function BusinessPage({ create = false }) {
   function discardPendingOperations() {
     // Suspense pode manter a tela antiga montada enquanto o destino carrega.
     if (pageContextRef.current) pageContextRef.current.generation += 1;
+    if (creationReadRef.current) {
+      creationReadRef.current.abort();
+      creationReadRef.current = null;
+      if (create && creationAttemptRef.current) {
+        setLoading(false);
+        setCreationUncertain(true);
+      }
+    }
     operationRef.current = null;
     cepRequestRef.current += 1;
     setSaving(false);
@@ -205,6 +229,75 @@ export function BusinessPage({ create = false }) {
 
   function finishOperation(operation) {
     if (operationRef.current === operation) operationRef.current = null;
+  }
+
+  function confirmBusinessTarget(result) {
+    if (result.negocio?.id != null && Number(result.negocio.id) !== Number(savedForm.id)) {
+      throw Object.assign(new Error("O contexto do negócio mudou. Atualize Meu negócio antes de continuar."), {
+        status: 409, data: { codigo: "NEGOCIO_CONTEXTO_ALTERADO" },
+      });
+    }
+  }
+
+  function handleMutationError(requestError) {
+    if (requestError.data?.codigo === "NEGOCIO_CONTEXTO_ALTERADO") setContextInvalid(true);
+    setError(requestError.message);
+  }
+
+  function retainCreationReference(key) {
+    const hash = businessCreationReferenceHash(location.hash, key ? { key, usuarioId } : null);
+    navigate({ pathname: location.pathname, search: location.search, hash }, {
+      replace: true, flushSync: true, state: location.state,
+    });
+  }
+
+  function adoptCreatedBusiness(result, operation) {
+    if (!result.negocio?.id) throw new Error("Não foi possível identificar o negócio salvo. Verifique novamente.");
+    const normalized = normalizeBusinessForm(result.negocio);
+    flushSync(() => { setForm(normalized); setSavedForm(normalized); });
+    if (!isCurrentOperation(operation)) return;
+    if (!session.adoptCreatedBusiness(result.negocio)) {
+      navigate("/entrar?tipo=profissional", { replace: true });
+      return;
+    }
+    creationAttemptRef.current = null;
+    session.refresh({ silent: true }).catch(() => {});
+    navigate(getPlanIntentPath(FIRST_SERVICE_ONBOARDING_PATH, selectedPlan), {
+      replace: true, state: { onboarding: true, onboardingStep: "servico" },
+    });
+  }
+
+  async function recoverBusinessCreation(operation, signal) {
+    const attempt = creationAttemptRef.current;
+    if (!attempt) throw new Error("Não foi possível identificar esta tentativa. Atualize a página.");
+    const result = await apiRequest("/criar-negocio/tentativa", {
+      headers: { "Idempotency-Key": attempt.key }, signal,
+    });
+    if (!isCurrentOperation(operation)) return;
+    if (result.estado === "nao_encontrada") {
+      // O POST pode chegar depois da leitura. A próxima escrita conserva a chave.
+      attempt.body = null;
+      setCreationUncertain(false);
+      setError("");
+      setMessage("Ainda não há negócio confirmado para esta tentativa. Confira os dados antes de continuar.");
+      return;
+    }
+    adoptCreatedBusiness(result, operation);
+  }
+
+  function handleCreationFailure(requestError) {
+    const status = Number(requestError.status || requestError.statusCode);
+    const uncertain = !status || status >= 500 || status === 408
+      || requestError.data?.codigo === "NEGOCIO_TENTATIVA_DIVERGENTE";
+    if (status === 410) setCreationEnded(true);
+    setCreationUncertain(uncertain);
+    if (!uncertain && status !== 410) {
+      creationAttemptRef.current = null;
+      retainCreationReference(null);
+    }
+    setError(uncertain
+      ? "Não foi possível confirmar a criação do negócio. Verifique esta tentativa antes de alterar os dados."
+      : requestError.message);
   }
 
   useEffect(() => {
@@ -222,8 +315,23 @@ export function BusinessPage({ create = false }) {
 
   useEffect(() => {
     if (create) {
-      setLoading(false);
-      return;
+      if (!creationAttemptRef.current) { setLoading(false); return undefined; }
+      const controller = new AbortController();
+      creationReadRef.current = controller;
+      const context = pageContextRef.current;
+      const operation = { context, generation: context.generation };
+      setLoading(true);
+      recoverBusinessCreation(operation, controller.signal).catch(requestError => {
+        if (isCurrentOperation(operation)) {
+          setCreationUncertain(true);
+          if (Number(requestError.status || requestError.statusCode) === 410) setCreationEnded(true);
+          setError(requestError.message);
+        }
+      }).finally(() => {
+        if (creationReadRef.current === controller) creationReadRef.current = null;
+        if (isCurrentOperation(operation)) setLoading(false);
+      });
+      return () => controller.abort();
     }
 
     const controller = new AbortController();
@@ -236,6 +344,8 @@ export function BusinessPage({ create = false }) {
         const normalized = normalizeBusinessForm(business);
         setForm(normalized);
         setSavedForm(normalized);
+        setContextInvalid(false);
+        setError("");
         setPublication(result.publicacao || {
           publicado: business.publicado === true,
           pode_publicar: false,
@@ -253,7 +363,7 @@ export function BusinessPage({ create = false }) {
       active = false;
       controller.abort();
     };
-  }, [create]);
+  }, [create, loadAttempt, usuarioId]);
 
   useEffect(() => {
     if (!message) return undefined;
@@ -389,6 +499,25 @@ export function BusinessPage({ create = false }) {
     setError("");
     setMessage("");
 
+    if (create && creationUncertain) {
+      const operation = beginOperation({ recovery: true });
+      if (!operation) return;
+      const controller = new AbortController();
+      creationReadRef.current = controller;
+      setSaving(true);
+      try { await recoverBusinessCreation(operation, controller.signal); }
+      catch (requestError) {
+        if (isCurrentOperation(operation)) {
+          if (Number(requestError.status || requestError.statusCode) === 410) setCreationEnded(true);
+          setError(requestError.message);
+        }
+      } finally {
+        if (creationReadRef.current === controller) creationReadRef.current = null;
+        if (isCurrentOperation(operation)) { finishOperation(operation); setSaving(false); }
+      }
+      return;
+    }
+
     if (create) {
       const completenessError = validateCreationCompleteness(form);
       if (completenessError) {
@@ -426,11 +555,23 @@ export function BusinessPage({ create = false }) {
     delete payload.whatsapp_negocio;
 
     try {
+      if (create) {
+        if (!creationAttemptRef.current) {
+          const key = `negocio-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
+          creationAttemptRef.current = { key };
+          retainCreationReference(key);
+        }
+        if (!isCurrentOperation(operation)) return;
+        creationAttemptRef.current.body ||= payload;
+      }
       const result = await apiRequest(create ? "/criar-negocio" : "/configuracoes", {
         method: create ? "POST" : "PUT",
-        body: payload
+        headers: create ? { "Idempotency-Key": creationAttemptRef.current.key } : { "X-AF-Negocio": String(savedForm.id) },
+        body: create ? creationAttemptRef.current.body : payload
       });
       if (!isCurrentOperation(operation)) return;
+      if (create) { adoptCreatedBusiness(result, operation); return; }
+      if (!create) confirmBusinessTarget(result);
       const savedBusiness = result.negocio || {};
       const normalizedSaved = normalizeBusinessForm({
         ...form,
@@ -449,34 +590,7 @@ export function BusinessPage({ create = false }) {
         && location.state?.onboarding === true
         && location.state?.onboardingStep === "perfil";
 
-      if (create) {
-        const businessAdopted = session.adoptCreatedBusiness(savedBusiness);
-
-        if (!businessAdopted) {
-          navigate("/entrar?tipo=profissional", { replace: true });
-          return;
-        }
-
-        // O POST já confirmou a criação e o vínculo de dona. A resposta é
-        // suficiente para liberar o primeiro serviço; /minha-sessao apenas
-        // reconcilia o restante do contexto em segundo plano.
-        session.refresh({ silent: true }).catch(() => {});
-
-        navigate(getPlanIntentPath(
-          FIRST_SERVICE_ONBOARDING_PATH,
-          selectedPlan
-        ), {
-          replace: true,
-          state: {
-            onboarding: true,
-            onboardingStep: "servico"
-          }
-        });
-      } else {
-        // O PUT já devolve a publicação canônica. A reconciliação de sessão
-        // não pode transformar um salvamento concluído em falha de UX.
-        session.refresh({ silent: true }).catch(() => {});
-      }
+      session.refresh({ silent: true }).catch(() => {});
 
       if (profileOnboarding) {
         const pending = Array.isArray(result.publicacao?.pendencias)
@@ -515,7 +629,10 @@ export function BusinessPage({ create = false }) {
         }
       }
     } catch (requestError) {
-      if (isCurrentOperation(operation)) setError(requestError.message);
+      if (isCurrentOperation(operation)) {
+        if (create) handleCreationFailure(requestError);
+        else handleMutationError(requestError);
+      }
     } finally {
       if (isCurrentOperation(operation)) {
         finishOperation(operation);
@@ -547,9 +664,11 @@ export function BusinessPage({ create = false }) {
     try {
       const result = await apiRequest("/configuracoes/foto", {
         method: "POST",
+        headers: { "X-AF-Negocio": String(savedForm.id) },
         body
       });
       if (!isCurrentOperation(operation)) return;
+      confirmBusinessTarget(result);
       const business = result.negocio || {};
       if (business.foto_url !== undefined) {
         setForm((current) => ({ ...current, foto_url: business.foto_url }));
@@ -559,7 +678,7 @@ export function BusinessPage({ create = false }) {
       setMessage(result.mensagem || "Foto do negócio atualizada.");
       session.refresh({ silent: true }).catch(() => {});
     } catch (requestError) {
-      if (isCurrentOperation(operation)) setError(requestError.message);
+      if (isCurrentOperation(operation)) handleMutationError(requestError);
     } finally {
       if (isCurrentOperation(operation)) {
         finishOperation(operation);
@@ -571,7 +690,13 @@ export function BusinessPage({ create = false }) {
 
   async function closeBusiness() {
     if (operationRef.current || loading) return;
+    const targetId = archiveTargetRef.current || savedForm.id;
+    if (!targetId) {
+      setError("Atualize Meu negócio antes de solicitar o encerramento.");
+      return;
+    }
     if (
+      !closureUncertain &&
       !window.confirm(
         "Encerrar este negócio? Ele sairá da descoberta, não receberá novos agendamentos e não poderá ser reativado pelo fluxo normal."
       )
@@ -579,8 +704,9 @@ export function BusinessPage({ create = false }) {
       return;
     }
 
-    const operation = beginOperation();
+    const operation = beginOperation({ archive: true });
     if (!operation) return;
+    archiveTargetRef.current = targetId;
     setClosingBusiness(true);
     setClosurePendings([]);
     setError("");
@@ -588,20 +714,36 @@ export function BusinessPage({ create = false }) {
 
     try {
       const result = await apiRequest("/negocio/encerrar", {
-        method: "POST"
+        method: "POST",
+        body: { negocio_id: targetId }
       });
       if (!isCurrentOperation(operation)) return;
-      await session.refresh();
+      if (Number(result.negocio?.id) !== Number(targetId)) {
+        throw new Error("Não foi possível confirmar qual negócio foi arquivado.");
+      }
+      flushSync(() => setSavedForm(form));
       if (!isCurrentOperation(operation)) return;
+      session.adoptArchivedBusiness?.(result.negocio);
+      // O arquivamento já foi confirmado. A leitura auxiliar não altera esse resultado.
+      void session.refresh({ silent: true }).catch(() => {});
       navigate("/", {
         replace: true,
+        // O destino público deve acompanhar a retirada do vínculo antes do guard de criação.
+        flushSync: true,
         state: {
           message: result.mensagem
         }
       });
     } catch (requestError) {
       if (isCurrentOperation(operation)) {
-        setError(requestError.message);
+        const status = Number(requestError.status || requestError.statusCode);
+        const uncertain = !status || status === 408 || status >= 500;
+        const pendingConfirmed = status === 409 && requestError.data?.codigo === "ENCERRAMENTO_COM_PENDENCIAS";
+        if (pendingConfirmed) archiveTargetRef.current = null;
+        setClosureUncertain(!pendingConfirmed && (uncertain || status === 404 || closureUncertain));
+        setError(uncertain
+          ? "Não foi possível confirmar o encerramento. Verifique novamente para confirmar a situação deste negócio."
+          : requestError.message);
         setClosurePendings(
           Array.isArray(requestError.data?.pendencias)
             ? requestError.data.pendencias
@@ -638,9 +780,11 @@ export function BusinessPage({ create = false }) {
     try {
       const result = await apiRequest("/configuracoes/publicacao", {
         method: "PATCH",
+        headers: { "X-AF-Negocio": String(savedForm.id) },
         body: { publicado: nextPublished }
       });
       if (!isCurrentOperation(operation)) return;
+      confirmBusinessTarget(result);
       setPublication(result.publicacao);
       setMessage(result.mensagem);
       session.refresh({ silent: true }).catch(() => {});
@@ -652,7 +796,7 @@ export function BusinessPage({ create = false }) {
         navigate("/painel", { replace: true });
       }
     } catch (requestError) {
-      if (isCurrentOperation(operation)) setError(requestError.message);
+      if (isCurrentOperation(operation)) handleMutationError(requestError);
     } finally {
       if (isCurrentOperation(operation)) {
         finishOperation(operation);
@@ -661,7 +805,7 @@ export function BusinessPage({ create = false }) {
     }
   }
 
-  if (loading) return <main className="workspace-page"><LoadingState>Carregando negócio...</LoadingState></main>;
+  if (loading) return <main className="workspace-page"><UnsavedChangesGuard onLeave={discardPendingOperations} /><LoadingState>Carregando negócio...</LoadingState></main>;
   if (error && !form.nome && !create) return <main className="workspace-page"><ErrorState message={error} /></main>;
 
   const addressFields = (
@@ -672,7 +816,7 @@ export function BusinessPage({ create = false }) {
           aria-busy={cepLookup.status === "loading" ? "true" : undefined}
           aria-invalid={cepLookup.status === "error" ? "true" : undefined}
           autoComplete="postal-code"
-          disabled={saving}
+          disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}
           inputMode="numeric"
           maxLength="9"
           onBlur={handleCepBlur}
@@ -691,27 +835,27 @@ export function BusinessPage({ create = false }) {
       <span className="field-wide business-address-divider" aria-hidden="true" />
       <label>
         Endereço
-        <input autoComplete="street-address" disabled={saving} onChange={(event) => update("endereco", event.target.value)} required={create} value={form.endereco} />
+        <input autoComplete="street-address" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("endereco", event.target.value)} required={create} value={form.endereco} />
       </label>
       <label>
         Número
-        <input disabled={saving} onChange={(event) => update("numero", event.target.value)} required={create} value={form.numero} />
+        <input disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("numero", event.target.value)} required={create} value={form.numero} />
       </label>
       <label>
         {create ? "Complemento (opcional)" : "Complemento"}
-        <input disabled={saving} onChange={(event) => update("complemento", event.target.value)} value={form.complemento} />
+        <input disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("complemento", event.target.value)} value={form.complemento} />
       </label>
       <label>
         Bairro
-        <input disabled={saving} onChange={(event) => update("bairro", event.target.value)} required={create} value={form.bairro} />
+        <input disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("bairro", event.target.value)} required={create} value={form.bairro} />
       </label>
       <label>
         Cidade
-        <input disabled={saving} onChange={(event) => update("cidade", event.target.value)} required={create} value={form.cidade} />
+        <input disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("cidade", event.target.value)} required={create} value={form.cidade} />
       </label>
       <label>
         Estado
-        <select aria-label="Estado" disabled={saving} onChange={(event) => update("estado", event.target.value)} required value={form.estado}>
+        <select aria-label="Estado" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("estado", event.target.value)} required value={form.estado}>
           <option value="">Selecione a UF</option>
           {BRAZILIAN_STATES.map((state) => (
             <option key={state} value={state}>{state}</option>
@@ -844,7 +988,7 @@ export function BusinessPage({ create = false }) {
           <div className="form-grid">
             <label className="field-wide">
               Nome do negócio
-              <input disabled={saving} minLength="2" onChange={(event) => update("nome", event.target.value)} required value={form.nome} />
+              <input disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} minLength="2" onChange={(event) => update("nome", event.target.value)} required value={form.nome} />
             </label>
             {!create && form.slug && (
               <div className="field-wide public-address-card" data-testid="public-address-hint">
@@ -861,7 +1005,7 @@ export function BusinessPage({ create = false }) {
             <label className="field-wide">
               Descrição (opcional)
               <textarea
-                disabled={saving}
+                disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}
                 maxLength="1000"
                 onChange={(event) => update("descricao", event.target.value)}
                 rows="4"
@@ -871,7 +1015,7 @@ export function BusinessPage({ create = false }) {
                 Ajuda clientes a conhecerem seu trabalho, mas não impede a criação nem a publicação.
               </small>
             </label>
-            <fieldset className="specialty-field field-wide" disabled={saving}>
+            <fieldset className="specialty-field field-wide" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}>
               <legend>Especialidades</legend>
               <div className="specialty-heading-row">
                 <p>Selecione tudo o que o negócio oferece.</p>
@@ -903,7 +1047,7 @@ export function BusinessPage({ create = false }) {
               WhatsApp
               <input
                 autoComplete="tel"
-                disabled={saving}
+                disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}
                 aria-invalid={whatsappError ? "true" : undefined}
                 inputMode="tel"
                 maxLength="15"
@@ -922,7 +1066,7 @@ export function BusinessPage({ create = false }) {
               Link do Google Maps
               <input
                 aria-invalid={!locationValid ? "true" : undefined}
-                disabled={saving}
+                disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}
                 onChange={(event) => update("localizacao_url", event.target.value)}
                 placeholder="https://maps.app.goo.gl/..."
                 required={create}
@@ -961,6 +1105,8 @@ export function BusinessPage({ create = false }) {
         </section>
 
         {error && <p className="form-error business-form-feedback" role="alert">{error}</p>}
+        {contextInvalid && <button className="button button-secondary" onClick={() => setLoadAttempt((attempt) => attempt + 1)} type="button">Atualizar Meu negócio</button>}
+        {creationEnded && <Link className="button button-secondary" to="/">Voltar ao início</Link>}
         {!create && message && (
           <div className="business-save-toast" role="status">
             <ConfirmationIcon className="business-save-icon" />
@@ -970,8 +1116,8 @@ export function BusinessPage({ create = false }) {
         {create && message && <p className="form-success" role="status">{message}</p>}
         {(create || hasChanges || saving) && (
           <div className={create ? "form-actions business-save-actions" : "business-floating-save"}>
-            <button className="button" disabled={mutationBusy || cepLookup.status === "loading"} type="submit">
-              {saving ? "Salvando..." : create ? "Criar negócio" : "Salvar alterações"}
+            <button className="button" disabled={saving || photoUploading || publishing || closingBusiness || closureUncertain || contextInvalid || creationEnded || cepLookup.status === "loading"} formNoValidate={creationUncertain} type="submit">
+              {saving ? "Salvando..." : creationUncertain ? "Verificar negócio" : create ? "Criar negócio" : "Salvar alterações"}
             </button>
           </div>
         )}
@@ -1003,11 +1149,11 @@ export function BusinessPage({ create = false }) {
 
           <button
             className="button button-secondary danger-text"
-            disabled={mutationBusy}
+            disabled={saving || photoUploading || publishing || closingBusiness || contextInvalid || !savedForm.id}
             onClick={closeBusiness}
             type="button"
           >
-            {closingBusiness ? "Verificando pendências..." : "Encerrar negócio"}
+            {closingBusiness ? "Verificando pendências..." : closureUncertain ? "Verificar encerramento" : "Encerrar negócio"}
           </button>
         </section>
       )}

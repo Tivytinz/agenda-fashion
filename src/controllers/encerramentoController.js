@@ -8,6 +8,7 @@ async function encerrarNegocio(req, res, next) {
     const resultado =
       await encerramentoService.encerrarNegocio({
         usuarioId: req.user?.id,
+        negocioId: req.body?.negocio_id,
       });
 
     return res.json(resultado);

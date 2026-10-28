@@ -280,7 +280,8 @@ describe("Wave 8 - privacidade e encerramento P0", () => {
 
     const bloqueadoBooking = await request(app)
       .post("/negocio/encerrar")
-      .set("Authorization", `Bearer ${token(dona.id)}`);
+      .set("Authorization", `Bearer ${token(dona.id)}`)
+      .send({ negocio_id: negocio.id });
 
     expect(bloqueadoBooking.statusCode).toBe(409);
     expect(bloqueadoBooking.body.codigo)
@@ -319,7 +320,8 @@ describe("Wave 8 - privacidade e encerramento P0", () => {
 
     const bloqueadoFinanceiro = await request(app)
       .post("/negocio/encerrar")
-      .set("Authorization", `Bearer ${token(dona.id)}`);
+      .set("Authorization", `Bearer ${token(dona.id)}`)
+      .send({ negocio_id: negocio.id });
 
     expect(bloqueadoFinanceiro.statusCode).toBe(409);
     expect(bloqueadoFinanceiro.body.pendencias)
@@ -340,7 +342,8 @@ describe("Wave 8 - privacidade e encerramento P0", () => {
 
     const encerrado = await request(app)
       .post("/negocio/encerrar")
-      .set("Authorization", `Bearer ${token(dona.id)}`);
+      .set("Authorization", `Bearer ${token(dona.id)}`)
+      .send({ negocio_id: negocio.id });
 
     expect(encerrado.statusCode).toBe(200);
     expect(encerrado.body.negocio).toMatchObject({
@@ -405,7 +408,8 @@ describe("Wave 8 - privacidade e encerramento P0", () => {
         .set(
           "Authorization",
           `Bearer ${token(dona.id)}`
-        );
+        )
+        .send({ negocio_id: antigo.id });
 
     expect(
       arquivamento.statusCode
@@ -477,6 +481,15 @@ describe("Wave 8 - privacidade e encerramento P0", () => {
       novo.body.negocio.id
     );
 
+    // A resposta original pode ter sido perdida na aba antiga. O mesmo pedido
+    // confirma A e nunca resolve B como novo alvo da conta.
+    const repetido = await request(app)
+      .post("/negocio/encerrar")
+      .set("Authorization", `Bearer ${token(dona.id)}`)
+      .send({ negocio_id: antigo.id });
+    expect(repetido.statusCode).toBe(200);
+    expect(repetido.body.negocio).toEqual(arquivamento.body.negocio);
+
     const estados =
       await db.query(
         `
@@ -527,6 +540,36 @@ describe("Wave 8 - privacidade e encerramento P0", () => {
       ativo: true,
       arquivado_em: null,
     });
+  });
+
+  test.each([undefined, 0, -1, "inválido"])("encerramento sem alvo válido (%s) nunca escolhe o negócio atual", async (alvo) => {
+    const dona = await criarUsuario("Alvo Obrigatório");
+    const negocio = await criarNegocio(dona, "alvo-obrigatorio");
+    const result = await request(app).post("/negocio/encerrar")
+      .set("Authorization", `Bearer ${token(dona.id)}`)
+      .send(alvo === undefined ? {} : { negocio_id: alvo });
+    expect(result.statusCode).toBe(400);
+    expect(result.body.codigo).toBe("NEGOCIO_ALVO_OBRIGATORIO");
+    const persisted = await db.query("SELECT ativo, arquivado_em FROM negocios WHERE id = $1", [negocio.id]);
+    expect(persisted.rows[0]).toEqual({ ativo: true, arquivado_em: null });
+  });
+
+  test("alvo explícito exige propriedade persistida, inclusive na repetição de arquivado", async () => {
+    const dona = await criarUsuario("Dona Alvo");
+    const outra = await criarUsuario("Outra Dona Alvo");
+    const negocio = await criarNegocio(dona, "alvo-isolado");
+    const tentar = (usuario) => request(app).post("/negocio/encerrar")
+      .set("Authorization", `Bearer ${token(usuario.id)}`)
+      .send({ negocio_id: negocio.id });
+    expect((await tentar(outra)).statusCode).toBe(404);
+    await db.query("INSERT INTO usuarios_negocios(usuario_id, negocio_id, papel) VALUES ($1, $2, 'profissional')", [outra.id, negocio.id]);
+    expect((await tentar(outra)).statusCode).toBe(404);
+    const primeiro = await tentar(dona);
+    expect(primeiro.statusCode).toBe(200);
+    expect((await tentar(outra)).statusCode).toBe(404);
+    const repetido = await tentar(dona);
+    expect(repetido.statusCode).toBe(200);
+    expect(repetido.body.negocio).toEqual(primeiro.body.negocio);
   });
 
   test("CA-PRV-04: bloqueia encerramento definitivo de profissional com reserva confirmada", async () => {

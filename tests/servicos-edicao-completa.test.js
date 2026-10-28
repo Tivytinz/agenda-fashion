@@ -30,6 +30,7 @@ describe("Edição completa de serviços", () => {
     uploadToCloudinary.remover = jest.fn().mockResolvedValue(undefined);
     db.executarTransacao.mockImplementation(async (callback) => callback(client));
     servicosRepository.buscarNegocioDono.mockResolvedValue({ negocio_id: 7 });
+    servicosRepository.bloquearContextoDono.mockResolvedValue({ negocio_id: 7 });
   });
 
   test("salva descrição e estado ativo", async () => {
@@ -229,7 +230,7 @@ describe("Edição completa de serviços", () => {
       negocioId: 7,
       fotoUrl: "https://img/nova.jpg",
       fotoPublicId: "galeria/nova",
-    });
+    }, client);
     expect(servicosRepository.fotoGaleriaUsaPublicId).toHaveBeenCalledWith({
       servicoId: 12,
       fotoPublicId: "galeria/antiga",

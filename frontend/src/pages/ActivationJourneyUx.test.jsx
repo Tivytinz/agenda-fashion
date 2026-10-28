@@ -23,6 +23,7 @@ vi.mock("../auth/SessionContext", () => ({
       whatsapp: "62999999999"
     },
     refresh: refreshSession,
+    negocio: { id: 11, papel: "dono" },
     adoptCreatedBusiness
   })
 }));

@@ -160,7 +160,7 @@ async function arquivarNegocioNaTransacao({
   return arquivado;
 }
 
-async function encerrarNegocio({ usuarioId }) {
+async function encerrarNegocio({ usuarioId, negocioId }) {
   const usuario = normalizarId(usuarioId);
 
   if (!usuario) {
@@ -171,20 +171,33 @@ async function encerrarNegocio({ usuarioId }) {
     );
   }
 
+  const alvo = normalizarId(negocioId);
+  if (!alvo) {
+    throw criarErro(
+      "Identifique o negócio a encerrar. Atualize Meu negócio antes de continuar.",
+      400,
+      "NEGOCIO_ALVO_OBRIGATORIO"
+    );
+  }
+
   return db.executarTransacao(async (client) => {
-    await encerramentoRepository.bloquearUsuario(
+    const conta = await encerramentoRepository.bloquearUsuario(
       usuario,
       client
     );
+    if (!conta || conta.ativo !== true || conta.encerrado_definitivo_em) {
+      throw criarErro("A conta da proprietária não está ativa.", 403, "CONTA_INATIVA");
+    }
 
-    const negocio =
-      await encerramentoRepository.buscarNegocioOperacionalDoDono(
-        usuario,
-        client,
-        { bloquear: true }
-      );
+    const alvoDoDono = await encerramentoRepository.buscarNegocioDoDonoParaEncerramento(
+      usuario, alvo, client
+    );
 
-    if (!negocio) {
+    if (!alvoDoDono || (
+      alvoDoDono.arquivado_em
+        ? Number(alvoDoDono.arquivado_por) !== usuario
+        : !alvoDoDono.ativo || !alvoDoDono.vinculo_ativo
+    )) {
       throw criarErro(
         "Negócio operacional não encontrado.",
         404,
@@ -192,8 +205,12 @@ async function encerrarNegocio({ usuarioId }) {
       );
     }
 
-    const arquivado =
-      await arquivarNegocioNaTransacao({
+    const { vinculo_ativo: _vinculoAtivo, ...negocio } = alvoDoDono;
+    // O estado terminal é o recibo idempotente. Nunca resolver outro negócio
+    // operacional em uma repetição, mesmo se a conta já tiver criado um novo.
+    const arquivado = negocio.arquivado_em
+      ? negocio
+      : await arquivarNegocioNaTransacao({
         negocio,
         usuarioId: usuario,
         motivo: "encerramento_voluntario",

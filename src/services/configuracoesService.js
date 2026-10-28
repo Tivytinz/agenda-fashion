@@ -51,6 +51,22 @@ async function obterVinculo(
   return vinculo;
 }
 
+async function obterDonaDoAlvo(usuarioId, negocioId) {
+  const alvo = Number(negocioId);
+  if (!Number.isSafeInteger(alvo) || alvo <= 0) {
+    const erro = new ValidationError("Identifique o negócio desta alteração. Atualize Meu negócio para continuar.");
+    erro.codigo = "NEGOCIO_ALVO_OBRIGATORIO";
+    throw erro;
+  }
+  const vinculo = await obterVinculo(usuarioId);
+  if (Number(vinculo.negocio_id) !== alvo) {
+    const erro = new AppError("O contexto do negócio mudou. Atualize Meu negócio antes de continuar.", 409);
+    erro.codigo = "NEGOCIO_CONTEXTO_ALTERADO";
+    throw erro;
+  }
+  return vinculo;
+}
+
 async function buscarConfiguracoes({
   usuarioId,
 }) {
@@ -79,11 +95,12 @@ async function buscarConfiguracoes({
 
 async function salvarConfiguracoes({
   usuarioId,
+  negocioId,
   dados,
 }) {
   const vinculo =
-    await obterVinculo(
-      usuarioId
+    await obterDonaDoAlvo(
+      usuarioId, negocioId
     );
 
   if (
@@ -187,14 +204,6 @@ async function salvarConfiguracoes({
             nomeAtualizado
           )
         : negocioAtual.slug,
-
-    /*
-     * Foto é alterada somente pela rota
-     * própria de upload.
-     */
-    foto_url:
-      negocioAtual.foto_url ||
-      null,
 
     descricao:
       normalizarDescricao(
@@ -327,7 +336,8 @@ async function salvarConfiguracoes({
       await configuracoesRepository
         .atualizarNegocio(
           vinculo.negocio_id,
-          dadosAtualizados
+          dadosAtualizados,
+          usuarioId
         );
   } catch (erro) {
     if (
@@ -391,11 +401,12 @@ async function removerImagemSilenciosamente(
 
 async function enviarFotoNegocio({
   usuarioId,
+  negocioId,
   arquivo,
 }) {
   const vinculo =
-    await obterVinculo(
-      usuarioId
+    await obterDonaDoAlvo(
+      usuarioId, negocioId
     );
 
   if (
@@ -472,17 +483,23 @@ async function enviarFotoNegocio({
           fotoUrl,
 
           fotoPublicId,
-        });
+        }, usuarioId);
   } catch (erro) {
-    await removerImagemSilenciosamente(
-      fotoPublicId
-    );
-
-    throw erro;
+    // O COMMIT pode ter concluído antes de a conexão cair. A imagem que
+    // continua referenciada não é órfã. Leitura indisponível preserva o asset.
+    try {
+      const confirmado = await configuracoesRepository.buscarNegocioPorId(vinculo.negocio_id);
+      if (confirmado?.foto_public_id === fotoPublicId && confirmado.foto_url === fotoUrl) {
+        negocioAtualizado = confirmado;
+      } else {
+        await removerFotoNaoReferenciada(fotoPublicId);
+      }
+    } catch { /* Conferência indisponível: não apagar uma imagem possivelmente salva. */ }
+    if (!negocioAtualizado) throw erro;
   }
 
   if (!negocioAtualizado) {
-    await removerImagemSilenciosamente(
+    await removerFotoNaoReferenciada(
       fotoPublicId
     );
 
@@ -497,7 +514,7 @@ async function enviarFotoNegocio({
     negocioAtual.foto_public_id !==
       fotoPublicId
   ) {
-    await removerImagemSilenciosamente(
+    await removerFotoNaoReferenciada(
       negocioAtual.foto_public_id
     );
   }
@@ -516,13 +533,22 @@ async function enviarFotoNegocio({
   });
 }
 
+async function removerFotoNaoReferenciada(publicId) {
+  try {
+    if (!await configuracoesRepository.fotoEstaReferenciada(publicId)) {
+      await removerImagemSilenciosamente(publicId);
+    }
+  } catch { /* A falta de leitura não comprova que o asset está sem uso. */ }
+}
+
 async function alterarPublicacao({
   usuarioId,
+  negocioId,
   publicado,
 }) {
   const vinculo =
-    await obterVinculo(
-      usuarioId
+    await obterDonaDoAlvo(
+      usuarioId, negocioId
     );
 
   if (
@@ -572,7 +598,8 @@ async function alterarPublicacao({
     await configuracoesRepository
       .atualizarPublicacao(
         vinculo.negocio_id,
-        publicado
+        publicado,
+        usuarioId
       );
 
   exigirRecurso(

@@ -60,6 +60,19 @@ async function buscarNegocioOperacionalDoDono(
   return result.rows[0] || null;
 }
 
+async function buscarNegocioDoDonoParaEncerramento(usuarioId, negocioId, executor = db) {
+  const result = await executor.query(`
+    SELECT n.id, n.nome, n.slug, n.ativo, n.publicado,
+      n.arquivado_em, n.arquivado_por, n.motivo_arquivamento,
+      un.ativo AS vinculo_ativo
+    FROM negocios n
+    INNER JOIN usuarios_negocios un ON un.negocio_id = n.id
+    WHERE n.id = $2 AND un.usuario_id = $1 AND un.papel = 'dono'
+    FOR UPDATE OF n, un
+  `, [usuarioId, negocioId]);
+  return result.rows[0] || null;
+}
+
 async function buscarPendenciasNegocio(
   negocioId,
   executor = db
@@ -402,6 +415,7 @@ async function encerrarUsuarioDefinitivamente(
 module.exports = {
   bloquearUsuario,
   buscarNegocioOperacionalDoDono,
+  buscarNegocioDoDonoParaEncerramento,
   buscarPendenciasNegocio,
   arquivarNegocio,
   desativarVinculosDoNegocio,

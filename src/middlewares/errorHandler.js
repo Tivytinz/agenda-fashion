@@ -28,6 +28,13 @@ function deveExibirDetalhes() {
 }
 
 function resolverErroIntegridade(err) {
+  if (err?.code === "23505" && err?.constraint === "servicos_negocio_nome_ativo_unique") {
+    return {
+      statusCode: 409,
+      codigo: "SERVICO_NOME_DUPLICADO",
+      mensagem: "Já existe um serviço ativo com este nome. Edite o serviço existente ou escolha outro nome.",
+    };
+  }
   if (
     err?.code === "23503" &&
     err?.constraint ===
@@ -137,7 +144,7 @@ function errorHandler(
           erroIntegridade?.mensagem ||
           err.message,
         codigo:
-          err?.codigo ||
+          erroIntegridade?.codigo || err?.codigo ||
           undefined,
         pendencias:
           Array.isArray(err?.pendencias)

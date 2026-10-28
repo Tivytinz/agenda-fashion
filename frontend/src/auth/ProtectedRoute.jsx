@@ -39,7 +39,7 @@ export function ProtectedRoute({
     return (
       <Navigate
         replace
-        state={{ from: `${location.pathname}${location.search}` }}
+        state={{ from: `${location.pathname}${location.search}${location.hash}` }}
         to={loginPath}
       />
     );
@@ -69,7 +69,7 @@ export function ProtectedRoute({
     return (
       <Navigate
         replace
-        state={{ from: `${location.pathname}${location.search}` }}
+        state={{ from: `${location.pathname}${location.search}${location.hash}` }}
         to={getBusinessCreationPath(planSlug)}
       />
     );

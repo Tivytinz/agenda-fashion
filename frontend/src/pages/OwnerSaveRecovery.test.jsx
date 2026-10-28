@@ -11,7 +11,7 @@ import { ScheduleSettingsPage } from "./ScheduleSettingsPage";
 
 vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 vi.mock("../auth/SessionContext", () => ({
-  useSession: () => ({ refresh: vi.fn().mockResolvedValue({}), negocio: { id: 11, papel: "dono" } })
+  useSession: () => ({ refresh: vi.fn().mockResolvedValue({}), usuario: { id: 4 }, negocio: { id: 11, papel: "dono" } })
 }));
 vi.mock("../analytics/track", () => ({ track: vi.fn() }));
 
@@ -286,6 +286,7 @@ describe("recuperação de uploads parcialmente concluídos", () => {
         }
         return Promise.resolve({ foto: { id: filename === "salva.jpg" ? 32 : 33, foto_url: `https://img/${filename}` } });
       }
+      if (path === "/servicos/12/fotos/tentativa") return Promise.resolve({ estado: "nao_encontrada" });
       if (path.endsWith("/fotos")) return Promise.resolve([{ id: 31, ...oldCover }]);
       return Promise.resolve(options.method === "PUT" ? { servico: SERVICE } : { servicos: [{ ...SERVICE, ...oldCover }] });
     });
@@ -302,6 +303,8 @@ describe("recuperação de uploads parcialmente concluídos", () => {
     expect(screen.getAllByAltText("Foto da galeria de Manicure").some(image => image.getAttribute("src") === "https://img/salva.jpg")).toBe(true);
     expect(screen.getByText("1 foto selecionada.")).toBeTruthy();
     expect(uploads).toEqual(["salva.jpg", "pendente.jpg"]);
+    await user.click(screen.getByRole("button", { name: "Verificar fotos" }));
+    await screen.findByRole("button", { name: "Salvar serviço" });
     await user.click(screen.getByRole("button", { name: "Salvar serviço" }));
     await screen.findByRole("heading", { name: "Destino" });
     expect(coverUploads).toBe(1);
@@ -402,10 +405,13 @@ describe("salvamento sem perder edições", () => {
     expect(uploads[0].get("foto").name).toBe("primeira.jpg");
     await act(() => upload.reject(new Error("Upload indisponível")));
     await screen.findByRole("alert");
-    expect(cover.disabled).toBe(false);
+    expect(cover.disabled).toBe(true);
     expect(screen.getByAltText("Prévia da nova capa")).toBeTruthy();
     await act(() => router.navigate("/saida"));
     fireEvent.click(await screen.findByRole("button", { name: "Continuar editando" }));
+    await user.click(screen.getByRole("button", { name: "Verificar fotos" }));
+    await screen.findByText(/Capa atual conferida/);
+    expect(cover.disabled).toBe(false);
     await user.upload(cover, second);
     await user.click(screen.getByRole("button", { name: "Salvar serviço" }));
     await screen.findByRole("heading", { name: "Destino" });

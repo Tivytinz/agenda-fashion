@@ -320,6 +320,7 @@ describe("Wave 7 - negócio, onboarding e publicação P0", () => {
         "Authorization",
         `Bearer ${token(usuario.id)}`
       )
+      .set("X-AF-Negocio", String(negocio.body.negocio.id))
       .send({ publicado: false });
 
     expect(ocultar.statusCode).toBe(200);
@@ -335,6 +336,7 @@ describe("Wave 7 - negócio, onboarding e publicação P0", () => {
         "Authorization",
         `Bearer ${token(usuario.id)}`
       )
+      .set("X-AF-Negocio", String(negocio.body.negocio.id))
       .send({
         descricao:
           "Descrição alterada depois da ocultação.",
@@ -394,6 +396,7 @@ describe("Wave 7 - negócio, onboarding e publicação P0", () => {
         "Authorization",
         `Bearer ${token(usuario.id)}`
       )
+      .set("X-AF-Negocio", String(negocio.body.negocio.id))
       .send({ publicado: true });
 
     expect(

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { BusinessPage } from "./BusinessPage";
 
-const session = vi.hoisted(() => ({ refresh: vi.fn(), adoptCreatedBusiness: vi.fn() }));
+const session = vi.hoisted(() => ({ refresh: vi.fn(), adoptCreatedBusiness: vi.fn(), adoptArchivedBusiness: vi.fn() }));
 vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 vi.mock("../auth/SessionContext", () => ({ useSession: () => session }));
 
@@ -71,6 +71,7 @@ beforeEach(() => {
   apiRequest.mockReset();
   session.refresh.mockReset().mockResolvedValue({});
   session.adoptCreatedBusiness.mockReset().mockReturnValue(true);
+  session.adoptArchivedBusiness.mockReset();
   HTMLDialogElement.prototype.showModal = function showModal() { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function close() { this.removeAttribute("open"); };
   vi.spyOn(window, "confirm").mockReturnValue(true);
@@ -171,7 +172,9 @@ describe("operações do negócio coordenadas", () => {
       fireEvent.submit(screen.getByRole("button", { name: "Salvar alterações" }).closest("form"));
     });
     expect(writes().map(([path]) => path)).toEqual(["/negocio/encerrar"]);
-    const error = Object.assign(new Error("Pendências de encerramento"), { data: { pendencias: [{ codigo: "cobranca", mensagem: "Resolva a cobrança" }] } });
+    const error = Object.assign(new Error("Pendências de encerramento"), { status: 409, data: {
+      codigo: "ENCERRAMENTO_COM_PENDENCIAS", pendencias: [{ codigo: "cobranca", mensagem: "Resolva a cobrança" }],
+    } });
     await act(() => closing.reject(error));
     expect(await screen.findByText("Resolva a cobrança")).toBeTruthy();
     expect(screen.getByLabelText("Nome do negócio").value).toBe("Rascunho");
@@ -265,7 +268,7 @@ describe("continuações encerradas em Meu negócio", () => {
     expect(screen.getByRole("button", { name: "Salvar alterações" }).disabled).toBe(false);
   });
 
-  it.each(["resposta", "sessão"])("ignora a continuação do encerramento quando sai durante a %s", async (stage) => {
+  it.each(["resposta", "sessão"])("preserva a saída escolhida quando termina a etapa %s do encerramento", async (stage) => {
     const closing = deferred();
     const refresh = deferred();
     if (stage === "sessão") session.refresh.mockReturnValue(refresh.promise);
@@ -273,12 +276,16 @@ describe("continuações encerradas em Meu negócio", () => {
     mount(); await screen.findByDisplayValue(BUSINESS.nome);
     fireEvent.click(screen.getByRole("button", { name: "Encerrar negócio", exact: true }));
     if (stage === "sessão") {
-      await act(() => closing.resolve({ mensagem: "Negócio encerrado" }));
+      await act(() => closing.resolve({ mensagem: "Negócio encerrado", negocio: { id: 11, ativo: false, publicado: false } }));
       expect(session.refresh).toHaveBeenCalledTimes(1);
+      expect(router.state.location.pathname).toBe("/");
     }
     await leave();
-    await act(() => stage === "resposta" ? closing.resolve({ mensagem: "Negócio encerrado" }) : refresh.resolve({}));
+    await act(() => stage === "resposta" ? closing.resolve({ mensagem: "Negócio encerrado", negocio: { id: 11, ativo: false, publicado: false } }) : refresh.resolve({}));
     expect(router.state.location.pathname).toBe("/saida");
-    if (stage === "resposta") expect(session.refresh).not.toHaveBeenCalled();
+    if (stage === "resposta") {
+      expect(session.refresh).not.toHaveBeenCalled();
+      expect(session.adoptArchivedBusiness).not.toHaveBeenCalled();
+    }
   });
 });

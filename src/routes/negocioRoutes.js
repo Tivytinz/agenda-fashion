@@ -28,6 +28,8 @@ router.post(
   negocioController.criarNegocio
 );
 
+router.get("/criar-negocio/tentativa", auth, negocioController.consultarTentativaCriacao);
+
 /*
  * GET /meu-negocio
  *

@@ -1,4 +1,6 @@
 const servicosRepository = require("../repositories/servicosRepository");
+const { createHash } = require("crypto");
+const criacaoTentativaRepository = require("../repositories/servicoCriacaoTentativaRepository");
 const profissionalServicosRepository = require(
   "../repositories/profissionalServicosRepository"
 );
@@ -141,14 +143,67 @@ async function validarLimiteServicoAtivo(negocioId, executor) {
   }
 }
 
+function normalizarChaveTentativa(valor, obrigatoria = false) {
+  const chave = valor == null ? null : String(valor).trim();
+  if ((obrigatoria && chave === null) || (chave !== null && (
+    chave.length < 16 || chave.length > 120 || !/^[A-Za-z0-9._:-]+$/.test(chave)
+  ))) {
+    throw criarErro("Identificação da tentativa de cadastro inválida.", 400);
+  }
+  return chave;
+}
+
+function normalizarNegocioAlvo(valor, obrigatorio = false) {
+  if (valor == null && !obrigatorio) return null;
+  const id = Number(valor);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    throw criarErro("Identifique o negócio deste cadastro. Atualize a página para continuar.", 400);
+  }
+  return id;
+}
+
+async function exigirContextoDonoNaTransacao(usuarioId, negocioId, client, options) {
+  const contexto = await servicosRepository.bloquearContextoDono(usuarioId, negocioId, client, options);
+  if (!contexto) throw criarErro("Apenas a dona ativa deste negócio pode cadastrar ou recuperar serviços.", 403);
+}
+
+async function recuperarServicoDaTentativa(tentativa, negocioId, client) {
+  const servico = tentativa.servico_id && await servicosRepository.buscarServicoDoNegocio(
+    tentativa.servico_id, negocioId, client
+  );
+  if (!servico) {
+    const erro = criarErro("O serviço desta tentativa foi removido. Volte aos serviços para continuar.", 410);
+    erro.codigo = "SERVICO_TENTATIVA_REMOVIDA";
+    throw erro;
+  }
+  return { servico, publicacao: await criacaoTentativaRepository.buscarPublicacao(negocioId, client) };
+}
+
+async function consultarTentativaCriacao({ usuarioId, negocioId, chaveIdempotencia }) {
+  const chave = normalizarChaveTentativa(chaveIdempotencia, true);
+  const alvo = normalizarNegocioAlvo(negocioId, true);
+  return db.executarTransacao(async (client) => {
+    await exigirContextoDonoNaTransacao(usuarioId, alvo, client);
+    const tentativa = await criacaoTentativaRepository.buscar({
+      negocioId: alvo, usuarioId, chaveIdempotencia: chave,
+    }, client);
+    // Ausência não cancela um POST que ainda não chegou: o cliente deve manter
+    // a mesma chave ao preencher novamente, sem inferir falha definitiva.
+    if (!tentativa) return { estado: "nao_encontrada" };
+    return { estado: "concluida", ...await recuperarServicoDaTentativa(tentativa, alvo, client) };
+  });
+}
+
 async function criarServico({
   usuarioId,
+  negocioId,
   nome,
   descricao,
   valor,
   duracaoMinutos,
   categoria,
-  ativo
+  ativo,
+  chaveIdempotencia
 }) {
   const vinculo = await obterVinculoDono(
     usuarioId,
@@ -160,16 +215,42 @@ async function criarServico({
   const valorNormalizado = normalizarValor(valor);
   const duracaoNormalizada = normalizarDuracao(duracaoMinutos);
   const categoriaNormalizada = normalizarCategoriaServico(categoria || "outro");
+  const descricaoNormalizada = normalizarDescricao(descricao);
+  const chave = normalizarChaveTentativa(chaveIdempotencia);
+  const alvo = normalizarNegocioAlvo(negocioId, chave !== null) || vinculo.negocio_id;
+  if (Number(alvo) !== Number(vinculo.negocio_id)) {
+    throw criarErro("Apenas a dona ativa deste negócio pode cadastrar ou recuperar serviços.", 403);
+  }
+  const requestHash = createHash("sha256").update(JSON.stringify({
+    nome: nomeNormalizado, descricao: descricaoNormalizada, valor: valorNormalizado,
+    duracaoMinutos: duracaoNormalizada, categoria: categoriaNormalizada, ativo: servicoAtivo,
+  })).digest("hex");
   const resultado = await db.executarTransacao(async (client) => {
+    await exigirContextoDonoNaTransacao(usuarioId, alvo, client, { capacidade: servicoAtivo });
+    const tentativa = chave === null ? null : await criacaoTentativaRepository.iniciar({
+      negocioId: alvo, usuarioId, chaveIdempotencia: chave, requestHash,
+    }, client);
+    if (tentativa) {
+      if (tentativa.request_hash !== requestHash) {
+        const erro = criarErro("Esta tentativa já foi usada com outros dados de serviço. Verifique o cadastro para continuar.", 409);
+        erro.codigo = "SERVICO_TENTATIVA_DIVERGENTE";
+        throw erro;
+      }
+      if (tentativa.concluida_em) {
+        return recuperarServicoDaTentativa(tentativa, alvo, client);
+      }
+    } else if (chave !== null) {
+      throw criarErro("Não foi possível recuperar a tentativa de cadastro. Tente novamente.", 503);
+    }
     if (servicoAtivo) {
-      await validarLimiteServicoAtivo(vinculo.negocio_id, client);
+      await validarLimiteServicoAtivo(alvo, client);
     }
 
     const criado = await servicosRepository.criarServico(
       {
-        negocioId: vinculo.negocio_id,
+        negocioId: alvo,
         nome: nomeNormalizado,
-        descricao: normalizarDescricao(descricao),
+        descricao: descricaoNormalizada,
         valor: valorNormalizado,
         duracaoMinutos: duracaoNormalizada,
         categoria: categoriaNormalizada,
@@ -181,7 +262,7 @@ async function criarServico({
     await profissionalServicosRepository
       .habilitarServicoProfissional({
         negocioId:
-          vinculo.negocio_id,
+          alvo,
         profissionalId:
           Number(usuarioId),
         servicoId:
@@ -193,17 +274,18 @@ async function criarServico({
       });
 
     await servicosRepository.adicionarEspecialidadeNegocio(
-      vinculo.negocio_id,
+      alvo,
       especialidadeDaCategoria(categoriaNormalizada),
       client
     );
 
     const publicacao = await servicosRepository
       .sincronizarPublicacaoAutomatica(
-        vinculo.negocio_id,
+        alvo,
         client
       );
 
+    if (tentativa) await criacaoTentativaRepository.concluir(tentativa.id, criado.id, client);
     return { servico: criado, publicacao };
   });
 
@@ -376,6 +458,15 @@ async function removerFotoCapaAnteriorSeOrfa({ servicoId, fotoPublicId }) {
   }
 }
 
+async function removerFotoServicoNaoReferenciada(publicId) {
+  if (!publicId) return;
+  try {
+    if (!await servicosRepository.fotoEstaReferenciada(publicId)) {
+      await removerImagemSilenciosamente(publicId);
+    }
+  } catch { /* Falha de leitura não comprova que a imagem esteja sem uso. */ }
+}
+
 async function enviarFotoServico({ usuarioId, id, file }) {
   const vinculo = await obterVinculoDono(
     usuarioId,
@@ -409,43 +500,40 @@ async function enviarFotoServico({ usuarioId, id, file }) {
     );
 
   let servico;
+  let capaAnterior;
 
   try {
-    servico =
-      await servicosRepository
-        .atualizarFotoServico({
-          id,
-          negocioId:
-            vinculo.negocio_id,
-          fotoUrl:
-            resultado.fotoUrl,
-          fotoPublicId:
-            resultado.fotoPublicId,
-        });
-  } catch (erro) {
-    await removerImagemSilenciosamente(
-      resultado.fotoPublicId
-    );
-
-    throw erro;
-  }
-
-  if (!servico) {
-    await removerImagemSilenciosamente(
-      resultado.fotoPublicId
-    );
-
-    throw criarErro("Serviço não encontrado.", 404);
-  }
-
-  if (
-    servicoAtual.foto_public_id &&
-    servicoAtual.foto_public_id !== resultado.fotoPublicId
-  ) {
-    await removerFotoCapaAnteriorSeOrfa({
-      servicoId: id,
-      fotoPublicId: servicoAtual.foto_public_id,
+    servico = await db.executarTransacao(async client => {
+      // HTTP já concluiu. Revalidar o mesmo alvo, sem adotar um novo negócio,
+      // e serializar com edição, escolha de capa e arquivamento.
+      if (!await servicosRepository.bloquearContextoDono(usuarioId, vinculo.negocio_id, client, { servicoId: id })) {
+        throw criarErro("Serviço não encontrado ou negócio indisponível.", 404);
+      }
+      const atual = await servicosRepository.buscarServicoDoNegocio(id, vinculo.negocio_id, client);
+      capaAnterior = atual.foto_public_id;
+      const atualizado = await servicosRepository.atualizarFotoServico({
+        id, negocioId: vinculo.negocio_id,
+        fotoUrl: resultado.fotoUrl, fotoPublicId: resultado.fotoPublicId,
+      }, client);
+      if (!atualizado) throw criarErro("Serviço não encontrado.", 404);
+      return atualizado;
     });
+  } catch (erro) {
+    // O COMMIT pode ter ocorrido antes da perda da confirmação. Conferir a
+    // referência canônica antes de limpar; indisponibilidade preserva o asset.
+    try {
+      const confirmado = await servicosRepository.buscarServicoDoNegocio(id, vinculo.negocio_id);
+      if (confirmado?.foto_public_id === resultado.fotoPublicId && confirmado.foto_url === resultado.fotoUrl) {
+        servico = confirmado;
+      } else {
+        await removerFotoServicoNaoReferenciada(resultado.fotoPublicId);
+      }
+    } catch { /* Não apagar uma imagem possivelmente salva. */ }
+    if (!servico) throw erro;
+  }
+
+  if (capaAnterior && capaAnterior !== resultado.fotoPublicId) {
+    await removerFotoServicoNaoReferenciada(capaAnterior);
   }
 
   return {
@@ -534,42 +622,27 @@ async function definirFotoCapaServico({ usuarioId, id, fotoId }) {
     "Apenas o dono pode escolher a foto principal do serviço."
   );
 
-  const servicoAtual = await servicosRepository.buscarServicoDoNegocio(
-    id,
-    vinculo.negocio_id
-  );
-
-  if (!servicoAtual) {
-    throw criarErro("Serviço não encontrado.", 404);
-  }
-
-  const foto = await servicosRepository.buscarFotoGaleriaDoNegocio({
-    fotoId,
-    negocioId: vinculo.negocio_id,
+  const { servico, anterior } = await db.executarTransacao(async client => {
+    if (!await servicosRepository.bloquearContextoDono(usuarioId, vinculo.negocio_id, client, { servicoId: id })) {
+      throw criarErro("Serviço não encontrado ou negócio indisponível.", 404);
+    }
+    const servicoAtual = await servicosRepository.buscarServicoDoNegocio(id, vinculo.negocio_id, client);
+    const foto = await servicosRepository.buscarFotoGaleriaDoNegocio({
+      fotoId, negocioId: vinculo.negocio_id, bloquear: true,
+    }, client);
+    if (!foto || Number(foto.servico_id) !== Number(id)) {
+      throw criarErro("Foto da galeria não encontrada para este serviço.", 404);
+    }
+    const atualizado = await servicosRepository.atualizarFotoServico({
+      id, negocioId: vinculo.negocio_id, fotoUrl: foto.foto_url, fotoPublicId: foto.foto_public_id,
+    }, client);
+    if (!atualizado) throw criarErro("Serviço não encontrado.", 404);
+    return { servico: atualizado, anterior: servicoAtual.foto_public_id };
   });
-
-  if (!foto || Number(foto.servico_id) !== Number(id)) {
-    throw criarErro("Foto da galeria não encontrada para este serviço.", 404);
-  }
-
-  const servico = await servicosRepository.atualizarFotoServico({
-    id,
-    negocioId: vinculo.negocio_id,
-    fotoUrl: foto.foto_url,
-    fotoPublicId: foto.foto_public_id,
-  });
-
-  if (!servico) {
-    throw criarErro("Serviço não encontrado.", 404);
-  }
-
-  if (
-    servicoAtual.foto_public_id &&
-    servicoAtual.foto_public_id !== foto.foto_public_id
-  ) {
+  if (anterior && anterior !== servico.foto_public_id) {
     await removerFotoCapaAnteriorSeOrfa({
       servicoId: id,
-      fotoPublicId: servicoAtual.foto_public_id,
+      fotoPublicId: anterior,
     });
   }
 
@@ -585,13 +658,20 @@ async function removerFotoGaleriaServico({ usuarioId, fotoId }) {
     "Apenas o dono pode remover fotos do serviço."
   );
 
+  // A primeira leitura só seleciona o serviço a bloquear. A foto é relida
+  // após os locks; uma seleção obsoleta não autoriza a remoção.
+  const alvo = await servicosRepository.buscarFotoGaleriaDoNegocio({ fotoId, negocioId: vinculo.negocio_id });
+  if (!alvo) throw criarErro("Foto não encontrada.", 404);
   const resultado = await db.executarTransacao(async (client) => {
+    if (!await servicosRepository.bloquearContextoDono(usuarioId, vinculo.negocio_id, client, { servicoId: alvo.servico_id })) {
+      throw criarErro("Serviço não encontrado ou negócio indisponível.", 404);
+    }
     const foto = await servicosRepository.buscarFotoGaleriaDoNegocio(
-      { fotoId, negocioId: vinculo.negocio_id },
+      { fotoId, negocioId: vinculo.negocio_id, bloquear: true },
       client
     );
 
-    if (!foto) return null;
+    if (!foto || Number(foto.servico_id) !== Number(alvo.servico_id)) return null;
 
     const capaRemovida = await servicosRepository.limparFotoServicoSeUsarPublicId(
       {
@@ -693,6 +773,7 @@ async function validarResultadoUpload(
 
 module.exports = {
   listarServicos,
+  consultarTentativaCriacao,
   criarServico,
   editarServico,
   removerServico,

@@ -84,6 +84,8 @@ describe("Limite de serviços", () => {
         negocio_id: 7,
       });
 
+    servicosRepository.bloquearContextoDono.mockResolvedValue({ negocio_id: 7 });
+
     servicosRepository
       .bloquearCadastroServico
       .mockResolvedValue();
@@ -130,6 +132,17 @@ describe("Limite de serviços", () => {
       ).not.toHaveBeenCalled();
     }
   );
+
+  test("recusa vínculo obsoleto dentro da transação antes de limite e escrita, inclusive sem header", async () => {
+    servicosRepository.bloquearContextoDono.mockResolvedValue(null);
+    await expect(servicosService.criarServico({
+      usuarioId: 1, nome: "Manicure", valor: 50, duracaoMinutos: 60,
+    })).rejects.toMatchObject({ statusCode: 403 });
+    expect(servicosRepository.bloquearContextoDono).toHaveBeenCalledWith(1, 7, client, { capacidade: true });
+    expect(planoService.buscarUsoPlano).not.toHaveBeenCalled();
+    expect(servicosRepository.criarServico).not.toHaveBeenCalled();
+    expect(profissionalServicosRepository.habilitarServicoProfissional).not.toHaveBeenCalled();
+  });
 
   test(
     "informa quando o negócio já está acima do limite efetivo",
