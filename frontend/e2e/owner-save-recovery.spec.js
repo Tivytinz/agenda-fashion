@@ -157,7 +157,9 @@ test('upload bloqueia a troca de capa e uma falha permite escolher e enviar outr
   const first = pending;
   expect(first.request().postDataBuffer().toString()).toContain('primeira.png');
   await json(first, { mensagem: 'Upload indisponível' }, 503);
-  await expect(page.getByRole('alert')).toContainText('O serviço foi salvo, mas algumas fotos não foram enviadas.');
+  await expect(page.getByRole('alert')).toContainText('não foi possível confirmar o envio da capa');
+  await expect(cover).toBeDisabled();
+  await page.getByRole('button', { name: 'Verificar fotos' }).click();
   await expect(cover).toBeEnabled();
   await expect(page.getByAltText('Prévia da nova capa')).toBeVisible();
   await cover.setInputFiles({ name: 'nova-escolha.png', mimeType: 'image/png', buffer: png });
@@ -282,6 +284,7 @@ test('upload parcial mostra as imagens salvas e repete somente a foto pendente',
     }
     return json(route, { foto: { id: filename === 'salva.png' ? 32 : 33, foto_url: `https://img.example/${filename}` } });
   });
+  await page.route('**/servicos/12/fotos/tentativa', route => json(route, { estado: 'nao_encontrada' }));
   await page.goto('/painel/servicos/12/editar');
   await expect(page.getByRole('button', { name: 'Remover foto da galeria' })).toBeVisible();
   await page.locator('.cover-upload input[type=file]').setInputFiles({ name: 'capa.png', mimeType: 'image/png', buffer: png });
@@ -294,6 +297,8 @@ test('upload parcial mostra as imagens salvas e repete somente a foto pendente',
   await expect(page.locator('.cover-preview img')).toHaveAttribute('src', newCover.foto_url);
   await expect(page.locator('.service-gallery-picker img[src="https://img.example/salva.png"]')).toBeVisible();
   await expect(page.getByText('1 foto selecionada.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Verificar fotos' }).click();
+  await expect(page.getByText(/Fotos conferidas/)).toBeVisible();
   await page.getByRole('button', { name: 'Salvar serviço' }).click();
   await expect(page).toHaveURL(/\/painel\/servicos$/);
   expect(coverUploads).toBe(1);
@@ -426,22 +431,17 @@ test('confirmação rápida pendente respeita saída sem rascunho e destino lent
   expect(activationReads).toBe(0);
 });
 
-test('salvar serviço sem editar respeita saída sem rascunho e destino lento', async ({ page }) => {
+test('salvar serviço sem editar volta ao catálogo sem regravar os dados', async ({ page }) => {
   await setup(page);
-  const destination = await delayedBusinessDestination(page);
-  let pending;
+  let writes = 0;
   await page.route('**/servicos/12/fotos', route => json(route, []));
-  await page.route('**/servicos/12', route => { pending = route; });
+  await page.route('**/servicos/12', route => {
+    if (route.request().method() !== 'GET') writes += 1;
+    return json(route, { servico: SERVICE });
+  });
   await page.goto('/painel/servicos/12/editar');
   await expect(page.getByLabel('Nome do serviço')).toHaveValue(SERVICE.nome);
   await page.getByRole('button', { name: 'Salvar serviço', exact: true }).click();
-  await expect.poll(() => Boolean(pending)).toBe(true);
-  try {
-    await destination.leave({ discard: false });
-    await finishPendingWrite(page, pending, { servico: SERVICE });
-    await expect(page).toHaveURL(/\/painel\/negocio$/);
-  } finally {
-    await destination.release();
-  }
-  await expect(page.getByLabel('Nome do negócio')).toHaveValue(BUSINESS.nome);
+  await expect(page).toHaveURL(/\/painel\/servicos$/);
+  expect(writes).toBe(0);
 });

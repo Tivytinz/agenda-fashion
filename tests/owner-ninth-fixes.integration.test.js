@@ -163,9 +163,9 @@ test.each(["replay","worker"])("NV-01b: estorno preserva remoção pendente recu
 
 test.each(["presentes","omitidas","nulas"])("NV-02: atualização com datas %s preserva o dia factual e o acesso",async datesMode=>{
   const dates=(await db.query(`SELECT TO_CHAR((CURRENT_DATE+3)-INTERVAL '1 month','YYYY-MM-DD') AS paid,
-    TO_CHAR(CURRENT_DATE+3,'YYYY-MM-DD') AS end,TO_CHAR(CURRENT_DATE,'YYYY-MM-DD') AS today,
+    TO_CHAR(((CURRENT_DATE+3)-INTERVAL '1 month')+INTERVAL '1 month','YYYY-MM-DD') AS end,TO_CHAR(CURRENT_DATE,'YYYY-MM-DD') AS today,
     TO_CHAR(CURRENT_DATE+INTERVAL '1 month','YYYY-MM-DD') AS rewritten_end`)).rows[0];
-  await db.query("UPDATE assinaturas SET acesso_pago_reconciliado=TRUE,acesso_pago_ate=CURRENT_DATE+3,data_proxima_cobranca=CURRENT_DATE+3 WHERE id=$1",[sub.id]);
+  await db.query("UPDATE assinaturas SET acesso_pago_reconciliado=TRUE,acesso_pago_ate=$2,data_proxima_cobranca=$2 WHERE id=$1",[sub.id,dates.end]);
   await db.query("UPDATE pagamentos SET data_pagamento=$2,data_vencimento=$2 WHERE assinatura_id=$1",[sub.id,dates.paid]);
   provider.get("sub_original").nextDueDate=dates.end;
   const before=await state();
