@@ -1267,3 +1267,36 @@
     transition: none;
   }
 }
+
+/* Compact discovery cards: content never expands to match a taller neighbour. */
+.home-page .service-rail-track,
+.home-page .home-business-rail {
+  align-items: flex-start;
+}
+.home-page .service-business-info { margin-top: 8px; }
+.home-page .business-heading { flex-direction: column; gap: 8px; }
+.home-page .business-heading > div { min-width: 0; }
+.home-page .business-heading h3 { overflow-wrap: anywhere; }
+.home-page .service-discovery-image,
+.home-page .service-discovery-image.service-discovery-image-placeholder,
+.home-page .business-card .card-image,
+.home-page .business-card .card-image.card-image-placeholder {
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 16 / 9;
+  flex: 0 0 auto;
+}
+.home-page .service-discovery-placeholder small { display: none; }
+.home-filter-slot { min-height: 68px; }
+.home-filter-slot:has(> .home-discovery-filters:not(.home-filter-loading)) > .home-filter-loading { display: none; }
+.home-filter-loading .home-location-pill { width: 100%; }
+.home-results-filters { margin-top: 16px; }
+@media (max-width: 760px) {
+  .home-page .home-section-heading h2 { font-size: clamp(1.35rem, 6vw, 1.65rem); }
+  .home-page .home-hero-slide { min-height: 280px; }
+  .home-page .home-hero-content { padding-block: 18px 48px; }
+  .home-page .home-hero h1 { font-size: clamp(1.8rem, 8vw, 2.2rem); }
+  .home-page .home-hero-description { margin-bottom: 12px; }
+  .home-page .home-category-section { padding-top: 18px; }
+  .home-page .service-rails { gap: 20px; }
+}

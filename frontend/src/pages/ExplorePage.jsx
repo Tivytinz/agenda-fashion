@@ -7,6 +7,7 @@ import {
   useState
 } from "react";
 
+import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 
 import { apiRequest } from "../api/client";
@@ -289,7 +290,7 @@ function HorizontalRail({
   );
 }
 
-export function ExplorePage({ renderHero = true }) {
+export function ExplorePage({ renderHero = true, filterTarget = null }) {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const requestedQuery =
@@ -667,10 +668,7 @@ export function ExplorePage({ renderHero = true }) {
     });
   }
 
-  return (
-    <div className={renderHero ? "home-page" : "home-discovery-content"}>
-      {renderHero && <HomeHero onExploreCategory={exploreHeroCategory} />}
-
+  const discoveryFilters = (
       <section
         aria-label="Filtros de descoberta"
         className="container home-discovery-filters"
@@ -678,7 +676,7 @@ export function ExplorePage({ renderHero = true }) {
       >
         <label className="home-location-pill">
           <span aria-hidden="true">📍</span>
-          <span>Onde?</span>
+          <span>Cidade</span>
           <select
             aria-label="Escolher localização"
             onChange={(event) => chooseLocation(event.target.value)}
@@ -690,14 +688,23 @@ export function ExplorePage({ renderHero = true }) {
             ))}
           </select>
         </label>
+
+      </section>
+  );
+
+  return (
+    <div className={renderHero ? "home-page" : "home-discovery-content"}>
+      {renderHero && <HomeHero onExploreCategory={exploreHeroCategory} />}
+
+      {filterTarget ? createPortal(discoveryFilters, filterTarget) : discoveryFilters}
         {(query || category || selectedLocationKey) && (
-          <div className="home-active-filters">
+          <div className="container home-active-filters home-results-filters" role="region" aria-label="Filtros aplicados">
+            {selectedLocationKey && <span>Cidade: <strong>{selectedLocation.city}, {selectedLocation.state}</strong></span>}
             {query && <span>Busca: <strong>{query}</strong></span>}
             {category && <span>Categoria: <strong>{serviceCategoryLabel(category)}</strong></span>}
             <button className="text-button" onClick={clearFilters} type="button">Limpar filtros</button>
           </div>
         )}
-      </section>
 
       <section
         aria-labelledby="categories-title"
@@ -749,7 +756,7 @@ export function ExplorePage({ renderHero = true }) {
               <h2 id="businesses-title">
                 {selectedLocation.city
                   ? `Espaços e profissionais em ${selectedLocation.city}`
-                  : "Espaços e profissionais no Agenda Fashion"}
+                  : "Espaços e profissionais"}
               </h2>
             </div>
 
@@ -815,13 +822,13 @@ export function ExplorePage({ renderHero = true }) {
         <div className="home-section-heading">
           <div>
             <p className="eyebrow">
-              Escolhas para você
+              Encontre seu próximo cuidado
             </p>
 
             <h2 id="services-title">
               {query || category
                 ? "Serviços encontrados"
-                : "Serviços para você"}
+                : "Explorar serviços"}
             </h2>
           </div>
         </div>

@@ -17,6 +17,7 @@ import {
   it,
   vi
 } from "vitest";
+import { HomePage } from "./HomePage";
 import { apiRequest } from "../api/client";
 import {
   buildCatalogPath,
@@ -347,7 +348,7 @@ describe("catálogo público paginado", () => {
       "Nenhum serviço encontrado"
     )).not.toBeNull();
     expect(screen.getByRole("heading", {
-      name: "Espaços e profissionais no Agenda Fashion"
+      name: "Espaços e profissionais"
     })).not.toBeNull();
     expect(screen.getByText(
       "Nenhum negócio encontrado"
@@ -572,7 +573,7 @@ describe("catálogo público paginado", () => {
 
     await screen.findAllByText("Rio de Janeiro, RJ");
     expect(container.querySelector(".home-title-with-icon")?.textContent)
-      .toContain("📍Espaços e profissionais no Agenda Fashion");
+      .toContain("📍Espaços e profissionais");
     expect(screen.getByRole("combobox", {
       name: "Escolher localização"
     }).value).toBe("");
@@ -642,4 +643,34 @@ describe("catálogo público paginado", () => {
       .not.toBeNull();
     expect(screen.getByText("Selecione o horário")).not.toBeNull();
   });
+});
+
+
+it("integra cidade no topo e limpeza dos filtros nos resultados durante consulta lenta", async () => {
+  apiRequest.mockReturnValue(new Promise(() => {}));
+  const user = userEvent.setup();
+  render(<MemoryRouter initialEntries={["/?cidade=Goi%C3%A2nia&estado=GO&busca=manicure&utm_source=teste#buscar-servicos"]}><HomePage /><NavigationProbe /></MemoryRouter>);
+  const city = await screen.findByRole("combobox", { name: "Escolher localização" });
+  expect(city.closest(".home-filter-slot")).not.toBeNull();
+  expect(city.value).toBe("Goiânia::GO");
+  const applied = screen.getByRole("region", { name: "Filtros aplicados" });
+  expect(applied.closest("#buscar-servicos")).not.toBeNull();
+  expect(applied.textContent).toContain("Goiânia, GO");
+  expect(applied.textContent).toContain("manicure");
+  await user.click(screen.getByRole("button", { name: "Limpar filtros" }));
+  await waitFor(() => expect(screen.getByTestId("location").textContent).toBe("?utm_source=teste"));
+  expect(city.value).toBe("");
+  expect(screen.queryByRole("region", { name: "Filtros aplicados" })).toBeNull();
+});
+
+it("mostra carregamento inicial e permite escolher cidade na home completa", async () => {
+  apiRequest.mockResolvedValue({ negocios: [], localidades: [{ cidade: "Goiânia", estado: "GO", total_negocios: 1 }], paginacao: { tem_mais: false } });
+  const user = userEvent.setup();
+  render(<MemoryRouter><HomePage /><NavigationProbe /></MemoryRouter>);
+  expect(screen.getByLabelText("Carregando filtro de cidade")).not.toBeNull();
+  const city = await screen.findByRole("combobox", { name: "Escolher localização" });
+  await screen.findByRole("option", { name: "Goiânia, GO" });
+  await user.selectOptions(city, "Goiânia::GO");
+  await waitFor(() => expect(screen.getByTestId("location").textContent).toContain("cidade=Goi%C3%A2nia"));
+  expect(screen.getByRole("region", { name: "Filtros aplicados" }).textContent).toContain("Goiânia, GO");
 });
