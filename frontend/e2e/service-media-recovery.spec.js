@@ -122,9 +122,11 @@ test('um salvamento antigo não tira a dona do novo editor nem altera seu rascun
   });
   await page.goto('/painel/servicos/12/editar');
   await expect(page.getByLabel('Nome do serviço')).toHaveValue('Manicure');
+  await page.getByLabel('Nome do serviço').fill('Manicure revisada');
   await page.getByRole('button', { name: 'Salvar serviço' }).click();
   await expect.poll(() => Boolean(pending)).toBe(true);
   await page.getByRole('link', { name: 'Voltar aos serviços' }).click();
+  await page.getByRole('button', { name: 'Sair sem salvar', exact: true }).click();
   await page.getByRole('link', { name: 'Editar', exact: true }).nth(1).click();
   const name = page.getByLabel('Nome do serviço');
   await expect(name).toHaveValue('Pedicure');
@@ -164,6 +166,80 @@ test('remoção confirmada com resposta perdida é reconciliada só por GET sem 
   await expect(page.getByRole('button', { name: 'Remover foto da galeria' })).toHaveCount(2);
   await expect(page.getByText('Capa atual', { exact: true })).toHaveCount(0);
   expect(writes).toEqual(['DELETE']);
+});
+
+test('retry da galeria preserva a pausa de outra aba e envia somente a foto pendente', async ({ page }) => {
+  await setup(page);
+  let service = { ...SERVICE };
+  let saves = 0;
+  const keys = [];
+  await page.route('**/servicos', route => route.request().isNavigationRequest()
+    ? route.continue()
+    : json(route, { servicos: [service, OTHER] }));
+  await page.route('**/servicos/12', route => {
+    saves += 1;
+    service = { ...service, ...route.request().postDataJSON() };
+    return json(route, { servico: service });
+  });
+  await page.route('**/servicos/12/fotos', route => {
+    if (route.request().method() !== 'POST') return json(route, PHOTOS);
+    keys.push(route.request().headers()['idempotency-key']);
+    return keys.length === 1
+      ? json(route, { mensagem: 'Envio não confirmado' }, 503)
+      : json(route, { foto: photo(50) }, 201);
+  });
+  await page.route('**/servicos/12/fotos/tentativa', route => json(route, { estado: 'nao_encontrada' }));
+  await page.goto('/painel/servicos/12/editar');
+  await page.getByLabel('Nome do serviço').fill('Manicure revisada');
+  await page.getByLabel('Adicionar fotos à galeria').setInputFiles({ name: 'pendente.png', mimeType: 'image/png', buffer: png });
+  await page.getByRole('button', { name: 'Salvar serviço' }).click();
+  await expect(page.getByRole('button', { name: 'Verificar fotos' })).toBeVisible();
+  expect(saves).toBe(1);
+  service.ativo = false;
+  await page.getByRole('button', { name: 'Verificar fotos' }).click();
+  await expect(page.getByText(/Fotos conferidas/)).toBeVisible();
+  await page.getByRole('button', { name: 'Salvar serviço' }).click();
+  await expect(page).toHaveURL(/\/painel\/servicos$/);
+  expect(saves).toBe(1);
+  expect(service.ativo).toBe(false);
+  expect(keys).toHaveLength(2);
+  expect(keys[0]).toBeTruthy();
+  expect(keys[1]).toBe(keys[0]);
+});
+
+test('upload direto de capa com resposta perdida exige conferência sem reenviar o lote', async ({ page }) => {
+  await setup(page);
+  let service = { ...SERVICE };
+  const writes = [];
+  await page.route('**/servicos', route => route.request().isNavigationRequest()
+    ? route.continue()
+    : json(route, { servicos: [service, OTHER] }));
+  await page.route('**/servicos/12', route => {
+    writes.push('dados');
+    return json(route, { servico: service });
+  });
+  await page.route('**/servicos/12/foto', route => {
+    writes.push('capa');
+    service = { ...SERVICE, ...photo(50), id: 12 };
+    return route.abort('failed');
+  });
+  await page.route('**/servicos/12/fotos', route => {
+    if (route.request().method() === 'POST') writes.push('galeria');
+    return json(route, PHOTOS);
+  });
+  await page.goto('/painel/servicos/12/editar');
+  await expect(page.getByText('Capa atual', { exact: true })).toBeVisible();
+  await page.locator('.cover-upload input[type=file]').setInputFiles({ name: 'nova-capa.png', mimeType: 'image/png', buffer: png });
+  await page.getByLabel('Adicionar fotos à galeria').setInputFiles({ name: 'galeria.png', mimeType: 'image/png', buffer: png });
+  await page.getByRole('button', { name: 'Salvar serviço' }).click();
+  await expect(page.getByRole('button', { name: 'Verificar fotos' })).toBeVisible();
+  await expect(page.getByLabel('Nome do serviço')).toBeDisabled();
+  await page.getByRole('button', { name: 'Verificar fotos' }).click();
+  await expect(page.getByText(/Capa atual conferida/)).toBeVisible();
+  await expect(page.getByAltText('Prévia da nova capa')).toBeVisible();
+  await expect(page.getByText('1 foto selecionada.')).toBeVisible();
+  await expect(page.locator('figure.is-cover img')).toHaveAttribute('src', photo(50).foto_url);
+  expect(writes).toEqual(['capa']);
 });
 
 test('ações de remover e adicionar foto têm área de toque de pelo menos 44px e o catálogo cabe na tela', async ({ page }) => {

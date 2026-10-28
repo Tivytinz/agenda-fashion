@@ -807,6 +807,13 @@ somente aquele arquivo da fila pendente. Uma falha posterior mantém as imagens
 já persistidas visíveis e a nova tentativa envia apenas os arquivos restantes.
 Uma leitura de galeria em andamento preserva as fotos enviadas após seu início.
 
+Se os dados normalizados continuam iguais ao baseline confirmado, salvar envia
+apenas os arquivos pendentes, sem repetir PUT do serviço. Sem arquivos restantes,
+conclui a navegação sem escrita, inclusive depois de recuperar todas as fotos. Isso
+preserva uma pausa ou edição feita em outra aba. Uma edição real dos campos
+continua sendo salva antes dos arquivos; na criação, o primeiro POST permanece
+obrigatório e seu ID confirmado é reutilizado nas tentativas seguintes.
+
 Adicionar outro lote acumula os arquivos pendentes, sem substituir a seleção
 anterior. Repetir o mesmo arquivo (nome, tamanho, tipo e última modificação iguais)
 não cria uma segunda entrada pendente. O input nativo é limpo após a seleção,
@@ -825,6 +832,13 @@ rascunho de texto, preço e duração. Falha de leitura mantém a proteção. O 
 de capa pendente só é descartado quando a leitura confirma a escolha solicitada.
 Sair cancela essas leituras e invalida sua continuação. O botão de conferência
 não exige a validação dos campos do formulário, pois não grava esses dados.
+
+Upload direto de capa com resultado incerto também exige essa conferência por
+GET antes de outra escrita e interrompe o restante do lote. Como esse endpoint
+não possui recibo por arquivo, a leitura mostra a capa canônica sem afirmar que
+ela corresponde ao arquivo selecionado. A seleção permanece pendente; a dona
+confere a capa atual na galeria e decide explicitamente se quer substituí-la ao
+salvar novamente. Falha de leitura mantém os controles protegidos.
 
 Sair ou trocar de serviço invalida as continuações assíncronas do editor.
 Uma resposta antiga não muda o rascunho, a fila de fotos, os estados ocupados
@@ -1147,6 +1161,13 @@ header e revalida a dona ativa. Sucesso recupera o cadastro atual e continua a
 jornada; falha de leitura mantém o editor protegido e oferece só GET. Serviço
 removido oferece volta ao catálogo sem recriação. A resposta usa `no-store`.
 Referência de outra conta ou negócio não é reutilizada.
+
+Se pathname ou query mudar enquanto a restauração estiver pendente, a consulta
+anterior é abortada e o carregamento libera uma nova tentativa por GET. A
+referência permanece com o mesmo escopo, e a nova consulta usa a intenção atual
+de plano/onboarding. Sucesso tardio da consulta descartada não navega nem
+atualiza sessão. Mudanças apenas de hash ou state não cancelam a leitura.
+
 O retorno pelo login conserva também o fragmento de navegação. Uma expiração
 da sessão não transforma a restauração em um formulário vazio; a referência
 continua sujeita à conferência da conta e do negócio após autenticar.
@@ -1189,6 +1210,15 @@ O lock da conta precede serviço, negócio/vínculo e foto; o serviço vem antes
 negócio como nas operações de edição/ativação. Assim, uma remoção que conclui
 antes da escolha impede adotá-la, e uma remoção posterior também limpa a capa.
 Limpeza no provedor fica fora da transação.
+
+O upload direto da capa também finaliza em transação na ordem conta → serviço
+→ negócio/vínculo, depois do HTTP externo. A dona e o mesmo alvo são revalidados;
+arquivar o negócio durante a transferência impede gravar a nova capa. A imagem
+anterior é relida sob lock, para limpar a que foi efetivamente substituída.
+Perda da confirmação do COMMIT exige conferir a capa persistida antes de limpar
+o novo asset. Se ele estiver confirmado, a resposta recupera o serviço; se a
+leitura falhar, conserva a imagem. Limpeza remove somente assets sem referência
+em capa ou galeria, inclusive de serviço arquivado.
 
 ## 48. Checkout: idempotência
 

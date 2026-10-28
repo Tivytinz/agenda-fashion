@@ -73,6 +73,13 @@ function serviceForm(service, fallback = EMPTY_FORM) {
   };
 }
 
+function serviceBody(form) {
+  return {
+    nome: form.nome.trim(), descricao: form.descricao.trim(), categoria: form.categoria,
+    valor: Number(form.valor), duracao_minutos: Number(form.duracao_minutos), ativo: form.ativo,
+  };
+}
+
 function validateImage(file) {
   if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
     return "Use uma imagem JPG, PNG ou WEBP.";
@@ -414,6 +421,7 @@ export function ServiceEditorPage() {
   const editorContextRef = useRef(null);
   const operationRef = useRef(null);
   const creationAttemptRef = useRef(null);
+  const creationReadRef = useRef(null);
   const uploadAttemptsRef = useRef(new Map());
   const uploadRecoveryRef = useRef(null);
   const mediaRecoveryRef = useRef(null);
@@ -481,6 +489,8 @@ export function ServiceEditorPage() {
     editorContextRef.current = context;
     operationRef.current = null;
     creationAttemptRef.current = id ? null : readServiceCreationReference(location.hash, usuarioId, negocioId);
+    creationReadRef.current?.abort();
+    creationReadRef.current = null;
     uploadAttemptsRef.current = new Map();
     uploadRecoveryRef.current?.abort();
     uploadRecoveryRef.current = null;
@@ -494,6 +504,7 @@ export function ServiceEditorPage() {
 
     return () => {
       if (editorContextRef.current === context) editorContextRef.current = null;
+      creationReadRef.current?.abort();
       uploadRecoveryRef.current?.abort();
     };
   }, [id, usuarioId, negocioId]);
@@ -524,6 +535,13 @@ export function ServiceEditorPage() {
   function discardPendingOperations() {
     // Suspense pode manter este editor montado enquanto o destino carrega.
     if (editorContextRef.current) editorContextRef.current.generation += 1;
+    if (creationReadRef.current) {
+      creationReadRef.current.abort();
+      creationReadRef.current = null;
+      setLoading(false);
+      setRecoveryRemoved(false);
+      setLoadError("A consulta do cadastro foi interrompida. Tente novamente para recuperar o serviço.");
+    }
     uploadRecoveryRef.current?.abort();
     operationRef.current = null;
     setSaving(false);
@@ -563,6 +581,7 @@ export function ServiceEditorPage() {
       }
 
       const controller = new AbortController();
+      creationReadRef.current = controller;
       const context = editorContextRef.current;
       const generation = context.generation;
       let active = true;
@@ -595,6 +614,7 @@ export function ServiceEditorPage() {
         setLoadError(requestError.message);
         setRecoveryRemoved(Number(requestError.status) === 410);
       }).finally(() => {
+        if (creationReadRef.current === controller) creationReadRef.current = null;
         if (isCurrent()) setLoading(false);
       });
       return () => { active = false; controller.abort(); };
@@ -803,9 +823,12 @@ export function ServiceEditorPage() {
     setForm(current => ({ ...current, ...patch }));
     setSavedForm(current => ({ ...current, ...patch }));
     setGallery(photos);
+    const pendingUpload = cover && mediaRecoveryRef.current?.type === "upload";
     mediaRecoveryRef.current = null;
     setMediaUncertain(false);
-    setMediaMessage("Fotos conferidas. Você pode continuar editando.");
+    setMediaMessage(pendingUpload
+      ? "Capa atual conferida. Confira a galeria antes de salvar para substituí-la pela imagem selecionada."
+      : "Fotos conferidas. Você pode continuar editando.");
   }
 
   async function submit(event) {
@@ -835,10 +858,11 @@ export function ServiceEditorPage() {
       let savedId = persistedId;
       let saveResult;
       try {
-        const body = {
-          nome: form.nome.trim(), descricao: form.descricao.trim(), categoria: form.categoria,
-          valor: Number(form.valor), duracao_minutos: Number(form.duracao_minutos), ativo: form.ativo,
-        };
+        const body = serviceBody(form);
+        // Salvar sem alterações não regrava dados já confirmados. Outra
+        // aba pode ter pausado ou editado o serviço desde o primeiro salvamento.
+        const coreUnchanged = !firstServiceOnboarding && savedId
+          && JSON.stringify(body) === JSON.stringify(serviceBody(savedForm));
         if (!savedId) {
           if (!usuarioId || !negocioId) throw Object.assign(new Error("Atualize sua sessão antes de cadastrar o serviço."), { status: 403 });
           if (!creationAttemptRef.current) {
@@ -848,25 +872,36 @@ export function ServiceEditorPage() {
           if (!isCurrentOperation(operation)) return;
           creationAttemptRef.current.body ||= { ...body, negocio_id: negocioId };
         }
-        saveResult = await apiRequest(savedId ? `/servicos/${savedId}` : "/servicos", {
-          method: savedId ? "PUT" : "POST",
-          ...(!savedId ? { headers: { "Idempotency-Key": creationAttemptRef.current.key } } : {}),
-          body: savedId ? body : creationAttemptRef.current.body,
-        });
-        if (!isCurrentOperation(operation)) return;
-        savedId = saveResult.servico?.id || savedId;
-        if (!savedId) {
-          throw new Error("O serviço foi salvo, mas não foi possível identificar o cadastro.");
+        if (!coreUnchanged) {
+          saveResult = await apiRequest(savedId ? `/servicos/${savedId}` : "/servicos", {
+            method: savedId ? "PUT" : "POST",
+            ...(!savedId ? { headers: { "Idempotency-Key": creationAttemptRef.current.key } } : {}),
+            body: savedId ? body : creationAttemptRef.current.body,
+          });
+          if (!isCurrentOperation(operation)) return;
+          savedId = saveResult.servico?.id || savedId;
+          if (!savedId) {
+            throw new Error("O serviço foi salvo, mas não foi possível identificar o cadastro.");
+          }
+          setPersistedId(String(savedId));
+          setCreationUncertain(false);
+          creationAttemptRef.current = null;
+          const confirmedForm = serviceForm(saveResult.servico || {}, form);
+          flushSync(() => {
+            setForm(confirmedForm);
+            setSavedForm(confirmedForm);
+          });
+          if (!isCurrentOperation(operation)) return;
+        } else {
+          // Normalizar também o baseline local, para que diferenças apenas de
+          // espaços ou formato numérico não bloqueiem a navegação de sucesso.
+          const confirmedForm = serviceForm(body, form);
+          flushSync(() => {
+            setForm(confirmedForm);
+            setSavedForm(confirmedForm);
+          });
+          if (!isCurrentOperation(operation)) return;
         }
-        setPersistedId(String(savedId));
-        setCreationUncertain(false);
-        creationAttemptRef.current = null;
-        const confirmedForm = serviceForm(saveResult.servico || {}, form);
-        flushSync(() => {
-          setForm(confirmedForm);
-          setSavedForm(confirmedForm);
-        });
-        if (!isCurrentOperation(operation)) return;
       } catch (requestError) {
         if (isCurrentOperation(operation)) {
           if (!persistedId && requestError.data?.codigo === "SERVICO_TENTATIVA_DIVERGENTE") {
@@ -900,7 +935,15 @@ export function ServiceEditorPage() {
 
       try {
         if (cover) {
-          const uploaded = await uploadImage(`/servicos/${savedId}/foto`, cover);
+          let uploaded;
+          try { uploaded = await uploadImage(`/servicos/${savedId}/foto`, cover); }
+          catch (failure) {
+            if (isCurrentOperation(operation) && uncertainWrite(failure)) {
+              mediaRecoveryRef.current = { type: "upload" };
+              setMediaUncertain(true);
+            }
+            throw failure;
+          }
           if (!isCurrentOperation(operation)) return;
           if (uploaded.servico) {
             const coverPatch = {
@@ -940,7 +983,9 @@ export function ServiceEditorPage() {
         }
       } catch (requestError) {
         if (isCurrentOperation(operation)) {
-          setError(`O serviço foi salvo, mas algumas fotos não foram enviadas. ${requestError.message} Tente novamente para enviar apenas as fotos pendentes.`);
+          setError(mediaRecoveryRef.current?.type === "upload"
+            ? `O serviço foi salvo, mas não foi possível confirmar o envio da capa. ${requestError.message} Verifique as fotos antes de continuar.`
+            : `O serviço foi salvo, mas algumas fotos não foram enviadas. ${requestError.message} Tente novamente para enviar apenas as fotos pendentes.`);
         }
         return;
       }

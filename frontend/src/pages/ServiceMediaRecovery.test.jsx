@@ -183,8 +183,10 @@ describe("respostas de operações encerradas no editor", () => {
     const save = deferred();
     apiRequest.mockImplementation((path, options = {}) => options.method === "PUT" ? save.promise : read(path));
     await mount();
+    fireEvent.change(screen.getByLabelText("Nome do serviço"), { target: { value: "Manicure revisada" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar serviço" }));
     await act(() => router.navigate("/saida"));
+    fireEvent.click(await screen.findByRole("button", { name: "Sair sem salvar" }));
     await screen.findByRole("heading", { name: "Destino" });
     await act(() => outcome === "sucesso" ? save.resolve({ servico: SERVICE }) : save.reject(new Error("Falha antiga")));
     expect(router.state.location.pathname).toBe("/saida");
@@ -199,9 +201,12 @@ describe("respostas de operações encerradas no editor", () => {
       return read(path);
     });
     await mount();
+    fireEvent.change(screen.getByLabelText("Nome do serviço"), { target: { value: "Manicure revisada" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar serviço" }));
     await act(() => router.navigate("/painel/servicos/34/editar"));
+    fireEvent.click(await screen.findByRole("button", { name: "Sair sem salvar" }));
     const name = await screen.findByDisplayValue("Pedicure");
+    fireEvent.change(name, { target: { value: "Pedicure revisada" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar serviço" }));
     await act(() => oldSave.resolve({ servico: SERVICE }));
     expect(router.state.location.pathname).toBe("/painel/servicos/34/editar");

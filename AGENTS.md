@@ -157,6 +157,18 @@ Finalizações concorrentes confirmam uma foto e limpam o asset excedente. Falha
 ao confirmar COMMIT exige leitura antes da limpeza, preservando a imagem quando
 essa conferência estiver indisponível.
 
+Salvar um serviço existente não repete PUT dos dados quando eles continuam
+iguais ao baseline normalizado, inclusive após recuperar todas as fotos,
+preservando pausa ou edição de outra aba. Upload direto da capa finaliza com revalidação transacional na mesma ordem
+de locks da mídia; arquivamento durante o HTTP impede a escrita. Confirmação de
+COMMIT perdida exige leitura canônica e limpeza somente de asset sem referência
+em capa ou galeria. Falha de leitura preserva a imagem. Na interface, resultado
+incerto exige conferir a capa por GET antes de outro envio explícito.
+
+A restauração do cadastro de serviço cancela a leitura pendente quando pathname
+ou query muda e libera nova consulta, preservando referência e intenção atual
+de plano. A resposta descartada não navega nem atualiza a sessão.
+
 Escolha de capa e remoção da galeria validam dona e alvo dentro da transação,
 com locks na ordem conta → serviço → negócio/vínculo → foto. O serviço precede
 o negócio como na edição/ativação; HTTP de limpeza continua após o commit.

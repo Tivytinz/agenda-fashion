@@ -458,6 +458,15 @@ async function removerFotoCapaAnteriorSeOrfa({ servicoId, fotoPublicId }) {
   }
 }
 
+async function removerFotoServicoNaoReferenciada(publicId) {
+  if (!publicId) return;
+  try {
+    if (!await servicosRepository.fotoEstaReferenciada(publicId)) {
+      await removerImagemSilenciosamente(publicId);
+    }
+  } catch { /* Falha de leitura não comprova que a imagem esteja sem uso. */ }
+}
+
 async function enviarFotoServico({ usuarioId, id, file }) {
   const vinculo = await obterVinculoDono(
     usuarioId,
@@ -491,43 +500,40 @@ async function enviarFotoServico({ usuarioId, id, file }) {
     );
 
   let servico;
+  let capaAnterior;
 
   try {
-    servico =
-      await servicosRepository
-        .atualizarFotoServico({
-          id,
-          negocioId:
-            vinculo.negocio_id,
-          fotoUrl:
-            resultado.fotoUrl,
-          fotoPublicId:
-            resultado.fotoPublicId,
-        });
-  } catch (erro) {
-    await removerImagemSilenciosamente(
-      resultado.fotoPublicId
-    );
-
-    throw erro;
-  }
-
-  if (!servico) {
-    await removerImagemSilenciosamente(
-      resultado.fotoPublicId
-    );
-
-    throw criarErro("Serviço não encontrado.", 404);
-  }
-
-  if (
-    servicoAtual.foto_public_id &&
-    servicoAtual.foto_public_id !== resultado.fotoPublicId
-  ) {
-    await removerFotoCapaAnteriorSeOrfa({
-      servicoId: id,
-      fotoPublicId: servicoAtual.foto_public_id,
+    servico = await db.executarTransacao(async client => {
+      // HTTP já concluiu. Revalidar o mesmo alvo, sem adotar um novo negócio,
+      // e serializar com edição, escolha de capa e arquivamento.
+      if (!await servicosRepository.bloquearContextoDono(usuarioId, vinculo.negocio_id, client, { servicoId: id })) {
+        throw criarErro("Serviço não encontrado ou negócio indisponível.", 404);
+      }
+      const atual = await servicosRepository.buscarServicoDoNegocio(id, vinculo.negocio_id, client);
+      capaAnterior = atual.foto_public_id;
+      const atualizado = await servicosRepository.atualizarFotoServico({
+        id, negocioId: vinculo.negocio_id,
+        fotoUrl: resultado.fotoUrl, fotoPublicId: resultado.fotoPublicId,
+      }, client);
+      if (!atualizado) throw criarErro("Serviço não encontrado.", 404);
+      return atualizado;
     });
+  } catch (erro) {
+    // O COMMIT pode ter ocorrido antes da perda da confirmação. Conferir a
+    // referência canônica antes de limpar; indisponibilidade preserva o asset.
+    try {
+      const confirmado = await servicosRepository.buscarServicoDoNegocio(id, vinculo.negocio_id);
+      if (confirmado?.foto_public_id === resultado.fotoPublicId && confirmado.foto_url === resultado.fotoUrl) {
+        servico = confirmado;
+      } else {
+        await removerFotoServicoNaoReferenciada(resultado.fotoPublicId);
+      }
+    } catch { /* Não apagar uma imagem possivelmente salva. */ }
+    if (!servico) throw erro;
+  }
+
+  if (capaAnterior && capaAnterior !== resultado.fotoPublicId) {
+    await removerFotoServicoNaoReferenciada(capaAnterior);
   }
 
   return {

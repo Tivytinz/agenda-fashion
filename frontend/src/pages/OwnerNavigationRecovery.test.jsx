@@ -183,22 +183,13 @@ describe("saída sem rascunho com operação pendente", () => {
   const CONFIG = { duracao_padrao: 60, intervalo_minutos: 0, antecedencia_agendamento: 0, antecedencia_cancelamento: 2, origem_horarios: "padrao_af" };
   const WEEK = [{ dia_semana: 1, trabalha: true, hora_inicio: "08:00", hora_fim: "18:00" }];
 
-  it.each(["sucesso", "erro"])("ignora %s de salvar serviço sem editar os campos", async outcome => {
-    const mutation = deferred();
-    apiRequest.mockImplementation((path, options = {}) => {
-      if (options.method === "PUT") return mutation.promise;
-      return Promise.resolve(path.endsWith("/fotos") ? [] : { servicos: [SERVICE] });
-    });
+  it("salvar serviço sem alterações conclui a navegação sem PUT", async () => {
+    apiRequest.mockImplementation(path => Promise.resolve(path.endsWith("/fotos") ? [] : { servicos: [SERVICE] }));
     mount("/painel/servicos/12/editar", <ServiceEditorPage />);
     await screen.findByDisplayValue("Manicure");
     fireEvent.submit(screen.getByRole("button", { name: "Salvar serviço" }).closest("form"));
-    expect(apiRequest.mock.calls.filter(([, options]) => options?.method === "PUT")).toHaveLength(1);
-    await leaveClean();
-    expect(screen.getByRole("heading", { name: "Editar serviço", hidden: true })).toBeTruthy();
-    await act(async () => outcome === "sucesso"
-      ? mutation.resolve({ servico: SERVICE }) : mutation.reject(new Error("Falha antiga sem rascunho")));
-    expect(router.state.location.pathname).toBe("/planos");
-    await finishDestination();
+    expect(router.state.location.pathname).toBe("/painel/servicos");
+    expect(apiRequest.mock.calls.some(([, options = {}]) => options.method)).toBe(false);
   });
 
   it.each(["sucesso", "erro"])("ignora %s da confirmação rápida de horários ao sair sem editar", async outcome => {

@@ -417,6 +417,16 @@ async function atualizarFotoServico({ id, negocioId, fotoUrl, fotoPublicId }, ex
   return result.rows[0] || null;
 }
 
+async function fotoEstaReferenciada(fotoPublicId, executor = db) {
+  const result = await executor.query(`
+    SELECT (
+      EXISTS (SELECT 1 FROM servicos_negocio WHERE foto_public_id = $1)
+      OR EXISTS (SELECT 1 FROM fotos_servico WHERE foto_public_id = $1)
+    ) AS existe
+  `, [fotoPublicId]);
+  return result.rows[0]?.existe === true;
+}
+
 async function listarFotosServico(servicoId, executor = db) {
   const result = await executor.query(
     `
@@ -536,6 +546,7 @@ module.exports = {
   sincronizarPublicacaoAutomatica,
   adicionarEspecialidadeNegocio,
   atualizarFotoServico,
+  fotoEstaReferenciada,
   listarFotosServico,
   buscarFotoGaleriaDoNegocio,
   fotoGaleriaUsaPublicId,

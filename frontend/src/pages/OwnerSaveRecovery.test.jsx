@@ -405,10 +405,13 @@ describe("salvamento sem perder edições", () => {
     expect(uploads[0].get("foto").name).toBe("primeira.jpg");
     await act(() => upload.reject(new Error("Upload indisponível")));
     await screen.findByRole("alert");
-    expect(cover.disabled).toBe(false);
+    expect(cover.disabled).toBe(true);
     expect(screen.getByAltText("Prévia da nova capa")).toBeTruthy();
     await act(() => router.navigate("/saida"));
     fireEvent.click(await screen.findByRole("button", { name: "Continuar editando" }));
+    await user.click(screen.getByRole("button", { name: "Verificar fotos" }));
+    await screen.findByText(/Capa atual conferida/);
+    expect(cover.disabled).toBe(false);
     await user.upload(cover, second);
     await user.click(screen.getByRole("button", { name: "Salvar serviço" }));
     await screen.findByRole("heading", { name: "Destino" });
