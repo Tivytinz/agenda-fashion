@@ -26,6 +26,7 @@ export function HomePage() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const discoveryRef = useRef(null);
+  const [filterTarget, setFilterTarget] = useState(null);
   const [showDiscovery, setShowDiscovery] = useState(
     () => location.hash === "#buscar-servicos"
   );
@@ -62,11 +63,16 @@ export function HomePage() {
 
   return (
     <main className="home-page">
+      <div className="home-filter-slot" ref={setFilterTarget}>
+        <section className="container home-discovery-filters home-filter-loading" aria-label="Carregando filtro de cidade" aria-busy="true">
+          <div className="home-location-pill"><span>Cidade</span><span>Carregando cidades…</span></div>
+        </section>
+      </div>
       <HomeHero onExploreCategory={exploreCategory} />
       <div id="buscar-servicos" ref={discoveryRef}>
         {showDiscovery && (
           <Suspense fallback={null}>
-            <ExplorePage renderHero={false} />
+            <ExplorePage renderHero={false} filterTarget={filterTarget} />
           </Suspense>
         )}
       </div>

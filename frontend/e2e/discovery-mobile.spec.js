@@ -72,12 +72,16 @@ test("nova busca preserva os filtros, exibe serviços por UF e permite limpar", 
   await expect.poll(() => new URL(page.url()).search).toBe("");
 });
 
-test("cards sem foto são compactos e os CTAs têm contraste de texto normal", async ({ page }) => {
+test("cards com e sem foto mantêm proporção consistente e CTAs têm contraste", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Manicure tradicional" })).toBeVisible();
   const placeholder = await page.locator(".service-discovery-image-placeholder").boundingBox();
   const photo = await page.locator(".service-discovery-image:not(.service-discovery-image-placeholder)").boundingBox();
-  expect(placeholder.height).toBeLessThan(photo.height);
+  expect(placeholder.height).toBeGreaterThan(0);
+  expect(photo.height).toBeGreaterThan(0);
+  expect(placeholder.width / placeholder.height).toBeCloseTo(16 / 9, 1);
+  expect(photo.width / photo.height).toBeCloseTo(16 / 9, 1);
+  expect(placeholder.height).toBeCloseTo(photo.height, 0);
 
   const contrasts = await page.locator(
     '.home-hero-slide[aria-hidden="false"] .home-hero-primary, .home-page .business-card .button, .home-page .service-discovery-content .button'
