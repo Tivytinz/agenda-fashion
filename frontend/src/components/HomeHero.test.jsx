@@ -58,15 +58,30 @@ it("associa cada categoria à sua imagem original e ao destino correto", () => {
     ["maquiagem", "maquiagem-hero.webp"]
   ];
   expect(slides).toHaveLength(expected.length);
+  expect(container.querySelectorAll(".home-hero-image")).toHaveLength(1);
+  const visitedSources = [];
   expected.forEach(([category, filename], index) => {
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(`Mostrar destaque ${index + 1}:`) }));
     const image = slides[index].querySelector("img");
     expect(image.getAttribute("src")).toContain(filename);
+    visitedSources.push(image.getAttribute("src"));
     expect(image.getAttribute("loading")).toBe(index === 0 ? "eager" : "lazy");
-    fireEvent.click(screen.getByRole("button", { name: new RegExp(`Mostrar destaque ${index + 1}:`) }));
     fireEvent.click(screen.getByRole("button", { name: /Ver serviços de cabelo|Encontrar manicure|Ver serviços de estética|Ver bronzeamento|Ver serviços de cílios|Ver design de sobrancelhas|Encontrar maquiagem/ }));
     expect(onExploreCategory).toHaveBeenLastCalledWith(category);
   });
-  expect(new Set(slides.map(slide => slide.querySelector("img").getAttribute("src"))).size).toBe(7);
+  expect(new Set(visitedSources).size).toBe(7);
   expect(slides[0].querySelector("source").getAttribute("srcset"))
     .toBe("/assets/home/salon-hero-mobile.webp");
+});
+
+
+it("carrega a imagem secundária somente quando a rotação chega ao slide", () => {
+  vi.useFakeTimers();
+  const { container } = render(<HomeHero onExploreCategory={vi.fn()} />);
+  expect(container.querySelectorAll(".home-hero-image")).toHaveLength(1);
+  act(() => vi.advanceTimersByTime(7000));
+  expect(container.querySelector('[aria-hidden="false"] img').getAttribute("src")).toContain("manicure-hero.webp");
+  expect(container.querySelector('img[src*="skincare-hero"]')).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Destaque anterior" }));
+  expect(container.querySelector('[aria-hidden="false"] img').getAttribute("src")).toContain("salon-hero-wide.webp");
 });
