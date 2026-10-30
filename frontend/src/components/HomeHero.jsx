@@ -164,7 +164,8 @@ export function HomeHero({ onExploreCategory, onShowHowItWorks }) {
               className="home-hero-slide"
               key={slide.title}
             >
-              <picture>
+              {/* Native lazy loading also fetches nearby off-screen slides. */}
+              {(index === 0 || activeHero === index) && <picture>
                 {slide.mobileImage && (
                   <source
                     media="(max-width: 767px)"
@@ -179,7 +180,7 @@ export function HomeHero({ onExploreCategory, onShowHowItWorks }) {
                   loading={index === 0 ? "eager" : "lazy"}
                   src={slide.image}
                 />
-              </picture>
+              </picture>}
 
               <div className="home-hero-overlay" />
 
