@@ -394,11 +394,15 @@ describe("catálogo público paginado", () => {
       ...container.querySelectorAll(".home-hero-image")
     ];
 
-    expect(heroImages).toHaveLength(7);
+    expect(heroImages).toHaveLength(1);
     expect(heroImages[0].getAttribute("loading")).toBe("eager");
     expect(heroImages[0].getAttribute("fetchpriority")).toBe("high");
 
-    heroImages.slice(1).forEach((image) => {
+    fireEvent.click(screen.getByRole("button", { name: "Próximo destaque" }));
+    const secondaryImages = [...container.querySelectorAll(".home-hero-image")].slice(1);
+    expect(secondaryImages).toHaveLength(1);
+    expect(secondaryImages[0].getAttribute("src")).toContain("manicure-hero.webp");
+    secondaryImages.forEach((image) => {
       expect(image.getAttribute("loading")).toBe("lazy");
       expect(image.getAttribute("fetchpriority")).toBe("low");
     });
