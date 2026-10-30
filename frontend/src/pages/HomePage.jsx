@@ -7,8 +7,11 @@ import {
 } from "react";
 import {
   useLocation,
+  useNavigate,
   useSearchParams
 } from "react-router-dom";
+import { DiscoveryBoundary } from "../components/DiscoveryBoundary";
+import { LoadingState } from "../components/ScreenState";
 import { HomeHero } from "../components/HomeHero";
 import { usePageMetadata } from "../hooks/usePageMetadata";
 
@@ -24,11 +27,14 @@ export function HomePage() {
     "Encontre serviços de beleza, escolha um horário e agende pelo Agenda Fashion."
   );
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const discoveryRef = useRef(null);
   const [filterTarget, setFilterTarget] = useState(null);
+  const [discoveryMounted, setDiscoveryMounted] = useState(false);
+  const [discoveryFailed, setDiscoveryFailed] = useState(false);
   const [showDiscovery, setShowDiscovery] = useState(
-    () => location.hash === "#buscar-servicos"
+    () => ["#buscar-servicos", "#como-funciona"].includes(location.hash)
   );
 
   useEffect(() => {
@@ -42,38 +48,46 @@ export function HomePage() {
   }, [showDiscovery]);
 
   useEffect(() => {
-    if (location.hash !== "#buscar-servicos") return;
+    if (!["#buscar-servicos", "#como-funciona"].includes(location.hash)) return;
 
     setShowDiscovery(true);
-    window.requestAnimationFrame(() => {
-      discoveryRef.current?.scrollIntoView?.({ block: "start" });
+    if (!discoveryMounted) return;
+    const frame = window.requestAnimationFrame(() => {
+      const target = location.hash === "#como-funciona"
+        ? document.getElementById("como-funciona")
+        : discoveryRef.current;
+      target?.scrollIntoView?.({ block: "start" });
     });
-  }, [location.hash]);
+    return () => window.cancelAnimationFrame(frame);
+  }, [location.hash, location.search, location.key, discoveryMounted]);
 
   function exploreCategory(category) {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("categoria", category);
-    setSearchParams(nextParams, { replace: true });
+    navigate({ pathname: location.pathname, search: `?${nextParams}`, hash: "#buscar-servicos" }, { replace: true });
     setShowDiscovery(true);
+  }
 
-    window.requestAnimationFrame(() => {
-      discoveryRef.current?.scrollIntoView?.({ block: "start" });
-    });
+  function showHowItWorks() {
+    setShowDiscovery(true);
+    navigate({ pathname: location.pathname, search: location.search, hash: "#como-funciona" });
   }
 
   return (
     <main className="home-page">
       <div className="home-filter-slot" ref={setFilterTarget}>
-        <section className="container home-discovery-filters home-filter-loading" aria-label="Carregando filtro de cidade" aria-busy="true">
+        {!discoveryMounted && !discoveryFailed && <section className="container home-discovery-filters home-filter-loading" aria-label="Carregando filtro de cidade" aria-busy="true">
           <div className="home-location-pill"><span>Cidade</span><span>Carregando cidades…</span></div>
-        </section>
+        </section>}
       </div>
-      <HomeHero onExploreCategory={exploreCategory} />
+      <HomeHero onExploreCategory={exploreCategory} onShowHowItWorks={showHowItWorks} />
       <div id="buscar-servicos" ref={discoveryRef}>
         {showDiscovery && (
-          <Suspense fallback={null}>
-            <ExplorePage renderHero={false} filterTarget={filterTarget} />
-          </Suspense>
+          <DiscoveryBoundary onError={() => setDiscoveryFailed(true)}>
+            <Suspense fallback={<LoadingState>Carregando catálogo…</LoadingState>}>
+              <ExplorePage renderHero={false} filterTarget={filterTarget} onMounted={setDiscoveryMounted} />
+            </Suspense>
+          </DiscoveryBoundary>
         )}
       </div>
     </main>

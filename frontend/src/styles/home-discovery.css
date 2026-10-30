@@ -256,7 +256,7 @@
 .home-hero-slide {
   position: relative;
   min-width: 100%;
-  min-height: 320px;
+  min-height: 270px;
   flex: 0 0 100%;
   display: flex;
   align-items: center;
@@ -296,7 +296,7 @@
   z-index: 1;
   width: min(620px, 52%);
   margin-left: clamp(48px, 4.5vw, 64px);
-  padding-block: 20px 60px;
+  padding-block: 18px 46px;
 }
 
 .home-hero h1 {
@@ -304,7 +304,7 @@
   margin-bottom: 10px;
   color: #fff;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2.3rem, 3.5vw, 3.25rem);
+  font-size: clamp(2rem, 3vw, 2.75rem);
   font-weight: 700;
   line-height: 1.02;
   letter-spacing: -0.05em;
@@ -764,13 +764,28 @@
   border-radius: 20px;
 }
 
-.home-page .business-card .card-image {
-  aspect-ratio: 16 / 9;
-}
-
 .home-catalog-section {
   padding-block: 28px 30px;
 }
+
+/* Compact discovery cards: content never expands to match a taller neighbour. */
+.home-page .service-rail-track,
+.home-page .home-business-rail {
+  align-items: flex-start;
+}
+.home-page .business-heading { flex-direction: column; gap: 8px; }
+.home-page .business-heading > div { min-width: 0; }
+.home-page .business-heading h3 { overflow-wrap: anywhere; }
+.home-page .service-discovery-image,
+.home-page .service-discovery-image.service-discovery-image-placeholder,
+.home-page .business-card .card-image,
+.home-page .business-card .card-image.card-image-placeholder {
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 16 / 9;
+  flex: 0 0 auto;
+}
+.home-page .service-discovery-placeholder small { display: none; }
 
 .home-page .service-rails {
   gap: 30px;
@@ -799,16 +814,6 @@
   box-shadow: 0 10px 30px rgb(217 47 127 / 7%);
 }
 
-.home-page .service-discovery-image {
-  aspect-ratio: 4 / 3;
-}
-
-.home-page .business-card .card-image.card-image-placeholder,
-.home-page .service-discovery-image.service-discovery-image-placeholder {
-  height: 100px;
-  min-height: 0;
-  aspect-ratio: auto;
-}
 
 .home-page .card-image-placeholder .card-placeholder,
 .home-page .service-discovery-image-placeholder .service-discovery-placeholder {
@@ -846,6 +851,7 @@
 }
 
 .home-page .service-business-info {
+  margin-top: 8px;
   padding-top: 11px;
 }
 
@@ -1268,35 +1274,30 @@
   }
 }
 
-/* Compact discovery cards: content never expands to match a taller neighbour. */
-.home-page .service-rail-track,
-.home-page .home-business-rail {
-  align-items: flex-start;
-}
-.home-page .service-business-info { margin-top: 8px; }
-.home-page .business-heading { flex-direction: column; gap: 8px; }
-.home-page .business-heading > div { min-width: 0; }
-.home-page .business-heading h3 { overflow-wrap: anywhere; }
-.home-page .service-discovery-image,
-.home-page .service-discovery-image.service-discovery-image-placeholder,
-.home-page .business-card .card-image,
-.home-page .business-card .card-image.card-image-placeholder {
-  height: auto;
-  min-height: 0;
-  aspect-ratio: 16 / 9;
-  flex: 0 0 auto;
-}
-.home-page .service-discovery-placeholder small { display: none; }
 .home-filter-slot { min-height: 68px; }
-.home-filter-slot:has(> .home-discovery-filters:not(.home-filter-loading)) > .home-filter-loading { display: none; }
 .home-filter-loading .home-location-pill { width: 100%; }
 .home-results-filters { margin-top: 16px; }
 @media (max-width: 760px) {
   .home-page .home-section-heading h2 { font-size: clamp(1.35rem, 6vw, 1.65rem); }
-  .home-page .home-hero-slide { min-height: 280px; }
+  .home-page .home-hero-slide { min-height: 250px; }
   .home-page .home-hero-content { padding-block: 18px 48px; }
   .home-page .home-hero h1 { font-size: clamp(1.8rem, 8vw, 2.2rem); }
   .home-page .home-hero-description { margin-bottom: 12px; }
   .home-page .home-category-section { padding-top: 18px; }
   .home-page .service-rails { gap: 20px; }
+}
+
+/* Search and city form one discovery task. */
+.home-discovery-search { display: flex; flex: 1; align-items: center; gap: 12px; min-width: 0; }
+.home-service-search { display: flex; flex: 1; align-items: center; gap: 12px; min-height: 48px; padding: 0 18px; border: 1px solid #f0cddd; border-radius: 24px; background: #fff; min-width: 0; }
+.home-service-search > span { font-weight: 700; white-space: nowrap; }
+.home-service-search input { min-width: 0; width: 100%; border: 0; background: transparent; font: inherit; padding: 10px 0; }
+.home-service-search:focus-within { outline: 3px solid var(--public-focus, var(--pink-600)); outline-offset: 2px; }
+.home-pagination { padding-bottom: 24px; }
+@media (max-width: 760px) {
+  .home-discovery-search { flex-wrap: wrap; }
+  .home-service-search { flex-basis: 100%; }
+  .home-discovery-search .home-location-pill { flex: 1; min-width: 0; }
+  .home-discovery-search .home-location-pill select { width: 100%; }
+  .home-filter-slot { min-height: 128px; }
 }
