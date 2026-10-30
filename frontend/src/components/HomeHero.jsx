@@ -1,4 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import manicureHero from "../assets/home/manicure-hero.webp";
+import skincareHero from "../assets/home/skincare-hero.webp";
+import bronzeamentoHero from "../assets/home/bronzeamento-hero.webp";
+import ciliosHero from "../assets/home/cilios-hero.webp";
+import sobrancelhasHero from "../assets/home/sobrancelhas-hero.webp";
+import maquiagemHero from "../assets/home/maquiagem-hero.webp";
 
 const HERO_SLIDES = [
   {
@@ -7,53 +13,60 @@ const HERO_SLIDES = [
     title: "Beleza para você",
     subtitle: "Cabelos do seu jeito",
     description: "Encontre cortes, tratamentos e profissionais para cuidar dos seus cabelos.",
-    category: "cabelo"
+    category: "cabelo",
+    action: "Ver serviços de cabelo"
   },
   {
-    image: "/assets/home/salon-hero-mobile.webp",
+    image: manicureHero,
     title: "Unhas do seu jeito",
     subtitle: "Cuidado em cada detalhe",
     description: "Encontre manicures, veja opções e escolha o melhor horário para você.",
-    category: "unha"
+    category: "unha",
+    action: "Encontrar manicure"
   },
   {
-    image: "/assets/home/salon-hero-mobile.webp",
+    image: skincareHero,
     title: "Seu momento de cuidado",
     subtitle: "Estética com praticidade",
     description: "Conheça tratamentos, profissionais e horários disponíveis no Agenda Fashion.",
-    category: "estetica"
+    category: "estetica",
+    action: "Ver serviços de estética"
   },
   {
-    image: "/assets/home/salon-hero-mobile.webp",
+    image: bronzeamentoHero,
     title: "Seu brilho em destaque",
     subtitle: "Bronzeamento com praticidade",
     description: "Compare opções de bronzeamento e escolha o cuidado ideal para você.",
-    category: "bronzeamento"
+    category: "bronzeamento",
+    action: "Ver bronzeamento"
   },
   {
-    image: "/assets/home/salon-hero-mobile.webp",
+    image: ciliosHero,
     title: "Um olhar que encanta",
     subtitle: "Cílios feitos para você",
     description: "Encontre especialistas em cílios e agende seu próximo atendimento.",
-    category: "cilio"
+    category: "cilio",
+    action: "Ver serviços de cílios"
   },
   {
-    image: "/assets/home/salon-hero-mobile.webp",
+    image: sobrancelhasHero,
     title: "Expressão em cada detalhe",
     subtitle: "Sobrancelhas que valorizam você",
     description: "Descubra profissionais de design e encontre o melhor horário para você.",
-    category: "sobrancelha"
+    category: "sobrancelha",
+    action: "Ver design de sobrancelhas"
   },
   {
-    image: "/assets/home/salon-hero-mobile.webp",
+    image: maquiagemHero,
     title: "Pronta para seu momento",
     subtitle: "Maquiagem para toda ocasião",
     description: "Escolha sua produção, compare profissionais e agende em poucos passos.",
-    category: "maquiagem"
+    category: "maquiagem",
+    action: "Encontrar maquiagem"
   }
 ];
 
-export function HomeHero({ onExploreCategory }) {
+export function HomeHero({ onExploreCategory, onShowHowItWorks }) {
   const [activeHero, setActiveHero] = useState(0);
   const [heroRotationPaused, setHeroRotationPaused] = useState(() =>
     Boolean(window.matchMedia?.(
@@ -182,17 +195,21 @@ export function HomeHero({ onExploreCategory }) {
                     tabIndex={activeHero === index ? 0 : -1}
                     type="button"
                   >
-                    Explorar serviços
+                    {slide.action}
                     <span aria-hidden="true">→</span>
                   </button>
 
                   <a
                     className="button home-hero-secondary"
                     href="#como-funciona"
+                    onClick={(event) => {
+                      if (!onShowHowItWorks || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                      event.preventDefault();
+                      onShowHowItWorks();
+                    }}
                     tabIndex={activeHero === index ? 0 : -1}
                   >
                     Como funciona
-                    <span aria-hidden="true" className="home-hero-play">▷</span>
                   </a>
                 </div>
               </div>

@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 
 import {
+  act,
+  fireEvent,
   cleanup,
   render,
   screen,
@@ -224,7 +226,7 @@ describe("catálogo público paginado", () => {
     })).not.toBeNull();
 
     await user.click(screen.getByRole("button", {
-      name: "Carregar mais"
+      name: "Carregar mais resultados"
     }));
 
     expect(await screen.findByRole("heading", {
@@ -233,7 +235,7 @@ describe("catálogo público paginado", () => {
     expect(apiRequest.mock.calls[1][0])
       .toContain("pagina=2");
     expect(screen.queryByRole("button", {
-      name: "Carregar mais"
+      name: "Carregar mais resultados"
     })).toBeNull();
   });
 
@@ -369,7 +371,7 @@ describe("catálogo público paginado", () => {
     expect(screen.getByRole("region", {
       name: "Categorias em destaque"
     })).not.toBeNull();
-    expect(screen.queryByRole("searchbox")).toBeNull();
+    expect(screen.getByRole("searchbox").closest(".home-hero")).toBeNull();
     expect(screen.getByRole("button", {
       name: "Próximo destaque"
     })).not.toBeNull();
@@ -673,4 +675,130 @@ it("mostra carregamento inicial e permite escolher cidade na home completa", asy
   await user.selectOptions(city, "Goiânia::GO");
   await waitFor(() => expect(screen.getByTestId("location").textContent).toContain("cidade=Goi%C3%A2nia"));
   expect(screen.getByRole("region", { name: "Filtros aplicados" }).textContent).toContain("Goiânia, GO");
+});
+
+
+it("mantém cidades em carregamento até a resposta e permite tentar após erro", async () => {
+  let rejectRequest;
+  apiRequest.mockReturnValueOnce(new Promise((resolve, reject) => { rejectRequest = reject; }))
+    .mockResolvedValue({ negocios: [], localidades: [{ cidade: "Goiânia", estado: "GO" }] });
+  render(<MemoryRouter initialEntries={["/#buscar-servicos"]}><HomePage /></MemoryRouter>);
+  const city = await screen.findByRole("combobox", { name: "Escolher localização" });
+  await waitFor(() => expect(rejectRequest).toBeTypeOf("function"));
+  expect(city.disabled).toBe(true);
+  expect(screen.queryByLabelText("Carregando filtro de cidade")).toBeNull();
+  expect(screen.getByRole("region", { name: "Filtros de descoberta" }).getAttribute("aria-busy")).toBe("true");
+  await act(async () => rejectRequest(new Error("Offline")));
+  fireEvent.click(screen.getByRole("button", { name: "Tentar carregar cidades novamente" }));
+  await screen.findByRole("option", { name: "Goiânia, GO" });
+  expect(city.disabled).toBe(false);
+});
+
+it("rola novamente após outra busca com o mesmo fragmento", async () => {
+  const originalScroll = Element.prototype.scrollIntoView;
+  const scroll = vi.fn();
+  Element.prototype.scrollIntoView = scroll;
+  apiRequest.mockResolvedValue({ negocios: [], localidades: [] });
+  function SearchAgain() {
+    const navigate = useNavigate();
+    return <button onClick={() => navigate("/?busca=unhas#buscar-servicos")}>Outra busca</button>;
+  }
+  try {
+    render(<MemoryRouter initialEntries={["/?busca=cabelo#buscar-servicos"]}><HomePage /><SearchAgain /></MemoryRouter>);
+    await waitFor(() => expect(scroll).toHaveBeenCalled());
+    scroll.mockClear();
+    fireEvent.click(screen.getByText("Outra busca"));
+    await waitFor(() => expect(scroll).toHaveBeenCalled());
+  } finally {
+    Element.prototype.scrollIntoView = originalScroll;
+  }
+});
+
+
+it("rola novamente ao reenviar exatamente a mesma busca", async () => {
+  const original = Element.prototype.scrollIntoView;
+  const scroll = vi.fn();
+  Element.prototype.scrollIntoView = scroll;
+  apiRequest.mockResolvedValue({ negocios: [], localidades: [] });
+  function RepeatSearch() {
+    const navigate = useNavigate();
+    return <button onClick={() => navigate("/?busca=unhas#buscar-servicos")}>Repetir busca</button>;
+  }
+  try {
+    render(<MemoryRouter initialEntries={["/?busca=unhas#buscar-servicos"]}><HomePage /><RepeatSearch /></MemoryRouter>);
+    await waitFor(() => expect(scroll).toHaveBeenCalled());
+    scroll.mockClear();
+    fireEvent.click(screen.getByText("Repetir busca"));
+    await waitFor(() => expect(scroll).toHaveBeenCalled());
+  } finally { Element.prototype.scrollIntoView = original; }
+});
+
+it.each(["clique", "link direto"])("aguarda Como funciona montar antes de rolar: %s", async (mode) => {
+  const original = Element.prototype.scrollIntoView;
+  const targets = [];
+  Element.prototype.scrollIntoView = function () { targets.push(this.id); };
+  apiRequest.mockReturnValue(new Promise(() => {}));
+  try {
+    render(<MemoryRouter initialEntries={[mode === "clique" ? "/?utm_source=teste" : "/?utm_source=teste#como-funciona"]}><HomePage /><NavigationProbe /></MemoryRouter>);
+    if (mode === "clique") {
+      expect(document.getElementById("como-funciona")).toBeNull();
+      fireEvent.click(screen.getByRole("link", { name: /Como funciona/ }));
+    }
+    await waitFor(() => expect(targets).toContain("como-funciona"));
+    expect(document.getElementById("como-funciona")).not.toBeNull();
+    expect(screen.getByTestId("location").textContent).toBe("?utm_source=teste");
+    targets.length = 0;
+    fireEvent.click(screen.getByRole("link", { name: /Como funciona/ }));
+    await waitFor(() => expect(targets).toContain("como-funciona"));
+  } finally { Element.prototype.scrollIntoView = original; }
+});
+
+
+it.each(["buscar-servicos", "como-funciona"])("preserva âncora e campanha ao restaurar cidade salva: %s", async (anchor) => {
+  const original = Element.prototype.scrollIntoView;
+  const targets = [];
+  Element.prototype.scrollIntoView = function () { targets.push(this.id); };
+  window.localStorage.setItem("af_catalog_location", "Goiânia::GO");
+  apiRequest.mockResolvedValue({ negocios: [], localidades: [{ cidade: "Goiânia", estado: "GO" }] });
+  function UrlProbe() {
+    const location = useLocation();
+    return <output data-testid="restored-url">{location.pathname + location.search + location.hash}</output>;
+  }
+  try {
+    render(<MemoryRouter initialEntries={[`/?utm_source=teste#${anchor}`]}><HomePage /><UrlProbe /></MemoryRouter>);
+    await waitFor(() => expect(targets).toContain(anchor));
+    const url = new URL(screen.getByTestId("restored-url").textContent, "https://example.test");
+    expect(url.hash).toBe(`#${anchor}`);
+    expect(url.searchParams.get("cidade")).toBe("Goiânia");
+    expect(url.searchParams.get("estado")).toBe("GO");
+    expect(url.searchParams.get("utm_source")).toBe("teste");
+    expect(screen.getByRole("combobox", { name: "Escolher localização" }).value).toBe("Goiânia::GO");
+  } finally { Element.prototype.scrollIntoView = original; }
+});
+
+
+it.each(["manicure", ""])("busca junto à cidade preserva contexto e campanha: %s", async (value) => {
+  apiRequest.mockResolvedValue({ negocios: [], localidades: [] });
+  renderExplore("/?categoria=unha&cidade=An%C3%A1polis&estado=GO&busca=antiga&pagina=3&utm_source=teste");
+  const input = screen.getByRole("searchbox", { name: "Qual serviço?" });
+  fireEvent.change(input, { target: { value } });
+  fireEvent.submit(input.closest("form"));
+  const params = new URLSearchParams(screen.getByTestId("location").textContent);
+  expect(params.get("busca")).toBe(value || null);
+  expect(params.get("cidade")).toBe("Anápolis");
+  expect(params.get("estado")).toBe("GO");
+  expect(params.get("categoria")).toBe("unha");
+  expect(params.get("pagina")).toBeNull();
+  expect(params.get("utm_source")).toBe("teste");
+});
+
+it.each(["/?categoria=unha", "/?busca=Studio"])("prioriza serviços no DOM e mantém paginação após resultados: %s", async (path) => {
+  apiRequest.mockResolvedValue({ negocios: [business(1, "Studio")], localidades: [], paginacao: { tem_mais: true } });
+  const { container } = renderExplore(path);
+  await screen.findByRole("button", { name: "Carregar mais resultados" });
+  const services = container.querySelector('#servicos');
+  const businesses = container.querySelector('.home-businesses-section');
+  const pagination = container.querySelector('.home-pagination');
+  expect(services.compareDocumentPosition(businesses) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(businesses.compareDocumentPosition(pagination) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });

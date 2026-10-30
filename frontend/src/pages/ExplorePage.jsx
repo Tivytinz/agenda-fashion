@@ -7,8 +7,9 @@ import {
   useState
 } from "react";
 
+import { DiscoveryLocationFilter } from "../components/DiscoveryLocationFilter";
 import { createPortal } from "react-dom";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/trackEvent";
@@ -290,7 +291,14 @@ function HorizontalRail({
   );
 }
 
-export function ExplorePage({ renderHero = true, filterTarget = null }) {
+export function ExplorePage({ renderHero = true, filterTarget = null, onMounted }) {
+  useEffect(() => {
+    onMounted?.(true);
+    return () => onMounted?.(false);
+  }, [onMounted]);
+
+  const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const requestedQuery =
@@ -420,7 +428,11 @@ export function ExplorePage({ renderHero = true, filterTarget = null }) {
         const nextParams = new URLSearchParams(searchParams);
         nextParams.set("cidade", stored.city);
         nextParams.set("estado", stored.state);
-        setSearchParams(nextParams, { replace: true });
+        navigate({
+          pathname: location.pathname,
+          search: `?${nextParams}`,
+          hash: location.hash
+        }, { replace: true, state: location.state });
         return;
       }
     }
@@ -433,7 +445,7 @@ export function ExplorePage({ renderHero = true, filterTarget = null }) {
     } catch {
       // A URL é a fonte navegável mesmo quando o armazenamento está bloqueado.
     }
-  }, [locationRestored, requestedLocationKey, searchParams, setSearchParams]);
+  }, [locationRestored, requestedLocationKey, searchParams, navigate, location.pathname, location.hash, location.state]);
 
   useEffect(() => {
     const controller =
@@ -668,29 +680,70 @@ export function ExplorePage({ renderHero = true, filterTarget = null }) {
     });
   }
 
-  const discoveryFilters = (
-      <section
-        aria-label="Filtros de descoberta"
-        className="container home-discovery-filters"
-        id={renderHero ? "buscar-servicos" : undefined}
-      >
-        <label className="home-location-pill">
-          <span aria-hidden="true">📍</span>
-          <span>Cidade</span>
-          <select
-            aria-label="Escolher localização"
-            onChange={(event) => chooseLocation(event.target.value)}
-            value={selectedLocationKey}
-          >
-            <option value="">Todo o Brasil</option>
-            {locationOptions.map(([key, location]) => (
-              <option key={key} value={key}>{location.cidade}, {location.estado}</option>
-            ))}
-          </select>
-        </label>
+  function searchCatalog(value) {
+    const nextParams = new URLSearchParams(searchParams);
+    if (value) nextParams.set("busca", value);
+    else nextParams.delete("busca");
+    nextParams.delete("pagina");
+    navigate({ pathname: location.pathname, search: `?${nextParams}`, hash: "#buscar-servicos" });
+  }
 
-      </section>
+  const discoveryFilters = (
+    <DiscoveryLocationFilter
+      id={renderHero ? "buscar-servicos" : undefined}
+      value={selectedLocationKey}
+      options={locationOptions}
+      query={query}
+      onSearch={searchCatalog}
+      status={status}
+      onChange={chooseLocation}
+      onRetry={loadBusinesses}
+    />
   );
+
+  const businessSection = (status === "ready" && (
+        <section
+          aria-labelledby="businesses-title"
+          className="container content-section businesses-section home-businesses-section"
+        >
+          <div className="home-section-heading nearby-heading">
+            <div className="home-title-with-icon">
+              <span aria-hidden="true">📍</span>
+
+              <h2 id="businesses-title">
+                {selectedLocation.city
+                  ? `Espaços e profissionais em ${selectedLocation.city}`
+                  : "Espaços e profissionais"}
+              </h2>
+            </div>
+
+          </div>
+
+          {sortedBusinesses.length > 0 ? (
+            <HorizontalRail
+              ariaLabel={selectedLocation.city
+                ? `Profissionais e negócios em ${selectedLocation.city}`
+                : "Profissionais e negócios no Agenda Fashion"}
+              className="home-business-rail"
+            >
+              {sortedBusinesses.map(
+                (business) => (
+                  <BusinessCard
+                    business={business}
+                    key={business.id}
+                  />
+                )
+              )}
+            </HorizontalRail>
+          ) : (
+            <EmptyState title="Nenhum negócio encontrado">
+              Tente outra categoria, serviço ou localização.
+            </EmptyState>
+          )}
+
+
+        </section>
+      ));
 
   return (
     <div className={renderHero ? "home-page" : "home-discovery-content"}>
@@ -744,75 +797,7 @@ export function ExplorePage({ renderHero = true, filterTarget = null }) {
         </HorizontalRail>
       </section>
 
-      {status === "ready" && (
-        <section
-          aria-labelledby="businesses-title"
-          className="container content-section businesses-section home-businesses-section"
-        >
-          <div className="home-section-heading nearby-heading">
-            <div className="home-title-with-icon">
-              <span aria-hidden="true">📍</span>
-
-              <h2 id="businesses-title">
-                {selectedLocation.city
-                  ? `Espaços e profissionais em ${selectedLocation.city}`
-                  : "Espaços e profissionais"}
-              </h2>
-            </div>
-
-          </div>
-
-          {sortedBusinesses.length > 0 ? (
-            <HorizontalRail
-              ariaLabel={selectedLocation.city
-                ? `Profissionais e negócios em ${selectedLocation.city}`
-                : "Profissionais e negócios no Agenda Fashion"}
-              className="home-business-rail"
-            >
-              {sortedBusinesses.map(
-                (business) => (
-                  <BusinessCard
-                    business={business}
-                    key={business.id}
-                  />
-                )
-              )}
-            </HorizontalRail>
-          ) : (
-            <EmptyState title="Nenhum negócio encontrado">
-              Tente outra categoria, serviço ou localização.
-            </EmptyState>
-          )}
-
-          {hasMore && (
-            <div className="load-more-row">
-              <button
-                className="button button-secondary"
-                disabled={loadingMore}
-                onClick={loadMore}
-                type="button"
-              >
-                {loadingMore
-                  ? "Carregando..."
-                  : "Carregar mais"}
-              </button>
-            </div>
-          )}
-
-          {error && (
-            <p className="inline-error" role="alert">
-              {error}{" "}
-              <button
-                className="link-button"
-                onClick={loadMore}
-                type="button"
-              >
-                Tentar novamente
-              </button>
-            </p>
-          )}
-        </section>
-      )}
+      {!query && !category && businessSection}
 
       <section
         aria-labelledby="services-title"
@@ -885,6 +870,39 @@ export function ExplorePage({ renderHero = true, filterTarget = null }) {
             </div>
           )}
       </section>
+
+      {(query || category) && businessSection}
+      {status === "ready" && (
+        <div className="container home-pagination" aria-label="Mais resultados do catálogo">
+          {hasMore && (
+            <div className="load-more-row">
+              <button
+                className="button button-secondary"
+                disabled={loadingMore}
+                onClick={loadMore}
+                type="button"
+              >
+                {loadingMore
+                  ? "Carregando..."
+                  : "Carregar mais resultados"}
+              </button>
+            </div>
+          )}
+
+          {error && (
+            <p className="inline-error" role="alert">
+              {error}{" "}
+              <button
+                className="link-button"
+                onClick={loadMore}
+                type="button"
+              >
+                Tentar novamente
+              </button>
+            </p>
+          )}
+        </div>
+      )}
 
       <section
         aria-labelledby="how-it-works-title"

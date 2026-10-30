@@ -138,7 +138,7 @@ describe(
         expect(
           explorar
         ).toContain(
-          '"Carregar mais"'
+          '"Carregar mais resultados"'
         );
 
         expect(
@@ -701,7 +701,7 @@ describe(
         expect(inicio).not.toContain(
           "nearbyLocation"
         );
-        expect(inicio).toContain(
+        expect(ler("frontend/src/components/DiscoveryLocationFilter.jsx")).toContain(
           "Todo o Brasil"
         );
         expect(hero).toContain(

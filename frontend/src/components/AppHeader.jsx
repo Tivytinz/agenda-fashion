@@ -193,7 +193,7 @@ export function AppHeader() {
             </>
           )}
 
-          {showDiscoveryNavigation && (
+          {showDiscoveryNavigation && !homePage && (
             <form
               aria-label="Buscar no Agenda Fashion"
               className="header-search"
