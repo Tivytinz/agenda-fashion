@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const db = require("../db/db");
 const renovacaoRepository = require("../repositories/assinaturaRenovacaoRepository");
+const { valoresMonetariosIguais } = require("./assinaturaCalculos");
 
 const checkoutRepository = require("../repositories/checkoutRepository");
 const checkoutTentativaRepository = require(
@@ -115,27 +116,64 @@ async function obterAssinaturaCheckout({
   negocio,
   plano,
   formaPagamento,
-  tentativa
+  tentativa,
+  usuarioId
 }) {
-  if (tentativa.assinatura_id) {
-    const assinaturaExistente =
-      await assinaturaRepository.buscarPorId(
-        tentativa.assinatura_id,
-        client
-      );
-
-    if (assinaturaExistente) {
-      return assinaturaExistente;
-    }
-  }
-
   const assinatura = await db.executarTransacao(
     async (transactionClient) => {
+      // Conta antes do negócio: mudanças concorrentes de acesso não podem
+      // validar uma dona desativada entre consulta e persistência do checkout.
+      const contaAtiva = await checkoutRepository.bloquearContaDonoCheckout(
+        transactionClient,
+        usuarioId
+      );
+      if (!contaAtiva) {
+        throw new AppError("A conta não está mais ativa para este checkout.", 409);
+      }
+
       await checkoutRepository
         .bloquearCheckoutDoNegocio(
           transactionClient,
           negocio.id
         );
+
+      const elegivel = await checkoutRepository.buscarElegibilidadeCheckout(
+        transactionClient,
+        negocio.id,
+        usuarioId
+      );
+      if (!elegivel || elegivel.publicado !== true) {
+        throw new AppError(
+          "A proprietária precisa manter um negócio ativo e publicado para gerar PIX.",
+          409
+        );
+      }
+      if (Number(elegivel.plano_id) === Number(plano.id)) {
+        throw new AppError("Este já é o plano atual do seu negócio.", 409);
+      }
+
+      const planoAtual = await checkoutRepository.buscarPlano(
+        transactionClient,
+        plano.id
+      );
+      if (!planoAtual || (!tentativa.assinatura_id &&
+        !valoresMonetariosIguais(planoAtual.valor, plano.valor))) {
+        throw new AppError("O preço ou a disponibilidade do plano mudou. Atualize os planos antes de pagar.", 409);
+      }
+
+      if (tentativa.assinatura_id) {
+        const existente = await assinaturaRepository.buscarPorId(
+          tentativa.assinatura_id,
+          transactionClient
+        );
+        if (existente) {
+          if (Number(existente.negocio_id) !== Number(negocio.id) ||
+              Number(existente.plano_id) !== Number(plano.id)) {
+            throw new AppError("A tentativa não pertence ao plano e negócio informados.", 409);
+          }
+          return existente;
+        }
+      }
 
       if (await renovacaoRepository.possuiPendente(negocio.id, transactionClient)) {
         throw new AppError("Aguarde a conferência da renovação antes de gerar outro PIX.", 409);
@@ -204,7 +242,8 @@ async function criarCheckoutPix(
   client,
   negocio,
   plano,
-  tentativa
+  tentativa,
+  usuarioId
 ) {
   const assinaturaLocal =
     await obterAssinaturaCheckout({
@@ -212,7 +251,8 @@ async function criarCheckoutPix(
       negocio,
       plano,
       formaPagamento: "pix",
-      tentativa
+      tentativa,
+      usuarioId
     });
 
   const externalReference =
@@ -232,6 +272,17 @@ async function criarCheckoutPix(
     );
   }
 
+  const valorContratado = assinaturaLocal.valor ?? plano.valor;
+  if (!valoresMonetariosIguais(cobranca.value, valorContratado) ||
+      (cobranca.externalReference && cobranca.externalReference !== externalReference) ||
+      (cobranca.customer && cobranca.customer !== negocio.asaas_customer_id) ||
+      (cobranca.billingType && String(cobranca.billingType).toUpperCase() !== "PIX")) {
+    throw new AppError(
+      "A cobrança retornada não corresponde ao contrato. Nenhum novo pagamento será liberado até a conferência.",
+      409
+    );
+  }
+
   /*
    * Persiste a cobrança antes de consultar o QR Code.
    * O Asaas pode levar alguns segundos para disponibilizá-lo;
@@ -241,7 +292,7 @@ async function criarCheckoutPix(
   await registrarPagamento(client, {
     assinatura_id: assinaturaLocal.id,
     asaas_payment_id: cobranca.id,
-    valor: cobranca.value || plano.valor,
+    valor: valorContratado,
     forma_pagamento: "pix",
     status: cobranca.status || "PENDING",
     data_vencimento: cobranca.dueDate || null,
@@ -255,7 +306,7 @@ async function criarCheckoutPix(
   await registrarPagamento(client, {
     assinatura_id: assinaturaLocal.id,
     asaas_payment_id: cobranca.id,
-    valor: cobranca.value || plano.valor,
+    valor: valorContratado,
     forma_pagamento: "pix",
     status: cobranca.status || "PENDING",
     data_vencimento: cobranca.dueDate || null,
@@ -433,7 +484,8 @@ async function criarCheckout({
       client,
       negocio,
       plano,
-      tentativa.tentativa
+      tentativa.tentativa,
+      usuarioId
     );
 
     const resposta = {
