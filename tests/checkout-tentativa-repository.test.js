@@ -186,6 +186,26 @@ describe(
     );
 
     test(
+      "chave reconciliada continua encerrada; somente nova chave pode ser usada",
+      async () => {
+        db.query
+          .mockResolvedValueOnce({ rows: [] })
+          .mockResolvedValueOnce({ rows: [{
+            id: 77, request_hash: "hash", status: "FAILED",
+            resposta: { estado: "CONCILIACAO_RESOLVIDA", asaas_payment_id: "pay_77" }
+          }] });
+        await expect(repository.iniciar({
+          negocioId: 7,
+          chaveIdempotencia: "checkout-chave-123456",
+          requestHash: "hash"
+        })).rejects.toMatchObject({
+          code: "CHECKOUT_CHAVE_ENCERRADA"
+        });
+        expect(db.query).toHaveBeenCalledTimes(2);
+      }
+    );
+
+    test(
       "persiste cobrança divergente sob o lease atual e sem copiar dados sensíveis",
       async () => {
         db.query.mockResolvedValueOnce({ rows: [{ id: 77 }] });
