@@ -148,6 +148,16 @@ async function obterAssinaturaCheckout({
           409
         );
       }
+      if (await checkoutRepository.buscarDivergenciaAbertaDoNegocio(
+        transactionClient, negocio.id
+      )) {
+        const erro = new AppError(
+          "Este negócio possui uma cobrança em conferência financeira. Procure o suporte antes de gerar outro PIX.",
+          409
+        );
+        erro.codigo = "CHECKOUT_CONCILIACAO_PENDENTE";
+        throw erro;
+      }
       const vigente = await checkoutRepository.buscarAssinaturaVigenteDoNegocio(
         transactionClient,
         negocio.id
