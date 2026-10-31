@@ -739,6 +739,53 @@ describe(
       }
     );
 
+    test.each([
+      {
+        campo: "externalReference",
+        valor: "checkout:outro",
+        motivo: "REFERENCIA_DIVERGENTE"
+      },
+      {
+        campo: "customer",
+        valor: "cus_de_outro_negocio",
+        motivo: "CLIENTE_DIVERGENTE"
+      },
+      {
+        campo: "billingType",
+        valor: "CREDIT_CARD",
+        motivo: "FORMA_DIVERGENTE"
+      }
+    ])(
+      "não associa cobrança com $campo incompatível ao negócio",
+      async ({ campo, valor, motivo }) => {
+        checkoutTentativaRepository.iniciar.mockResolvedValue({
+          executar: true,
+          tentativa: { id: 60, status: "PROCESSING", lease_tentativa: 1 }
+        });
+        registrarAssinaturaPendente.mockResolvedValue({
+          id: 70, negocio_id: 7, plano_id: 3, valor: "20.00"
+        });
+        criarCobrancaPix.mockResolvedValue({
+          id: "pay_incorreto", value: 20,
+          status: "PENDING", [campo]: valor
+        });
+
+        await expect(criarCheckout({
+          usuarioId: 1, planoId: 3, formaPagamento: "pix",
+          chaveIdempotencia: "checkout-identidade-errada-123"
+        })).rejects.toMatchObject({
+          statusCode: 409,
+          codigo: "CHECKOUT_CONCILIACAO_PENDENTE"
+        });
+        expect(checkoutTentativaRepository.registrarDivergencia).toHaveBeenCalledWith(
+          60, 1, expect.objectContaining({
+            pagamentoId: "pay_incorreto", motivo
+          })
+        );
+        expect(registrarPagamento).not.toHaveBeenCalled();
+      }
+    );
+
     test(
       "impede checkout com outra chave enquanto há cobrança divergente",
       async () => {
