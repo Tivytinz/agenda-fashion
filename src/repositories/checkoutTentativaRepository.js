@@ -64,11 +64,15 @@ async function iniciar({
     throw erro;
   }
 
-  if (tentativa.resposta?.estado === "CONCILIACAO_NECESSARIA") {
-    const erro = new Error(
-      "Esta cobrança requer conferência financeira. Não gere outro PIX até a conciliação."
-    );
-    erro.code = "CHECKOUT_CONCILIACAO_PENDENTE";
+  if (["CONCILIACAO_NECESSARIA", "CONCILIACAO_RESOLVIDA"].includes(
+    tentativa.resposta?.estado
+  )) {
+    const pendente = tentativa.resposta.estado === "CONCILIACAO_NECESSARIA";
+    const erro = new Error(pendente
+      ? "Esta cobrança requer conferência financeira. Não gere outro PIX até a conciliação."
+      : "Esta chave de checkout foi encerrada após conciliação. Inicie uma nova tentativa.");
+    erro.code = pendente
+      ? "CHECKOUT_CONCILIACAO_PENDENTE" : "CHECKOUT_CHAVE_ENCERRADA";
     throw erro;
   }
 
@@ -90,7 +94,7 @@ async function iniciar({
       updated_at = NOW()
     WHERE id = $1
       AND (
-        (status = 'FAILED' AND COALESCE(resposta->>'estado', '') <> 'CONCILIACAO_NECESSARIA')
+        (status = 'FAILED' AND COALESCE(resposta->>'estado', '') NOT IN ('CONCILIACAO_NECESSARIA', 'CONCILIACAO_RESOLVIDA'))
         OR (
           status = 'PROCESSING'
           AND updated_at < NOW() - INTERVAL '5 minutes'
