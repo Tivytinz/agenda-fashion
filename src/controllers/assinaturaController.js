@@ -26,11 +26,8 @@ async function cancelarMinhaAssinatura(req, res, next) {
     return res.json(serializarRespostaAssinatura(resultado));
   } catch (err) {
     registrador.erro("Não foi possível cancelar a assinatura.", {
-      mensagem: err.message,
-      status_asaas: err.response?.status,
-      resposta_asaas: err.response?.data,
-      metodo: err.config?.method,
-      url: err.config?.url
+      codigo: err.code || null,
+      status_asaas: err.response?.status || null
     });
 
     next(err);

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createMetaEventContext,
@@ -19,7 +19,8 @@ vi.mock("../analytics/metaAds", () => ({
   trackMetaEvent: vi.fn()
 }));
 
-const PLAN = { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 };
+const PLAN = { id: 2, slug: "autonoma", nome: "Autônoma", valor: 10 };
+const STUDIO = { id: 3, slug: "studio", nome: "Studio", valor: 20 };
 const META_CONTEXT = {
   consentimento: true,
   event_id: "af:professional-checkout:12345678",
@@ -71,6 +72,99 @@ afterEach(() => {
 });
 
 describe("checkout PIX", () => {
+  it("descarta respostas antigas após troca de plano na mesma tela", async () => {
+    let resolverAntigo;
+    let resolverAtual;
+    let consultas = 0;
+    apiRequest.mockImplementation((path) => {
+      if (path === "/meu-plano") return Promise.resolve(null);
+      if (path === "/planos") {
+        consultas += 1;
+        return new Promise((resolve) => {
+          if (consultas === 1) resolverAntigo = resolve;
+          else resolverAtual = resolve;
+        });
+      }
+      throw new Error(`Consulta inesperada: ${path}`);
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/checkout?plano=autonoma"]}>
+        <Link to="/checkout?plano=studio">Mudar plano</Link>
+        <Routes>
+          <Route path="/checkout" element={<BillingCheckoutPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await act(async () => fireEvent.click(screen.getByRole("link", { name: "Mudar plano" })));
+    await act(async () => resolverAtual({ planos: [PLAN, STUDIO] }));
+    expect(screen.getByRole("heading", { name: "Studio" })).not.toBeNull();
+    expect(screen.getByText("R$ 20,00")).not.toBeNull();
+
+    await act(async () => resolverAntigo({ planos: [PLAN, STUDIO] }));
+    expect(screen.getByRole("heading", { name: "Studio" })).not.toBeNull();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "CPF ou CNPJ" }), {
+      target: { value: "12345678901" }
+    });
+    apiRequest.mockResolvedValueOnce({ pagamento: { pix: { payload: "pix_studio" } } });
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button", { name: "Gerar PIX" }).closest("form"));
+    });
+    expect(apiRequest.mock.calls.find(([path]) => path === "/checkout")[1].body.plano_id).toBe(3);
+  });
+
+  it("recupera PIX criado durante troca de plano sem enviar segundo POST", async () => {
+    let concluirPost;
+    apiRequest.mockImplementation((path) => {
+      if (path === "/planos") return Promise.resolve({ planos: [PLAN, STUDIO] });
+      if (path === "/meu-plano") return Promise.resolve(null);
+      if (path === "/checkout") return new Promise((resolve) => {
+        concluirPost = resolve;
+      });
+      throw new Error(`Consulta inesperada: ${path}`);
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/checkout?plano=autonoma"]}>
+        <Link to="/checkout?plano=studio">Studio</Link>
+        <Link to="/checkout?plano=autonoma">Autônoma</Link>
+        <Routes>
+          <Route path="/checkout" element={<BillingCheckoutPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    await screen.findByRole("heading", { name: "Autônoma" });
+    fireEvent.change(screen.getByRole("textbox", { name: "CPF ou CNPJ" }), {
+      target: { value: "12345678901" }
+    });
+    fireEvent.submit(screen.getByRole("button", { name: "Gerar PIX" }).closest("form"));
+    await waitFor(() => expect(typeof concluirPost).toBe("function"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("link", { name: "Studio" }));
+    });
+    await screen.findByRole("heading", { name: "Studio" });
+    await act(async () => {
+      concluirPost({ pagamento: { pix: { payload: "pix_da_autonoma" } } });
+    });
+    expect(screen.queryByRole("heading", { name: "PIX gerado" })).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("link", { name: "Autônoma" }));
+    });
+    expect(await screen.findByRole("heading", { name: "PIX gerado" })).not.toBeNull();
+    expect(screen.getByDisplayValue("pix_da_autonoma")).not.toBeNull();
+    expect(apiRequest.mock.calls.filter(([path]) => path === "/checkout")).toHaveLength(1);
+  });
+
+  it("informa que o PIX recorrente não é débito automático", async () => {
+    mockInitialization();
+    renderCheckout();
+    expect(await screen.findByText(/não é debitado automaticamente/)).not.toBeNull();
+  });
+
   it("reutiliza idempotência e event_id ao repetir uma tentativa que falhou", async () => {
     mockInitialization();
     apiRequest
@@ -107,7 +201,7 @@ describe("checkout PIX", () => {
       "InitiateCheckout",
       {
         currency: "BRL",
-        value: 49.9,
+        value: 10,
         content_name: "Autônoma"
       },
       META_CONTEXT.event_id

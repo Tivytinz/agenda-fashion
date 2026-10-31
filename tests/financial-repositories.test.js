@@ -36,6 +36,91 @@ describe("repositories financeiros críticos", () => {
       expect(db.query.mock.calls[1][1]).toEqual([3]);
     });
 
+    test("trava a conta da proprietária e recusa conta inativa", async () => {
+      const client = {
+        query: jest.fn()
+          .mockResolvedValueOnce({ rows: [{ id: 7 }] })
+          .mockResolvedValueOnce({ rows: [] })
+      };
+      await expect(
+        checkoutRepository.bloquearContaDonoCheckout(client, 7)
+      ).resolves.toBe(true);
+      await expect(
+        checkoutRepository.bloquearContaDonoCheckout(client, 7)
+      ).resolves.toBe(false);
+      expect(client.query.mock.calls[0][0]).toContain("FOR NO KEY UPDATE");
+      expect(client.query.mock.calls[0][0]).toContain("ativo = TRUE");
+      expect(client.query.mock.calls[0][1]).toEqual([7]);
+    });
+
+    test("revalida negócio publicado e vínculo ativo de dona sob a transação", async () => {
+      const client = {
+        query: jest.fn()
+          .mockResolvedValueOnce({ rows: [{ id: 10, publicado: true }] })
+          .mockResolvedValueOnce({ rows: [] })
+      };
+      await expect(
+        checkoutRepository.buscarElegibilidadeCheckout(client, 10, 7)
+      ).resolves.toMatchObject({ id: 10, publicado: true });
+      await expect(
+        checkoutRepository.buscarElegibilidadeCheckout(client, 10, 7)
+      ).resolves.toBeNull();
+      const sql = client.query.mock.calls[0][0];
+      expect(sql).toContain("FOR SHARE OF un");
+      expect(sql).toContain("un.papel = 'dono'");
+      expect(sql).toContain("un.ativo = TRUE");
+      expect(sql).toContain("n.ativo = TRUE");
+      expect(client.query.mock.calls[0][1]).toEqual([10, 7]);
+    });
+
+    test("consulta assinatura efetiva, não só a intenção de plano selecionado", async () => {
+      const client = {
+        query: jest.fn()
+          .mockResolvedValueOnce({ rows: [{ plano_id: 3 }] })
+          .mockResolvedValueOnce({ rows: [] })
+      };
+      await expect(
+        checkoutRepository.buscarAssinaturaVigenteDoNegocio(client, 10)
+      ).resolves.toMatchObject({ plano_id: 3 });
+      await expect(
+        checkoutRepository.buscarAssinaturaVigenteDoNegocio(client, 10)
+      ).resolves.toBeNull();
+      const sql = client.query.mock.calls[0][0];
+      expect(sql).toContain("FROM assinaturas a");
+      expect(sql).toContain("a.ativo = TRUE");
+      expect(sql).toContain("acesso_pago_ate");
+      expect(client.query.mock.calls[0][1]).toEqual([10]);
+    });
+
+    test("bloqueia novo checkout do negócio enquanto há conciliação pendente", async () => {
+      const client = {
+        query: jest.fn()
+          .mockResolvedValueOnce({ rows: [{ id: 54 }] })
+          .mockResolvedValueOnce({ rows: [] })
+      };
+      await expect(
+        checkoutRepository.buscarDivergenciaAbertaDoNegocio(client, 10)
+      ).resolves.toMatchObject({ id: 54 });
+      await expect(
+        checkoutRepository.buscarDivergenciaAbertaDoNegocio(client, 10)
+      ).resolves.toBeNull();
+      const sql = client.query.mock.calls[0][0];
+      expect(sql).toContain("checkout_tentativas");
+      expect(sql).toContain("CONCILIACAO_NECESSARIA");
+      expect(client.query.mock.calls[0][1]).toEqual([10]);
+    });
+
+    test("retorna null para negócio, plano e dados da dona inexistentes", async () => {
+      const client = executorCom([]);
+      await expect(checkoutRepository.buscarNegocioDono(client, 7)).resolves.toBeNull();
+      await expect(checkoutRepository.buscarPlano(client, 3)).resolves.toBeNull();
+      await expect(checkoutRepository.buscarAssinaturaPendenteDoNegocio(client, 10)).resolves.toBeNull();
+      await expect(checkoutRepository.buscarDadosClienteAsaas(client, 10, 7)).resolves.toBeNull();
+      await expect(
+        checkoutRepository.salvarClienteAsaasSeAusente(client, 10, "cus_qualquer")
+      ).resolves.toBeNull();
+    });
+
     test("serializa checkout e consulta pendência/dados do cliente", async () => {
       const client = executorCom([{ id: 20 }]);
 

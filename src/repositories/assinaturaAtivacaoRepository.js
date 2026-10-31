@@ -16,6 +16,7 @@ async function buscarContextoPagamento(
     `
     SELECT
       p.id AS pagamento_id,
+      p.valor AS pagamento_valor,
       p.status AS pagamento_status,
       p.confirmacao_observada_em,
       p.data_pagamento,

@@ -27,6 +27,23 @@ function calcularProximaCobranca(dataBase = new Date()) {
   return proximaCobranca.toISOString().slice(0, 10);
 }
 
+// Evita arredondamento binário ao reconciliar os valores monetários do contrato.
+function valorEmCentavos(valor) {
+  if (typeof valor !== "number" && typeof valor !== "string") return null;
+  const partes = String(valor).trim().match(/^(\d+)(?:\.(\d{1,2}))?$/);
+  if (!partes) return null;
+  const inteiro = Number(partes[1]);
+  const centavos = Number((partes[2] || "").padEnd(2, "0"));
+  const resultado = inteiro * 100 + centavos;
+  return Number.isSafeInteger(resultado) ? resultado : null;
+}
+
+function valoresMonetariosIguais(a, b) {
+  const primeiro = valorEmCentavos(a);
+  const segundo = valorEmCentavos(b);
+  return primeiro !== null && segundo !== null && primeiro === segundo;
+}
+
 function normalizarFormaPagamento(billingType) {
   const tipo = String(billingType || "")
     .trim()
@@ -97,6 +114,7 @@ function dataValida(valor) {
 
 module.exports = {
   calcularProximaCobranca,
+  valoresMonetariosIguais,
   normalizarFormaPagamento,
   extrairReferenciaAssinatura,
   acessoPagoAindaValido,
