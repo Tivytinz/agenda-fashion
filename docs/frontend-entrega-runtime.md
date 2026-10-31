@@ -2040,3 +2040,21 @@ A indexação observada no Search Console em 11/10/2026 foi 1/25 URLs
 do sitemap; a classificação de URL pelo Google não estabelece, isoladamente,
 a causa raiz. Reinspecionar após rastreamentos futuros.
 
+## Links comerciais e metadata coerente na home
+
+A página inicial mantém como tarefa principal a descoberta de serviços para
+clientes. Depois do catálogo, apresenta uma entrada discreta e acessível para
+profissionais, com âncoras reais (`Link` do React Router, com `href`) para
+`/para-profissionais` e `/planos`. Os links não dependem do carregamento
+da API de negócios nem do chunk lazy do catálogo.
+
+O `usePageMetadata` da home usa o mesmo title e description do
+`socialPreviewService.montarMetadadosPaginaEstatica("/")` entregue pelo
+Express. Assim, a execução do React não substitui os metadados específicos
+por um título e uma descrição genéricos.
+
+O HTML inicial do Express continua sendo a SPA; os links são parte do HTML
+renderizado pelo React e não constituem SSR. A presença dos links, a
+indexabilidade técnica e o sitemap não garantem que o Google indexe
+as URLs. Testes em `HomePage.test.jsx` protegem os links comerciais e
+a metadata client-side; `spa-seo-http.test.js` protege o head HTTP.
