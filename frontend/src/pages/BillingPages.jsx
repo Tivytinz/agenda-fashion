@@ -60,6 +60,8 @@ export function BillingCheckoutPage() {
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(false);
   const pollRunRef = useRef(0);
+  const currentSlugRef = useRef(slug);
+  currentSlugRef.current = slug;
   const checkoutAttemptRef = useRef({
     fingerprint: "",
     key: "",
@@ -71,23 +73,42 @@ export function BillingCheckoutPage() {
   }, []);
 
   useEffect(() => {
+    let current = true;
+    const controller = new AbortController();
+    pollRunRef.current += 1;
+    setPlan(null);
+    setSamePlan(false);
+    setError("");
+    setPix(null);
+    setCheckoutPaymentId("");
+    setPaymentStatus("idle");
+    setPaymentMessage("");
+
     Promise.all([
-      apiRequest("/planos"),
-      apiRequest("/meu-plano").catch((requestError) => {
+      apiRequest("/planos", { signal: controller.signal }),
+      apiRequest("/meu-plano", { signal: controller.signal }).catch((requestError) => {
         if (requestError.status === 404) return null;
         throw requestError;
       })
     ])
-      .then(([result, current]) => {
+      .then(([result, currentPlan]) => {
+        if (!current) return;
         const selected = extractPlans(result).find((item) => item.slug === slug);
         if (!selected) throw new Error("Plano não encontrado.");
         setPlan(selected);
         setSamePlan(
-          Number(current?.plano_id ?? current?.id) === Number(selected.id)
-          || current?.plano_slug === selected.slug
+          Number(currentPlan?.plano_id ?? currentPlan?.id) === Number(selected.id)
+          || currentPlan?.plano_slug === selected.slug
         );
       })
-      .catch((requestError) => setError(requestError.message));
+      .catch((requestError) => {
+        if (current) setError(requestError.message);
+      });
+
+    return () => {
+      current = false;
+      controller.abort();
+    };
   }, [slug]);
 
   async function poll(id, checkImmediately = false) {
@@ -157,6 +178,8 @@ export function BillingCheckoutPage() {
 
   async function submit(event) {
     event.preventDefault();
+    if (!plan || plan.slug !== slug || processing || pix) return;
+    const submittedSlug = slug;
     setProcessing(true);
     setError("");
     const normalizedDocument = document.replace(/\D/g, "");
@@ -193,6 +216,8 @@ export function BillingCheckoutPage() {
         key: "",
         meta: null
       };
+
+      if (currentSlugRef.current !== submittedSlug) return;
 
       if (metaContext?.event_id) {
         void trackMetaEvent(
@@ -233,14 +258,15 @@ export function BillingCheckoutPage() {
         setPaymentMessage("O PIX foi gerado, mas a confirmação automática não pôde ser iniciada.");
       }
     } catch (requestError) {
-      setError(requestError.message);
+      if (currentSlugRef.current === submittedSlug) setError(requestError.message);
     } finally {
       setProcessing(false);
     }
   }
 
-  if (!plan && !error) return <main className="container page-content narrow-page"><LoadingState>Preparando checkout seguro...</LoadingState></main>;
-  if (!plan && error) return <main className="container page-content narrow-page"><ErrorState message={error} /></main>;
+  const planForRoute = plan?.slug === slug ? plan : null;
+  if (!planForRoute && !error) return <main className="container page-content narrow-page"><LoadingState>Preparando checkout seguro...</LoadingState></main>;
+  if (!planForRoute && error) return <main className="container page-content narrow-page"><ErrorState message={error} /></main>;
   if (samePlan) {
     return (
       <main className="container page-content narrow-page">
@@ -269,7 +295,7 @@ export function BillingCheckoutPage() {
           <div className="checkout-commercial-notice">
             <strong>Assinatura mensal por PIX</strong>
             <p>
-              Uma nova cobrança PIX pode ser gerada a cada ciclo enquanto a renovação estiver ativa. Você pode cancelar antes da próxima renovação; o acesso continua até o fim do período pago.
+              Uma nova cobrança PIX pode ser gerada a cada ciclo enquanto a renovação estiver ativa. O pagamento não é debitado automaticamente: cada PIX precisa ser pago. Você pode cancelar antes da próxima renovação; o acesso continua até o fim do período pago.
             </p>
             <small>
               Ao gerar o PIX, você concorda com os <Link to="/termos">Termos de uso</Link> e a <Link to="/privacidade">Política de Privacidade</Link>.
