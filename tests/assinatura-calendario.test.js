@@ -1,5 +1,5 @@
 const { execFileSync } = require("node:child_process");
-const { dataValida, acessoPagoAindaValido, calcularProximaCobranca } = require("../src/services/assinaturaCalculos");
+const { dataValida, acessoPagoAindaValido, calcularProximaCobranca, valoresMonetariosIguais } = require("../src/services/assinaturaCalculos");
 
 test.each([null, "", " "])("não inventa mês a partir de data ausente %p", (value) => {
   expect(() => calcularProximaCobranca(value)).toThrow("Não foi possível calcular");
@@ -33,4 +33,15 @@ test.each(["UTC", "America/Sao_Paulo", "America/Los_Angeles", "Pacific/Kiritimat
 test("período realmente expirado ou assinatura inativa não conserva acesso pago", () => {
   expect(acessoPagoAindaValido({ ativo: true, data_proxima_cobranca: "2000-01-01" })).toBe(false);
   expect(acessoPagoAindaValido({ ativo: false, data_proxima_cobranca: "2099-12-01" })).toBe(false);
+});
+
+test.each([
+  ["20.00", 20, true],
+  ["10.10", 10.1, true],
+  ["20.00", "20.01", false],
+  ["20.00", undefined, false],
+  ["20.00", "20.001", false],
+  ["20.00", "-20.00", false]
+])("comparação monetária exata %p x %p = %p", (a, b, esperado) => {
+  expect(valoresMonetariosIguais(a, b)).toBe(esperado);
 });
