@@ -55,6 +55,7 @@ const checkoutRepository = require(
 const checkoutTentativaRepository = require(
   "../src/repositories/checkoutTentativaRepository"
 );
+const assinaturaRepository = require("../src/repositories/assinaturaRepository");
 const {
   criarCobrancaPix,
   buscarQrCodePix
@@ -120,6 +121,10 @@ describe(
       checkoutRepository
         .bloquearCheckoutDoNegocio
         .mockResolvedValue();
+      checkoutRepository.bloquearContaDonoCheckout.mockResolvedValue(true);
+      checkoutRepository.buscarElegibilidadeCheckout.mockResolvedValue({
+        id: 7, plano_id: 1, publicado: true
+      });
 
       checkoutRepository
         .buscarAssinaturaPendenteDoNegocio
@@ -565,7 +570,7 @@ describe(
         criarCobrancaPix
           .mockResolvedValue({
             id: "pay_1",
-            value: 99.9,
+            value: 20,
             status: "PENDING",
             invoiceUrl:
               "https://www.asaas.com/i/checkout-wave20"
@@ -651,6 +656,116 @@ describe(
     );
 
     test(
+      "impede PIX de dona desativada após a leitura inicial",
+      async () => {
+        checkoutTentativaRepository.iniciar.mockResolvedValue({
+          executar: true,
+          tentativa: { id: 51, status: "PROCESSING", lease_tentativa: 1 }
+        });
+        checkoutRepository.bloquearContaDonoCheckout.mockResolvedValue(false);
+
+        await expect(criarCheckout({
+          usuarioId: 1, planoId: 3, formaPagamento: "pix",
+          chaveIdempotencia: "checkout-dona-desativada-12345"
+        })).rejects.toMatchObject({ statusCode: 409 });
+        expect(registrarAssinaturaPendente).not.toHaveBeenCalled();
+        expect(criarCobrancaPix).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "revalida a publicação e o vínculo antes de persistir a assinatura",
+      async () => {
+        checkoutTentativaRepository.iniciar.mockResolvedValue({
+          executar: true,
+          tentativa: { id: 52, status: "PROCESSING", lease_tentativa: 1 }
+        });
+        checkoutRepository.buscarElegibilidadeCheckout.mockResolvedValue(null);
+
+        await expect(criarCheckout({
+          usuarioId: 1, planoId: 3, formaPagamento: "pix",
+          chaveIdempotencia: "checkout-vinculo-revogado-123"
+        })).rejects.toMatchObject({ statusCode: 409 });
+        expect(registrarAssinaturaPendente).not.toHaveBeenCalled();
+        expect(criarCobrancaPix).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "bloqueia valor divergente retornado pelo Asaas sem registrar cobrança",
+      async () => {
+        checkoutTentativaRepository.iniciar.mockResolvedValue({
+          executar: true,
+          tentativa: { id: 53, status: "PROCESSING", lease_tentativa: 1 }
+        });
+        registrarAssinaturaPendente.mockResolvedValue({
+          id: 71, negocio_id: 7, plano_id: 3, valor: "20.00"
+        });
+        criarCobrancaPix.mockResolvedValue({
+          id: "pay_valor_incorreto", value: 10, status: "PENDING"
+        });
+
+        await expect(criarCheckout({
+          usuarioId: 1, planoId: 3, formaPagamento: "pix",
+          chaveIdempotencia: "checkout-valor-divergente-123"
+        })).rejects.toMatchObject({ statusCode: 409 });
+        expect(registrarPagamento).not.toHaveBeenCalled();
+        expect(buscarQrCodePix).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "recusa mudança de preço no catálogo antes de abrir a cobrança",
+      async () => {
+        checkoutTentativaRepository.iniciar.mockResolvedValue({
+          executar: true,
+          tentativa: { id: 54, status: "PROCESSING", lease_tentativa: 1 }
+        });
+        checkoutRepository.buscarPlano
+          .mockResolvedValueOnce({ id: 3, slug: "studio", valor: "20.00" })
+          .mockResolvedValueOnce({ id: 3, slug: "studio", valor: "25.00" });
+
+        await expect(criarCheckout({
+          usuarioId: 1, planoId: 3, formaPagamento: "pix",
+          chaveIdempotencia: "checkout-preco-mudou-12345"
+        })).rejects.toMatchObject({ statusCode: 409 });
+        expect(criarCobrancaPix).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "retoma o valor original quando a tentativa já tem assinatura",
+      async () => {
+        checkoutTentativaRepository.iniciar.mockResolvedValue({
+          executar: true,
+          tentativa: {
+            id: 55, status: "PROCESSING", lease_tentativa: 3, assinatura_id: 88
+          }
+        });
+        checkoutRepository.buscarPlano
+          .mockResolvedValueOnce({ id: 3, slug: "studio", valor: "25.00" })
+          .mockResolvedValueOnce({ id: 3, slug: "studio", valor: "25.00" });
+        assinaturaRepository.buscarPorId.mockResolvedValue({
+          id: 88, negocio_id: 7, plano_id: 3, valor: "20.00"
+        });
+        criarCobrancaPix.mockResolvedValue({
+          id: "pay_contrato_antigo", value: 20,
+          status: "PENDING"
+        });
+        buscarQrCodePix.mockResolvedValue({ payload: "pix-congelado" });
+
+        await criarCheckout({
+          usuarioId: 1, planoId: 3, formaPagamento: "pix",
+          chaveIdempotencia: "checkout-snapshot-antigo-123"
+        });
+
+        expect(criarCobrancaPix).toHaveBeenCalledWith(expect.objectContaining({
+          valor: "20.00"
+        }));
+      }
+    );
+
+    test(
       "salva a cobrança antes de buscar o QR Code",
       async () => {
         checkoutTentativaRepository
@@ -675,7 +790,7 @@ describe(
         criarCobrancaPix
           .mockResolvedValue({
             id: "pay_pendente",
-            value: 99.9,
+            value: 20,
             status: "PENDING"
           });
 
