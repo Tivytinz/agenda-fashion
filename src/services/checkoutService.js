@@ -148,8 +148,12 @@ async function obterAssinaturaCheckout({
           409
         );
       }
-      if (Number(elegivel.plano_id) === Number(plano.id)) {
-        throw new AppError("Este já é o plano atual do seu negócio.", 409);
+      const vigente = await checkoutRepository.buscarAssinaturaVigenteDoNegocio(
+        transactionClient,
+        negocio.id
+      );
+      if (Number(vigente?.plano_id) === Number(plano.id)) {
+        throw new AppError("Este já é o plano pago vigente do seu negócio.", 409);
       }
 
       const planoAtual = await checkoutRepository.buscarPlano(
@@ -416,9 +420,13 @@ async function criarCheckout({
     throw new AppError("Este plano não precisa de pagamento.", 400);
   }
 
-  if (Number(negocio.plano_id) === Number(plano.id)) {
+  const assinaturaVigente = await checkoutRepository.buscarAssinaturaVigenteDoNegocio(
+    client,
+    negocio.id
+  );
+  if (Number(assinaturaVigente?.plano_id) === Number(plano.id)) {
     throw new AppError(
-      "Este já é o plano atual do seu negócio.",
+      "Este já é o plano pago vigente do seu negócio.",
       409
     );
   }
