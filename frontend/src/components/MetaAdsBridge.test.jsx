@@ -151,6 +151,21 @@ describe("consentimento de marketing", () => {
     });
   });
 
+  it.each(["/painel", "/profissional/agenda"])(
+    "preserva acesso à privacidade em %s, onde o rodapé fica oculto",
+    async (pathname) => {
+      getMarketingConsent.mockReturnValue(MARKETING_CONSENT.DENIED);
+      render(
+        <MemoryRouter initialEntries={[pathname]}>
+          <MetaAdsBridge />
+        </MemoryRouter>
+      );
+      const link = await screen.findByRole("link", { name: "Privacidade" });
+      expect(link.getAttribute("href")).toBe("/privacidade");
+      expect(link.className).toBe("privacy-shortcut");
+    }
+  );
+
   it("protege o layout de 320 a 800 px contra estouro horizontal", () => {
     const cssPath = resolve(
       cwd(),
@@ -260,7 +275,6 @@ describe("consentimento de marketing", () => {
         initialEntries={["/admin/nova-funcionalidade"]}
       >
         <MetaAdsBridge />
-        <LegalFooter />
       </MemoryRouter>
     );
 

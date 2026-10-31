@@ -95,6 +95,7 @@
     linear-gradient(180deg, #fff9fc 0%, #fff3f8 53%, #fffafd 100%);
 }
 
+.home-page #buscar-servicos,
 .home-category-section,
 .home-catalog-section,
 .home-businesses-section,
@@ -395,6 +396,7 @@
 .home-page .home-business-rail {
   align-items: stretch;
 }
+.home-page .business-card .card-footer { margin-top: auto; }
 .home-page .business-heading { flex-direction: column; gap: 8px; }
 .home-page .business-heading > div { min-width: 0; }
 .home-page .business-heading h3 { overflow-wrap: anywhere; }
@@ -414,6 +416,8 @@
 
 
 .home-page .service-card-compact {
+  display: flex;
+  flex-direction: column;
   border-color: rgb(217 47 127 / 9%);
   border-radius: 19px;
   box-shadow: 0 10px 30px rgb(217 47 127 / 7%);
@@ -680,21 +684,28 @@
   .home-page .home-section-heading h2 { font-size: clamp(1.35rem, 6vw, 1.65rem); }
   .home-page .home-category-section { padding-top: 18px; }
 }
-.home-discovery-search { display: flex; flex: 1; align-items: center; gap: 12px; min-width: 0; }
+.home-discovery-search { display: flex; flex: 1 0 100%; align-items: center; gap: 12px; min-width: 0; }
 .home-service-search { display: flex; flex: 1; align-items: center; gap: 12px; min-height: 48px; padding: 0 18px; border: 1px solid #f0cddd; border-radius: 24px; background: #fff; min-width: 0; }
 .home-service-search > span { font-weight: 700; white-space: nowrap; }
 .home-service-search input { min-width: 0; width: 100%; border: 0; border-radius: 0; background: transparent; font: inherit; padding: 10px 0; }
+.home-discovery-search .home-service-search input,
+.home-discovery-search .home-location-pill select {
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
 .home-service-search:focus-within,
 .home-discovery-search .home-location-pill:focus-within {
   outline: 3px solid var(--public-focus, var(--pink-600));
   outline-offset: 2px;
 }
-.home-service-search input:focus,
+.home-discovery-search .home-service-search input:focus,
 .public-shell .home-service-search input:focus-visible,
 .home-discovery-search .home-location-pill select:focus,
 .public-shell .home-discovery-search .home-location-pill select:focus-visible {
   outline: 0;
-  box-shadow: none;
+  /* Override the shared control focus shadow; the label owns this ring. */
+  box-shadow: none !important;
 }
 .home-pagination { padding-bottom: 24px; }
 @media (max-width: 760px) {

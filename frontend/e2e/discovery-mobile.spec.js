@@ -147,6 +147,7 @@ test("cards da mesma fileira têm alturas iguais e botões alinhados com conteú
       servicos: catalog.negocios[0].servicos.map((service) => ({
         ...service,
         id: service.id + index * 100,
+        foto_url: index === 2 ? null : service.foto_url,
         nome: index === 1 ? `${service.nome} com acabamento especial e atendimento personalizado` : service.nome
       }))
     }))

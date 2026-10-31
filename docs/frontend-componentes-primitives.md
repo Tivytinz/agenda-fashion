@@ -681,7 +681,10 @@ medição de:
 - page views permitidos;
 - banner de consentimento;
 - aviso de sincronização pendente;
-- atalho de privacidade.
+- atalho de privacidade nas áreas operacionais cujo rodapé fica oculto.
+
+Nas páginas públicas, o acesso à política pertence ao `LegalFooter`, sem
+duplicar o link em um atalho flutuante.
 
 Também bloqueia medição em rotas consideradas sensíveis ou administrativas de
 acordo com o contrato atual.
