@@ -64,6 +64,14 @@ async function iniciar({
     throw erro;
   }
 
+  if (tentativa.resposta?.estado === "CONCILIACAO_NECESSARIA") {
+    const erro = new Error(
+      "Esta cobrança requer conferência financeira. Não gere outro PIX até a conciliação."
+    );
+    erro.code = "CHECKOUT_CONCILIACAO_PENDENTE";
+    throw erro;
+  }
+
   if (tentativa.status === "COMPLETED") {
     return {
       executar: false,
@@ -82,7 +90,7 @@ async function iniciar({
       updated_at = NOW()
     WHERE id = $1
       AND (
-        status = 'FAILED'
+        (status = 'FAILED' AND COALESCE(resposta->>'estado', '') <> 'CONCILIACAO_NECESSARIA')
         OR (
           status = 'PROCESSING'
           AND updated_at < NOW() - INTERVAL '5 minutes'
@@ -136,6 +144,33 @@ async function vincularAssinatura(
   return resultado.rows[0] || null;
 }
 
+async function registrarDivergencia(id, leaseTentativa, {
+  pagamentoId,
+  valorContratado,
+  valorObservado,
+  motivo
+}) {
+  const resultado = await db.query(
+    `UPDATE checkout_tentativas
+     SET status = 'FAILED',
+         erro = 'COBRANCA_DIVERGENTE',
+         resposta = $3::jsonb,
+         updated_at = NOW()
+     WHERE id = $1
+       AND lease_tentativa = $2
+       AND status = 'PROCESSING'
+     RETURNING id`,
+    [id, leaseTentativa, JSON.stringify({
+      estado: "CONCILIACAO_NECESSARIA",
+      asaas_payment_id: pagamentoId,
+      valor_contratado: String(valorContratado),
+      valor_observado: valorObservado == null ? null : String(valorObservado),
+      motivo
+    })]
+  );
+  return Boolean(resultado.rows[0]);
+}
+
 async function concluir(id, resposta, leaseTentativa) {
   const resultado = await db.query(
     `
@@ -186,6 +221,7 @@ async function marcarFalha(id, erro, leaseTentativa) {
 module.exports = {
   iniciar,
   vincularAssinatura,
+  registrarDivergencia,
   concluir,
   marcarFalha
 };
