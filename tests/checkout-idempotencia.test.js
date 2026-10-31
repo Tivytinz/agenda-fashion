@@ -105,6 +105,8 @@ describe(
       checkoutTentativaRepository
         .marcarFalha
         .mockResolvedValue({});
+      checkoutTentativaRepository.registrarDivergencia.mockResolvedValue(true);
+      checkoutRepository.buscarDivergenciaAbertaDoNegocio.mockResolvedValue(null);
       checkoutTentativaRepository
         .concluir
         .mockResolvedValue({
@@ -718,8 +720,77 @@ describe(
           usuarioId: 1, planoId: 3, formaPagamento: "pix",
           chaveIdempotencia: "checkout-valor-divergente-123"
         })).rejects.toMatchObject({ statusCode: 409 });
-        expect(registrarPagamento).not.toHaveBeenCalled();
+        expect(checkoutTentativaRepository.registrarDivergencia).toHaveBeenCalledWith(
+          53, 1, expect.objectContaining({
+            pagamentoId: "pay_valor_incorreto",
+            valorContratado: "20.00",
+            valorObservado: 10,
+            motivo: "VALOR_DIVERGENTE"
+          })
+        );
+        expect(registrarPagamento).toHaveBeenCalledWith(
+          expect.anything(), expect.objectContaining({
+            asaas_payment_id: "pay_valor_incorreto",
+            valor: 10,
+            pix_copia_cola: null
+          })
+        );
         expect(buscarQrCodePix).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "impede checkout com outra chave enquanto há cobrança divergente",
+      async () => {
+        checkoutTentativaRepository.iniciar.mockResolvedValue({
+          executar: true,
+          tentativa: { id: 56, status: "PROCESSING", lease_tentativa: 1 }
+        });
+        checkoutRepository.buscarDivergenciaAbertaDoNegocio.mockResolvedValue({
+          id: 53
+        });
+
+        await expect(criarCheckout({
+          usuarioId: 1, planoId: 3, formaPagamento: "pix",
+          chaveIdempotencia: "checkout-nova-chave-123456"
+        })).rejects.toMatchObject({
+          statusCode: 409,
+          codigo: "CHECKOUT_CONCILIACAO_PENDENTE"
+        });
+        expect(registrarAssinaturaPendente).not.toHaveBeenCalled();
+        expect(criarCobrancaPix).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "rastreia cobrança externa sem valor válido, sem gravar preço inventado",
+      async () => {
+        checkoutTentativaRepository.iniciar.mockResolvedValue({
+          executar: true,
+          tentativa: { id: 57, status: "PROCESSING", lease_tentativa: 1 }
+        });
+        registrarAssinaturaPendente.mockResolvedValue({
+          id: 77, negocio_id: 7, plano_id: 3, valor: "20.00"
+        });
+        criarCobrancaPix.mockResolvedValue({
+          id: "pay_sem_valor", status: "PENDING", value: null
+        });
+
+        await expect(criarCheckout({
+          usuarioId: 1, planoId: 3, formaPagamento: "pix",
+          chaveIdempotencia: "checkout-sem-valor-123456"
+        })).rejects.toMatchObject({
+          statusCode: 409,
+          codigo: "CHECKOUT_CONCILIACAO_PENDENTE"
+        });
+        expect(checkoutTentativaRepository.registrarDivergencia).toHaveBeenCalledWith(
+          57, 1, expect.objectContaining({
+            pagamentoId: "pay_sem_valor",
+            valorObservado: null,
+            motivo: "VALOR_DIVERGENTE"
+          })
+        );
+        expect(registrarPagamento).not.toHaveBeenCalled();
       }
     );
 
