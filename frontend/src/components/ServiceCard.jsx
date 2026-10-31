@@ -3,6 +3,7 @@ import {
   formatCurrency,
   formatLocation
 } from "../utils/format";
+import { AppIcon } from "./AppIcon";
 import { useRetryingMedia } from "../hooks/useRetryingMedia";
 import {
   serviceCategoryEmoji,
@@ -15,7 +16,8 @@ import {
 } from "../utils/profileOrigin";
 
 export function ServiceCard({
-  service
+  service,
+  compact = false
 }) {
   const location = useLocation();
   const {
@@ -56,7 +58,7 @@ export function ServiceCard({
   });
 
   return (
-    <article className="card service-discovery-card">
+    <article className={`card service-discovery-card${compact ? " service-card-compact" : ""}`}>
       <Link
         className={hasImage
           ? "service-discovery-image"
@@ -70,12 +72,6 @@ export function ServiceCard({
       >
         {hasImage ? (
           <>
-            <img
-              className="service-cover-backdrop"
-              src={imageUrl}
-              alt=""
-              loading="lazy"
-            />
             <img
               className="service-cover-image"
               src={imageUrl}
@@ -121,7 +117,7 @@ export function ServiceCard({
 
         <div className="service-business-info">
           <strong className="discovery-labeled-value">
-            <span aria-hidden="true">🏢</span>
+            <AppIcon className="discovery-icon" name="business" />
             {service.negocio_nome}
           </strong>
 
@@ -130,23 +126,24 @@ export function ServiceCard({
             <span className="service-location-text">
               {formatLocation({
                 cidade: service.negocio_cidade,
-                bairro: service.negocio_bairro,
+                bairro: compact ? undefined : service.negocio_bairro,
                 estado: service.negocio_estado
               }) || "Atendimento local"}
             </span>
           </small>
+          {compact && service.negocio_bairro && <small className="discovery-neighborhood">{service.negocio_bairro}</small>}
         </div>
 
         <div className="service-discovery-meta">
           <span className="discovery-labeled-value">
-            <span aria-hidden="true">🕒</span>
+            <AppIcon className="discovery-icon" name="clock" />
             {service.duracao_minutos
               ? `${service.duracao_minutos} min`
               : "Consulte a duração"}
           </span>
 
           <strong className="discovery-labeled-value">
-            <span aria-hidden="true">💰</span>
+            <AppIcon className="discovery-icon" name="costs" />
             {formatCurrency(service.valor)}
           </strong>
         </div>

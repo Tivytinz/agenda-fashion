@@ -8,9 +8,10 @@ import {
 import {
   useLocation,
   useNavigate,
-  useSearchParams,
   Link
 } from "react-router-dom";
+import { DiscoverySearch } from "../components/discovery/DiscoverySearch";
+import { useDiscoveryCatalog } from "../hooks/useDiscoveryCatalog";
 import { DiscoveryBoundary } from "../components/DiscoveryBoundary";
 import { LoadingState } from "../components/ScreenState";
 import { HomeHero } from "../components/HomeHero";
@@ -29,14 +30,12 @@ export function HomePage() {
   );
   const location = useLocation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const discoveryRef = useRef(null);
-  const [filterTarget, setFilterTarget] = useState(null);
   const [discoveryMounted, setDiscoveryMounted] = useState(false);
-  const [discoveryFailed, setDiscoveryFailed] = useState(false);
   const [showDiscovery, setShowDiscovery] = useState(
     () => ["#buscar-servicos", "#como-funciona"].includes(location.hash)
   );
+  const controller = useDiscoveryCatalog({ enabled: showDiscovery });
 
   useEffect(() => {
     if (showDiscovery) return undefined;
@@ -63,9 +62,7 @@ export function HomePage() {
   }, [location.hash, location.search, location.key, discoveryMounted]);
 
   function exploreCategory(category) {
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.set("categoria", category);
-    navigate({ pathname: location.pathname, search: `?${nextParams}`, hash: "#buscar-servicos" }, { replace: true });
+    controller.exploreHeroCategory(category);
     setShowDiscovery(true);
   }
 
@@ -76,17 +73,13 @@ export function HomePage() {
 
   return (
     <main className="home-page">
-      <div className="home-filter-slot" ref={setFilterTarget}>
-        {!discoveryMounted && !discoveryFailed && <section className="container home-discovery-filters home-filter-loading" aria-label="Carregando filtro de cidade" aria-busy="true">
-          <div className="home-location-pill"><span>Cidade</span><span>Carregando cidades…</span></div>
-        </section>}
-      </div>
+      <div className="home-filter-slot"><DiscoverySearch controller={controller} /></div>
       <HomeHero onExploreCategory={exploreCategory} onShowHowItWorks={showHowItWorks} />
       <div id="buscar-servicos" ref={discoveryRef}>
         {showDiscovery && (
-          <DiscoveryBoundary onError={() => setDiscoveryFailed(true)}>
+          <DiscoveryBoundary>
             <Suspense fallback={<LoadingState>Carregando catálogo…</LoadingState>}>
-              <ExplorePage renderHero={false} filterTarget={filterTarget} onMounted={setDiscoveryMounted} />
+              <ExplorePage controller={controller} renderHero={false} onMounted={setDiscoveryMounted} />
             </Suspense>
           </DiscoveryBoundary>
         )}

@@ -35,8 +35,7 @@
   overflow-wrap: anywhere;
 }
 
-.marketing-consent-banner a,
-.privacy-shortcut {
+.marketing-consent-banner a {
   color: var(--pink-700);
   font-weight: 800;
 }
@@ -82,26 +81,7 @@
   padding-inline: 16px;
 }
 
-.privacy-shortcut {
-  position: fixed;
-  right: 16px;
-  bottom: 14px;
-  z-index: 35;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 8px 12px;
-  background: rgb(255 255 255 / 94%);
-  box-shadow: var(--shadow);
-  font-size: .78rem;
-  text-decoration: none;
-}
 
-.app-shell:has(.workspace-shell, .admin-shell) > .privacy-shortcut {
-  position: static;
-  display: block;
-  width: fit-content;
-  margin: 8px 16px 16px auto;
-}
 
 .privacy-page {
   display: grid;
@@ -168,12 +148,6 @@
     max-height: calc(100dvh - 94px - env(safe-area-inset-bottom));
   }
 
-  .privacy-shortcut {
-    position: static;
-    display: block;
-    width: fit-content;
-    margin: 8px 12px calc(12px + env(safe-area-inset-bottom)) auto;
-  }
 
   .privacy-sync-warning {
     position: static;
@@ -184,8 +158,4 @@
     flex-direction: column;
   }
 
-  .app-shell:has(.workspace-mobile-nav)
-  .privacy-shortcut {
-    margin-bottom: calc(84px + env(safe-area-inset-bottom));
-  }
 }

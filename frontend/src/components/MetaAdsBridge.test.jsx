@@ -11,6 +11,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
+import { LegalFooter } from "./LegalFooter";
 import {
   afterEach,
   beforeEach,
@@ -115,6 +116,7 @@ describe("consentimento de marketing", () => {
     render(
       <MemoryRouter>
         <MetaAdsBridge />
+        <LegalFooter />
       </MemoryRouter>
     );
 
@@ -143,8 +145,9 @@ describe("consentimento de marketing", () => {
       .toHaveBeenCalledWith(MARKETING_CONSENT.GRANTED);
     await waitFor(() => {
       expect(
-        screen.getByRole("link", { name: "Privacidade" })
-      ).not.toBeNull();
+        screen.getAllByRole("link", { name: "Privacidade" })
+      ).toHaveLength(1);
+      expect(document.querySelector(".privacy-shortcut")).toBeNull();
     });
   });
 
@@ -257,6 +260,7 @@ describe("consentimento de marketing", () => {
         initialEntries={["/admin/nova-funcionalidade"]}
       >
         <MetaAdsBridge />
+        <LegalFooter />
       </MemoryRouter>
     );
 

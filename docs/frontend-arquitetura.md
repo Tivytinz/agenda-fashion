@@ -710,3 +710,34 @@ Atualizar este arquivo quando mudar de forma durável:
 
 Mudanças puramente cosméticas ou temporárias não precisam virar regra
 arquitetural.
+
+## Descoberta na home
+
+`HomePage` compõe `DiscoverySearch`, `HomeHero` e o catálogo lazy. A busca é
+renderizada no fluxo normal do DOM, antes do banner; não depende de portal nem
+da montagem do módulo de resultados. O catálogo recebe um único controlador da
+home. O modo independente de `ExplorePage` cria seu próprio controlador, sem
+duplicar consultas quando usado dentro de `HomePage`.
+
+Responsabilidades:
+
+- `useCatalogFilters`: filtros aplicados na URL, cidade lembrada e ações de
+  busca/limpeza; preserva parâmetros de campanha e âncora na restauração.
+  Ações explícitas de filtros direcionam a rolagem para os resultados.
+- `usePublicCatalog`: consulta, estados, nova tentativa, paginação e cancelamento.
+  Troca de filtros ou desmontagem invalida pedidos anteriores, inclusive paginação
+  e retry. A busca enviada não tem debounce adicional. Páginas repetidas não
+  duplicam negócios e pedidos de carregar mais são serializados.
+- `useDiscoveryCatalog`: compõe os dois hooks e deriva serviços, localidades e
+  ordenação a partir dos dados recebidos.
+- `ExplorePage`: apresentação das categorias, serviços, negócios, paginação e
+  explicação do fluxo. `HorizontalRail` e `CategorySpotlightCard` ficam em
+  `components/discovery/`.
+- `utils/discoveryCatalog`: categorias e funções puras de URL, localização e
+  diversificação de serviços.
+
+O carregamento inicial do catálogo continua adiado em 300 ms para preservar a
+renderização inicial do banner; busca e links internos antecipam essa montagem.
+`DiscoveryBoundary` protege o módulo de resultados, mantendo busca e banner
+acessíveis se ele falhar. O sinal de montagem continua necessário para rolar até
+seções que pertencem ao catálogo lazy.

@@ -10,39 +10,28 @@ afterEach(() => {
 });
 
 describe("interação com os destaques", () => {
-  it("mantém o CTA focado no slide visível após o intervalo de rotação", () => {
+  it("mantém o destaque e o foco estáveis sem avanço automático", () => {
     vi.useFakeTimers();
     const { container } = render(<HomeHero onExploreCategory={vi.fn()} />);
-    const cta = screen.getByRole("button", { name: /Ver serviços de cabelo|Encontrar manicure|Ver serviços de estética|Ver bronzeamento|Ver serviços de cílios|Ver design de sobrancelhas|Encontrar maquiagem/ });
+    const cta = screen.getByRole("button", { name: "Ver serviços de cabelo" });
     act(() => cta.focus());
-    act(() => vi.advanceTimersByTime(14000));
-
+    act(() => vi.advanceTimersByTime(60000));
     expect(document.activeElement).toBe(cta);
-    expect(cta.closest("[aria-hidden]").getAttribute("aria-hidden")).toBe("false");
-    expect(container.querySelector("button").getAttribute("aria-label"))
-      .toBe("Retomar rotação automática dos destaques");
-
-    act(() => cta.blur());
-    act(() => vi.advanceTimersByTime(7000));
     expect(screen.getByRole("heading", { name: "Beleza para você" })).not.toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: /Retomar rotação/ }));
-    act(() => vi.advanceTimersByTime(7000));
-    expect(screen.getByRole("heading", { name: "Unhas do seu jeito" })).not.toBeNull();
+    expect(container.querySelectorAll(".home-hero-image")).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: /rotação automática/ })).toBeNull();
   });
 
-  it("pausa durante a leitura com o ponteiro e só retoma por escolha explícita", () => {
-    vi.useFakeTimers();
+  it("permite escolher o destaque por gesto e voltar pelos controles", () => {
     render(<HomeHero onExploreCategory={vi.fn()} />);
     const hero = screen.getByRole("region", { name: "Destaques do Agenda Fashion" });
-    fireEvent.mouseEnter(hero);
-    fireEvent.mouseLeave(hero);
-    act(() => vi.advanceTimersByTime(14000));
+    fireEvent.touchStart(hero, { touches: [{ clientX: 200 }] });
+    fireEvent.touchEnd(hero, { changedTouches: [{ clientX: 100 }] });
+    expect(screen.getByRole("heading", { name: "Unhas do seu jeito" })).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Destaque anterior" }));
     expect(screen.getByRole("heading", { name: "Beleza para você" })).not.toBeNull();
-    expect(screen.getByRole("button", { name: /Retomar rotação/ })).not.toBeNull();
   });
 });
-
 
 it("associa cada categoria à sua imagem original e ao destino correto", () => {
   const onExploreCategory = vi.fn();
@@ -75,11 +64,11 @@ it("associa cada categoria à sua imagem original e ao destino correto", () => {
 });
 
 
-it("carrega a imagem secundária somente quando a rotação chega ao slide", () => {
+it("carrega a imagem secundária somente quando a pessoa avança o slide", () => {
   vi.useFakeTimers();
   const { container } = render(<HomeHero onExploreCategory={vi.fn()} />);
   expect(container.querySelectorAll(".home-hero-image")).toHaveLength(1);
-  act(() => vi.advanceTimersByTime(7000));
+  fireEvent.click(screen.getByRole("button", { name: "Próximo destaque" }));
   expect(container.querySelector('[aria-hidden="false"] img').getAttribute("src")).toContain("manicure-hero.webp");
   expect(container.querySelector('img[src*="skincare-hero"]')).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Destaque anterior" }));

@@ -357,7 +357,7 @@ Mudanças de shell ou navegação precisam revisar esse arquivo.
 - header/footer;
 - foco visível;
 - ausência de overflow;
-- controle de pausa da rotação automática do hero.
+- navegação manual do hero, sem avanço automático durante a leitura.
 
 Esse teste conecta arquitetura de shell com requisitos de acessibilidade e
 movimento.
@@ -512,7 +512,7 @@ Erro visual sem nome acessível é regressão.
 ## 26. Movimento
 
 O frontend possui regras de `prefers-reduced-motion` na fundação pública e o
-hero público oferece controle explícito de pausa da rotação automática.
+hero público avança apenas por ação explícita da pessoa, sem rotação automática.
 
 Mudanças com:
 

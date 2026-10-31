@@ -1251,6 +1251,10 @@ local.
 
 ## 62. Página de Privacidade
 
+O acesso permanente fica no link do `LegalFooter`, compartilhado pelas rotas.
+O bridge de medição não renderiza outro atalho para o mesmo destino. O banner
+de consentimento e o aviso de sincronização pendente permanecem independentes.
+
 A página `/privacidade` permite:
 
 - ver o status atual;

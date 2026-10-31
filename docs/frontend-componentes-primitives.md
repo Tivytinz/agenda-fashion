@@ -546,6 +546,23 @@ Também conhece catálogo local e rastreamento da origem no link.
 
 Use para resultado público de serviço.
 
+Na home, `compact` destaca cidade/UF, mostra bairro como informação secundária
+e reduz o placeholder sem foto. Fotos dos cards usam uma única camada,
+preservando o enquadramento com `contain` e fundo liso. A grade contínua da
+home não reserva uma fileira para cada categoria.
+
+O filtro de descoberta mantém texto e cidade como rascunho até `Buscar`.
+A URL representa os filtros aplicados e preserva os parâmetros de campanha.
+Navegação, limpeza e remoção de filtros sincronizam os rascunhos. Cidades já
+carregadas continuam disponíveis durante carregamento ou erro do catálogo.
+O contador da home informa apenas serviços exibidos; a paginação da API
+continua sendo de negócios. Serviços antecedem a descoberta complementar de
+negócios, inclusive na entrada sem filtros. Sem cidade aplicada, o filtro
+informa alcance nacional. O hero mantém as imagens por categoria e a navegação
+manual por controles/gestos, sem rotação automática nem botão de reprodução.
+A busca por texto atual cobre serviço e negócio,
+não nomes de pessoas da equipe.
+
 Não usar como editor/linha de serviço do painel da dona.
 
 ## 20. PublicShareButton
@@ -988,3 +1005,7 @@ Atualizar este documento quando:
 - uma integração de infraestrutura React mudar de responsabilidade.
 
 Não atualizar por simples alteração de texto, cor ou espaçamento local.
+
+As setas de `HorizontalRail` permanecem montadas quando a fileira tem overflow.
+Nos limites, usam `aria-disabled` e bloqueiam a ação, preservando o foco de
+quem navega por teclado.

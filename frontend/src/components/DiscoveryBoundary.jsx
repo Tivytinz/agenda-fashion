@@ -17,7 +17,7 @@ export class DiscoveryBoundary extends Component {
     return (
       <div className="container screen-state error-state" role="alert">
         <strong>Não conseguimos carregar o catálogo</strong>
-        <p>Atualize a página para consultar cidades, profissionais e serviços.</p>
+        <p>Atualize a página para exibir os profissionais e serviços.</p>
         <button className="button button-secondary" onClick={() => reloadWithFreshAssets()} type="button">
           Atualizar página
         </button>

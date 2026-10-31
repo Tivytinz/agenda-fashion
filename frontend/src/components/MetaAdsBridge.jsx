@@ -405,12 +405,6 @@ export function MetaAdsBridge() {
           </button>
         </aside>
       )}
-      <Link
-        className="privacy-shortcut"
-        to="/privacidade"
-      >
-        Privacidade
-      </Link>
     </>
   );
 }

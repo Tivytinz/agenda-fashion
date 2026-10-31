@@ -30,7 +30,7 @@ test("experiência pública usa shell próprio sem overflow e com foco visível"
   expect(diagnostics.scrollWidth).toBe(diagnostics.clientWidth);
 });
 
-test("home móvel permite pausar a rotação do hero sem overflow", async ({ page }) => {
+test("home móvel oferece navegação manual do hero sem overflow", async ({ page }) => {
   await page.route("**/negocios-publicos**", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
@@ -54,11 +54,7 @@ test("home móvel permite pausar a rotação do hero sem overflow", async ({ pag
 
   await page.goto("/");
 
-  const pauseButton = page.getByRole("button", {
-    name: "Pausar rotação automática dos destaques"
-  });
-  await expect(pauseButton).toBeVisible();
-  await expect(pauseButton).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByRole("button", { name: /rotação automática/ })).toHaveCount(0);
 
   await page.getByRole("button", {
     name: "Mostrar destaque 2: Unhas do seu jeito"
@@ -67,12 +63,6 @@ test("home móvel permite pausar a rotação do hero sem overflow", async ({ pag
   await expect(page.getByRole("heading", {
     name: "Unhas do seu jeito"
   })).toBeVisible();
-
-  const resumeButton = page.getByRole("button", {
-    name: "Retomar rotação automática dos destaques"
-  });
-  await expect(resumeButton).toBeVisible();
-  await expect(resumeButton).toHaveAttribute("aria-pressed", "true");
 
   const diagnostics = await horizontalOverflowDiagnostics(page);
   expect(diagnostics.scrollWidth).toBe(diagnostics.clientWidth);
