@@ -107,6 +107,19 @@ async function bloquearCheckoutDoNegocio(
   await client.query("SELECT id FROM negocios WHERE id = $1 FOR UPDATE", [negocioId]);
 }
 
+async function buscarDivergenciaAbertaDoNegocio(client, negocioId) {
+  const resultado = await client.query(
+    `SELECT id
+       FROM checkout_tentativas
+      WHERE negocio_id = $1
+        AND status = 'FAILED'
+        AND resposta->>'estado' = 'CONCILIACAO_NECESSARIA'
+      LIMIT 1`,
+    [negocioId]
+  );
+  return resultado.rows[0] || null;
+}
+
 async function buscarAssinaturaPendenteDoNegocio(
   client,
   negocioId
@@ -298,6 +311,7 @@ module.exports = {
   bloquearContaDonoCheckout,
   buscarElegibilidadeCheckout,
   buscarAssinaturaVigenteDoNegocio,
+  buscarDivergenciaAbertaDoNegocio,
   buscarPlano,
   bloquearCheckoutDoNegocio,
   buscarAssinaturaPendenteDoNegocio,
