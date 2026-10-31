@@ -60,6 +60,7 @@ export function BillingCheckoutPage() {
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(false);
   const pollRunRef = useRef(0);
+  const completedCheckoutRef = useRef(new Map());
   const currentSlugRef = useRef(slug);
   currentSlugRef.current = slug;
   const checkoutAttemptRef = useRef({
@@ -100,6 +101,20 @@ export function BillingCheckoutPage() {
           Number(currentPlan?.plano_id ?? currentPlan?.id) === Number(selected.id)
           || currentPlan?.plano_slug === selected.slug
         );
+
+        // A criação de PIX pode terminar enquanto a dona compara outro plano.
+        // Recupera a resposta da própria tentativa ao retornar, sem novo POST.
+        const concluido = completedCheckoutRef.current.get(slug);
+        if (concluido && !paymentActivated(concluido)) {
+          const valorPix = concluido.pix || concluido.pagamento?.pix || {};
+          const id = paymentId(concluido);
+          setPix({
+            image: valorPix.encodedImage || valorPix.encoded_image || "",
+            code: valorPix.payload || valorPix.copia_cola || ""
+          });
+          setCheckoutPaymentId(id || "");
+          if (id) void poll(id);
+        }
       })
       .catch((requestError) => {
         if (current) setError(requestError.message);
@@ -217,6 +232,7 @@ export function BillingCheckoutPage() {
         meta: null
       };
 
+      completedCheckoutRef.current.set(submittedSlug, result);
       if (currentSlugRef.current !== submittedSlug) return;
 
       if (metaContext?.event_id) {
