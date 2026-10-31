@@ -8,6 +8,7 @@ const service = require("../src/services/assinaturaService");
 const repository = require("../src/repositories/assinaturaRepository");
 const webhookRepository = require("../src/repositories/assinaturaWebhookRepository");
 const { criarCenarioAgendamento, removerCenarioAgendamento } = require("./helpers/cenarioAgendamento");
+const { calcularProximaCobranca } = require("../src/services/assinaturaCalculos");
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
 let studio, sub, originalPayment;
 const otherStudios = [];
@@ -188,6 +189,10 @@ test("OT-03: webhook de ciclo vencido não restaura acesso estornado; recebiment
   const dates=(await db.query(`SELECT TO_CHAR(CURRENT_DATE,'YYYY-MM-DD') AS today,
     TO_CHAR(CURRENT_DATE-INTERVAL '1 month','YYYY-MM-DD') AS old_paid,
     TO_CHAR(CURRENT_DATE+INTERVAL '1 month','YYYY-MM-DD') AS new_end`)).rows[0];
+  // No fim do mês, SET/OUT 30→31 não é inversível: a cobertura
+  // do pagamento antigo termina no dia realmente calculado pelo contrato.
+  const oldCoverageEnd = calcularProximaCobranca(dates.old_paid);
+  expect(oldCoverageEnd <= dates.today).toBe(true);
   await db.query("UPDATE assinaturas SET acesso_pago_ate=CURRENT_DATE,data_proxima_cobranca=CURRENT_DATE WHERE id=$1",[sub.id]);
   await db.query(`UPDATE pagamentos SET data_pagamento=CURRENT_DATE-INTERVAL '1 month',data_vencimento=CURRENT_DATE-INTERVAL '1 month',
     asaas_ultimo_evento_em=$2::timestamp,asaas_ultimo_evento_id=$3 WHERE assinatura_id=$1`,[sub.id,`${dates.old_paid} 09:00:00`,`evt_old_confirmed_${sub.id}`]);
@@ -198,11 +203,11 @@ test("OT-03: webhook de ciclo vencido não restaura acesso estornado; recebiment
   const send=(eventoId,tipoEvento,eventoCriadoEm,pagamento)=>webhook.processarWebhookAsaas({eventoId,tipoEvento,eventoCriadoEm,pagamento});
   await send(`evt_current_received_${sub.id}`,"PAYMENT_RECEIVED",`${dates.today} 09:00:00`,{...payment,status:"RECEIVED"});
   await send(`evt_current_refunded_${sub.id}`,"PAYMENT_REFUNDED",`${dates.today} 10:00:00`,{...payment,status:"REFUNDED"});
-  expect(await state()).toMatchObject({status:"REFUNDED",ativo:false,acesso_ate:dates.today});
+  expect(await state()).toMatchObject({status:"REFUNDED",ativo:false,acesso_ate:oldCoverageEnd});
   const replay=await send(`evt_old_received_${sub.id}`,"PAYMENT_RECEIVED",`${dates.old_paid} 09:01:00`,
     {...payment,id:originalPayment,status:"RECEIVED",dueDate:dates.old_paid,paymentDate:dates.old_paid});
   expect(replay.status).toBe("IGNORED");
-  expect(await state()).toMatchObject({status:"REFUNDED",ativo:false,acesso_ate:dates.today});
+  expect(await state()).toMatchObject({status:"REFUNDED",ativo:false,acesso_ate:oldCoverageEnd});
   expect((await page()).uso.plano_slug).toBe("inicial");
   await expect(cancel()).rejects.toMatchObject({status:404});
   expect(asaas.criarAssinaturaAsaas).not.toHaveBeenCalled();
