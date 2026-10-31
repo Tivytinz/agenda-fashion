@@ -65,7 +65,9 @@ test("nova busca preserva os filtros, exibe serviços por UF e permite limpar", 
   const location = page.getByRole("combobox", { name: "Escolher localização" });
   await page.keyboard.press("Tab");
   await location.focus();
-  expect(await location.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe("none");
+  expect(await location.evaluate((element) =>
+    getComputedStyle(element.closest("label")).outlineStyle
+  )).toBe("solid");
   await page.getByRole("button", { name: "Limpar filtros" }).click();
   await expect(page.getByRole("combobox", { name: "Escolher localização" })).toHaveValue("");
   await expect(page.getByRole("searchbox")).toHaveValue("");
