@@ -166,6 +166,58 @@ describe(
 
 
     test(
+      "bloqueia a retomada automática de cobrança sob conciliação",
+      async () => {
+        db.query
+          .mockResolvedValueOnce({ rows: [] })
+          .mockResolvedValueOnce({ rows: [{
+            id: 77, request_hash: "hash", status: "FAILED",
+            resposta: { estado: "CONCILIACAO_NECESSARIA", asaas_payment_id: "pay_77" }
+          }] });
+        await expect(repository.iniciar({
+          negocioId: 7,
+          chaveIdempotencia: "checkout-chave-123456",
+          requestHash: "hash"
+        })).rejects.toMatchObject({
+          code: "CHECKOUT_CONCILIACAO_PENDENTE"
+        });
+        expect(db.query).toHaveBeenCalledTimes(2);
+      }
+    );
+
+    test(
+      "persiste cobrança divergente sob o lease atual e sem copiar dados sensíveis",
+      async () => {
+        db.query.mockResolvedValueOnce({ rows: [{ id: 77 }] });
+        await expect(repository.registrarDivergencia(77, 2, {
+          pagamentoId: "pay_77", valorContratado: "20.00",
+          valorObservado: 10, motivo: "VALOR_DIVERGENTE"
+        })).resolves.toBe(true);
+        expect(db.query.mock.calls[0][0]).toContain("status = 'FAILED'");
+        expect(db.query.mock.calls[0][0]).toContain("lease_tentativa = $2");
+        const stored = JSON.parse(db.query.mock.calls[0][1][2]);
+        expect(stored).toEqual({
+          estado: "CONCILIACAO_NECESSARIA",
+          asaas_payment_id: "pay_77",
+          valor_contratado: "20.00",
+          valor_observado: "10",
+          motivo: "VALOR_DIVERGENTE"
+        });
+      }
+    );
+
+    test(
+      "não assume cobrança divergente após perda do lease",
+      async () => {
+        db.query.mockResolvedValueOnce({ rows: [] });
+        await expect(repository.registrarDivergencia(77, 2, {
+          pagamentoId: "pay_77", valorContratado: "20.00",
+          valorObservado: null, motivo: "VALOR_DIVERGENTE"
+        })).resolves.toBe(false);
+      }
+    );
+
+    test(
       "vínculo da assinatura exige lease corrente",
       async () => {
         const executor = {
