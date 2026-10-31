@@ -61,7 +61,7 @@ describe("imagens dos cards do catálogo", () => {
     expect(screen.getByText("Ver perfil")).not.toBeNull();
     expect(screen.queryByText("Ver horários")).toBeNull();
     expect(document.querySelectorAll(".business-cover-image")).toHaveLength(1);
-    expect(document.querySelectorAll(".business-cover-backdrop")).toHaveLength(1);
+    expect(document.querySelectorAll(".business-cover-backdrop")).toHaveLength(0);
   });
 
   it("usa o emoji da especialidade quando o negócio não possui foto", () => {
@@ -119,7 +119,7 @@ describe("imagens dos cards do catálogo", () => {
     });
 
     expect(document.querySelectorAll(".service-cover-image")).toHaveLength(1);
-    expect(document.querySelectorAll(".service-cover-backdrop")).toHaveLength(1);
+    expect(document.querySelectorAll(".service-cover-backdrop")).toHaveLength(0);
   });
 
   it("mostra a categoria do serviço sem repetir a especialidade do negócio", () => {
@@ -221,7 +221,7 @@ describe("imagens dos cards do catálogo", () => {
       ?.textContent).toBe("☀️");
   });
 
-  it("identifica negócio, localização, duração e valor com emojis", () => {
+  it("mantém negócio, localização, duração e valor legíveis com ícones decorativos", () => {
     const { container } = render(
       <MemoryRouter>
         <ServiceCard service={{
@@ -239,10 +239,10 @@ describe("imagens dos cards do catálogo", () => {
       </MemoryRouter>
     );
 
-    expect(container.textContent).toContain("🏢Beauty Vanessa");
+    expect(container.textContent).toContain("Beauty Vanessa");
     expect(container.textContent).toContain("📍Araguaia");
-    expect(container.textContent).toContain("🕒60 min");
+    expect(container.textContent).toContain("60 min");
     expect(container.textContent.replace(/\u00a0/g, " "))
-      .toContain("💰R$ 40,00");
+      .toContain("R$ 40,00");
   });
 });

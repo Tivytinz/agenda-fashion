@@ -1,4 +1,5 @@
 const ICON_PATHS = {
+  chevron: <path d="m9 5 7 7-7 7" />,
   account: (
     <>
       <circle cx="12" cy="8" r="3" />

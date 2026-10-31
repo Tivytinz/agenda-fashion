@@ -124,3 +124,16 @@ Antes de adicionar ou mover CSS, vale responder:
 - quais larguras, navegadores e estados precisam de validação?
 
 A opção preferida é a que mantém a interface clara e o ownership compreensível com o menor acoplamento e complexidade necessários.
+
+## Ownership da home pública
+
+`home-discovery.css` permanece a entrada carregada por `main.jsx`, importando:
+
+- `home/header.css`: cabeçalho público e controles de conta;
+- `home/hero.css`: banner, imagens e navegação dos destaques;
+- `home/catalog.css`: composição da home, busca, filtros, categorias, cards,
+  fileiras de negócios e grade de serviços.
+
+Media queries ficam junto das regras de sua responsabilidade. Alterações devem
+ser feitas no módulo correspondente, preservando o foco visível, movimento
+reduzido e a separação entre fundação global e apresentação pública.

@@ -1,705 +1,44 @@
-import {
-  Children,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react";
-
-import { DiscoveryLocationFilter } from "../components/DiscoveryLocationFilter";
-import { createPortal } from "react-dom";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-
-import { apiRequest } from "../api/client";
-import { track } from "../analytics/trackEvent";
-import sobrancelhasEmoji from "../assets/icons/sobrancelhas-emoji.png";
+import { useEffect } from "react";
 import { HomeHero } from "../components/HomeHero";
 import { BusinessCard } from "../components/BusinessCard";
 import { ServiceCard } from "../components/ServiceCard";
+import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
+import { DiscoverySearch } from "../components/discovery/DiscoverySearch";
+import { CategorySpotlightCard } from "../components/discovery/CategorySpotlightCard";
+import { HorizontalRail } from "../components/discovery/HorizontalRail";
+import { CATEGORY_SPOTLIGHTS } from "../utils/discoveryCatalog";
+import { serviceCategoryLabel } from "../utils/specialties";
+import { useDiscoveryCatalog } from "../hooks/useDiscoveryCatalog";
+export { buildCatalogPath, diversifyServices } from "../utils/discoveryCatalog";
 
-import {
-  EmptyState,
-  ErrorState,
-  LoadingState
-} from "../components/ScreenState";
-
-import { normalizeText } from "../utils/format";
-import {
-  serviceCategoryEmoji,
-  serviceCategoryLabel
-} from "../utils/specialties";
-
-const CATEGORY_SPOTLIGHTS = [
-  ["unha", "Unhas", "Manicure e pedicure"],
-  ["cabelo", "Cabelos", "Cortes e tratamentos"],
-  ["estetica", "Estética", "Cuidados para você"],
-  ["bronzeamento", "Bronzeamento", "Seu tom, seu momento"],
-  ["cilio", "Cílios", "Realce seu olhar"],
-  ["sobrancelha", "Sobrancelhas", "Design e expressão"],
-  ["maquiagem", "Maquiagem", "Produções especiais"]
-];
-
-const CATEGORY_CODES = new Set(
-  CATEGORY_SPOTLIGHTS.map(([value]) => value)
-);
-
-const CATEGORY_ORDER = new Map(
-  CATEGORY_SPOTLIGHTS.map(([, label], index) => [label, index])
-);
-
-const LOCATION_STORAGE_KEY = "af_catalog_location";
-
-const PAGE_SIZE = 12;
-
-export function buildCatalogPath({
-  query = "",
-  category = "",
-  city = "",
-  state = "",
-  page = 1
-} = {}) {
-  const params = new URLSearchParams({
-    pagina: String(page),
-    limite: String(PAGE_SIZE)
-  });
-
-  if (query.trim()) {
-    params.set("busca", query.trim());
-  }
-
-  if (category) {
-    params.set("categoria", category);
-  }
-
-  if (city.trim()) {
-    params.set("cidade", city.trim());
-  }
-
-  if (/^[A-Z]{2}$/.test(state.trim().toUpperCase())) {
-    params.set("estado", state.trim().toUpperCase());
-  }
-
-  return `/negocios-publicos?${params.toString()}`;
+export function ExplorePage({ controller, renderHero = true, onMounted }) {
+  return controller
+    ? <ExploreContent controller={controller} onMounted={onMounted} />
+    : <StandaloneExplore renderHero={renderHero} onMounted={onMounted} />;
 }
 
-function locationKey(city, state) {
-  const normalizedCity = String(city || "").trim();
-  const normalizedState = String(state || "").trim().toUpperCase();
-
-  if (!normalizedCity || !/^[A-Z]{2}$/.test(normalizedState)) {
-    return "";
-  }
-
-  return `${normalizedCity}::${normalizedState}`;
-}
-
-function parseLocationKey(value) {
-  const key = String(value || "");
-  const separator = key.lastIndexOf("::");
-
-  if (separator < 1) {
-    return { city: "", state: "" };
-  }
-
-  const city = key.slice(0, separator).trim();
-  const state = key.slice(separator + 2).trim().toUpperCase();
-
-  return /^[A-Z]{2}$/.test(state) && city
-    ? { city, state }
-    : { city: "", state: "" };
-}
-
-function storedLocationKey() {
-  try {
-    return window.localStorage.getItem(LOCATION_STORAGE_KEY) || "";
-  } catch {
-    return "";
-  }
-}
-
-export function diversifyServices(services = []) {
-  const queues = new Map();
-
-  services.forEach((service) => {
-    const key = String(service.negocio_id ?? service.negocio_slug ?? "");
-    const queue = queues.get(key) || [];
-    queue.push(service);
-    queues.set(key, queue);
-  });
-
-  const diversified = [];
-  let remaining = true;
-
-  while (remaining) {
-    remaining = false;
-
-    for (const queue of queues.values()) {
-      const service = queue.shift();
-
-      if (service) {
-        diversified.push(service);
-        remaining = true;
-      }
-    }
-  }
-
-  return diversified;
-}
-
-function CategorySpotlightCard({
-  active,
-  category,
-  label,
-  onSelect,
-  subtitle
-}) {
-  const customEyebrowEmoji = category === "sobrancelha";
-
-  return (
-    <button
-      aria-label={label}
-      aria-pressed={active}
-      className={active
-        ? "home-category-card active"
-        : "home-category-card"}
-      onClick={() => onSelect(active ? "" : category)}
-      type="button"
-    >
-      <span className="home-category-visual">
-        <span
-          aria-hidden="true"
-          className={customEyebrowEmoji
-            ? "home-category-emoji is-custom-eyebrow"
-            : "home-category-emoji"}
-          style={customEyebrowEmoji
-            ? { "--eyebrow-emoji-url": `url(${sobrancelhasEmoji})` }
-            : undefined}
-        >
-          {customEyebrowEmoji
-            ? ""
-            : serviceCategoryEmoji(category, label)}
-        </span>
-
-        <span className="home-category-shade" />
-      </span>
-
-      <span className="home-category-copy">
-        <span>
-          <strong>{label}</strong>
-          <small>{subtitle}</small>
-        </span>
-
-      </span>
-    </button>
-  );
-}
-
-function HorizontalRail({
-  ariaLabel,
-  children,
-  className
-}) {
-  const trackRef = useRef(null);
-  const itemCount = Children.count(children);
-  const [scrollState, setScrollState] = useState({
-    previous: false,
-    next: false
-  });
-
-  const updateScrollState = useCallback(() => {
-    const track = trackRef.current;
-
-    if (!track) return;
-
-    const maximum = Math.max(track.scrollWidth - track.clientWidth, 0);
-
-    setScrollState({
-      previous: track.scrollLeft > 4,
-      next: maximum > 4 && track.scrollLeft < maximum - 4
-    });
-  }, []);
-
+function StandaloneExplore({ renderHero, onMounted }) {
+  const controller = useDiscoveryCatalog();
   useEffect(() => {
-    updateScrollState();
-    window.addEventListener("resize", updateScrollState);
-
-    const observer = typeof ResizeObserver === "function"
-      ? new ResizeObserver(updateScrollState)
-      : null;
-
-    if (observer && trackRef.current) {
-      observer.observe(trackRef.current);
-    }
-
-    return () => {
-      window.removeEventListener("resize", updateScrollState);
-      observer?.disconnect();
-    };
-  }, [itemCount, updateScrollState]);
-
-  function move(direction) {
-    const track = trackRef.current;
-
-    if (!track) return;
-
-    const distance = Math.max(track.clientWidth * 0.82, 280) * direction;
-
-    if (typeof track.scrollBy === "function") {
-      track.scrollBy({ left: distance, behavior: "smooth" });
-    } else {
-      track.scrollLeft += distance;
-    }
-
-    window.requestAnimationFrame(updateScrollState);
-  }
-
-  return (
-    <div className="home-rail-shell">
-      {scrollState.previous && (
-        <button
-          aria-label={`Voltar em ${ariaLabel.toLocaleLowerCase("pt-BR")}`}
-          className="home-rail-control previous"
-          onClick={() => move(-1)}
-          type="button"
-        >
-          ‹
-        </button>
-      )}
-
-      <div
-        aria-label={ariaLabel}
-        className={className}
-        onScroll={updateScrollState}
-        ref={trackRef}
-        tabIndex={scrollState.previous || scrollState.next ? 0 : undefined}
-      >
-        {children}
-      </div>
-
-      {scrollState.next && (
-        <button
-          aria-label={`Avançar em ${ariaLabel.toLocaleLowerCase("pt-BR")}`}
-          className="home-rail-control next"
-          onClick={() => move(1)}
-          type="button"
-        >
-          ›
-        </button>
-      )}
-    </div>
-  );
+    if (controller.location.hash !== "#buscar-servicos") return undefined;
+    const frame = window.requestAnimationFrame(() => document.getElementById("buscar-servicos")?.scrollIntoView?.({ block: "start" }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [controller.location.key, controller.location.hash]);
+  return <div className="home-page">
+    <DiscoverySearch controller={controller} id="buscar-servicos" />
+    {renderHero && <HomeHero onExploreCategory={controller.exploreHeroCategory} />}
+    <ExploreContent controller={controller} onMounted={onMounted} />
+  </div>;
 }
 
-export function ExplorePage({ renderHero = true, filterTarget = null, onMounted }) {
+function ExploreContent({ controller, onMounted }) {
   useEffect(() => {
     onMounted?.(true);
     return () => onMounted?.(false);
   }, [onMounted]);
-
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const requestedQuery =
-    searchParams.get("busca") || "";
-
-  const requestedCategory =
-    searchParams.get("categoria") || "";
-
-  const requestedLocationKey = locationKey(
-    searchParams.get("cidade"),
-    searchParams.get("estado")
-  );
-
-  const [businesses, setBusinesses] =
-    useState([]);
-
-  const query = requestedQuery;
-  const category = CATEGORY_CODES.has(requestedCategory) ? requestedCategory : "";
-
-  const selectedLocationKey = requestedLocationKey;
-  const [locationRestored, setLocationRestored] = useState(false);
-
-  const [locations, setLocations] =
-    useState([]);
-
-  const [status, setStatus] =
-    useState("loading");
-
-  const [error, setError] =
-    useState("");
-
-  const [page, setPage] =
-    useState(1);
-
-  const [hasMore, setHasMore] =
-    useState(false);
-
-  const [loadingMore, setLoadingMore] =
-    useState(false);
-
-  const latestRequest = useRef(0);
-  const selectedLocation = parseLocationKey(selectedLocationKey);
-
-  const loadBusinesses = useCallback(async ({
-    requestedPage = 1,
-    append = false,
-    signal
-  } = {}) => {
-    const requestId =
-      latestRequest.current + 1;
-
-    latestRequest.current = requestId;
-
-    if (append) {
-      setLoadingMore(true);
-    } else {
-      setStatus("loading");
-      setError("");
-    }
-
-    try {
-      const data = await apiRequest(
-        buildCatalogPath({
-          query,
-          category,
-          city: selectedLocation.city,
-          state: selectedLocation.state,
-          page: requestedPage
-        }),
-        { signal }
-      );
-
-      if (requestId !== latestRequest.current) {
-        return;
-      }
-
-      const received =
-        Array.isArray(data.negocios)
-          ? data.negocios
-          : [];
-
-      setBusinesses(
-        (current) =>
-          append
-            ? [...current, ...received]
-            : received
-      );
-
-      setPage(requestedPage);
-      setHasMore(
-        Boolean(data.paginacao?.tem_mais)
-      );
-
-      if (!append && Array.isArray(data.localidades)) {
-        setLocations(data.localidades);
-      }
-      setError("");
-
-      setStatus("ready");
-    } catch (requestError) {
-      if (
-        signal?.aborted ||
-        requestId !== latestRequest.current
-      ) {
-        return;
-      }
-
-      setError(requestError.message);
-      if (!append) {
-        setStatus("error");
-      }
-    } finally {
-      if (
-        !signal?.aborted &&
-        requestId === latestRequest.current
-      ) {
-        setLoadingMore(false);
-      }
-    }
-  }, [category, query, selectedLocation.city, selectedLocation.state]);
-
-  useEffect(() => {
-    if (!locationRestored) {
-      setLocationRestored(true);
-      const stored = parseLocationKey(storedLocationKey());
-      if (!requestedLocationKey && stored.city && stored.state) {
-        const nextParams = new URLSearchParams(searchParams);
-        nextParams.set("cidade", stored.city);
-        nextParams.set("estado", stored.state);
-        navigate({
-          pathname: location.pathname,
-          search: `?${nextParams}`,
-          hash: location.hash
-        }, { replace: true, state: location.state });
-        return;
-      }
-    }
-    try {
-      if (requestedLocationKey) {
-        window.localStorage.setItem(LOCATION_STORAGE_KEY, requestedLocationKey);
-      } else {
-        window.localStorage.removeItem(LOCATION_STORAGE_KEY);
-      }
-    } catch {
-      // A URL é a fonte navegável mesmo quando o armazenamento está bloqueado.
-    }
-  }, [locationRestored, requestedLocationKey, searchParams, navigate, location.pathname, location.hash, location.state]);
-
-  useEffect(() => {
-    const controller =
-      new AbortController();
-
-    const timeout = window.setTimeout(
-      () => {
-        void loadBusinesses({
-          requestedPage: 1,
-          signal: controller.signal
-        });
-      },
-      query ? 350 : 0
-    );
-
-    return () => {
-      window.clearTimeout(timeout);
-      controller.abort();
-    };
-  }, [loadBusinesses, query]);
-
-  useEffect(() => {
-
-    track("tela_visualizada", {
-      page: "inicio",
-      mission: "descobrir_servico"
-    });
-  }, []);
-
-  const services =
-    useMemo(() => {
-      return businesses.flatMap(
-        (business) => {
-          return (
-            business.servicos || []
-          ).map((service) => ({
-            ...service,
-
-            negocio_id:
-              business.id,
-
-            negocio_nome:
-              business.nome,
-
-            negocio_slug:
-              business.slug,
-
-            negocio_setor:
-              business.setor,
-
-            negocio_descricao: business.descricao,
-            negocio_areas: business.areas,
-
-            negocio_cidade:
-              business.cidade,
-
-            negocio_bairro:
-              business.bairro,
-
-            negocio_estado:
-              business.estado,
-
-            negocio_latitude:
-              business.latitude,
-
-            negocio_longitude:
-              business.longitude,
-
-            negocio_foto_url:
-              business.foto_url
-          }));
-        }
-      );
-    }, [businesses]);
-
-  const filteredServices =
-    useMemo(() => {
-      const wanted = normalizeText(query);
-
-      const terms = wanted
-        .split(/\s+/)
-        .filter(Boolean);
-
-      const filtered = services.filter((service) => {
-        const haystack = normalizeText(
-          [
-            service.nome,
-            service.descricao,
-            service.negocio_nome,
-            service.negocio_setor,
-            service.negocio_descricao,
-            service.negocio_areas?.join(" "),
-            service.negocio_cidade,
-            service.negocio_estado,
-            service.negocio_bairro
-          ].join(" ")
-        );
-
-        return terms.every((term) => haystack.includes(term));
-      });
-
-      return diversifyServices(filtered);
-    }, [query, services]);
-
-  const serviceGroups = useMemo(() => {
-    const groups = new Map();
-
-    filteredServices.forEach((service) => {
-      const label = serviceCategoryLabel(service.categoria);
-      const group = groups.get(label) || [];
-      group.push(service);
-      groups.set(label, group);
-    });
-
-    return [...groups.entries()].sort(
-      ([labelA], [labelB]) =>
-        (CATEGORY_ORDER.get(labelA) ?? Number.MAX_SAFE_INTEGER) -
-        (CATEGORY_ORDER.get(labelB) ?? Number.MAX_SAFE_INTEGER) ||
-        labelA.localeCompare(labelB, "pt-BR")
-    );
-  }, [filteredServices]);
-
-  const locationOptions = useMemo(() => {
-    const options = new Map();
-
-    locations.forEach((location) => {
-      const key = locationKey(location?.cidade, location?.estado);
-      if (key) options.set(key, location);
-    });
-
-    if (selectedLocationKey && !options.has(selectedLocationKey)) {
-      options.set(selectedLocationKey, {
-        cidade: selectedLocation.city,
-        estado: selectedLocation.state,
-        total_negocios: 0
-      });
-    }
-
-    return [...options.entries()].sort(([, locationA], [, locationB]) =>
-      `${locationA.cidade}-${locationA.estado}`.localeCompare(
-        `${locationB.cidade}-${locationB.estado}`,
-        "pt-BR"
-      )
-    );
-  }, [locations, selectedLocation.city, selectedLocation.state, selectedLocationKey]);
-
-  const sortedBusinesses =
-    useMemo(() => {
-      return [...businesses].sort(
-        (businessA, businessB) => {
-          const servicesA =
-            businessA.servicos?.length || 0;
-
-          const servicesB =
-            businessB.servicos?.length || 0;
-
-          if (
-            Boolean(servicesA) !==
-            Boolean(servicesB)
-          ) {
-            return servicesB - servicesA;
-          }
-
-          return String(
-            businessA.nome || ""
-          ).localeCompare(
-            String(businessB.nome || ""),
-            "pt-BR"
-          );
-        }
-      );
-    }, [businesses]);
-
-  async function loadMore() {
-    await loadBusinesses({
-      requestedPage: page + 1,
-      append: true
-    });
-  }
-
-  function chooseCategory(value) {
-    const nextParams = new URLSearchParams(searchParams);
-
-    if (value) {
-      nextParams.set("categoria", value);
-    } else {
-      nextParams.delete("categoria");
-    }
-    nextParams.delete("pagina");
-
-    setSearchParams(nextParams, { replace: true });
-
-    track("categoria_selecionada", {
-      page: "inicio",
-      mission: "descobrir_servico",
-      properties: {
-        categoria: value || "todos"
-      }
-    });
-  }
-
-  function chooseLocation(value) {
-    const nextLocation = parseLocationKey(value);
-    const nextKey = locationKey(nextLocation.city, nextLocation.state);
-    const nextParams = new URLSearchParams(searchParams);
-
-    if (nextKey) {
-      nextParams.set("cidade", nextLocation.city);
-      nextParams.set("estado", nextLocation.state);
-    } else {
-      nextParams.delete("cidade");
-      nextParams.delete("estado");
-    }
-    nextParams.delete("pagina");
-
-    setSearchParams(nextParams, { replace: true });
-  }
-
-  function clearFilters() {
-    const nextParams = new URLSearchParams(searchParams);
-    ["busca", "categoria", "cidade", "estado", "pagina"].forEach((key) => nextParams.delete(key));
-    setSearchParams(nextParams, { replace: true });
-  }
-
-  function exploreHeroCategory(value) {
-    chooseCategory(value);
-
-    window.requestAnimationFrame(() => {
-      document
-        .getElementById("buscar-servicos")
-        ?.scrollIntoView({ block: "start" });
-    });
-  }
-
-  function searchCatalog(value) {
-    const nextParams = new URLSearchParams(searchParams);
-    if (value) nextParams.set("busca", value);
-    else nextParams.delete("busca");
-    nextParams.delete("pagina");
-    navigate({ pathname: location.pathname, search: `?${nextParams}`, hash: "#buscar-servicos" });
-  }
-
-  const discoveryFilters = (
-    <DiscoveryLocationFilter
-      id={renderHero ? "buscar-servicos" : undefined}
-      value={selectedLocationKey}
-      options={locationOptions}
-      query={query}
-      onSearch={searchCatalog}
-      status={status}
-      onChange={chooseLocation}
-      onRetry={loadBusinesses}
-    />
-  );
+  const { status, query, category, selectedLocationKey, selectedLocation,
+    sortedBusinesses, filteredServices, hasMore, loadingMore, error,
+    loadBusinesses, loadMore, chooseCategory, removeFilter, clearFilters } = controller;
 
   const businessSection = (status === "ready" && (
         <section
@@ -730,6 +69,7 @@ export function ExplorePage({ renderHero = true, filterTarget = null, onMounted 
                 (business) => (
                   <BusinessCard
                     business={business}
+                    compact
                     key={business.id}
                   />
                 )
@@ -746,14 +86,11 @@ export function ExplorePage({ renderHero = true, filterTarget = null, onMounted 
       ));
 
   return (
-    <div className={renderHero ? "home-page" : "home-discovery-content"}>
-      {renderHero && <HomeHero onExploreCategory={exploreHeroCategory} />}
-
-      {filterTarget ? createPortal(discoveryFilters, filterTarget) : discoveryFilters}
+    <div className="home-discovery-content">
         {(query || category || selectedLocationKey) && (
           <div className="container home-active-filters home-results-filters" role="region" aria-label="Filtros aplicados">
-            {selectedLocationKey && <span>Cidade: <strong>{selectedLocation.city}, {selectedLocation.state}</strong></span>}
-            {query && <span>Busca: <strong>{query}</strong></span>}
+            {selectedLocationKey && <button className="home-filter-chip" type="button" onClick={() => removeFilter(["cidade", "estado"])} aria-label="Remover filtro de cidade">Cidade: <strong>{selectedLocation.city}, {selectedLocation.state}</strong> ×</button>}
+            {query && <button className="home-filter-chip" type="button" onClick={() => removeFilter(["busca"])} aria-label="Remover filtro de busca">Busca: <strong>{query}</strong> ×</button>}
             {category && <span>Categoria: <strong>{serviceCategoryLabel(category)}</strong></span>}
             <button className="text-button" onClick={clearFilters} type="button">Limpar filtros</button>
           </div>
@@ -797,8 +134,6 @@ export function ExplorePage({ renderHero = true, filterTarget = null, onMounted 
         </HorizontalRail>
       </section>
 
-      {!query && !category && businessSection}
-
       <section
         aria-labelledby="services-title"
         className="container content-section home-catalog-section"
@@ -836,42 +171,28 @@ export function ExplorePage({ renderHero = true, filterTarget = null, onMounted 
           filteredServices.length ===
           0 && (
             <EmptyState title="Nenhum serviço encontrado">
-              Tente outra categoria,
-              serviço ou cidade.
+              Tente outro serviço ou cidade.
+              {category && <button className="text-button" type="button" onClick={() => chooseCategory("")}>Buscar em todas as categorias</button>}
             </EmptyState>
           )}
 
         {status === "ready" &&
           filteredServices.length >
           0 && (
-            <div className="service-rails">
-              {serviceGroups.map(([label, group]) => (
-                <section className="service-rail" key={label}>
-                  <div className="service-rail-heading">
-                    {serviceGroups.length > 1 && (
-                      <h3 className="service-rail-title">{label}</h3>
-                    )}
-
-                  </div>
-
-                  <HorizontalRail
-                    ariaLabel={`Serviços de ${label}`}
-                    className="service-rail-track"
-                  >
-                    {group.map((service) => (
-                      <ServiceCard
-                        service={service}
-                        key={`${service.negocio_id}-${service.id}`}
-                      />
-                    ))}
-                  </HorizontalRail>
-                </section>
-              ))}
-            </div>
+            <>
+              <p className="home-result-count" role="status">
+                {filteredServices.length} {filteredServices.length === 1 ? "serviço exibido" : "serviços exibidos"}{hasMore ? " · Carregue mais resultados para continuar explorando." : ""}
+              </p>
+              <div className="home-services-grid">
+                {filteredServices.map((service) => (
+                  <ServiceCard service={service} compact key={`${service.negocio_id}-${service.id}`} />
+                ))}
+              </div>
+            </>
           )}
       </section>
 
-      {(query || category) && businessSection}
+      {businessSection}
       {status === "ready" && (
         <div className="container home-pagination" aria-label="Mais resultados do catálogo">
           {hasMore && (

@@ -20,6 +20,8 @@ import {
 } from "vitest";
 import { HomePage } from "./HomePage";
 
+vi.mock("../api/client", () => ({ apiRequest: vi.fn().mockResolvedValue({ negocios: [], localidades: [] }) }));
+
 vi.mock("./ExplorePage", () => ({
   ExplorePage: ({ renderHero }) => (
     <section data-render-hero={String(renderHero)}>
@@ -55,9 +57,7 @@ describe("home crítica", () => {
     try {
       const view = renderHome();
       expect(document.title).toBe("Agenda Fashion | Agendamento de beleza online");
-      expect(meta.content).toBe(
-        "Encontre profissionais e negócios de beleza, compare serviços e agende seu horário online pelo Agenda Fashion."
-      );
+      expect(meta.content).toBe("Encontre profissionais e negócios de beleza, compare serviços e agende seu horário online pelo Agenda Fashion.");
       view.unmount();
     } finally {
       document.title = previousTitle;
@@ -117,61 +117,13 @@ describe("home crítica", () => {
   });
 
 
-  it("pausa a rotação automática quando a pessoa navega manualmente", async () => {
+  it("permite explorar os destaques manualmente sem controle de reprodução", async () => {
     const user = userEvent.setup();
-
     renderHome();
-
-    const pauseButton = screen.getByRole("button", {
-      name: "Pausar rotação automática dos destaques"
-    });
-    expect(pauseButton.getAttribute("aria-pressed")).toBe("false");
-
-    await user.click(screen.getByRole("button", {
-      name: "Próximo destaque"
-    }));
-
-    expect(screen.getByRole("heading", {
-      name: "Unhas do seu jeito"
-    })).not.toBeNull();
-
-    const resumeButton = screen.getByRole("button", {
-      name: "Retomar rotação automática dos destaques"
-    });
-    expect(resumeButton.getAttribute("aria-pressed")).toBe("true");
-
-    await user.click(resumeButton);
-
-    expect(screen.getByRole("button", {
-      name: "Pausar rotação automática dos destaques"
-    }).getAttribute("aria-pressed")).toBe("false");
-  });
-
-
-  it("inicia com a rotação pausada quando a pessoa prefere movimento reduzido", () => {
-    const originalMatchMedia = window.matchMedia;
-
-    Object.defineProperty(window, "matchMedia", {
-      configurable: true,
-      value: vi.fn().mockReturnValue({
-        matches: true,
-        media: "(prefers-reduced-motion: reduce)",
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn()
-      })
-    });
-
-    try {
-      renderHome();
-
-      expect(screen.getByRole("button", {
-        name: "Retomar rotação automática dos destaques"
-      }).getAttribute("aria-pressed")).toBe("true");
-    } finally {
-      Object.defineProperty(window, "matchMedia", {
-        configurable: true,
-        value: originalMatchMedia
-      });
-    }
+    expect(screen.queryByRole("button", { name: /rotação automática/ })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Próximo destaque" }));
+    expect(screen.getByRole("heading", { name: "Unhas do seu jeito" })).not.toBeNull();
+    await user.click(screen.getByRole("button", { name: "Destaque anterior" }));
+    expect(screen.getByRole("heading", { name: "Beleza para você" })).not.toBeNull();
   });
 });

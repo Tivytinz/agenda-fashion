@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { AppIcon } from "./AppIcon";
+import { useRef, useState } from "react";
 import manicureHero from "../assets/home/manicure-hero.webp";
 import skincareHero from "../assets/home/skincare-hero.webp";
 import bronzeamentoHero from "../assets/home/bronzeamento-hero.webp";
@@ -68,37 +69,9 @@ const HERO_SLIDES = [
 
 export function HomeHero({ onExploreCategory, onShowHowItWorks }) {
   const [activeHero, setActiveHero] = useState(0);
-  const [heroRotationPaused, setHeroRotationPaused] = useState(() =>
-    Boolean(window.matchMedia?.(
-      "(prefers-reduced-motion: reduce)"
-    )?.matches)
-  );
   const heroTouchStart = useRef(null);
 
-  useEffect(() => {
-    const preference = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-    function updatePreference(event) {
-      if (event.matches) setHeroRotationPaused(true);
-    }
-    preference?.addEventListener?.("change", updatePreference);
-    return () => preference?.removeEventListener?.("change", updatePreference);
-  }, []);
-
-  useEffect(() => {
-    if (heroRotationPaused) {
-      return undefined;
-    }
-
-    const interval = window.setInterval(() => {
-      setActiveHero((current) =>
-        (current + 1) % HERO_SLIDES.length);
-    }, 7000);
-
-    return () => window.clearInterval(interval);
-  }, [heroRotationPaused]);
-
   function showHero(index) {
-    setHeroRotationPaused(true);
     setActiveHero(
       (index + HERO_SLIDES.length) % HERO_SLIDES.length
     );
@@ -130,27 +103,10 @@ export function HomeHero({ onExploreCategory, onShowHowItWorks }) {
       aria-label="Destaques do Agenda Fashion"
       aria-roledescription="carrossel"
       className="home-hero"
-      onFocusCapture={(event) => {
-        if (!event.target.closest(".home-hero-rotation-toggle")) {
-          setHeroRotationPaused(true);
-        }
-      }}
-      onMouseEnter={() => setHeroRotationPaused(true)}
       onTouchEnd={handleHeroTouchEnd}
       onTouchStart={handleHeroTouchStart}
     >
       <div className="container home-hero-frame">
-        <button
-          aria-label={heroRotationPaused
-            ? "Retomar rotação automática dos destaques"
-            : "Pausar rotação automática dos destaques"}
-          aria-pressed={heroRotationPaused}
-          className="home-hero-rotation-toggle"
-          onClick={() => setHeroRotationPaused((current) => !current)}
-          type="button"
-        >
-          <span aria-hidden="true">{heroRotationPaused ? "▶" : "⏸"}</span>
-        </button>
         <div
           className="home-hero-track"
           style={{
@@ -224,7 +180,7 @@ export function HomeHero({ onExploreCategory, onShowHowItWorks }) {
           onClick={() => showHero(activeHero - 1)}
           type="button"
         >
-          ‹
+          <AppIcon className="home-arrow-icon" name="chevron" />
         </button>
 
         <button
@@ -233,7 +189,7 @@ export function HomeHero({ onExploreCategory, onShowHowItWorks }) {
           onClick={() => showHero(activeHero + 1)}
           type="button"
         >
-          ›
+          <AppIcon className="home-arrow-icon" name="chevron" />
         </button>
 
         <div aria-label="Escolher destaque" className="home-hero-dots">

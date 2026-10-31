@@ -3,6 +3,7 @@ import {
   formatLocation,
   formatRating
 } from "../utils/format";
+import { AppIcon } from "./AppIcon";
 import { useRetryingMedia } from "../hooks/useRetryingMedia";
 import {
   normalizeBusinessSpecialties,
@@ -13,7 +14,7 @@ import {
   resolveDiscoveryProfileOrigin
 } from "../utils/profileOrigin";
 
-export function BusinessCard({ business }) {
+export function BusinessCard({ business, compact = false }) {
   const location = useLocation();
   const serviceCount =
     business.servicos?.length || 0;
@@ -58,12 +59,6 @@ export function BusinessCard({ business }) {
         {hasImage ? (
           <>
             <img
-              className="business-cover-backdrop"
-              src={imageUrl}
-              alt=""
-              loading="lazy"
-            />
-            <img
               className="business-cover-image"
               src={imageUrl}
               alt=""
@@ -91,16 +86,17 @@ export function BusinessCard({ business }) {
         <div className="business-heading">
           <div>
             <h3 className="discovery-labeled-value">
-              <span aria-hidden="true">🏢</span>
+              <AppIcon className="discovery-icon" name="business" />
               {business.nome}
             </h3>
 
             <p className="muted location discovery-labeled-value">
               <span aria-hidden="true">📍</span>
               <span>
-                {formatLocation(business) || "Atendimento local"}
+                {formatLocation(compact ? { cidade: business.cidade, estado: business.estado } : business) || "Atendimento local"}
               </span>
             </p>
+            {compact && business.bairro && <small className="discovery-neighborhood">{business.bairro}</small>}
           </div>
 
           <span

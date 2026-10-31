@@ -69,8 +69,10 @@ describe(
       () => {
         const explorar =
           ler(
-            "frontend/src/pages/ExplorePage.jsx"
+            "frontend/src/hooks/useDiscoveryCatalog.js"
           );
+
+        const filtros = ler("frontend/src/hooks/useCatalogFilters.js");
 
         const analytics =
           ler(
@@ -90,13 +92,13 @@ describe(
         );
 
         expect(
-          explorar
+          filtros
         ).toContain(
           'track("categoria_selecionada"'
         );
 
         expect(
-          `${explorar}${analytics}`
+          `${explorar}${filtros}${analytics}`
         ).not.toContain(
           "termo_digitado"
         );
@@ -142,7 +144,7 @@ describe(
         );
 
         expect(
-          explorar
+          ler("frontend/src/hooks/useDiscoveryCatalog.js")
         ).toContain(
           "business.servicos"
         );
@@ -154,7 +156,7 @@ describe(
         );
 
         expect(
-          explorar
+          ler("frontend/src/components/discovery/CategorySpotlightCard.jsx")
         ).toContain(
           "aria-pressed"
         );
@@ -661,9 +663,9 @@ describe(
         const hero = ler(
           "frontend/src/components/HomeHero.jsx"
         );
-        const visual = ler(
-          "frontend/src/styles/home-discovery.css"
-        );
+        const visual = ["header", "hero", "catalog"]
+          .map((modulo) => ler(`frontend/src/styles/home/${modulo}.css`))
+          .join("\n");
 
         expect(cabecalho).not.toContain(
           "Buscar serviços"
@@ -687,7 +689,7 @@ describe(
           "home-hero-dots"
         );
         expect(inicio).toContain(
-          "<HomeHero onExploreCategory={exploreHeroCategory} />"
+          "<HomeHero onExploreCategory={controller.exploreHeroCategory} />"
         );
         expect(inicio).not.toContain(
           "CATEGORY_CARD_IMAGES"
@@ -707,7 +709,7 @@ describe(
         expect(hero).toContain(
           "HERO_SLIDES"
         );
-        expect(inicio).toContain(
+        expect(ler("frontend/src/components/discovery/CategorySpotlightCard.jsx")).toContain(
           "serviceCategoryEmoji"
         );
         expect(inicio).not.toContain(

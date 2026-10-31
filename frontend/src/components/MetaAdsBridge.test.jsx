@@ -11,6 +11,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
+import { LegalFooter } from "./LegalFooter";
 import {
   afterEach,
   beforeEach,
@@ -115,6 +116,7 @@ describe("consentimento de marketing", () => {
     render(
       <MemoryRouter>
         <MetaAdsBridge />
+        <LegalFooter />
       </MemoryRouter>
     );
 
@@ -143,10 +145,26 @@ describe("consentimento de marketing", () => {
       .toHaveBeenCalledWith(MARKETING_CONSENT.GRANTED);
     await waitFor(() => {
       expect(
-        screen.getByRole("link", { name: "Privacidade" })
-      ).not.toBeNull();
+        screen.getAllByRole("link", { name: "Privacidade" })
+      ).toHaveLength(1);
+      expect(document.querySelector(".privacy-shortcut")).toBeNull();
     });
   });
+
+  it.each(["/painel", "/profissional/agenda"])(
+    "preserva acesso à privacidade em %s, onde o rodapé fica oculto",
+    async (pathname) => {
+      getMarketingConsent.mockReturnValue(MARKETING_CONSENT.DENIED);
+      render(
+        <MemoryRouter initialEntries={[pathname]}>
+          <MetaAdsBridge />
+        </MemoryRouter>
+      );
+      const link = await screen.findByRole("link", { name: "Privacidade" });
+      expect(link.getAttribute("href")).toBe("/privacidade");
+      expect(link.className).toBe("privacy-shortcut");
+    }
+  );
 
   it("protege o layout de 320 a 800 px contra estouro horizontal", () => {
     const cssPath = resolve(

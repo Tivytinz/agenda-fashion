@@ -69,6 +69,9 @@ export function MetaAdsBridge() {
     useState(false);
   const adminMeasurementRoute =
     isAdminMeasurementRoute(location.pathname);
+  const operationalContext = ["/admin", "/painel", "/profissional"].some(
+    (root) => location.pathname === root || location.pathname.startsWith(`${root}/`)
+  ) || (location.pathname === "/conta" && (session.ehAdministrador || session.temNegocio));
   const sensitiveMeasurementRoute =
     isSensitiveMeasurementRoute(location.pathname);
   const blockedMetaMeasurementRoute =
@@ -405,12 +408,11 @@ export function MetaAdsBridge() {
           </button>
         </aside>
       )}
-      <Link
-        className="privacy-shortcut"
-        to="/privacidade"
-      >
-        Privacidade
-      </Link>
+      {operationalContext && (
+        <Link className="privacy-shortcut" to="/privacidade">
+          Privacidade
+        </Link>
+      )}
     </>
   );
 }
