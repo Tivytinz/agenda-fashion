@@ -258,9 +258,10 @@ async function criarCheckoutPix(
   const externalReference =
     `checkout:${tentativa.id};assinatura:${assinaturaLocal.id}`;
 
+  const valorContratado = assinaturaLocal.valor ?? plano.valor;
   const cobranca = await criarCobrancaPix({
     customerId: negocio.asaas_customer_id,
-    valor: plano.valor,
+    valor: valorContratado,
     descricao: `Agenda Fashion - Plano ${plano.nome}`,
     externalReference,
     reutilizarPorExternalReference: true
@@ -272,7 +273,6 @@ async function criarCheckoutPix(
     );
   }
 
-  const valorContratado = assinaturaLocal.valor ?? plano.valor;
   if (!valoresMonetariosIguais(cobranca.value, valorContratado) ||
       (cobranca.externalReference && cobranca.externalReference !== externalReference) ||
       (cobranca.customer && cobranca.customer !== negocio.asaas_customer_id) ||
