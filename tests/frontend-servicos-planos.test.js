@@ -77,8 +77,9 @@ describe("Sprint de catálogo, planos e navegação", () => {
     expect(styles).toContain(
       ".business-card .card-image img { object-fit: contain; }"
     );
-    expect(styles).toMatch(
-      /\.business-cover-backdrop\s*\{[^}]*object-fit:\s*cover;[^}]*filter:\s*blur\(18px\);/
+    expect(styles).not.toContain("business-cover-backdrop");
+    expect(ler("frontend/src/components/BusinessCard.jsx")).not.toContain(
+      "business-cover-backdrop"
     );
     expect(styles).toMatch(
       /\.business-cover-image\s*\{[^}]*object-fit:\s*contain;/
