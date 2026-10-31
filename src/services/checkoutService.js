@@ -277,14 +277,62 @@ async function criarCheckoutPix(
     );
   }
 
-  if (!valoresMonetariosIguais(cobranca.value, valorContratado) ||
-      (cobranca.externalReference && cobranca.externalReference !== externalReference) ||
-      (cobranca.customer && cobranca.customer !== negocio.asaas_customer_id) ||
-      (cobranca.billingType && String(cobranca.billingType).toUpperCase() !== "PIX")) {
-    throw new AppError(
-      "A cobrança retornada não corresponde ao contrato. Nenhum novo pagamento será liberado até a conferência.",
+  const valorObservadoValido =
+    valoresMonetariosIguais(cobranca.value, cobranca.value) &&
+    Number(cobranca.value) > 0;
+  const referenciaDivergente =
+    cobranca.externalReference && cobranca.externalReference !== externalReference;
+  const clienteDivergente =
+    cobranca.customer && cobranca.customer !== negocio.asaas_customer_id;
+  const formaDivergente =
+    cobranca.billingType && String(cobranca.billingType).toUpperCase() !== "PIX";
+  const valorDivergente = !valoresMonetariosIguais(
+    cobranca.value, valorContratado
+  );
+
+  if (valorDivergente || referenciaDivergente || clienteDivergente || formaDivergente) {
+    // A cobrança já existe no provedor. Nunca esquecê-la nem liberar um PIX
+    // divergente, mesmo se uma gravação posterior do pagamento falhar.
+    const motivo = valorDivergente ? "VALOR_DIVERGENTE"
+      : referenciaDivergente ? "REFERENCIA_DIVERGENTE"
+      : clienteDivergente ? "CLIENTE_DIVERGENTE" : "FORMA_DIVERGENTE";
+    const registrada = await checkoutTentativaRepository.registrarDivergencia(
+      tentativa.id, tentativa.lease_tentativa, {
+        pagamentoId: cobranca.id,
+        valorContratado,
+        valorObservado: cobranca.value,
+        motivo
+      }
+    );
+    if (!registrada) {
+      throw new AppError(
+        "A tentativa de checkout mudou durante a conferência. Consulte o suporte antes de tentar novamente.",
+        409
+      );
+    }
+
+    // O valor real é auditável e sua divergência impede a ativação posterior.
+    // Identidades externas divergentes nunca são atribuídas ao negócio.
+    if (valorObservadoValido && !referenciaDivergente &&
+        !clienteDivergente && !formaDivergente) {
+      await registrarPagamento(client, {
+        assinatura_id: assinaturaLocal.id,
+        asaas_payment_id: cobranca.id,
+        valor: cobranca.value,
+        forma_pagamento: "pix",
+        status: cobranca.status || "PENDING",
+        data_vencimento: cobranca.dueDate || null,
+        invoice_url: cobranca.invoiceUrl || null,
+        pix_copia_cola: null,
+        pix_qrcode: null
+      });
+    }
+    const erro = new AppError(
+      "A cobrança precisa de conferência financeira. Não gere outro PIX; procure o suporte.",
       409
     );
+    erro.codigo = "CHECKOUT_CONCILIACAO_PENDENTE";
+    throw erro;
   }
 
   /*
@@ -453,8 +501,8 @@ async function criarCheckout({
       });
   } catch (erro) {
     if (
-      erro?.code ===
-      "IDEMPOTENCY_KEY_REUSED"
+      erro?.code === "IDEMPOTENCY_KEY_REUSED" ||
+      erro?.code === "CHECKOUT_CONCILIACAO_PENDENTE"
     ) {
       throw new AppError(
         erro.message,
