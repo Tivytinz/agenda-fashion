@@ -685,8 +685,13 @@ com o snapshot contratado em `assinaturas.valor`, inclusive na primeira
 ativação por webhook. Retentativas com assinatura pendente vinculada preservam
 esse valor contratado mesmo quando o preço de catálogo muda. A autorização de
 checkout é revalidada na transação que cria a assinatura, com lock da conta
-antes do lock do negócio. Valor divergente não libera entitlement; a cobrança
-exige reconciliação antes de nova tentativa. PIX recorrente exige pagamento
+antes do lock do negócio. Valor divergente não libera entitlement. A cobrança externa divergente
+fica vinculada à tentativa de checkout (`CONCILIACAO_NECESSARIA`) com ID
+externo e valores observáveis; quando seguro, o valor real também fica
+registrado no pagamento local. Qualquer nova chave para o mesmo negócio fica
+bloqueada até a conciliação financeira, sem liberar entitlement ou gerar PIX
+duplicado. Uma chave reconciliada permanece terminal; um novo checkout requer
+nova chave. Detalhes em `docs/checkout-idempotente.md`. PIX recorrente exige pagamento
 de cada cobrança, não é débito automático. O backend só permite iniciar checkout pago
 para a proprietária ativa de um negócio ativo e já publicado; esconder ou
 redirecionar o botão no frontend não substitui essa validação. A disponibilidade
