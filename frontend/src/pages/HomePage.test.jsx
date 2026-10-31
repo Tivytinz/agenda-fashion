@@ -54,13 +54,33 @@ describe("home crítica", () => {
     document.title = "RR Beauty | Agenda Fashion";
     try {
       const view = renderHome();
-      expect(document.title).toBe("Agenda Fashion");
-      expect(meta.content).toContain("Encontre serviços de beleza");
+      expect(document.title).toBe("Agenda Fashion | Agendamento de beleza online");
+      expect(meta.content).toBe(
+        "Encontre profissionais e negócios de beleza, compare serviços e agende seu horário online pelo Agenda Fashion."
+      );
       view.unmount();
     } finally {
       document.title = previousTitle;
       meta.remove();
     }
+  });
+
+  it("expõe links HTML diretos para as páginas comerciais sem depender do catálogo", () => {
+    renderHome();
+
+    const professionalLink = screen.getByRole("link", {
+      name: "Agenda online para profissionais"
+    });
+    const plansLink = screen.getByRole("link", {
+      name: "Conhecer os planos"
+    });
+
+    expect(professionalLink.getAttribute("href")).toBe("/para-profissionais");
+    expect(plansLink.getAttribute("href")).toBe("/planos");
+    expect(professionalLink.closest("nav")?.getAttribute("aria-label")).toBe(
+      "Conheça o Agenda Fashion para profissionais"
+    );
+    expect(screen.queryByText("Catálogo carregado")).toBeNull();
   });
 
   it("pinta o hero antes de carregar o catálogo abaixo da dobra", async () => {
