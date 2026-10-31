@@ -113,6 +113,7 @@ function contexto(overrides = {}) {
     asaas_subscription_id: null,
     forma_pagamento: "pix",
     valor: 99.9,
+    pagamento_valor: 99.9,
     status: "PENDING",
     ativo: false,
     data_pagamento: "2026-09-13",
@@ -278,6 +279,28 @@ test(
             "sub_new"
         })
       );
+  }
+);
+
+test.each([
+  { nome: "valor local", override: { pagamento_valor: 10 }, evento: {} },
+  { nome: "valor confirmado pelo provedor", override: {}, evento: { value: 10 } }
+])(
+  "não ativa checkout com divergência do $nome",
+  async ({ override, evento }) => {
+    assinaturaAtivacaoRepository.buscarContextoPagamento
+      .mockResolvedValue(contexto(override));
+
+    await expect(
+      ativarAssinaturaPorPagamento("pay_divergente", "CONFIRMED", {
+        webhookEventoId: "evt_divergente",
+        ...evento
+      })
+    ).rejects.toMatchObject({ code: "PAGAMENTO_VALOR_DIVERGENTE" });
+
+    expect(criarAssinaturaAsaas).not.toHaveBeenCalled();
+    expect(assinaturaLifecycleService.registrarConfirmacaoPagamento).not.toHaveBeenCalled();
+    expect(assinaturaAtivacaoRepository.ativarAssinatura).not.toHaveBeenCalled();
   }
 );
 
