@@ -8,7 +8,8 @@ import {
 import {
   useLocation,
   useNavigate,
-  useSearchParams
+  useSearchParams,
+  Link
 } from "react-router-dom";
 import { DiscoveryBoundary } from "../components/DiscoveryBoundary";
 import { LoadingState } from "../components/ScreenState";
@@ -23,8 +24,8 @@ const ExplorePage = lazy(() =>
 
 export function HomePage() {
   usePageMetadata(
-    "Agenda Fashion",
-    "Encontre serviços de beleza, escolha um horário e agende pelo Agenda Fashion."
+    "Agenda Fashion | Agendamento de beleza online",
+    "Encontre profissionais e negócios de beleza, compare serviços e agende seu horário online pelo Agenda Fashion."
   );
   const location = useLocation();
   const navigate = useNavigate();
@@ -90,6 +91,27 @@ export function HomePage() {
           </DiscoveryBoundary>
         )}
       </div>
+      <section
+        aria-labelledby="home-professionals-heading"
+        className="container home-professionals-entry"
+      >
+        <div className="home-professionals-copy">
+          <p className="eyebrow">Para quem trabalha com beleza</p>
+          <h2 id="home-professionals-heading">Sua cliente agenda. Você atende.</h2>
+          <p>Conheça a agenda online para organizar serviços, horários e agendamentos do seu negócio.</p>
+        </div>
+        <nav
+          aria-label="Conheça o Agenda Fashion para profissionais"
+          className="home-professionals-links"
+        >
+          <Link className="button home-professionals-primary" to="/para-profissionais">
+            Agenda online para profissionais
+          </Link>
+          <Link className="home-professionals-secondary" to="/planos">
+            Conhecer os planos
+          </Link>
+        </nav>
+      </section>
     </main>
   );
 }
