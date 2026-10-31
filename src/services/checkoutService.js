@@ -512,12 +512,12 @@ async function criarCheckout({
   } catch (erro) {
     if (
       erro?.code === "IDEMPOTENCY_KEY_REUSED" ||
-      erro?.code === "CHECKOUT_CONCILIACAO_PENDENTE"
+      erro?.code === "CHECKOUT_CONCILIACAO_PENDENTE" ||
+      erro?.code === "CHECKOUT_CHAVE_ENCERRADA"
     ) {
-      throw new AppError(
-        erro.message,
-        409
-      );
+      const resposta = new AppError(erro.message, 409);
+      resposta.codigo = erro.code;
+      throw resposta;
     }
 
     throw erro;
