@@ -92,6 +92,24 @@ describe("repositories financeiros críticos", () => {
       expect(client.query.mock.calls[0][1]).toEqual([10]);
     });
 
+    test("bloqueia novo checkout do negócio enquanto há conciliação pendente", async () => {
+      const client = {
+        query: jest.fn()
+          .mockResolvedValueOnce({ rows: [{ id: 54 }] })
+          .mockResolvedValueOnce({ rows: [] })
+      };
+      await expect(
+        checkoutRepository.buscarDivergenciaAbertaDoNegocio(client, 10)
+      ).resolves.toMatchObject({ id: 54 });
+      await expect(
+        checkoutRepository.buscarDivergenciaAbertaDoNegocio(client, 10)
+      ).resolves.toBeNull();
+      const sql = client.query.mock.calls[0][0];
+      expect(sql).toContain("checkout_tentativas");
+      expect(sql).toContain("CONCILIACAO_NECESSARIA");
+      expect(client.query.mock.calls[0][1]).toEqual([10]);
+    });
+
     test("retorna null para negócio, plano e dados da dona inexistentes", async () => {
       const client = executorCom([]);
       await expect(checkoutRepository.buscarNegocioDono(client, 7)).resolves.toBeNull();
