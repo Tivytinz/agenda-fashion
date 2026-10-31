@@ -680,7 +680,14 @@ seleções de upgrade devem registrar a origem do gatilho para medir
 `oportunidade exibida → seleção → checkout → pagamento` sem tratar clique
 como receita.
 
-Planos pagos usam checkout por PIX. O backend só permite iniciar checkout pago
+Planos pagos usam checkout por PIX. O valor de cada cobrança é confrontado
+com o snapshot contratado em `assinaturas.valor`, inclusive na primeira
+ativação por webhook. Retentativas com assinatura pendente vinculada preservam
+esse valor contratado mesmo quando o preço de catálogo muda. A autorização de
+checkout é revalidada na transação que cria a assinatura, com lock da conta
+antes do lock do negócio. Valor divergente não libera entitlement; a cobrança
+exige reconciliação antes de nova tentativa. PIX recorrente exige pagamento
+de cada cobrança, não é débito automático. O backend só permite iniciar checkout pago
 para a proprietária ativa de um negócio ativo e já publicado; esconder ou
 redirecionar o botão no frontend não substitui essa validação. A disponibilidade
 manual não é um gate financeiro: a primeira jornada pode ordenar Horários antes
