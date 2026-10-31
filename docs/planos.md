@@ -104,6 +104,21 @@ ou receita.
 
 - O plano gratuito não exige checkout.
 - Os planos pagos usam checkout por **PIX**.
+- A tentativa guarda o valor contratado em `assinaturas.valor`. Ao retomar a
+  mesma tentativa, o PIX reutiliza esse snapshot mesmo se o catálogo mudar.
+  Uma tentativa nova confronta o preço atual no backend antes de criar a
+  assinatura pendente.
+- Antes de persistir o pagamento, o backend confere o valor e, quando presentes,
+  a referência, o cliente e a forma da cobrança retornada pelo Asaas. Valores
+  divergentes impedem exibir o PIX como válido. Na primeira ativação paga, o
+  valor persistido do pagamento e o valor recebido no webhook, quando presente,
+  são comparados com `assinaturas.valor` antes de conceder o plano.
+- A elegibilidade é revalidada sob locks transacionais sobre a conta e o negócio
+  antes de criar a assinatura: dona ativa, vínculo ativo, negócio ativo e
+  publicado, plano válido e preço coerente. Falha de revalidação não permite
+  iniciar o PIX.
+- A recorrência PIX não é débito automático. A cada ciclo pode existir nova
+  cobrança, que precisa ser paga; o retorno da página não confirma renovação.
 - O backend só inicia checkout pago para a proprietária ativa de um negócio
   ativo e com `negocios.publicado = TRUE`; navegação, botão ou URL do frontend
   não substituem essa validação.
