@@ -22,7 +22,7 @@ const {
 const assinaturaLifecycleService = require(
   "./assinaturaLifecycleService"
 );
-const { calcularProximaCobranca, dataValida } = require("./assinaturaCalculos");
+const { calcularProximaCobranca, dataValida, valoresMonetariosIguais } = require("./assinaturaCalculos");
 const { calcularFimDoPeriodoPago } = require("./assinaturaPeriodoPagoService");
 
 function dadosEvento(
@@ -50,6 +50,28 @@ function dadosEvento(
         .webhookEventoId ||
       null
   };
+}
+
+function validarValorCheckoutPendente(assinatura, dadosPagamento = {}) {
+  // Renovações com recorrência já vinculada podem ter histórico de preço;
+  // a conferência bloqueia somente a primeira concessão do checkout PIX.
+  if (assinatura.ativo === true || assinatura.asaas_subscription_id) return;
+
+  const divergenciaLocal = !valoresMonetariosIguais(
+    assinatura.pagamento_valor, assinatura.valor
+  );
+  const valorObservado = dadosPagamento.value;
+  const divergenciaProvedor = valorObservado !== undefined &&
+    valorObservado !== null &&
+    !valoresMonetariosIguais(valorObservado, assinatura.valor);
+
+  if (divergenciaLocal || divergenciaProvedor) {
+    const erro = new Error(
+      "Pagamento com valor diferente do contrato; ativação suspensa para reconciliação."
+    );
+    erro.code = "PAGAMENTO_VALOR_DIVERGENTE";
+    throw erro;
+  }
 }
 
 function assinaturaCancelada(assinatura) {
@@ -161,6 +183,7 @@ async function prepararAtivacao(
         }
       }
 
+      validarValorCheckoutPendente(assinatura, dadosPagamento);
       return assinatura;
     }
   );
@@ -319,6 +342,7 @@ async function finalizarAtivacao({
         return null;
       }
 
+      validarValorCheckoutPendente(assinatura, dadosPagamento);
       const fimPago = await calcularFimDoPeriodoPago(assinatura, client);
       if (assinatura.acesso_pago_reconciliado === true &&
         !await assinaturaAtivacaoRepository.periodoPagoVigente(client, fimPago)) return null;

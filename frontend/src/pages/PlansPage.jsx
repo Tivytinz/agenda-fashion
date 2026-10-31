@@ -115,7 +115,7 @@ export function PlansPage() {
 
             return (
               <article className={cardClass} key={plan.id}>
-                {plan.destaque && <span className="plan-highlight">Mais escolhido</span>}
+                {plan.destaque && <span className="plan-highlight">Em destaque</span>}
                 {isAwaitingSubscription && (
                   <span className="plan-selected-badge">Aguardando assinatura</span>
                 )}

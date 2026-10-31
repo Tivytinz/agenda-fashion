@@ -121,6 +121,7 @@ function pagamentoComAssinatura({
     plano_id: planoId,
     pagamento_id: pagamentoId,
     valor,
+    pagamento_valor: valor,
     forma_pagamento: formaPagamento,
     status,
     ativo,

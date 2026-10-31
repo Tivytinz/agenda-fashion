@@ -37,6 +37,35 @@ Comportamentos:
 - a assinatura atual só é desativada quando o novo pagamento é
   confirmado.
 
+## Cobrança externa divergente
+
+Se o Asaas responder com cobrança de valor, cliente, referência ou forma
+incompatíveis com o contrato, o AF **não exibe nem libera o PIX**. A identidade
+externa e os valores conhecidos ficam registrados na própria
+`checkout_tentativas.resposta`, com estado `CONCILIACAO_NECESSARIA`,
+status `FAILED` e lease da execução conferido.
+
+Quando o retorno possui valor numérico válido e identidade externa coerente,
+o `pagamentos.valor` registra **o valor efetivamente informado pelo Asaas**,
+não o preço esperado. A divergência com `assinaturas.valor` impede a primeira
+ativação paga mesmo que o webhook confirme recebimento. Para retornos sem valor
+numérico válido ou com referência/cliente/forma inconsistentes, não se cria
+uma associação financeira incorreta; o identificador externo permanece na
+tentativa para pesquisa operacional.
+
+O bloqueio se aplica a **qualquer chave nova do negócio** enquanto existir
+conciliação aberta. Reutilizar a chave original também não gera outro PIX.
+A resolução deve conferir o pagamento no Asaas, adotar a providência financeira
+adequada e preservar evidência do resultado. Apenas depois dessa verificação
+um procedimento operacional controlado pode marcar a tentativa como
+`CONCILIACAO_RESOLVIDA`; essa chave continua terminal e novas contratações
+exigem uma nova tentativa. A alteração de estado **não equivale** a confirmar
+pagamento, conceder acesso nem estornar dinheiro.
+
+A assinatura e a tentativa são mantidas para auditoria; não exclua registros
+para liberar checkout. Nenhum dado bruto de cartão, documento ou retorno
+completo do provedor deve ser salvo nessa anomalia.
+
 A confirmação financeira não mantém locks do PostgreSQL enquanto cria ou remove
 recorrências no Asaas. A transição para o plano pago usa preparação local,
 efeito externo idempotente, revalidação/finalização local e limpeza externa. Uma

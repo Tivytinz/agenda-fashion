@@ -29,6 +29,30 @@ async function buscarNegocioDono(client, usuarioId) {
   return result.rows[0] || null;
 }
 
+async function bloquearContaDonoCheckout(client, usuarioId) {
+  const resultado = await client.query(
+    "SELECT id FROM usuarios WHERE id = $1 AND ativo = TRUE FOR NO KEY UPDATE",
+    [usuarioId]
+  );
+  return Boolean(resultado.rows[0]);
+}
+
+async function buscarElegibilidadeCheckout(client, negocioId, usuarioId) {
+  const resultado = await client.query(
+    `SELECT n.id, n.plano_id, n.publicado
+     FROM negocios n
+     INNER JOIN usuarios_negocios un ON un.negocio_id = n.id
+     WHERE n.id = $1
+       AND n.ativo = TRUE
+       AND un.usuario_id = $2
+       AND un.papel = 'dono'
+       AND un.ativo = TRUE
+     FOR SHARE OF un`,
+    [negocioId, usuarioId]
+  );
+  return resultado.rows[0] || null;
+}
+
 async function buscarPlano(client, planoId) {
   const executor = client || db;
 
@@ -50,6 +74,23 @@ async function buscarPlano(client, planoId) {
   return result.rows[0] || null;
 }
 
+async function buscarAssinaturaVigenteDoNegocio(client, negocioId) {
+  const resultado = await client.query(
+    `SELECT a.plano_id
+     FROM assinaturas a
+     WHERE a.negocio_id = $1
+       AND a.ativo = TRUE
+       AND (
+         UPPER(a.status) NOT IN ('CANCELED', 'CANCELLED', 'REACTIVATING')
+         OR COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca) > CURRENT_DATE
+       )
+     ORDER BY a.id DESC
+     LIMIT 1`,
+    [negocioId]
+  );
+  return resultado.rows[0] || null;
+}
+
 async function bloquearCheckoutDoNegocio(
   client,
   negocioId
@@ -64,6 +105,19 @@ async function bloquearCheckoutDoNegocio(
     [Number(negocioId)]
   );
   await client.query("SELECT id FROM negocios WHERE id = $1 FOR UPDATE", [negocioId]);
+}
+
+async function buscarDivergenciaAbertaDoNegocio(client, negocioId) {
+  const resultado = await client.query(
+    `SELECT id
+       FROM checkout_tentativas
+      WHERE negocio_id = $1
+        AND status = 'FAILED'
+        AND resposta->>'estado' = 'CONCILIACAO_NECESSARIA'
+      LIMIT 1`,
+    [negocioId]
+  );
+  return resultado.rows[0] || null;
 }
 
 async function buscarAssinaturaPendenteDoNegocio(
@@ -254,6 +308,10 @@ async function buscarEstadoAtivacaoPagamento(pagamentoId) {
 
 module.exports = {
   buscarNegocioDono,
+  bloquearContaDonoCheckout,
+  buscarElegibilidadeCheckout,
+  buscarAssinaturaVigenteDoNegocio,
+  buscarDivergenciaAbertaDoNegocio,
   buscarPlano,
   bloquearCheckoutDoNegocio,
   buscarAssinaturaPendenteDoNegocio,
