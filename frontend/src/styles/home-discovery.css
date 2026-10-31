@@ -1301,3 +1301,85 @@
   .home-discovery-search .home-location-pill select { width: 100%; }
   .home-filter-slot { min-height: 128px; }
 }
+
+/* Entrada discreta para profissionais, sem competir com a descoberta de clientes. */
+.home-professionals-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-block: 4px 32px;
+  border: 1px solid #f0cddd;
+  border-radius: 24px;
+  padding: clamp(18px, 3vw, 28px);
+  background: linear-gradient(110deg, #fff 0%, #fff2f8 100%);
+}
+
+.home-professionals-copy {
+  max-width: 54ch;
+}
+
+.home-professionals-copy h2 {
+  margin: 6px 0 8px;
+  color: #382f34;
+  font-size: clamp(1.3rem, 2.4vw, 1.7rem);
+  line-height: 1.25;
+}
+
+.home-professionals-copy > p:last-child {
+  margin: 0;
+  color: #65535d;
+  line-height: 1.5;
+}
+
+.home-professionals-links {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.home-professionals-links a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.home-professionals-primary {
+  padding-inline: 18px;
+}
+
+.home-professionals-secondary {
+  color: #9f205c;
+  font-weight: 700;
+  text-underline-offset: 4px;
+}
+
+.home-professionals-secondary:hover {
+  color: #7e1747;
+}
+
+@media (max-width: 900px) {
+  .home-professionals-entry {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .home-professionals-links {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 600px) {
+  .home-professionals-links {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .home-professionals-links a {
+    width: 100%;
+  }
+}
