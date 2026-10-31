@@ -29,6 +29,30 @@ async function buscarNegocioDono(client, usuarioId) {
   return result.rows[0] || null;
 }
 
+async function bloquearContaDonoCheckout(client, usuarioId) {
+  const resultado = await client.query(
+    "SELECT id FROM usuarios WHERE id = $1 AND ativo = TRUE FOR NO KEY UPDATE",
+    [usuarioId]
+  );
+  return Boolean(resultado.rows[0]);
+}
+
+async function buscarElegibilidadeCheckout(client, negocioId, usuarioId) {
+  const resultado = await client.query(
+    `SELECT n.id, n.plano_id, n.publicado
+     FROM negocios n
+     INNER JOIN usuarios_negocios un ON un.negocio_id = n.id
+     WHERE n.id = $1
+       AND n.ativo = TRUE
+       AND un.usuario_id = $2
+       AND un.papel = 'dono'
+       AND un.ativo = TRUE
+     FOR SHARE OF un`,
+    [negocioId, usuarioId]
+  );
+  return resultado.rows[0] || null;
+}
+
 async function buscarPlano(client, planoId) {
   const executor = client || db;
 
@@ -254,6 +278,8 @@ async function buscarEstadoAtivacaoPagamento(pagamentoId) {
 
 module.exports = {
   buscarNegocioDono,
+  bloquearContaDonoCheckout,
+  buscarElegibilidadeCheckout,
   buscarPlano,
   bloquearCheckoutDoNegocio,
   buscarAssinaturaPendenteDoNegocio,
