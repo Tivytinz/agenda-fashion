@@ -151,8 +151,6 @@ async function prepararAtivacao(
         return null;
       }
 
-      validarValorCheckoutPendente(assinatura, dadosPagamento);
-
       const maisNova =
         await assinaturaAtivacaoRepository
           .buscarAssinaturaAtivaMaisNova(
@@ -185,6 +183,7 @@ async function prepararAtivacao(
         }
       }
 
+      validarValorCheckoutPendente(assinatura, dadosPagamento);
       return assinatura;
     }
   );
@@ -316,8 +315,6 @@ async function finalizarAtivacao({
         return null;
       }
 
-      validarValorCheckoutPendente(assinatura, dadosPagamento);
-
       if (recorrencia.operacao) {
         const operacao = await checkoutRepository.bloquear(client, recorrencia.operacao);
         if (!operacao || operacao.estado !== "PENDING" ||
@@ -345,6 +342,7 @@ async function finalizarAtivacao({
         return null;
       }
 
+      validarValorCheckoutPendente(assinatura, dadosPagamento);
       const fimPago = await calcularFimDoPeriodoPago(assinatura, client);
       if (assinatura.acesso_pago_reconciliado === true &&
         !await assinaturaAtivacaoRepository.periodoPagoVigente(client, fimPago)) return null;
