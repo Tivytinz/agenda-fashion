@@ -104,6 +104,10 @@ ou receita.
 
 - O plano gratuito não exige checkout.
 - Os planos pagos usam checkout por **PIX**.
+- `negocios.plano_id` também pode guardar um plano pago escolhido durante o
+  onboarding, antes do primeiro pagamento. Esse estado representa intenção,
+  não entitlement; o backend só bloqueia nova contratação do mesmo plano
+  quando existe assinatura paga efetivamente vigente.
 - A tentativa guarda o valor contratado em `assinaturas.valor`. Ao retomar a
   mesma tentativa, o PIX reutiliza esse snapshot mesmo se o catálogo mudar.
   Uma tentativa nova confronta o preço atual no backend antes de criar a
