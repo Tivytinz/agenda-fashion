@@ -115,6 +115,50 @@ describe("checkout PIX", () => {
     expect(apiRequest.mock.calls.find(([path]) => path === "/checkout")[1].body.plano_id).toBe(3);
   });
 
+  it("recupera PIX criado durante troca de plano sem enviar segundo POST", async () => {
+    let concluirPost;
+    apiRequest.mockImplementation((path) => {
+      if (path === "/planos") return Promise.resolve({ planos: [PLAN, STUDIO] });
+      if (path === "/meu-plano") return Promise.resolve(null);
+      if (path === "/checkout") return new Promise((resolve) => {
+        concluirPost = resolve;
+      });
+      throw new Error(`Consulta inesperada: ${path}`);
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/checkout?plano=autonoma"]}>
+        <Link to="/checkout?plano=studio">Studio</Link>
+        <Link to="/checkout?plano=autonoma">Autônoma</Link>
+        <Routes>
+          <Route path="/checkout" element={<BillingCheckoutPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    await screen.findByRole("heading", { name: "Autônoma" });
+    fireEvent.change(screen.getByRole("textbox", { name: "CPF ou CNPJ" }), {
+      target: { value: "12345678901" }
+    });
+    fireEvent.submit(screen.getByRole("button", { name: "Gerar PIX" }).closest("form"));
+    await waitFor(() => expect(typeof concluirPost).toBe("function"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("link", { name: "Studio" }));
+    });
+    await screen.findByRole("heading", { name: "Studio" });
+    await act(async () => {
+      concluirPost({ pagamento: { pix: { payload: "pix_da_autonoma" } } });
+    });
+    expect(screen.queryByRole("heading", { name: "PIX gerado" })).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("link", { name: "Autônoma" }));
+    });
+    expect(await screen.findByRole("heading", { name: "PIX gerado" })).not.toBeNull();
+    expect(screen.getByDisplayValue("pix_da_autonoma")).not.toBeNull();
+    expect(apiRequest.mock.calls.filter(([path]) => path === "/checkout")).toHaveLength(1);
+  });
+
   it("informa que o PIX recorrente não é débito automático", async () => {
     mockInitialization();
     renderCheckout();
