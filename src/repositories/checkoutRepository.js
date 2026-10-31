@@ -74,6 +74,23 @@ async function buscarPlano(client, planoId) {
   return result.rows[0] || null;
 }
 
+async function buscarAssinaturaVigenteDoNegocio(client, negocioId) {
+  const resultado = await client.query(
+    `SELECT a.plano_id
+     FROM assinaturas a
+     WHERE a.negocio_id = $1
+       AND a.ativo = TRUE
+       AND (
+         UPPER(a.status) NOT IN ('CANCELED', 'CANCELLED', 'REACTIVATING')
+         OR COALESCE(a.acesso_pago_ate, a.data_proxima_cobranca) > CURRENT_DATE
+       )
+     ORDER BY a.id DESC
+     LIMIT 1`,
+    [negocioId]
+  );
+  return resultado.rows[0] || null;
+}
+
 async function bloquearCheckoutDoNegocio(
   client,
   negocioId
@@ -280,6 +297,7 @@ module.exports = {
   buscarNegocioDono,
   bloquearContaDonoCheckout,
   buscarElegibilidadeCheckout,
+  buscarAssinaturaVigenteDoNegocio,
   buscarPlano,
   bloquearCheckoutDoNegocio,
   buscarAssinaturaPendenteDoNegocio,
