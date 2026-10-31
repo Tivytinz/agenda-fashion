@@ -125,6 +125,7 @@ describe(
       checkoutRepository.buscarElegibilidadeCheckout.mockResolvedValue({
         id: 7, plano_id: 1, publicado: true
       });
+      checkoutRepository.buscarAssinaturaVigenteDoNegocio.mockResolvedValue(null);
 
       checkoutRepository
         .buscarAssinaturaPendenteDoNegocio
@@ -236,8 +237,11 @@ describe(
     );
 
     test(
-      "impede pagar novamente o plano atual",
+      "impede pagar novamente o plano pago vigente",
       async () => {
+        checkoutRepository.buscarAssinaturaVigenteDoNegocio.mockResolvedValue({
+          plano_id: 3
+        });
         checkoutRepository
           .buscarNegocioDono
           .mockResolvedValue({
@@ -258,7 +262,7 @@ describe(
           })
         ).rejects.toMatchObject({
           message:
-            "Este já é o plano atual do seu negócio.",
+            "Este já é o plano pago vigente do seu negócio.",
           statusCode: 409
         });
 
@@ -548,6 +552,11 @@ describe(
     test(
       "cria só uma cobrança reconciliável pela referência externa",
       async () => {
+        // Escolha paga persistida antes do pagamento não é entitlement ativo.
+        checkoutRepository.buscarNegocioDono.mockResolvedValue({
+          id: 7, nome: "Studio", plano_id: 3, publicado: true,
+          asaas_customer_id: "cus_1"
+        });
         checkoutTentativaRepository
           .iniciar
           .mockResolvedValue({
