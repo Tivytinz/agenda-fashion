@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { parsePublicCatalogResponse } from "../utils/publicCatalogResponse";
 import { apiRequest } from "../api/client";
 import { buildCatalogPath } from "../utils/discoveryCatalog";
 
@@ -25,9 +26,10 @@ export function usePublicCatalog({ query, category, city, state, enabled = true 
     try {
       const data = await apiRequest(buildCatalogPath({ query, category, city, state, page: requestedPage }), { signal: controller.signal });
       if (controller.signal.aborted || requestId !== generation.current) return;
-      const received = Array.isArray(data.negocios) ? data.negocios : [];
+      const validated = parsePublicCatalogResponse(data);
+      const received = validated.negocios;
       setBusinesses((current) => append
-        ? [...new Map([...current, ...received].map((business) => [business.id, business])).values()]
+        ? [...new Map([...current, ...received].map((business) => [String(business.id), business])).values()]
         : received);
       setPage(requestedPage);
       setHasMore(Boolean(data.paginacao?.tem_mais));

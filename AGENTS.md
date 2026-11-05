@@ -1519,3 +1519,14 @@ pausas. A projeção reutiliza o SQL canônico de disponibilidade, sem remover
 histórico. Ao trocar período, recomendações ficam indisponíveis até confirmar
 os dados atuais; erro de atualização preserva métricas antigas, sem liberar
 divulgação baseada nelas.
+
+
+## Entrada profissional na descoberta pública
+
+A entrada para cadastrar o negócio fica visível no cabeçalho da home. A página
+comercial é opcional nesse caminho. Visitantes preservam a intenção profissional
+no cadastro/login; contas autenticadas sem negócio reutilizam a mesma identidade
+na criação. Donas e profissionais com vínculo ativo acessam seus workspaces,
+priorizando o vínculo de dona quando ambos existem. O retorno interno explícito
+de agendamento ou operação protegida tem precedência; RN50 permanece restrita
+às reservas existentes. Os parâmetros de atribuição usam uma whitelist.

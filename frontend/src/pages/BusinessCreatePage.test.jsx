@@ -47,7 +47,7 @@ describe("criação do negócio", () => {
     const requiredFields = [
       /Nome do negócio/,
       /WhatsApp/,
-      /Link do Google Maps/,
+      /Link da localização/,
       /CEP/,
       /Endereço/,
       /Número/,
@@ -117,7 +117,7 @@ describe("criação do negócio", () => {
     );
     fireEvent.change(
       screen.getByLabelText(
-        /Link do Google Maps/
+        /Link da localização/
       ),
       {
         target: {

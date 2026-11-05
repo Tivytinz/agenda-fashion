@@ -1090,7 +1090,7 @@ export function ServiceEditorPage() {
   if (loadError) return <main className="workspace-page"><UnsavedChangesGuard onLeave={discardPendingOperations} /><BackLink to="/painel/servicos">Voltar aos serviços</BackLink><ErrorState message={loadError} onRetry={recoveryRemoved ? undefined : () => setLoadAttempt((attempt) => attempt + 1)} /></main>;
 
   return (
-    <main className="workspace-page service-editor-page">
+    <main className={`workspace-page service-editor-page${firstServiceOnboarding ? " service-editor-onboarding" : ""}`}>
       <UnsavedChangesGuard when={hasChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
       <div>
         <BackLink to="/painel/servicos">Voltar aos serviços</BackLink>
@@ -1103,20 +1103,20 @@ export function ServiceEditorPage() {
         )}
         <header className="workspace-heading">
           <div>
-            <p className="eyebrow">Catálogo</p>
-            <h1>{editing ? "Editar serviço" : "Novo serviço"}</h1>
+            {!firstServiceOnboarding && <p className="eyebrow">Catálogo</p>}
+            <h1>{firstServiceOnboarding ? "Cadastre seu primeiro serviço" : editing ? "Editar serviço" : "Novo serviço"}</h1>
             <p>
               {firstServiceOnboarding
-                ? "Informe nome, categoria, valor e duração. Ao salvar, o AF publica o perfil automaticamente quando os dados do negócio estiverem completos. Descrição, fotos e horários podem ser ajustados depois."
+                ? "Cadastre um atendimento que você oferece. Após a publicação do perfil, você confirma os horários."
                 : "Preencha os dados do serviço. Fotos e descrição ajudam a cliente a escolher, mas podem ser melhoradas depois."}
             </p>
           </div>
         </header>
       </div>
 
-      <form aria-busy={saving} className="service-editor-grid" onSubmit={submit}>
+      <form aria-busy={saving} aria-label={firstServiceOnboarding ? "Cadastro do primeiro serviço" : undefined} className="service-editor-grid" onSubmit={submit}>
         <section className="panel stack-form">
-          <div><p className="eyebrow">Informações</p><h2>Detalhes do serviço</h2></div>
+          {!firstServiceOnboarding && <div><p className="eyebrow">Informações</p><h2>Detalhes do serviço</h2></div>}
           <label>
             Nome do serviço
             <input disabled={fieldsDisabled} minLength="2" onChange={(event) => setForm({ ...form, nome: event.target.value })} required value={form.nome} />
@@ -1152,12 +1152,12 @@ export function ServiceEditorPage() {
           )}
           <div className="form-grid">
             <label>
-              Valor
-              <input disabled={fieldsDisabled} min="0" onChange={(event) => setForm({ ...form, valor: event.target.value })} required step="0.01" type="number" value={form.valor} />
+              {firstServiceOnboarding ? "Valor (R$)" : "Valor"}
+              <input disabled={fieldsDisabled} inputMode="decimal" min="0" onChange={(event) => setForm({ ...form, valor: event.target.value })} required step="0.01" type="number" value={form.valor} />
             </label>
             <label>
               Duração em minutos
-              <input disabled={fieldsDisabled} min="5" onChange={(event) => setForm({ ...form, duracao_minutos: event.target.value })} required step="5" type="number" value={form.duracao_minutos} />
+              <input disabled={fieldsDisabled} inputMode="numeric" min="5" onChange={(event) => setForm({ ...form, duracao_minutos: event.target.value })} required step="5" type="number" value={form.duracao_minutos} />
             </label>
           </div>
           {!firstServiceOnboarding && (

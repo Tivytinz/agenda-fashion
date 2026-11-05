@@ -37,7 +37,7 @@ async function fillBusiness() {
   fireEvent.change(screen.getByLabelText("Nome do negócio"), { target: { value: "Studio novo" } });
   fireEvent.click(screen.getByLabelText("Unhas"));
   fireEvent.change(screen.getByLabelText(/WhatsApp/), { target: { value: "11999999999" } });
-  fireEvent.change(screen.getByLabelText(/Link do Google Maps/), { target: { value: "https://maps.google.com/" } });
+  fireEvent.change(screen.getByLabelText(/Link da localização/), { target: { value: "https://maps.google.com/" } });
   fireEvent.change(screen.getByLabelText(/CEP/), { target: { value: "01001000" } });
   await waitFor(() => expect(screen.getByLabelText("Endereço").value).toBe("Rua local"));
   fireEvent.change(screen.getByLabelText("Número"), { target: { value: "20" } });

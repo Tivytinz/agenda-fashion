@@ -1,4 +1,5 @@
 const db = require("../db/db");
+const { sqlPossuiDisponibilidadeAgendavel } = require("./ativacaoSql");
 
 async function listarNegociosPublicos({
   busca = "",
@@ -17,12 +18,12 @@ async function listarNegociosPublicos({
   const termosBusca = normalizarTexto(busca)
     .split(/\s+/)
     .filter(Boolean)
-    .map(termo => `%${termo}%`);
+    .map(termo => "%" + termo.replace(/[\\%_]/g, character => "\\" + character) + "%");
 
   const termosCategoria = categoriaTermos
     .map(normalizarTexto)
     .filter(Boolean)
-    .map(termo => `%${termo}%`);
+    .map(termo => "%" + termo.replace(/[\\%_]/g, character => "\\" + character) + "%");
 
   const cidadeNormalizada = String(cidade || "")
     .trim()
@@ -101,19 +102,7 @@ async function listarNegociosPublicos({
     negocios_paginados AS (
       SELECT
         nf.*,
-        EXISTS (
-          SELECT 1
-          FROM usuarios_negocios un
-          INNER JOIN usuarios u
-            ON u.id = un.usuario_id
-            AND u.ativo = TRUE
-          INNER JOIN agenda_configuracoes ac
-            ON ac.profissional_id = un.usuario_id
-            AND ac.configurado_em IS NOT NULL
-          WHERE un.negocio_id = nf.id
-            AND un.ativo = TRUE
-            AND un.papel IN ('dono', 'profissional')
-        ) AS agendamento_online_disponivel,
+        ${sqlPossuiDisponibilidadeAgendavel("nf.id")} AS agendamento_online_disponivel,
         COUNT(*) OVER()::int AS total_resultados
       FROM negocios_filtrados nf
       ORDER BY
@@ -167,7 +156,7 @@ async function listarNegociosPublicos({
                 'duracao_minutos', s.duracao_minutos,
                 'categoria', s.categoria,
                 'foto_url', s.foto_url,
-                'agendamento_online_disponivel', n.agendamento_online_disponivel
+                'agendamento_online_disponivel', ${sqlPossuiDisponibilidadeAgendavel("n.id", "s.id")}
               )
 
               ORDER BY
@@ -306,19 +295,7 @@ async function buscarNegocioPorSlug(
         n.fuso_horario,
         n.ativo,
         n.publicado,
-        EXISTS (
-          SELECT 1
-          FROM usuarios_negocios un
-          INNER JOIN usuarios u
-            ON u.id = un.usuario_id
-            AND u.ativo = TRUE
-          INNER JOIN agenda_configuracoes ac
-            ON ac.profissional_id = un.usuario_id
-            AND ac.configurado_em IS NOT NULL
-          WHERE un.negocio_id = n.id
-            AND un.ativo = TRUE
-            AND un.papel IN ('dono', 'profissional')
-        ) AS agendamento_online_disponivel,
+        ${sqlPossuiDisponibilidadeAgendavel("n.id")} AS agendamento_online_disponivel,
         COALESCE(
           n.areas,
           ARRAY[]::TEXT[]
@@ -401,9 +378,10 @@ async function buscarServicos(
         valor,
         duracao_minutos,
         categoria,
-        foto_url
+        foto_url,
+        ${sqlPossuiDisponibilidadeAgendavel("s.negocio_id", "s.id")} AS agendamento_online_disponivel
 
-      FROM servicos_negocio
+      FROM servicos_negocio s
 
       WHERE negocio_id = $1
         AND ativo = TRUE

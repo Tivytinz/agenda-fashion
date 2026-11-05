@@ -163,3 +163,27 @@ describe("continuidade do plano escolhido", () => {
   });
 });
 
+
+describe("intenção profissional após autenticação", () => {
+  it("leva uma conta sem negócio para criar o negócio", () => {
+    expect(getAuthDestination({ temNegocio: false }, { professionalIntent: true })).toBe("/criar-negocio");
+  });
+  it("prefere o negócio da dona quando há dois vínculos", () => {
+    expect(getAuthDestination({
+      temNegocio: true,
+      negocio: { papel: "profissional" },
+      vinculos: [{ papel: "profissional" }, { papel: "dono" }]
+    }, { professionalIntent: true })).toBe("/painel");
+  });
+  it("preserva o retorno explícito e a referência da operação", () => {
+    expect(getAuthDestination({ temNegocio: false }, {
+      professionalIntent: true,
+      requestedPath: "/confirmar?servico=8#referencia"
+    })).toBe("/confirmar?servico=8#referencia");
+  });
+  it("mantém as reservas existentes de vínculo inativo", () => {
+    expect(getAuthDestination({ temReservasProfissionaisRestritas: true }, {
+      professionalIntent: true
+    })).toBe("/reservas-existentes");
+  });
+});

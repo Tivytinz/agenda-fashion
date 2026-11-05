@@ -10,6 +10,7 @@ import {
   useNavigate
 } from "react-router-dom";
 
+import { buildProfessionalLoginPath, getProfessionalEntry } from "../utils/professionalEntry";
 import { useSession } from "../auth/SessionContext";
 import { getBusinessWorkspacePath } from "../auth/session";
 import afLogoTransparent from "../assets/brand/performance/af-logo-96.webp";
@@ -39,6 +40,7 @@ export function AppHeader() {
     location.pathname === "/minha-agenda";
 
   const homePage = location.pathname === "/";
+  const professionalEntry = getProfessionalEntry(session, location.search);
 
   const adminArea =
     location.pathname === "/admin" ||
@@ -249,6 +251,10 @@ export function AppHeader() {
                   Minha conta
                 </NavLink>
 
+                {!operationalArea && !session.temNegocio && (
+                  <NavLink to="/criar-negocio">Cadastrar meu negócio</NavLink>
+                )}
+
                 {operationalArea && (
                   <NavLink to="/convites">
                     Convites de equipe
@@ -282,7 +288,7 @@ export function AppHeader() {
           ) : focusedProfessionalLanding ? (
             <NavLink
               className="button button-small"
-              to="/entrar"
+              to={buildProfessionalLoginPath(location.search)}
             >
               Entrar
             </NavLink>
@@ -312,6 +318,11 @@ export function AppHeader() {
             </NavLink>
           )}
         </nav>
+        )}
+        {homePage && !session.loading && (
+          <Link className="button button-secondary header-business-entry" to={professionalEntry.path}>
+            {professionalEntry.label}
+          </Link>
         )}
       </div>
     </header>

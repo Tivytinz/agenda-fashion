@@ -239,3 +239,24 @@ Copilot pendente; erro conserva indicadores anteriores, mas não sua divulgaçã
 A pausa deve começar depois da abertura e terminar antes do fechamento. O
 editor valida esses limites antes de enviar, seguindo o mesmo contrato do
 backend; para iniciar mais tarde ou encerrar antes, ajuste o próprio expediente.
+
+### Entrada direta e clareza dos formulários
+
+A home oferece uma entrada visível no cabeçalho para cadastrar o negócio.
+Visitantes seguem ao cadastro com intenção profissional; contas autenticadas sem
+negócio seguem diretamente à criação, reutilizando a identidade existente. Donas
+e profissionais com vínculo ativo recebem acesso ao seu workspace, com prioridade
+para o contexto de dona quando existirem ambos. A apresentação comercial é opcional.
+
+O login por e-mail e Google preserva a intenção profissional e os parâmetros
+conhecidos de atribuição. Um retorno interno explícito de agendamento ou de edição
+tem precedência, incluindo query e referência no fragmento. Vínculos inativos
+com reservas existentes mantêm a saída restrita de RN50.
+
+O campo Link da localização comunica suporte a Google Maps e Apple Mapas. O
+contrato continua sendo URL HTTP/HTTPS válida em localizacao_url, conferida pelo
+backend; o rótulo não restringe o provedor nem altera dados persistidos.
+
+O primeiro serviço é apresentado em uma coluna, com formulário e ações alinhados,
+valor em reais e campos numéricos apropriados. As etapas seguintes e a publicação
+continuam dependentes das respostas canônicas do backend.

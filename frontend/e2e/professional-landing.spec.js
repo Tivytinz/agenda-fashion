@@ -83,7 +83,7 @@ test("landing profissional comunica valor e preserva a atribuição", async ({ p
   })).toHaveCount(0);
 
   const signup = page.getByRole("link", {
-    name: "Criar minha agenda grátis"
+    name: "Cadastrar meu negócio"
   }).first();
   const href = await signup.getAttribute("href");
   const url = new URL(href, page.url());

@@ -34,7 +34,7 @@ function entryWithReference() {
 }
 function fill(name = "Manicure") {
   fireEvent.change(screen.getByLabelText("Nome do serviço"), { target: { value: name } });
-  fireEvent.change(screen.getByLabelText("Valor"), { target: { value: "50" } });
+  fireEvent.change(screen.getByLabelText(/^Valor/), { target: { value: "50" } });
   fireEvent.change(screen.getByRole("combobox", { name: /Categoria/ }), { target: { value: "unha" } });
 }
 function save() { fireEvent.click(screen.getByRole("button", { name: /^Salvar serviço/ })); }

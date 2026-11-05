@@ -10,6 +10,8 @@ import {
   useNavigate,
   Link
 } from "react-router-dom";
+import { useSession } from "../auth/SessionContext";
+import { getProfessionalEntry } from "../utils/professionalEntry";
 import { DiscoverySearch } from "../components/discovery/DiscoverySearch";
 import { useDiscoveryCatalog } from "../hooks/useDiscoveryCatalog";
 import { DiscoveryBoundary } from "../components/DiscoveryBoundary";
@@ -29,6 +31,7 @@ export function HomePage() {
     "Encontre profissionais e negócios de beleza, compare serviços e agende seu horário online pelo Agenda Fashion."
   );
   const location = useLocation();
+  const entry = getProfessionalEntry(useSession(), location.search);
   const navigate = useNavigate();
   const discoveryRef = useRef(null);
   const [discoveryMounted, setDiscoveryMounted] = useState(false);
@@ -97,11 +100,11 @@ export function HomePage() {
           aria-label="Conheça o Agenda Fashion para profissionais"
           className="home-professionals-links"
         >
-          <Link className="button home-professionals-primary" to="/para-profissionais">
-            Agenda online para profissionais
+          <Link className="button home-professionals-primary" to={entry.path}>
+            {entry.label}
           </Link>
-          <Link className="home-professionals-secondary" to="/planos">
-            Conhecer os planos
+          <Link className="home-professionals-secondary" to="/para-profissionais">
+            Conhecer o Agenda Fashion
           </Link>
         </nav>
       </section>

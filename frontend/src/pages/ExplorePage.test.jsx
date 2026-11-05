@@ -488,7 +488,7 @@ describe("catálogo público paginado", () => {
     expect(screen.queryByRole("button", { name: /rotação automática/ })).toBeNull();
   });
 
-  it("conta serviços exibidos sem confundir com total de negócios", async () => {
+  it("exibe resultados sem contador redundante", async () => {
     apiRequest.mockResolvedValue({
       negocios: [business(1, "Studio Um")],
       paginacao: { total: 1, tem_mais: false }
@@ -499,7 +499,7 @@ describe("catálogo público paginado", () => {
     expect(await screen.findByRole("heading", {
       name: "Studio Um"
     })).not.toBeNull();
-    expect(screen.getByText("1 serviço exibido")).not.toBeNull();
+    expect(screen.queryByText("1 serviço exibido")).toBeNull();
     expect(screen.queryByText(/opção encontrada/i)).toBeNull();
   });
 
@@ -859,7 +859,7 @@ it("remove somente o filtro escolhido e conta serviços sem usar total de negóc
   apiRequest.mockResolvedValue({ negocios: [business(1, "Studio Um")], localidades: [], paginacao: { total: 999, tem_mais: true } });
   const user = userEvent.setup();
   renderExplore("/?busca=Studio&cidade=Goi%C3%A2nia&estado=GO&utm_source=teste");
-  await screen.findByText(/1 serviço exibido/);
+  await screen.findByRole("heading", { name: "Serviço Studio Um" });
   expect(screen.queryByText(/999 serviços/)).toBeNull();
   await user.click(screen.getByRole("button", { name: "Remover filtro de cidade" }));
   const params = new URLSearchParams(screen.getByTestId("location").textContent);
@@ -881,15 +881,17 @@ it("limpa também a cidade e o texto ainda não enviados ao remover todos os fil
   expect(screen.getByRole("combobox").value).toBe("");
 });
 
-it("explica o alcance nacional e deixa de sugerir proximidade após selecionar uma cidade", async () => {
+it("aplica a cidade selecionada sem texto redundante sobre o alcance", async () => {
   apiRequest.mockResolvedValue({ negocios: [], localidades: [{ cidade: "Goiânia", estado: "GO" }] });
   const user = userEvent.setup();
   renderExplore();
-  expect(screen.getByText(/Busca em todo o Brasil/)).not.toBeNull();
+  expect(screen.getByRole("combobox").value).toBe("");
   await screen.findByRole("option", { name: "Goiânia, GO" });
   await user.selectOptions(screen.getByRole("combobox"), "Goiânia::GO");
   await user.click(screen.getByRole("button", { name: "Buscar", exact: true }));
-  expect(screen.queryByText(/Busca em todo o Brasil/)).toBeNull();
+  await waitFor(() => expect(apiRequest).toHaveBeenLastCalledWith(
+    expect.stringContaining("cidade=Goi%C3%A2nia&estado=GO"), expect.any(Object)
+  ));
 });
 
 it.each(["categoria", "limpar", "remover"])("leva aos resultados ao %s filtros depois de Como funciona", async (action) => {
@@ -908,3 +910,5 @@ it.each(["categoria", "limpar", "remover"])("leva aos resultados ao %s filtros d
     expect(targets).not.toContain("como-funciona");
   } finally { Element.prototype.scrollIntoView = original; }
 });
+
+vi.mock("../auth/SessionContext", () => ({ useSession: () => ({ authenticated: false, loading: false }) }));

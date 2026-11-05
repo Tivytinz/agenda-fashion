@@ -29,7 +29,7 @@ for (const recovery of ['verificar', 'reload']) {
     await page.goto('/criar-negocio?plano=studio');
     await page.getByLabel('Nome do negócio').fill('Studio novo');
     await page.getByLabel('Unhas', { exact: true }).check();
-    await page.getByLabel(/Link do Google Maps/).fill('https://maps.google.com/');
+    await page.getByLabel(/Link da localização/).fill('https://maps.google.com/');
     await page.getByLabel(/CEP/).fill('01001000');
     await expect(page.getByLabel('Endereço', { exact: true })).toHaveValue('Rua local');
     await page.getByLabel('Número', { exact: true }).fill('20');

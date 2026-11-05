@@ -684,44 +684,14 @@
   .home-page .home-section-heading h2 { font-size: clamp(1.35rem, 6vw, 1.65rem); }
   .home-page .home-category-section { padding-top: 18px; }
 }
-.home-discovery-search { display: flex; flex: 1 0 100%; align-items: center; gap: 12px; min-width: 0; }
-.home-service-search { display: flex; flex: 1; align-items: center; gap: 12px; min-height: 48px; padding: 0 18px; border: 1px solid #f0cddd; border-radius: 24px; background: #fff; min-width: 0; }
-.home-service-search > span { font-weight: 700; white-space: nowrap; }
-.home-service-search input { min-width: 0; width: 100%; border: 0; border-radius: 0; background: transparent; font: inherit; padding: 10px 0; }
-.home-discovery-search .home-service-search input,
-.home-discovery-search .home-location-pill select {
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-.home-service-search:focus-within,
-.home-discovery-search .home-location-pill:focus-within {
-  outline: 3px solid var(--public-focus, var(--pink-600));
-  outline-offset: 2px;
-}
-.home-discovery-search .home-service-search input:focus,
-.public-shell .home-service-search input:focus-visible,
-.home-discovery-search .home-location-pill select:focus,
-.public-shell .home-discovery-search .home-location-pill select:focus-visible {
-  outline: 0;
-  /* Override the shared control focus shadow; the label owns this ring. */
-  box-shadow: none !important;
-}
 .home-pagination { padding-bottom: 24px; }
-@media (max-width: 760px) {
-  .home-discovery-search { flex-wrap: wrap; }
-  .home-service-search { flex-basis: 100%; }
-  .home-discovery-search .home-location-pill { flex: 1; min-width: 0; }
-  .home-discovery-search .home-location-pill select { width: 100%; }
-  .home-filter-slot { min-height: 128px; }
-}
+
 .home-services-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
   align-items: stretch;
   gap: 18px;
 }
-.home-result-count { margin: 0 0 16px; color: #59444e; font-size: 1rem; }
 .home-filter-chip {
   display: inline-flex;
   align-items: center;
@@ -770,7 +740,6 @@
 .home-page .discovery-neighborhood { display: block; color: #59444e; line-height: 1.5; overflow-wrap: anywhere; }
 .home-rail-control.previous .home-arrow-icon { transform: rotate(180deg); }
 
-.home-search-scope { flex-basis: 100%; margin: 0; color: #59444e; font-size: .9rem; line-height: 1.5; }
 
 /* Keep endpoint controls mounted so keyboard focus is not discarded. */
 .home-rail-control[aria-disabled="true"] { opacity: .4; cursor: default; color: #d92f7f; background: #fff; box-shadow: none; }

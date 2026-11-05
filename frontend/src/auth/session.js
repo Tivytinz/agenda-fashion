@@ -129,7 +129,8 @@ export function getBusinessCreationPath(planSlug) {
 
 export function getAuthDestination(session, {
   requestedPath = "",
-  planSlug = ""
+  planSlug = "",
+  professionalIntent = false
 } = {}) {
   const requested = safeInternalPath(requestedPath);
   const plan = normalizePlanSlug(planSlug);
@@ -163,6 +164,13 @@ export function getAuthDestination(session, {
         ? getPlanIntentPath("/checkout", plan)
         : getPlanIntentPath("/painel", plan);
     }
+  }
+
+  if (professionalIntent) {
+    if (session?.temNegocio || session?.temReservasProfissionaisRestritas) {
+      return getBusinessWorkspacePath(session, "dono");
+    }
+    return getBusinessCreationPath(plan);
   }
 
   if (

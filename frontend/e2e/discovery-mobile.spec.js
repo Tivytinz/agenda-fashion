@@ -206,3 +206,34 @@ test("setas têm botões circulares, ícones proporcionais e avançam a fileira"
   await expect.poll(() => track.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
   await expect(page.getByRole("button", { name: "Voltar em categorias" })).toBeVisible();
 });
+
+test("buscador e cadastro do negócio permanecem utilizáveis em celular, tablet e desktop", async ({ page }) => {
+  await page.goto("/?utm_source=teste");
+  const input = page.getByRole("searchbox", { name: "Qual serviço?" });
+  const entry = page.locator(".header-business-entry");
+  for (const width of [360, 390, 430, 760, 768, 800, 801, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await expect(entry).toBeVisible();
+    const box = await input.boundingBox();
+    expect(box.width).toBeGreaterThan(80);
+    const action = await entry.boundingBox();
+    expect(action.height).toBeGreaterThanOrEqual(44);
+    expect(action.y).toBeLessThan(220);
+    expect(await page.evaluate(() =>
+      document.documentElement.scrollWidth <= document.documentElement.clientWidth
+    )).toBe(true);
+  }
+  await entry.click();
+  await expect(page).toHaveURL(/\/cadastro\?tipo=profissional&utm_source=teste/);
+});
+
+test("Como funciona preserva o rascunho e Limpar filtros o descarta", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/?categoria=unha");
+  const input = page.getByRole("searchbox");
+  await input.fill("rascunho");
+  await page.getByRole("link", { name: "Como funciona", exact: true }).first().click();
+  await expect(input).toHaveValue("rascunho");
+  await page.getByRole("button", { name: "Limpar filtros", exact: true }).click();
+  await expect(input).toHaveValue("");
+});

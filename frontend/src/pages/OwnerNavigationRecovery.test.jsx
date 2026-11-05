@@ -58,10 +58,10 @@ it.each(["sucesso", "erro"])("descarta %s da criação de serviço antes de o de
   mount("/painel/servicos/novo?onboarding=servico", <ServiceEditorPage />);
   fireEvent.change(screen.getByLabelText("Nome do serviço"), { target: { value: "Manicure" } });
   fireEvent.change(screen.getByLabelText(/Categoria/), { target: { value: "unha" } });
-  fireEvent.change(screen.getByLabelText("Valor"), { target: { value: "50" } });
+  fireEvent.change(screen.getByLabelText(/^Valor/), { target: { value: "50" } });
   fireEvent.submit(screen.getByRole("button", { name: /Salvar serviço/ }).closest("form"));
   await discard();
-  expect(screen.getByRole("heading", { name: "Novo serviço", hidden: true })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Cadastre seu primeiro serviço", hidden: true })).toBeTruthy();
   await act(async () => outcome === "sucesso"
     ? mutation.resolve({ servico: { id: 58 }, publicacao: { publicado: true } })
     : mutation.reject(new Error("Falha antiga do serviço")));
@@ -142,7 +142,7 @@ describe.each(["Continuar editando", "Escape"])("operação preservada por %s", 
     mount("/painel/servicos/novo?onboarding=servico", <ServiceEditorPage />);
     fireEvent.change(screen.getByLabelText("Nome do serviço"), { target: { value: "Manicure" } });
     fireEvent.change(screen.getByLabelText(/Categoria/), { target: { value: "unha" } });
-    fireEvent.change(screen.getByLabelText("Valor"), { target: { value: "50" } });
+    fireEvent.change(screen.getByLabelText(/^Valor/), { target: { value: "50" } });
     fireEvent.submit(screen.getByRole("button", { name: /Salvar serviço/ }).closest("form"));
     await keepEditing();
     expect(router.state.location.pathname).toBe("/painel/servicos/novo");
@@ -239,7 +239,7 @@ describe("saída sem rascunho com operação pendente", () => {
     mount("/painel/servicos/novo?onboarding=servico", <ServiceEditorPage />);
     fireEvent.change(screen.getByLabelText("Nome do serviço"), { target: { value: "Manicure" } });
     fireEvent.change(screen.getByLabelText(/Categoria/), { target: { value: "unha" } });
-    fireEvent.change(screen.getByLabelText("Valor"), { target: { value: "50" } });
+    fireEvent.change(screen.getByLabelText(/^Valor/), { target: { value: "50" } });
     fireEvent.submit(screen.getByRole("button", { name: /Salvar serviço/ }).closest("form"));
     await act(() => router.navigate("/planos"));
     await screen.findByRole("dialog");

@@ -8,11 +8,11 @@ import {
 import { getMarketingContext } from "../analytics/track";
 import {
   getAuthDestination,
-  getBusinessCreationPath,
   normalizePlanSlug,
   safeInternalPath
 } from "../auth/session";
 import { useSession } from "../auth/SessionContext";
+import { buildProfessionalSignupPath } from "../utils/professionalEntry";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
 
 export const WHATSAPP_PATTERN = "(?:[^0-9]*[0-9]){10,11}[^0-9]*";
@@ -46,40 +46,31 @@ export function AuthPage({ mode = "login" }) {
       professional: params.get("tipo") === "profissional" || Boolean(planSlug)
     };
   }, [location.search]);
-  const professionalIntent = isRegister && authIntent.professional;
+  const professionalIntent = authIntent.professional;
 
-  const authRequestedPath = useMemo(
-    () =>
-      safeReturnPath(location.state?.from) ||
-      (
-        professionalIntent
-          ? getBusinessCreationPath(authIntent.planSlug)
-          : ""
-      ),
-    [
-      authIntent.planSlug,
-      location.state,
-      professionalIntent
-    ]
-  );
+  const authRequestedPath = safeReturnPath(location.state?.from);
 
   const destination = useMemo(() => getAuthDestination(session, {
     requestedPath: authRequestedPath,
-    planSlug: authIntent.planSlug
+    planSlug: authIntent.planSlug,
+    professionalIntent
   }), [
     authIntent.planSlug,
     authRequestedPath,
+    professionalIntent,
     session
   ]);
 
   const finish = useCallback((current) => {
     navigate(getAuthDestination(current, {
       requestedPath: authRequestedPath,
-      planSlug: authIntent.planSlug
+      planSlug: authIntent.planSlug,
+      professionalIntent
     }), { replace: true });
   }, [
     authIntent.planSlug,
     authRequestedPath,
+    professionalIntent,
     navigate
   ]);
 
@@ -223,11 +214,13 @@ export function AuthPage({ mode = "login" }) {
         <h1 id="auth-title">{isRegister ? "Crie sua conta" : "Entre no Agenda Fashion"}</h1>
         <p className="muted">
           {professionalIntent
-            ? "Crie sua conta para montar seu negócio, publicar serviços e receber agendamentos."
+            ? isRegister
+              ? "Crie sua conta para cadastrar seu negócio e receber agendamentos."
+              : "Entre para continuar no cadastro ou na gestão do seu negócio."
             : "Uma conta para agendar como cliente ou administrar seu negócio."}
         </p>
 
-        {professionalIntent && (
+        {isRegister && professionalIntent && (
           <p className="muted">
             ✨ Depois da conta, você cria o negócio, cadastra seu primeiro serviço e confirma os horários. Avisos do WhatsApp são opcionais e podem ser ativados no painel.
           </p>
@@ -329,6 +322,12 @@ export function AuthPage({ mode = "login" }) {
           )}
         </form>
 
+        {!professionalIntent && (
+          <p className="auth-switch">
+            Trabalha com beleza?{" "}
+            <Link to={buildProfessionalSignupPath(location.search)}>Cadastrar meu negócio</Link>
+          </p>
+        )}
         <p className="auth-switch">
           {isRegister ? "Já tem uma conta?" : "Ainda não tem conta?"}{" "}
           <Link

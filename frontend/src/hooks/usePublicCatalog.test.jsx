@@ -51,3 +51,26 @@ it("cancela a nova tentativa ao desmontar e não consulta quando desabilitado", 
   unmount();
   expect(signal.aborted).toBe(true);
 });
+
+it("preserva a página anterior e permite tentar novamente após resposta inválida", async () => {
+  apiRequest.mockResolvedValueOnce({ negocios: [{ id: "9223372036854775806" }], paginacao: { tem_mais: true } })
+    .mockResolvedValueOnce({ negocios: [null] })
+    .mockResolvedValueOnce({ negocios: [{ id: "9223372036854775807" }], paginacao: { tem_mais: false } });
+  const { result } = renderHook(() => usePublicCatalog(filters));
+  await waitFor(() => expect(result.current.status).toBe("ready"));
+  await act(async () => { await result.current.loadMore(); });
+  expect(result.current.businesses).toEqual([{ id: "9223372036854775806" }]);
+  expect(result.current.error).toContain("Não foi possível ler");
+  await act(async () => { await result.current.loadMore(); });
+  expect(apiRequest.mock.calls[2][0]).toContain("pagina=2");
+  expect(result.current.businesses).toHaveLength(2);
+});
+
+it("deduplica um mesmo ID representado como número ou texto", async () => {
+  apiRequest.mockResolvedValueOnce({ negocios: [{ id: 1 }], paginacao: { tem_mais: true } })
+    .mockResolvedValueOnce({ negocios: [{ id: "1", nome: "Atualizado" }] });
+  const { result } = renderHook(() => usePublicCatalog(filters));
+  await waitFor(() => expect(result.current.status).toBe("ready"));
+  await act(async () => { await result.current.loadMore(); });
+  expect(result.current.businesses).toEqual([{ id: "1", nome: "Atualizado" }]);
+});

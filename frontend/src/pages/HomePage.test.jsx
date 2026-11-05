@@ -69,14 +69,14 @@ describe("home crítica", () => {
     renderHome();
 
     const professionalLink = screen.getByRole("link", {
-      name: "Agenda online para profissionais"
+      name: "Cadastrar meu negócio"
     });
     const plansLink = screen.getByRole("link", {
-      name: "Conhecer os planos"
+      name: "Conhecer o Agenda Fashion"
     });
 
-    expect(professionalLink.getAttribute("href")).toBe("/para-profissionais");
-    expect(plansLink.getAttribute("href")).toBe("/planos");
+    expect(professionalLink.getAttribute("href")).toBe("/cadastro?tipo=profissional");
+    expect(plansLink.getAttribute("href")).toBe("/para-profissionais");
     expect(professionalLink.closest("nav")?.getAttribute("aria-label")).toBe(
       "Conheça o Agenda Fashion para profissionais"
     );
@@ -127,3 +127,5 @@ describe("home crítica", () => {
     expect(screen.getByRole("heading", { name: "Beleza para você" })).not.toBeNull();
   });
 });
+
+vi.mock("../auth/SessionContext", () => ({ useSession: () => ({ authenticated: false, loading: false }) }));

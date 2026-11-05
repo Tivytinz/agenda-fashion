@@ -2,3 +2,5 @@
 @import "./home/header.css";
 @import "./home/hero.css";
 @import "./home/catalog.css";
+
+@import "./home/search.css";
