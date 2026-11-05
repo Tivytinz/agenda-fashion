@@ -1,5 +1,14 @@
 import { expect, test } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("session_active", "1");
+    localStorage.setItem("af_marketing_consent_v2", JSON.stringify({
+      version: 2, status: "denied", updatedAt: "2026-11-05T00:00:00.000Z"
+    }));
+  });
+});
+
 const owner = { id: 11, nome: "Studio Aurora", slug: "studio-aurora", papel: "dono", publicado: false };
 test("conta existente acessa o cadastro do negócio sem novo cadastro de conta", async ({ page }) => {
   await page.route("**/minha-sessao", route => route.fulfill({ json: {
