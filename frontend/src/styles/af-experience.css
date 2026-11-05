@@ -146,7 +146,7 @@ strong {
   border-color: rgb(217 47 127 / 22%);
 }
 
-input:not([type="checkbox"]):not([type="radio"]),
+input:not([type="checkbox"]):not([type="radio"]):not(.discovery-input),
 textarea,
 select {
   border-radius: var(--af-control-radius) !important;
@@ -155,7 +155,7 @@ select {
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
-input:not([type="checkbox"]):not([type="radio"]):focus,
+input:not([type="checkbox"]):not([type="radio"]):not(.discovery-input):focus,
 textarea:focus,
 select:focus {
   border-color: var(--pink-500) !important;

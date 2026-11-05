@@ -370,7 +370,7 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   });
 
   await page.goto("/para-profissionais");
-  await page.getByRole("link", { name: "Criar minha agenda grátis" }).first().click();
+  await page.getByRole("link", { name: "Cadastrar meu negócio" }).first().click();
   await expect(page).toHaveURL(/\/cadastro\?tipo=profissional/);
   await page.getByLabel("Nome completo").fill("Ana Profissional");
   await page.getByLabel("E-mail").fill("ana@example.com");
@@ -399,7 +399,7 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
     "Studio Aurora"
   );
   await page.getByLabel("Unhas").check();
-  await page.getByLabel("Link do Google Maps").fill("https://maps.google.com/?q=goiania");
+  await page.getByLabel("Link da localização").fill("https://maps.google.com/?q=goiania");
   await page.getByLabel("CEP").fill("74000-123");
   await expect(page.getByLabel("Endereço", { exact: true })).toHaveValue("Rua das Flores");
   await page.getByLabel("Número", { exact: true }).fill("10");
@@ -407,7 +407,7 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
 
   await expect(page).toHaveURL(/\/painel\/servicos\/novo\?onboarding=servico$/);
   await expect.poll(() => postBusinessSessionRefreshStarted).toBe(true);
-  await expect(page.getByRole("heading", { name: "Novo serviço" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Cadastre seu primeiro serviço" })).toBeVisible();
   expect(releasePostBusinessSessionRefresh).not.toBeNull();
   releasePostBusinessSessionRefresh();
 
@@ -422,7 +422,7 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
 
   await serviceField(page, "Nome do serviço", "input").fill("Design + Henna");
   await serviceField(page, "Categoria", "select").selectOption("unha");
-  await serviceField(page, "Valor", "input").fill("40");
+  await serviceField(page, "Valor (R$)", "input").fill("40");
   await serviceField(page, "Duração em minutos", "input").fill("60");
   await page.getByRole("button", { name: "Salvar serviço e publicar" }).click();
 

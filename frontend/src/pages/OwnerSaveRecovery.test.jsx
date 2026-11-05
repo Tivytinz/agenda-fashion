@@ -451,7 +451,7 @@ describe("carregamento independente do editor de serviço", () => {
     await screen.findByRole("alert");
     const name = screen.getByLabelText("Nome do serviço");
     expect(name.value).toBe("Manicure");
-    expect(screen.getByRole("spinbutton", { name: "Valor" }).value).toBe("50");
+    expect(screen.getByRole("spinbutton", { name: /^Valor/ }).value).toBe("50");
     fireEvent.change(name, { target: { value: "Manicure completa" } });
     fireEvent.click(screen.getByRole("button", { name: "Tentar carregar fotos novamente" }));
     await screen.findByRole("button", { name: "Remover foto da galeria" });
@@ -522,7 +522,7 @@ describe("carregamento independente do editor de serviço", () => {
     expect(screen.queryByRole("button", { name: "Remover foto da galeria" })).toBeNull();
     fireEvent.change(name, { target: { value: "Pedicure" } });
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "unha" } });
-    fireEvent.change(screen.getByRole("spinbutton", { name: "Valor" }), { target: { value: "70" } });
+    fireEvent.change(screen.getByRole("spinbutton", { name: /^Valor/ }), { target: { value: "70" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar serviço" }));
     await screen.findByRole("heading", { name: "Destino" });
     const writes = apiRequest.mock.calls.filter(([, options]) => options?.method);

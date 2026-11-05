@@ -180,9 +180,6 @@ function ExploreContent({ controller, onMounted }) {
           filteredServices.length >
           0 && (
             <>
-              <p className="home-result-count" role="status">
-                {filteredServices.length} {filteredServices.length === 1 ? "serviço exibido" : "serviços exibidos"}{hasMore ? " · Carregue mais resultados para continuar explorando." : ""}
-              </p>
               <div className="home-services-grid">
                 {filteredServices.map((service) => (
                   <ServiceCard service={service} compact key={`${service.negocio_id}-${service.id}`} />

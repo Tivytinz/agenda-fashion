@@ -15,7 +15,7 @@ const CAMPOS_OBRIGATORIOS = [
   ["endereco", "Endereço"],
   ["numero", "Número"],
   ["cep", "CEP"],
-  ["localizacao_url", "Link do Google Maps"],
+  ["localizacao_url", "Link da localização"],
 ];
 
 function textoPreenchido(

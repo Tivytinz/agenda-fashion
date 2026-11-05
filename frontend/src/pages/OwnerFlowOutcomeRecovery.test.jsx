@@ -35,7 +35,7 @@ function deferred() {
 }
 function fillService() {
   fireEvent.change(screen.getByRole("textbox", { name: "Nome do serviço" }), { target: { value: "Manicure" } });
-  fireEvent.change(screen.getByRole("spinbutton", { name: "Valor" }), { target: { value: "50" } });
+  fireEvent.change(screen.getByRole("spinbutton", { name: /^Valor/ }), { target: { value: "50" } });
   fireEvent.change(screen.getByRole("combobox", { name: /Categoria/ }), { target: { value: "unha" } });
 }
 beforeEach(() => {
@@ -66,7 +66,7 @@ describe("cadastro de serviço com resultado incerto", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Salvar serviço/ }));
     await screen.findByText(/Não foi possível confirmar o cadastro/);
     expect(screen.getByLabelText("Nome do serviço").disabled).toBe(true);
-    expect(screen.getByLabelText("Valor").disabled).toBe(true);
+    expect(screen.getByLabelText(/^Valor/).disabled).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Verificar cadastro" }));
     await screen.findByRole("heading", { name: "Destino" });
     expect(router.state.location.pathname).toBe("/painel/horarios");

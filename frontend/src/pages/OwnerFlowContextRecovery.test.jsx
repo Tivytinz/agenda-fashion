@@ -60,7 +60,7 @@ it.each([4, 9])("login da conta %s preserva a referência e revalida seu escopo 
     expect(router.state.location.search).toBe("?plano=studio");
     expect(apiRequest.mock.calls[0][1].headers["Idempotency-Key"]).toBe(KEY);
   } else {
-    await screen.findByRole("heading", { name: "Novo serviço" });
+    await screen.findByRole("heading", { name: "Cadastre seu primeiro serviço" });
     expect(screen.getByLabelText("Nome do serviço").value).toBe("");
     expect(apiRequest).not.toHaveBeenCalled();
   }

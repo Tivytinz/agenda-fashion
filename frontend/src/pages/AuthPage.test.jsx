@@ -245,3 +245,19 @@ describe("compatibilidade de senha no login", () => {
     expect(screen.getByLabelText("Confirme a senha").getAttribute("minlength")).toBe("8");
   });
 });
+it.each([
+  [{ authenticated: true, temNegocio: false }, "/criar-negocio", "Criar negócio"],
+  [{ authenticated: true, temNegocio: true, negocio: { papel: "dono" } }, "/painel", "Painel"],
+  [{ authenticated: true, temNegocio: false, temReservasProfissionaisRestritas: true }, "/reservas-existentes", "Reservas existentes"]
+])("preserva a intenção profissional no login por e-mail: %s", async (result, path, heading) => {
+  login.mockResolvedValue(result);
+  const user = userEvent.setup();
+  render(<MemoryRouter initialEntries={["/entrar?tipo=profissional"]}>
+    <Routes><Route path="/entrar" element={<AuthPage />} />
+      <Route path={path} element={<h1>{heading}</h1>} /></Routes>
+  </MemoryRouter>);
+  await user.type(screen.getByLabelText("E-mail"), "ana@teste.com");
+  await user.type(screen.getByLabelText("Senha"), "senha123");
+  await user.click(screen.getByRole("button", { name: "Entrar", exact: true }));
+  expect(await screen.findByRole("heading", { name: heading })).not.toBeNull();
+});

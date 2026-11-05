@@ -44,7 +44,7 @@ async function submitCreation() {
   fireEvent.change(screen.getByLabelText("Nome do negócio"), { target: { value: BUSINESS.nome } });
   fireEvent.click(screen.getByLabelText("Unhas"));
   fireEvent.change(screen.getByLabelText(/WhatsApp/), { target: { value: BUSINESS.whatsapp } });
-  fireEvent.change(screen.getByLabelText(/Link do Google Maps/), { target: { value: BUSINESS.localizacao_url } });
+  fireEvent.change(screen.getByLabelText(/Link da localização/), { target: { value: BUSINESS.localizacao_url } });
   fireEvent.change(screen.getByLabelText(/CEP/), { target: { value: BUSINESS.cep } });
   await waitFor(() => expect(screen.getByLabelText("Endereço").value).toBe(BUSINESS.endereco));
   fireEvent.change(screen.getByLabelText("Número"), { target: { value: BUSINESS.numero } });

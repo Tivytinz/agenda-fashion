@@ -2,45 +2,12 @@ import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { track } from "../analytics/track";
+import { useSession } from "../auth/SessionContext";
+import { getProfessionalEntry } from "../utils/professionalEntry";
 import afLogoTransparent from "../assets/brand/performance/af-logo-96.webp";
 import "../styles/professional-landing.css";
 
-export const PROFESSIONAL_TRACKING_PARAMS = [
-  "utm_source",
-  "utm_medium",
-  "utm_campaign",
-  "utm_content",
-  "utm_term",
-  "gclid",
-  "gbraid",
-  "wbraid",
-  "fbclid",
-  "msclkid",
-  "ttclid",
-  "epik",
-  "af_source",
-  "af_medium",
-  "af_content"
-];
-
-export function buildProfessionalSignupPath(search = "") {
-  const incoming = new URLSearchParams(
-    String(search || "").replace(/^\?/, "")
-  );
-  const outgoing = new URLSearchParams({
-    tipo: "profissional"
-  });
-
-  for (const key of PROFESSIONAL_TRACKING_PARAMS) {
-    const value = incoming.get(key)?.trim();
-
-    if (value) {
-      outgoing.set(key, value);
-    }
-  }
-
-  return `/cadastro?${outgoing.toString()}`;
-}
+export { buildProfessionalSignupPath, PROFESSIONAL_TRACKING_PARAMS } from "../utils/professionalEntry";
 
 const BENEFITS = [
   {
@@ -190,9 +157,8 @@ function ensureMetaDescription(content) {
 
 export function ProfessionalLandingPage() {
   const location = useLocation();
-  const signupPath = buildProfessionalSignupPath(
-    location.search
-  );
+  const entry = getProfessionalEntry(useSession(), location.search);
+  const signupPath = entry.path;
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -272,7 +238,7 @@ export function ProfessionalLandingPage() {
                 to={signupPath}
                 onClick={() => trackCta("hero")}
               >
-                Criar minha agenda grátis
+                {entry.label}
               </Link>
 
               <a
@@ -458,7 +424,7 @@ export function ProfessionalLandingPage() {
                 onClick={() => trackCta("real_demo")}
                 to={signupPath}
               >
-                Criar minha agenda grátis
+                {entry.label}
               </Link>
               <Link className="text-link" to="/planos">
                 Ver planos e limites
@@ -554,7 +520,7 @@ export function ProfessionalLandingPage() {
             to={signupPath}
             onClick={() => trackCta("final")}
           >
-            Criar minha agenda grátis
+            {entry.label}
           </Link>
           <small>Sem cartão para começar.</small>
         </div>

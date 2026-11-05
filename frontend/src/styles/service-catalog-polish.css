@@ -283,3 +283,20 @@
     bottom: 10px;
   }
 }
+
+.workspace-page.service-editor-page.service-editor-onboarding {
+  width: min(760px, calc(100% - 32px));
+}
+.service-editor-onboarding .service-editor-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.service-editor-onboarding .workspace-heading h1 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  line-height: 1.2;
+}
+.service-editor-page.service-editor-onboarding .service-editor-actions {
+  position: static;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+}

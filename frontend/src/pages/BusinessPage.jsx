@@ -55,7 +55,7 @@ const CREATION_REQUIRED_FIELDS = [
   ["endereco", "Endereço"],
   ["numero", "Número"],
   ["cep", "CEP"],
-  ["localizacao_url", "Link do Google Maps"]
+  ["localizacao_url", "Link da localização"]
 ];
 const SERVICE_PUBLICATION_PENDING =
   "pelo menos um serviço ativo";
@@ -1015,11 +1015,9 @@ export function BusinessPage({ create = false }) {
                 Ajuda clientes a conhecerem seu trabalho, mas não impede a criação nem a publicação.
               </small>
             </label>
-            <fieldset className="specialty-field field-wide" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}>
-              <legend>Especialidades</legend>
+            <fieldset aria-label="Especialidades" className="specialty-field field-wide" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}>
               <div className="specialty-heading-row">
                 <p>Selecione tudo o que o negócio oferece.</p>
-                <span>{form.areas.length} {form.areas.length === 1 ? "selecionada" : "selecionadas"}</span>
               </div>
               <div className="specialty-selector">
                 {BUSINESS_SPECIALTIES.map(([value, label]) => (
@@ -1063,12 +1061,12 @@ export function BusinessPage({ create = false }) {
               </small>
             </label>
             <label>
-              Link do Google Maps
+              Link da localização
               <input
                 aria-invalid={!locationValid ? "true" : undefined}
                 disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}
                 onChange={(event) => update("localizacao_url", event.target.value)}
-                placeholder="https://maps.app.goo.gl/..."
+                placeholder="https://..."
                 required={create}
                 type="url"
                 value={form.localizacao_url}
@@ -1080,8 +1078,8 @@ export function BusinessPage({ create = false }) {
                     : form.localizacao_url
                       ? "Link de localização válido."
                       : create
-                        ? "Obrigatório na criação. Cole o link da localização no Google Maps."
-                        : "Cole o link da localização no Google Maps."}
+                        ? "Obrigatório na criação. Cole um link do Google Maps ou Apple Mapas."
+                        : "Cole um link do Google Maps ou Apple Mapas."}
                 </small>
                 {locationValid && form.localizacao_url && (
                   <a href={form.localizacao_url} rel="noreferrer" target="_blank">Testar link ↗</a>

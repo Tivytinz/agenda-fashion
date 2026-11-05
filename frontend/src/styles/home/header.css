@@ -326,3 +326,19 @@
     display: none;
   }
 }
+
+.header-business-entry {
+  display: inline-flex;
+  min-height: 44px;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+@media (max-width: 800px) {
+  .header-business-entry {
+    width: 100%;
+    flex: 1 0 100%;
+    order: 5;
+  }
+}

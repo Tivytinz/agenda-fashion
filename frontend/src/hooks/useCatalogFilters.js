@@ -24,6 +24,7 @@ export function useCatalogFilters() {
   const selectedLocationKey = requestedLocationKey;
   const selectedLocation = parseLocationKey(selectedLocationKey);
   const [locationRestored, setLocationRestored] = useState(false);
+  const [draftResetKey, setDraftResetKey] = useState(0);
 
   useEffect(() => {
     if (!locationRestored) {
@@ -84,6 +85,7 @@ export function useCatalogFilters() {
   }
 
   function clearFilters() {
+    setDraftResetKey((key) => key + 1);
     const nextParams = new URLSearchParams(searchParams);
     ["busca", "categoria", "cidade", "estado", "pagina"].forEach((key) => nextParams.delete(key));
     updateFilters(nextParams);
@@ -110,7 +112,7 @@ export function useCatalogFilters() {
   }
 
   return {
-    query, category, selectedLocationKey, selectedLocation, locationRestored,
+    query, category, selectedLocationKey, selectedLocation, locationRestored, draftResetKey,
     location, chooseCategory, removeFilter, clearFilters, exploreHeroCategory, searchCatalog
   };
 }

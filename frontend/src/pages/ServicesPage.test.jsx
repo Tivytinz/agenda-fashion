@@ -55,7 +55,7 @@ function fillService() {
   fireEvent.change(screen.getByRole("textbox", { name: "Nome do serviço" }), {
     target: { value: "Manicure tradicional" }
   });
-  fireEvent.change(screen.getByRole("spinbutton", { name: "Valor" }), {
+  fireEvent.change(screen.getByRole("spinbutton", { name: /^Valor/ }), {
     target: { value: "50" }
   });
   fireEvent.change(screen.getByRole("combobox", { name: /Categoria/ }), {
@@ -132,7 +132,7 @@ describe("editor de serviços", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Nome do serviço" }), {
       target: { value: "Bronzeamento 40 min" }
     });
-    fireEvent.change(screen.getByRole("spinbutton", { name: "Valor" }), {
+    fireEvent.change(screen.getByRole("spinbutton", { name: /^Valor/ }), {
       target: { value: "99" }
     });
     fireEvent.change(screen.getByRole("combobox", { name: /Categoria/ }), {

@@ -14,7 +14,7 @@ export function DiscoveryLocationFilter({ value, options, status, locationsReady
         onSubmit={(event) => { event.preventDefault(); onSearch(draftQuery.trim(), draftLocation); }}>
         <label className="home-service-search">
           <span>Qual serviço?</span>
-          <input type="search" value={draftQuery} onChange={(event) => setDraftQuery(event.target.value)}
+          <input className="discovery-input" type="search" value={draftQuery} onChange={(event) => setDraftQuery(event.target.value)}
             placeholder="Serviço ou negócio" />
         </label>
         <label className="home-location-pill">
@@ -30,7 +30,6 @@ export function DiscoveryLocationFilter({ value, options, status, locationsReady
         </label>
         <button className="button" type="submit">Buscar</button>
       </form>
-      {!value && <p className="home-search-scope">Busca em todo o Brasil. Escolha uma cidade para encontrar atendimento na região.</p>}
       {categoryLabel && <button className="home-filter-chip" type="button" onClick={onClearCategory}
         aria-label={`Remover categoria ${categoryLabel}`}>Categoria: {categoryLabel} <span aria-hidden="true">×</span></button>}
       {status === "loading" && <span className="sr-only" role="status">Buscando resultados…</span>}

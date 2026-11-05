@@ -1,0 +1,32 @@
+/* Controles da busca: o rótulo possui o contorno de foco. */
+.home-discovery-search { display: flex; flex: 1 0 100%; align-items: center; gap: 12px; min-width: 0; }
+.home-service-search { display: flex; flex: 1; align-items: center; gap: 12px; min-height: 48px; padding: 0 18px; border: 1px solid #f0cddd; border-radius: 24px; background: #fff; min-width: 0; }
+.home-service-search > span { font-weight: 700; white-space: nowrap; }
+.home-service-search .discovery-input { min-width: 0; width: 100%; border: 0; border-radius: 0; background: transparent; font: inherit; padding: 10px 0; }
+.home-discovery-search .home-service-search .discovery-input,
+.home-discovery-search .home-location-pill select {
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.home-service-search:focus-within,
+.home-discovery-search .home-location-pill:focus-within {
+  outline: 3px solid var(--public-focus, var(--pink-600));
+  outline-offset: 2px;
+}
+.home-discovery-search .home-service-search .discovery-input:focus,
+.public-shell .home-service-search .discovery-input:focus-visible,
+.home-discovery-search .home-location-pill select:focus,
+.public-shell .home-discovery-search .home-location-pill select:focus-visible {
+  outline: 0;
+  /* Override the shared control focus shadow; the label owns this ring. */
+  box-shadow: none !important;
+}
+
+@media (max-width: 800px) {
+  .home-discovery-search { flex-wrap: wrap; }
+  .home-service-search { flex-basis: 100%; }
+  .home-discovery-search .home-location-pill { flex: 1; min-width: 0; }
+  .home-discovery-search .home-location-pill select { width: 100%; }
+  .home-filter-slot { min-height: 128px; }
+}

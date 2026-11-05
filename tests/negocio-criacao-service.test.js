@@ -117,7 +117,7 @@ describe(
       ["endereco", "Endereço"],
       ["numero", "Número"],
       ["cep", "CEP"],
-      ["localizacao_url", "Link do Google Maps"],
+      ["localizacao_url", "Link da localização"],
     ])(
       "rejeita criação sem %s",
       async (

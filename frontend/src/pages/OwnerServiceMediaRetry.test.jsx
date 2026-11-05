@@ -58,7 +58,7 @@ async function galleryFailure({ create = false, confirmed = false } = {}) {
   if (!create) await ready();
   fireEvent.change(screen.getByLabelText("Nome do serviço"), { target: { value: "Manicure revisada" } });
   if (create) {
-    fireEvent.change(screen.getByLabelText("Valor"), { target: { value: "50" } });
+    fireEvent.change(screen.getByLabelText(/^Valor/), { target: { value: "50" } });
     fireEvent.change(screen.getByRole("combobox", { name: /Categoria/ }), { target: { value: "unha" } });
   }
   selectGallery(); save();
@@ -73,7 +73,7 @@ it.each([false, true])("retry de fotos após criação=%s preserva a pausa de ou
   const { calls, server } = await galleryFailure({ create });
   const coreWrites = calls.filter(call => call.method === "PUT" || call.path === "/servicos" && call.method === "POST");
   expect(coreWrites).toHaveLength(1);
-  fireEvent.change(screen.getByLabelText("Valor"), { target: { value: "50.00" } });
+  fireEvent.change(screen.getByLabelText(/^Valor/), { target: { value: "50.00" } });
   fireEvent.change(screen.getByLabelText("Nome do serviço"), { target: { value: " Manicure revisada " } });
   const before = calls.length;
   save(); await screen.findByRole("heading", { name: "Destino" });
@@ -88,7 +88,7 @@ it("edição real depois da conferência continua salvando os novos dados antes 
   fireEvent.change(screen.getByLabelText("Nome do serviço"), { target: { value: "Pedicure" } });
   fireEvent.change(screen.getByLabelText(/^Descrição/), { target: { value: "Descrição revisada" } });
   fireEvent.change(screen.getByRole("combobox", { name: /Categoria/ }), { target: { value: "outro" } });
-  fireEvent.change(screen.getByLabelText("Valor"), { target: { value: "65" } });
+  fireEvent.change(screen.getByLabelText(/^Valor/), { target: { value: "65" } });
   fireEvent.change(screen.getByLabelText("Duração em minutos"), { target: { value: "45" } });
   fireEvent.click(screen.getByLabelText(/Serviço disponível/));
   const before = calls.length;

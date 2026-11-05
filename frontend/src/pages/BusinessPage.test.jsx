@@ -134,7 +134,7 @@ describe("publicação do negócio", () => {
     fireEvent.change(screen.getByLabelText(/WhatsApp/), {
       target: { value: "62 99999-9999" }
     });
-    fireEvent.change(screen.getByLabelText(/Link do Google Maps/), {
+    fireEvent.change(screen.getByLabelText(/Link da localização/), {
       target: { value: "https://maps.google.com/?q=goiania" }
     });
     fireEvent.change(screen.getByLabelText(/CEP/), {
@@ -201,7 +201,7 @@ describe("publicação do negócio", () => {
     fireEvent.change(screen.getByLabelText(/WhatsApp/), {
       target: { value: "62 99999-9999" }
     });
-    fireEvent.change(screen.getByLabelText(/Link do Google Maps/), {
+    fireEvent.change(screen.getByLabelText(/Link da localização/), {
       target: { value: "https://maps.google.com/?q=goiania" }
     });
     fireEvent.change(screen.getByLabelText(/CEP/), {
@@ -266,7 +266,7 @@ describe("publicação do negócio", () => {
     fireEvent.change(screen.getByLabelText(/WhatsApp/), {
       target: { value: "62 99999-9999" }
     });
-    fireEvent.change(screen.getByLabelText(/Link do Google Maps/), {
+    fireEvent.change(screen.getByLabelText(/Link da localização/), {
       target: { value: "https://maps.google.com/?q=goiania" }
     });
     fireEvent.change(screen.getByLabelText(/CEP/), {
@@ -357,7 +357,7 @@ describe("publicação do negócio", () => {
     expect(screen.getByTestId("public-address-hint").textContent)
       .toContain("Alterar o nome também atualiza este endereço");
     expect(screen.getByRole("button", { name: "Copiar link" })).not.toBeNull();
-    expect(screen.getByText("1 selecionada")).not.toBeNull();
+    expect(screen.getAllByRole("checkbox").filter((input) => input.checked)).toHaveLength(1);
     expect(screen.queryByText("Voltar à visão geral")).toBeNull();
     expect(screen.queryByRole("button", { name: "Salvar alterações" })).toBeNull();
     expect(whatsapp.getAttribute("placeholder")).toBe("(00) 12345-6789");
@@ -520,7 +520,7 @@ describe("publicação do negócio", () => {
 
     renderPage();
     const whatsapp = await screen.findByLabelText(/WhatsApp/);
-    const maps = screen.getByLabelText(/Link do Google Maps/);
+    const maps = screen.getByLabelText(/Link da localização/);
 
     fireEvent.change(whatsapp, { target: { value: "123" } });
     expect(screen.getByText(/WhatsApp com DDD/)).not.toBeNull();
@@ -536,6 +536,7 @@ describe("publicação do negócio", () => {
 
   it.each([
     "https://www.google.com.br/maps/place/Studio+Victor",
+    "https://maps.apple.com/?q=Studio+Victor&ll=-16.68,-49.25",
     "https://example.com/local",
     "http://example.com/local"
   ])("aceita a localização %s conforme o contrato da API", async (url) => {
@@ -545,7 +546,7 @@ describe("publicação do negócio", () => {
     }));
     renderPage();
     await screen.findByDisplayValue("Studio Victor");
-    fireEvent.change(screen.getByLabelText(/Link do Google Maps/), {
+    fireEvent.change(screen.getByLabelText(/Link da localização/), {
       target: { value: url }
     });
     fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));

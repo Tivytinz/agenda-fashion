@@ -158,7 +158,7 @@ test('sair durante criação impede adoção e redirecionamento por uma resposta
   await page.getByLabel('Nome do negócio').fill(BUSINESS.nome);
   await page.getByLabel('Unhas', { exact: true }).check();
   await page.getByLabel(/WhatsApp/).fill(BUSINESS.whatsapp);
-  await page.getByLabel(/Link do Google Maps/).fill(BUSINESS.localizacao_url);
+  await page.getByLabel(/Link da localização/).fill(BUSINESS.localizacao_url);
   await page.getByLabel(/CEP/).fill(BUSINESS.cep);
   await expect(page.getByLabel('Endereço', { exact: true })).toHaveValue(BUSINESS.endereco);
   await page.getByLabel('Número', { exact: true }).fill('10');
@@ -193,7 +193,7 @@ test('confirmar saída invalida criação antes de a página de planos carregar'
   await page.getByLabel('Nome do negócio').fill(BUSINESS.nome);
   await page.getByLabel('Unhas', { exact: true }).check();
   await page.getByLabel(/WhatsApp/).fill(BUSINESS.whatsapp);
-  await page.getByLabel(/Link do Google Maps/).fill(BUSINESS.localizacao_url);
+  await page.getByLabel(/Link da localização/).fill(BUSINESS.localizacao_url);
   await page.getByLabel(/CEP/).fill(BUSINESS.cep);
   await expect(page.getByLabel('Endereço', { exact: true })).toHaveValue(BUSINESS.endereco);
   await page.getByLabel('Número', { exact: true }).fill('10');

@@ -115,7 +115,7 @@ describe("landing para profissionais", () => {
     );
 
     const cta = screen.getAllByRole("link", {
-      name: "Criar minha agenda grátis"
+      name: "Cadastrar meu negócio"
     })[0];
     const href = cta.getAttribute("href");
     const [, query = ""] = href.split("?");
@@ -161,3 +161,5 @@ describe("landing para profissionais", () => {
       .toBeNull();
   });
 });
+
+vi.mock("../auth/SessionContext", () => ({ useSession: () => ({ authenticated: false, loading: false }) }));

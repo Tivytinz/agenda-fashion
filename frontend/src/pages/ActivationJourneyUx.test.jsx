@@ -49,7 +49,7 @@ function preencherPrimeiroServico() {
     target: { value: "unha" }
   });
   fireEvent.change(screen.getByRole("spinbutton", {
-    name: "Valor"
+    name: /^Valor/
   }), {
     target: { value: "120" }
   });
@@ -217,7 +217,7 @@ describe("jornada de ativação profissional", () => {
     fireEvent.change(screen.getByLabelText(/WhatsApp/), {
       target: { value: "62999999999" }
     });
-    fireEvent.change(screen.getByLabelText(/Link do Google Maps/), {
+    fireEvent.change(screen.getByLabelText(/Link da localização/), {
       target: { value: "https://maps.google.com/?q=Studio+Aurora" }
     });
     fireEvent.change(screen.getByLabelText(/CEP/), {
@@ -345,7 +345,7 @@ describe("jornada de ativação profissional", () => {
     );
 
     expect(screen.getByText(
-      /informe nome, categoria, valor e duração/i
+      /Cadastre um atendimento que você oferece/i
     )).not.toBeNull();
     expect(screen.getByRole("textbox", {
       name: "Nome do serviço"
@@ -354,7 +354,7 @@ describe("jornada de ativação profissional", () => {
       name: /Categoria/
     })).not.toBeNull();
     expect(screen.getByRole("spinbutton", {
-      name: "Valor"
+      name: /^Valor/
     })).not.toBeNull();
     expect(screen.getByRole("spinbutton", {
       name: "Duração em minutos"
