@@ -786,13 +786,15 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
     firstConfiguration && firstScheduleMode === "quick";
 
   return (
-    <main className={`workspace-page schedule-settings-page${!quickConfirmation && !showActivationNextStep ? " schedule-editor-page" : ""}`}>
+    <main className={`workspace-page schedule-settings-page${quickConfirmation ? " schedule-quick-page" : ""}${!quickConfirmation && !showActivationNextStep ? " schedule-editor-page" : ""}`}>
       <UnsavedChangesGuard when={hasChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">Disponibilidade</p>
           <h1>Horários de atendimento</h1>
-          <p>A cliente verá apenas horários que realmente podem ser agendados.</p>
+          <p>{quickConfirmation
+            ? "Revise os dias, horários e pausas antes de confirmar."
+            : "A cliente verá apenas horários que realmente podem ser agendados."}</p>
           {ownerTeamSchedule && (
             <p className="muted">
               Configurando a disponibilidade de{" "}
@@ -896,14 +898,10 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
               className="schedule-quick-confirmation"
             >
               <div className="schedule-quick-copy">
-                <p className="eyebrow">
-                  <span aria-hidden="true">📅</span>{" "}
-                  Sua agenda
-                </p>
                 <h2 id="schedule-activation-title">Confirme quando você atende</h2>
                 <p className="muted">
                   O Agenda Fashion preparou horários sugeridos para você começar.
-                  Confirme a sugestão ou ajuste sua disponibilidade antes de continuar.
+                  Ajuste se precisar.
                 </p>
               </div>
 
@@ -920,6 +918,14 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
               ) : (
                 <p className="schedule-quick-empty">
                   Nenhum dia está ativo ainda. Ajuste seus horários para continuar.
+                </p>
+              )}
+
+              {days.some((day) => !day.trabalha) && (
+                <p className="schedule-quick-closed">
+                  <strong>Dias sem atendimento:</strong>{" "}
+                  {days.filter((day) => !day.trabalha)
+                    .map((day) => DAY_NAMES[day.diaSemana]).join(", ")}.
                 </p>
               )}
 
@@ -942,7 +948,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
                   </button>
                 )}
                 <button
-                  className="text-button"
+                  className="button button-secondary"
                   disabled={saving}
                   onClick={openFirstScheduleEditor}
                   type="button"
