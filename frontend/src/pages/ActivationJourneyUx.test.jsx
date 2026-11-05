@@ -306,7 +306,7 @@ describe("jornada de ativação profissional", () => {
 
     preencherPrimeiroServico();
     fireEvent.click(screen.getByRole("button", {
-      name: "Salvar serviço e publicar"
+      name: "Salvar serviço"
     }));
 
     expect((await screen.findByTestId("destination")).textContent)
@@ -327,7 +327,7 @@ describe("jornada de ativação profissional", () => {
     );
   });
 
-  it("mostra somente os dados essenciais no primeiro serviço do onboarding", () => {
+  it("mostra o formulário completo e opcional também no primeiro serviço", () => {
     render(
       <MemoryRouter
         initialEntries={[{
@@ -345,7 +345,7 @@ describe("jornada de ativação profissional", () => {
     );
 
     expect(screen.getByText(
-      /Cadastre um atendimento que você oferece/i
+      /Descrição e fotos são opcionais/i
     )).not.toBeNull();
     expect(screen.getByRole("textbox", {
       name: "Nome do serviço"
@@ -359,17 +359,14 @@ describe("jornada de ativação profissional", () => {
     expect(screen.getByRole("spinbutton", {
       name: "Duração em minutos"
     })).not.toBeNull();
-    expect(screen.getByLabelText("Etapas para publicar o negócio").textContent)
-      .toContain("Serviço");
-    expect(screen.getByLabelText("Etapas para publicar o negócio").textContent)
-      .not.toContain("Horários");
+    expect(screen.getByRole("form", { name: "Dados do serviço" })).not.toBeNull();
 
     expect(screen.queryByRole("textbox", {
       name: /Descrição/
-    })).toBeNull();
+    })).not.toBeNull();
     expect(screen.queryByRole("heading", {
       name: "Fotos do serviço"
-    })).toBeNull();
-    expect(screen.queryByText("Serviço disponível")).toBeNull();
+    })).not.toBeNull();
+    expect(screen.queryByText("Serviço disponível")).not.toBeNull();
   });
 });

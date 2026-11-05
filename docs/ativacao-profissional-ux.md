@@ -74,20 +74,20 @@ O backend é a fonte de verdade desses requisitos. Não basta o frontend apresen
 
 Na criação padrão, a interface deve continuar diretamente para o cadastro do primeiro serviço. O sucesso de `POST /criar-negocio` já confirma a persistência do negócio e do vínculo de dona; a interface usa essa resposta canônica para atualizar imediatamente o contexto local necessário e segue para o primeiro serviço, enquanto `/minha-sessao` reconcilia os demais dados em segundo plano. Lentidão ou falha transitória nessa reconciliação não pode deixar a profissional na criação nem permitir que ela repita um POST já concluído. Isso também vale quando a profissional chega com um plano pago pré-selecionado: a escolha pode ser carregada como intenção durante `Negócio → Serviço → Horários`, mas o checkout não deve abrir antes de o primeiro serviço ser salvo e o perfil estar publicado. Depois da publicação, o fluxo apresenta primeiro os horários sugeridos. Confirmar a sugestão ou ajustar manualmente os horários leva à divulgação do perfil; uma intenção de plano pago pode ser preservada, mas não provoca checkout automático nessa conclusão.
 
-`Negócio` e `Serviço` devem aparecer como progresso compacto durante a preparação da publicação. Depois da publicação, `Horários` aparece como configuração rápida da agenda, sem comunicar que ainda falta algo para o perfil ser publicado. A entrada do primeiro serviço usa `?onboarding=servico` como marcador navegável, em vez de depender apenas de estado transitório do React Router; assim, atualizar a página ou reabrir o link não transforma acidentalmente a primeira missão no editor completo. Quando a ativação ainda não possui nenhum serviço, a próxima ação do dashboard deve abrir diretamente esse cadastro. Se já houver apenas serviços inativos, deve abrir a gestão para permitir reativação em vez de chamar o próximo cadastro de primeiro serviço.
+A criação do negócio apresenta o progresso da preparação da publicação; o editor de serviço mantém uma única apresentação em todas as entradas. Depois da publicação, `Horários` aparece como configuração rápida da agenda, sem comunicar que ainda falta algo para o perfil ser publicado. A entrada do primeiro serviço usa `?onboarding=servico` como marcador navegável, em vez de depender apenas de estado transitório do React Router; assim, atualizar a página ou reabrir o link preserva o próximo passo após salvar, sem mudar os campos ou o layout do editor. Quando a ativação ainda não possui nenhum serviço, a próxima ação do dashboard deve abrir diretamente esse cadastro. Se já houver apenas serviços inativos, deve abrir a gestão para permitir reativação em vez de chamar o próximo cadastro de primeiro serviço.
 
 O WhatsApp da conta autenticada pode preencher inicialmente o WhatsApp do negócio, mas permanece editável e o backend continua validando o valor recebido.
 
 ## Primeiro serviço e publicação
 
-O primeiro serviço deve priorizar somente os dados necessários para colocar a oferta no ar:
+O formulário é o mesmo no primeiro serviço, em novos cadastros e na edição. Os dados obrigatórios continuam sendo:
 
 - nome;
 - categoria;
 - valor;
 - duração.
 
-Descrição e fotos do serviço podem ser aprimoradas depois e não aparecem na primeira missão. Durante essa missão, o serviço nasce ativo para não criar uma pendência contraditória antes da publicação. Depois que o backend salva o serviço e confirma a publicação, uma atualização auxiliar da sessão pode ocorrer em segundo plano, mas lentidão ou falha transitória nessa sincronização não deve impedir a progressão para Horários.
+Descrição e fotos são opcionais e aparecem em todas as entradas. O serviço começa ativo por padrão. Se a profissional desativá-lo, o salvamento volta à lista com orientação para ativar um serviço. Os envios de fotos selecionadas são concluídos antes de seguir; falhas preservam o cadastro e permitem retomar apenas os envios pendentes. A retomada sem alterações revalida a publicação sem repetir a gravação do serviço. Depois que o backend salva o serviço e confirma a publicação, uma atualização auxiliar da sessão pode ocorrer em segundo plano, mas lentidão ou falha transitória nessa sincronização não deve impedir a progressão para Horários.
 
 Depois de salvar o primeiro serviço ativo, o backend recalcula a elegibilidade do negócio. A publicação automática exige simultaneamente:
 
@@ -257,6 +257,6 @@ O campo Link da localização comunica suporte a Google Maps e Apple Mapas. O
 contrato continua sendo URL HTTP/HTTPS válida em localizacao_url, conferida pelo
 backend; o rótulo não restringe o provedor nem altera dados persistidos.
 
-O primeiro serviço é apresentado em uma coluna, com formulário e ações alinhados,
+O editor de serviço é apresentado em uma coluna em todas as entradas, com formulário e ações alinhados,
 valor em reais e campos numéricos apropriados. As etapas seguintes e a publicação
 continuam dependentes das respostas canônicas do backend.
