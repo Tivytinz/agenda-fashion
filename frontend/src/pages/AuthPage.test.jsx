@@ -39,7 +39,7 @@ vi.mock("../auth/SessionContext", () => ({
 }));
 
 vi.mock("../components/GoogleLoginButton", () => ({
-  GoogleLoginButton: () => null
+  GoogleLoginButton: ({ onCredential }) => <button onClick={() => onCredential("google-credential")}>Entrar com Google</button>
 }));
 
 const { AuthPage } = await import("./AuthPage");
@@ -260,4 +260,16 @@ it.each([
   await user.type(screen.getByLabelText("Senha"), "senha123");
   await user.click(screen.getByRole("button", { name: "Entrar", exact: true }));
   expect(await screen.findByRole("heading", { name: heading })).not.toBeNull();
+});
+
+it("preserva intenção profissional no login Google sem exigir outra conta", async () => {
+  loginWithGoogle.mockResolvedValue({ authenticated: true, temNegocio: false, contaCriada: false });
+  const user = userEvent.setup();
+  render(<MemoryRouter initialEntries={["/entrar?tipo=profissional"]}>
+    <Routes><Route path="/entrar" element={<AuthPage />} />
+      <Route path="/criar-negocio" element={<h1>Criar negócio</h1>} /></Routes>
+  </MemoryRouter>);
+  await user.click(screen.getByRole("button", { name: "Entrar com Google", exact: true }));
+  expect(await screen.findByRole("heading", { name: "Criar negócio" })).not.toBeNull();
+  expect(register).not.toHaveBeenCalled();
 });

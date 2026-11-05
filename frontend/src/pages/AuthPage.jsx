@@ -65,7 +65,7 @@ export function AuthPage({ mode = "login" }) {
     navigate(getAuthDestination(current, {
       requestedPath: authRequestedPath,
       planSlug: authIntent.planSlug,
-    professionalIntent
+      professionalIntent
     }), { replace: true });
   }, [
     authIntent.planSlug,

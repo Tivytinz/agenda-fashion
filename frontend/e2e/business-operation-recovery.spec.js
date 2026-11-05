@@ -127,7 +127,7 @@ test('resposta antiga do perfil em onboarding mantém a dona no novo editor com 
   await page.goto('/painel/servicos/novo?onboarding=servico');
   await page.getByLabel('Nome do serviço').fill('Manicure');
   await page.getByRole('combobox', { name: /^Categoria/ }).selectOption('unha');
-  await page.getByLabel('Valor', { exact: true }).fill('50');
+  await page.getByLabel(/^Valor/).fill('50');
   await page.getByRole('button', { name: 'Salvar serviço e publicar' }).click();
   await expect(page).toHaveURL(/\/painel\/negocio$/);
   await page.getByLabel('Número', { exact: true }).fill('10');

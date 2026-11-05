@@ -10,7 +10,7 @@ describe("perfilNegocioRepository e agenda online", () => {
     jest.clearAllMocks();
   });
 
-  test("catálogo usa o marco configurado_em para sinalizar agenda confirmada", async () => {
+  test("catálogo calcula disponibilidade canônica por negócio e por serviço", async () => {
     db.query.mockResolvedValue({ rows: [] });
 
     await repository.listarNegociosPublicos();
@@ -18,9 +18,11 @@ describe("perfilNegocioRepository e agenda online", () => {
     const [sql] = db.query.mock.calls[0];
 
     expect(sql).toContain("AS agendamento_online_disponivel");
-    expect(sql).toContain("ac.configurado_em IS NOT NULL");
+    expect(sql).not.toContain("configurado_em IS NOT NULL");
+    expect(sql).toContain("profissional_servicos");
+    expect(sql).toContain("duracao_minutos");
     expect(sql).toContain(
-      "'agendamento_online_disponivel', n.agendamento_online_disponivel"
+      "'agendamento_online_disponivel', "
     );
   });
 
@@ -38,7 +40,9 @@ describe("perfilNegocioRepository e agenda online", () => {
     const [sql, params] = db.query.mock.calls[0];
 
     expect(sql).toContain("AS agendamento_online_disponivel");
-    expect(sql).toContain("ac.configurado_em IS NOT NULL");
+    expect(sql).not.toContain("configurado_em IS NOT NULL");
+    expect(sql).toContain("profissional_servicos");
+    expect(sql).toContain("duracao_minutos");
     expect(params).toEqual(["studio-aurora"]);
     expect(negocio).toEqual(expect.objectContaining({
       publicado: true,
