@@ -398,9 +398,13 @@ sobrescrever um cookie de sessão já presente. Se o endpoint de migração enco
 um cookie que surgiu concorrentemente, deve preservar esse cookie e responder de
 forma compatível com bundles anteriores; o frontend atual revalida a sessão
 canônica antes de concluir a migração local. Se o cookie estiver inválido, sua
-validação canônica o limpa antes de uma nova tentativa controlada do Bearer. Fotos continuam
-fora da primeira missão e podem ser
-adicionadas depois no editor normal de Serviços.
+validação canônica o limpa antes de uma nova tentativa controlada do Bearer.
+
+O primeiro serviço, novos serviços e a edição usam o mesmo formulário e layout.
+Descrição e fotos são opcionais e ficam disponíveis em todas as entradas. O marcador
+de onboarding controla apenas a continuação após salvar, sem criar outra apresentação.
+Falhas no envio de mídia preservam o serviço salvo; a retomada não regrava dados
+inalterados e revalida a publicação no backend antes de seguir para Horários.
 
 Na confirmação rápida:
 

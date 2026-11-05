@@ -23,14 +23,17 @@ test("conta existente acessa o cadastro do negócio sem novo cadastro de conta",
   await expect(page.getByRole("textbox", { name: "Nome do negócio", exact: true })).toBeVisible();
 });
 
-test("primeiro serviço usa uma coluna e mantém ambas as ações acessíveis", async ({ page }) => {
+for (const search of ["", "?onboarding=servico"]) {
+test(`editor único mantém campos e ações acessíveis na entrada ${search || "normal"}`, async ({ page }) => {
   await page.route("**/minha-sessao", route => route.fulfill({ json: {
     usuario: { id: 4, nome: "Ana" }, negocio: owner, temNegocio: true, ehAdministrador: false
   } }));
   await page.route("**/marketing/**", route => route.fulfill({ json: { enabled: false } }));
-  await page.goto("/painel/servicos/novo?onboarding=servico");
-  const form = page.getByRole("form", { name: "Cadastro do primeiro serviço" });
+  await page.goto(`/painel/servicos/novo${search}`);
+  const form = page.getByRole("form", { name: "Dados do serviço" });
   await expect(form).toBeVisible();
+  await expect(page.getByRole("textbox", { name: /Descrição/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fotos do serviço" })).toBeVisible();
   for (const width of [360, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     const geometry = await form.evaluate(element => {
@@ -43,9 +46,11 @@ test("primeiro serviço usa uma coluna e mantém ambas as ações acessíveis", 
     expect(Math.abs(geometry.width - geometry.panel)).toBeLessThanOrEqual(1);
     expect(Math.abs(geometry.width - geometry.actions)).toBeLessThanOrEqual(1);
     expect(geometry.overflow).toBe(false);
-    for (const action of [page.getByRole("button", { name: "Salvar serviço e publicar" }), page.getByRole("link", { name: "Cancelar", exact: true })]) {
+    for (const action of [page.getByRole("button", { name: "Salvar serviço" }), page.getByRole("link", { name: "Cancelar", exact: true })]) {
       await action.scrollIntoViewIfNeeded();
       await action.click({ trial: true });
     }
   }
 });
+
+}

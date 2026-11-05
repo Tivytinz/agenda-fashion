@@ -61,7 +61,7 @@ it.each(["sucesso", "erro"])("descarta %s da criação de serviço antes de o de
   fireEvent.change(screen.getByLabelText(/^Valor/), { target: { value: "50" } });
   fireEvent.submit(screen.getByRole("button", { name: /Salvar serviço/ }).closest("form"));
   await discard();
-  expect(screen.getByRole("heading", { name: "Cadastre seu primeiro serviço", hidden: true })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Novo serviço", hidden: true })).toBeTruthy();
   await act(async () => outcome === "sucesso"
     ? mutation.resolve({ servico: { id: 58 }, publicacao: { publicado: true } })
     : mutation.reject(new Error("Falha antiga do serviço")));

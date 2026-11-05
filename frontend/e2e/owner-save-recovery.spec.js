@@ -123,7 +123,7 @@ test('falha na galeria mantém o serviço preenchido e a tentativa preserva a ed
   await expect(page.getByRole('alert')).toContainText('Falha temporária nas fotos');
   const name = page.getByLabel('Nome do serviço');
   await expect(name).toHaveValue('Manicure');
-  await expect(page.getByRole('spinbutton', { name: 'Valor' })).toHaveValue('50');
+  await expect(page.getByRole('spinbutton', { name: 'Valor (R$)' })).toHaveValue('50');
   await name.fill('Manicure completa');
   const initialServiceLoads = serviceLoads;
   const initialGalleryAttempts = galleryAttempts;

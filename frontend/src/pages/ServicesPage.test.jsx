@@ -93,6 +93,56 @@ afterEach(() => {
 });
 
 describe("editor de serviços", () => {
+  it.each(["", "?onboarding=servico"])("oferece o mesmo formulário na entrada %s", (search) => {
+    renderEditor(`/painel/servicos/novo${search}`);
+    expect(screen.getByRole("heading", { name: "Novo serviço" })).not.toBeNull();
+    expect(screen.getByRole("form", { name: "Dados do serviço" })).not.toBeNull();
+    expect(screen.getByRole("textbox", { name: /Descrição/ }).required).toBe(false);
+    expect(screen.getByLabelText("Escolher capa").required).toBe(false);
+    expect(screen.getByRole("checkbox", { name: /Serviço disponível/ }).checked).toBe(true);
+    expect(screen.getByRole("button", { name: "Salvar serviço", exact: true })).not.toBeNull();
+  });
+
+  it("retoma as fotos do primeiro serviço sem recriar ou regravar o cadastro", async () => {
+    let uploads = 0;
+    apiRequest.mockImplementation(async (path, options = {}) => {
+      if (path === "/servicos" && options.method === "POST") return { servico: { id: 71 }, publicacao: { publicado: true } };
+      if (path === "/servicos/71/fotos" && options.method === "POST") {
+        uploads += 1;
+        if (uploads === 2) throw Object.assign(new Error("Foto recusada"), { status: 400 });
+        return { foto: { id: uploads } };
+      }
+      if (path === "/configuracoes") return { publicacao: { publicado: true } };
+      throw new Error(`Request inesperada: ${path}`);
+    });
+    renderEditor("/painel/servicos/novo?onboarding=servico&plano=autonoma");
+    fillService();
+    fireEvent.change(screen.getByRole("textbox", { name: /Descrição/ }), { target: { value: "Atendimento completo" } });
+    fireEvent.change(screen.getByLabelText(/Adicionar fotos à galeria/), {
+      target: { files: [new File(["1"], "1.jpg", { type: "image/jpeg" }), new File(["2"], "2.jpg", { type: "image/jpeg" })] }
+    });
+    submit();
+    expect((await screen.findByRole("alert")).textContent).toContain("algumas fotos não foram enviadas");
+    expect(screen.queryByTestId("onboarding-destination")).toBeNull();
+    submit();
+    expect((await screen.findByTestId("onboarding-destination")).textContent).toBe("/painel/horarios?plano=autonoma");
+    expect(uploads).toBe(3);
+    expect(apiRequest.mock.calls.filter(([, options]) => options?.method === "PUT")).toHaveLength(0);
+    expect(apiRequest.mock.calls.filter(([path, options]) => path === "/servicos" && options?.method === "POST")).toHaveLength(1);
+    expect(apiRequest).toHaveBeenCalledWith("/servicos", expect.objectContaining({ body: expect.objectContaining({ descricao: "Atendimento completo" }) }));
+    expect(apiRequest).toHaveBeenCalledWith("/configuracoes", expect.objectContaining({ headers: { "X-AF-Negocio": "11" } }));
+  });
+
+  it("volta à lista quando o primeiro serviço é salvo como indisponível", async () => {
+    apiRequest.mockResolvedValue({ servico: { id: 72, ativo: false }, publicacao: { publicado: false } });
+    renderEditor("/painel/servicos/novo?onboarding=servico");
+    fillService();
+    fireEvent.click(screen.getByRole("checkbox", { name: /Serviço disponível/ }));
+    submit();
+    expect(await screen.findByRole("heading", { name: "Lista de serviços" })).not.toBeNull();
+    expect(refreshSession).not.toHaveBeenCalled();
+  });
+
   it("não espera o refresh da sessão para abrir os horários mantendo o plano escolhido", async () => {
     refreshSession.mockImplementation(() => new Promise(() => {}));
     apiRequest.mockResolvedValue({
