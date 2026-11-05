@@ -196,6 +196,25 @@ describe("configuração de horários", () => {
     });
   });
 
+  it("mostra os dias fechados conforme a configuração recebida", async () => {
+    apiRequest.mockResolvedValue({
+      configuracao: { origem_horarios: "padrao_af" },
+      horarios: defaultSuggestedWeek().map((day) => ({
+        ...day,
+        trabalha: day.dia_semana === 0 ? true :
+          day.dia_semana === 1 ? false : day.trabalha,
+        hora_inicio: "08:00",
+        hora_fim: "18:00"
+      }))
+    });
+    renderPage();
+
+    const label = await screen.findByText("Dias sem atendimento:");
+    expect(label.parentElement.textContent).toContain("Segunda");
+    expect(label.parentElement.textContent).not.toContain("Domingo");
+    expect(screen.getByRole("button", { name: "Ajustar horários" }).type).toBe("button");
+  });
+
   it("a dona edita a disponibilidade de uma profissional da equipe sem alterar a política do negócio", async () => {
     apiRequest.mockImplementation((requestPath, options = {}) => {
       if (

@@ -758,3 +758,49 @@
     padding-inline: 7px;
   }
 }
+
+/* Confirmação inicial: alinhar a orientação e a semana sem alterar o editor. */
+.workspace-page.schedule-settings-page.schedule-quick-page {
+  width: min(760px, calc(100% - 32px));
+  gap: 18px;
+}
+
+.schedule-quick-page .workspace-heading h1 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  line-height: 1.2;
+}
+
+.schedule-settings-page.schedule-quick-page .flow-progress {
+  width: min(100%, 480px);
+  margin: 0 auto;
+}
+
+.schedule-quick-page .schedule-settings-form {
+  padding: clamp(16px, 3vw, 28px);
+}
+
+.schedule-quick-page .schedule-quick-confirmation {
+  width: 100%;
+}
+
+.schedule-quick-page .schedule-quick-closed {
+  margin: 0;
+  color: var(--muted);
+  font-size: .9rem;
+  overflow-wrap: anywhere;
+}
+
+.schedule-quick-page .schedule-quick-summary li {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, .8fr);
+}
+
+@media (max-width: 680px) {
+  .schedule-quick-page .schedule-quick-summary li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .schedule-quick-page .schedule-quick-actions > .button {
+    width: 100%;
+    min-height: 44px;
+  }
+}
