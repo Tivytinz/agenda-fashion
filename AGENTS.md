@@ -1336,7 +1336,10 @@ Páginas públicas de aquisição incluídas no sitemap e tratadas como alvo de 
 
 Mudanças relevantes devem executar validações proporcionais ao risco. O Quality
 Gate atual cobre lint, build, testes frontend, migrations, Jest/PostgreSQL,
-audits e Playwright aplicável.
+audits e Playwright aplicável. A suíte Playwright principal é distribuída em
+quatro shards paralelos no GitHub Actions para reduzir o caminho crítico sem
+reduzir cobertura; a aceitação full-stack continua executando uma vez dentro
+do primeiro shard.
 
 Mudanças em caminhos públicos críticos de performance (home, catálogo, perfil,
 componentes/estilos relacionados e scripts de medição) também disparam o

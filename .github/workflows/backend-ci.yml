@@ -37,12 +37,15 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
 
       - name: Install frontend dependencies
-        run: npm --prefix frontend ci
+        run: npm --prefix frontend ci --prefer-offline --no-audit
 
       - name: Lint React frontend
         run: npm --prefix frontend run lint
@@ -94,12 +97,15 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
 
       - name: Install frontend dependencies
-        run: npm --prefix frontend ci
+        run: npm --prefix frontend ci --prefer-offline --no-audit
 
       - name: Build React frontend
         run: npm run frontend:build
@@ -111,9 +117,13 @@ jobs:
         run: npm run test:coverage
 
   e2e:
-    name: End-to-end quality
+    name: End-to-end quality (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
 
     services:
       postgres:
@@ -139,12 +149,15 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
 
       - name: Install frontend dependencies
-        run: npm --prefix frontend ci
+        run: npm --prefix frontend ci --prefer-offline --no-audit
 
       - name: Build React frontend
         run: npm run frontend:build
@@ -156,16 +169,17 @@ jobs:
         run: npm --prefix frontend exec -- playwright install --with-deps chromium webkit
 
       - name: Test mobile frontend
-        run: npm --prefix frontend run test:e2e
+        run: npm --prefix frontend run test:e2e -- --shard=${{ matrix.shard }}/4
 
       - name: Test full-stack acceptance
+        if: matrix.shard == 1
         run: npm --prefix frontend run test:e2e:fullstack
 
       - name: Upload Playwright failure artifacts
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-failure-${{ github.run_id }}
+          name: playwright-failure-${{ github.run_id }}-${{ matrix.shard }}
           path: frontend/test-results
           if-no-files-found: ignore
           retention-days: 3
