@@ -7,9 +7,8 @@ import {
   getPlanIntentPath,
   normalizePlanSlug
 } from "../auth/session";
-import { BackLink } from "../components/BackLink";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
-import { FlowSteps } from "../components/FlowSteps";
+import { SetupFlowFrame, SetupTitle } from "../components/SetupFlowFrame";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 import { MediaThumb } from "../components/profile/MediaThumb";
@@ -59,7 +58,6 @@ const CREATION_REQUIRED_FIELDS = [
 ];
 const SERVICE_PUBLICATION_PENDING =
   "pelo menos um serviço ativo";
-const ACTIVATION_STEPS = ["Negócio", "Serviço"];
 const FIRST_SERVICE_ONBOARDING_PATH =
   "/painel/servicos/novo?onboarding=servico";
 
@@ -866,42 +864,20 @@ export function BusinessPage({ create = false }) {
   );
 
   return (
+    <SetupFlowFrame enabled={create} step={2}>
     <main className={create ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
       <UnsavedChangesGuard when={unsavedChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
-      {create && (
-        <BackLink to={selectedPlan ? "/planos" : "/"}>
-          {selectedPlan ? "Voltar aos planos" : "Voltar ao início"}
-        </BackLink>
-      )}
       <header className="workspace-heading">
         <div>
-          <p className="eyebrow">{create ? "✨ Primeiro passo" : "Presença pública"}</p>
-          <h1>{create ? "Crie seu negócio" : "Meu negócio"}</h1>
+          {!create && <p className="eyebrow">Presença pública</p>}
+          <SetupTitle emoji={create ? "✨" : undefined}>{create ? "Seu negócio" : "Meu negócio"}</SetupTitle>
           <p>
             {create
-              ? "Complete as informações do negócio e, em seguida, cadastre seu primeiro serviço. É só isso para colocar o perfil no ar."
+              ? "Vamos apresentar seu negócio às clientes."
               : "Esses dados ajudam clientes a encontrar, confiar e agendar com você."}
           </p>
         </div>
       </header>
-
-      {create && (
-        <FlowSteps
-          ariaLabel="Etapas para publicar o negócio"
-          current={1}
-          steps={ACTIVATION_STEPS}
-        />
-      )}
-
-      {create && (
-        <section className="panel" aria-labelledby="business-create-guide-title">
-          <p className="eyebrow"><span aria-hidden="true">💅</span>{" "}Negócio completo desde o início</p>
-          <h2 id="business-create-guide-title">Preencha os dados essenciais do perfil</h2>
-          <p className="muted">
-            Dados completos melhoram descoberta, confiança e qualidade do catálogo. Descrição, foto e complemento são opcionais; os demais dados do perfil são necessários para criar o negócio.
-          </p>
-        </section>
-      )}
 
       {!create && publication && (
         <section className={`panel publication-panel ${publication.publicado ? "publication-panel-live" : ""}`}>
@@ -981,10 +957,10 @@ export function BusinessPage({ create = false }) {
         )}
 
         <section className="business-form-section">
-          <div className="business-form-heading">
+          {!create && <div className="business-form-heading">
             <p className="eyebrow">Identidade</p>
             <h2>Como clientes encontram você</h2>
-          </div>
+          </div>}
           <div className="form-grid">
             <label className="field-wide">
               Nome do negócio
@@ -1011,13 +987,11 @@ export function BusinessPage({ create = false }) {
                 rows="4"
                 value={form.descricao}
               />
-              <small>
-                Ajuda clientes a conhecerem seu trabalho, mas não impede a criação nem a publicação.
-              </small>
+              {!create && <small>Ajuda clientes a conhecerem seu trabalho, mas não impede a criação nem a publicação.</small>}
             </label>
             <fieldset aria-label="Especialidades" className="specialty-field field-wide" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}>
               <div className="specialty-heading-row">
-                <p>Selecione tudo o que o negócio oferece.</p>
+                <p>{create ? "Especialidades" : "Selecione tudo o que o negócio oferece."}</p>
               </div>
               <div className="specialty-selector">
                 {BUSINESS_SPECIALTIES.map(([value, label]) => (
@@ -1037,8 +1011,8 @@ export function BusinessPage({ create = false }) {
 
         <section className="business-form-section">
           <div className="business-form-heading">
-            <p className="eyebrow">Contato</p>
-            <h2>Como falar com o negócio</h2>
+            {!create && <p className="eyebrow">Contato</p>}
+            <h2>{create ? "Contato" : "Como falar com o negócio"}</h2>
           </div>
           <div className="form-grid">
             <label>
@@ -1054,11 +1028,11 @@ export function BusinessPage({ create = false }) {
                 required={create}
                 value={form.whatsapp}
               />
-              <small className={whatsappError ? "field-helper is-error" : "field-helper"}>
+              {(!create || whatsappError) && <small className={whatsappError ? "field-helper is-error" : "field-helper"}>
                 {whatsappError || (create
                   ? "Trouxemos o número da sua conta. Você pode trocar antes de continuar."
                   : "Usado para confirmações e contato das clientes.")}
-              </small>
+              </small>}
             </label>
             <label>
               Link da localização
@@ -1076,9 +1050,9 @@ export function BusinessPage({ create = false }) {
                   {!locationValid
                     ? "Use um link HTTP ou HTTPS válido."
                     : form.localizacao_url
-                      ? "Link de localização válido."
+                      ? ""
                       : create
-                        ? "Obrigatório na criação. Cole um link do Google Maps ou Apple Mapas."
+                        ? "Google Maps ou Apple Mapas."
                         : "Cole um link do Google Maps ou Apple Mapas."}
                 </small>
                 {locationValid && form.localizacao_url && (
@@ -1091,13 +1065,9 @@ export function BusinessPage({ create = false }) {
 
         <section className="business-form-section business-address-section">
           <div className="business-form-heading">
-            <p className="eyebrow">Endereço</p>
-            <h2>Onde acontece o atendimento</h2>
-            <p>
-              {create
-                ? "Preencha os dados principais do endereço. O complemento é opcional, e o CEP ajuda a preencher parte dos dados automaticamente."
-                : "Comece pelo CEP e complete os detalhes do local."}
-            </p>
+            {!create && <p className="eyebrow">Endereço</p>}
+            <h2>{create ? "Endereço" : "Onde acontece o atendimento"}</h2>
+            {!create && <p>Comece pelo CEP e complete os detalhes do local.</p>}
           </div>
           {addressFields}
         </section>
@@ -1156,5 +1126,6 @@ export function BusinessPage({ create = false }) {
         </section>
       )}
     </main>
+    </SetupFlowFrame>
   );
 }

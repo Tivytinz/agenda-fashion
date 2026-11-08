@@ -372,6 +372,9 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   await page.goto("/para-profissionais");
   await page.getByRole("link", { name: "Cadastrar meu negócio" }).first().click();
   await expect(page).toHaveURL(/\/cadastro\?tipo=profissional/);
+  await expect(page.locator(".setup-flow")).toBeVisible();
+  await expect(page.locator(".site-header")).toHaveCount(0);
+  await expect(page.locator(".legal-footer")).toHaveCount(0);
   await page.getByLabel("Nome completo").fill("Ana Profissional");
   await page.getByLabel("E-mail").fill("ana@example.com");
   await page.getByLabel("WhatsApp com DDD").fill("62 99999-9999");
@@ -398,6 +401,12 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   await businessName.fill(
     "Studio Aurora"
   );
+  await expect(page.getByLabel("Etapa 2 de 4: Negócio")).toBeVisible();
+  await expect(page.getByLabel("Descrição (opcional)")).toBeVisible();
+  await page.getByRole("link", { name: "Sair", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Sair sem salvar?" })).toBeVisible();
+  await page.getByRole("button", { name: "Continuar editando", exact: true }).click();
+  await expect(businessName).toHaveValue("Studio Aurora");
   await page.getByLabel("Unhas").check();
   await page.getByLabel("Link da localização").fill("https://maps.google.com/?q=goiania");
   await page.getByLabel("CEP").fill("74000-123");
@@ -420,6 +429,10 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
     cep: "74000123"
   }));
 
+  await expect(page.locator(".owner-sidebar")).toHaveCount(0);
+  await expect(page.getByLabel("Etapa 3 de 4: Serviço")).toBeVisible();
+  await expect(page.getByRole("textbox", { name: /Descrição/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fotos do serviço" })).toBeVisible();
   await serviceField(page, "Nome do serviço", "input").fill("Design + Henna");
   await serviceField(page, "Categoria", "select").selectOption("unha");
   await serviceField(page, "Valor (R$)", "input").fill("40");
@@ -428,7 +441,7 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
 
   await expect(page).toHaveURL(/\/painel\/horarios$/);
   await expect.poll(() => postServiceSessionRefreshStarted).toBe(true);
-  await expect(page.getByRole("heading", { name: "Confirme quando você atende" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Horários de atendimento" })).toBeVisible();
   expect(releasePostServiceSessionRefresh).not.toBeNull();
   releasePostServiceSessionRefresh();
 
@@ -441,15 +454,15 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   }));
 
   expect(schedulePayload).toBeNull();
-  await expect(page.getByRole("heading", { name: "Confirme quando você atende" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Confirmar horários" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Horários de atendimento" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Salvar horários e continuar" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Pular por agora" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Ajustar horários" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Intervalo entre clientes" })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  await page.getByRole("button", { name: "Confirmar horários" }).click();
+  await page.getByRole("button", { name: "Salvar horários e continuar" }).click();
   await expect(page).toHaveURL(/\/painel\/horarios\?onboarding=divulgacao$/);
-  await expect(page.getByRole("heading", { name: "Agora divulgue seu perfil" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Seu link está pronto" })).toBeVisible();
 
   expect(schedulePayload?.horarios).toEqual(expect.arrayContaining([
     expect.objectContaining({
@@ -469,7 +482,7 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   ]));
 
   const shareProfileButton = page.getByRole("button", {
-    name: "Compartilhar perfil"
+    name: "Compartilhar link"
   });
   await expect(shareProfileButton).toBeVisible();
   await shareProfileButton.click();
@@ -492,6 +505,8 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   await expect(page.getByText("Próximo passo")).toBeVisible();
   await expect(page.getByText(/Copilot AF/i)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Divulgue seu perfil" })).toBeVisible();
+  await expect(page.locator(".owner-sidebar")).toBeAttached();
+  await expect(page.locator(".setup-flow")).toHaveCount(0);
 
   firstBookingReceived = true;
   await page.reload();

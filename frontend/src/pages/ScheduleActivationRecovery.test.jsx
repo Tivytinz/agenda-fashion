@@ -108,12 +108,12 @@ describe("recuperação das leituras de ativação em horários", () => {
     await settle(initial, response);
     if (etapa === "salvamento") {
       fireEvent.change(screen.getByLabelText("Início do atendimento de Segunda"), { target: { value: "09:00" } });
-      fireEvent.click(screen.getByRole("button", { name: "Salvar horários", exact: true }));
+      fireEvent.click(screen.getByRole("button", { name: "Salvar horários e continuar", exact: true }));
       await waitFor(() => expect(apiRequest.mock.calls.some(([, o]) => o?.method === "PUT")).toBe(true));
     }
     const link = await screen.findByRole("link", { name: rotulo });
     expect(screen.queryByText(/Ative pelo menos um dia/)).toBeNull();
-    expect(screen.queryByRole("button", { name: "Compartilhar perfil" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Compartilhar link" })).toBeNull();
     fireEvent.click(link);
     await waitFor(() => expect(router.state.location.pathname).toBe("/painel/profissionais"));
   });
@@ -128,13 +128,13 @@ describe("recuperação das leituras de ativação em horários", () => {
     await settle(initial, activation());
 
     expect(screen.getByLabelText("Início do atendimento de Segunda").value).toBe("09:00");
-    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Seu link está pronto" })).toBeNull();
     await act(() => router.navigate("/painel/servicos"));
     fireEvent.click(await screen.findByRole("button", { name: "Continuar editando" }));
     expect(screen.getByLabelText("Início do atendimento de Segunda").value).toBe("09:00");
     expect(reads[0].signal.aborted).toBe(true);
 
-    fireEvent.click(screen.getByRole("button", { name: "Salvar horários", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar horários e continuar", exact: true }));
     await screen.findByRole("button", { name: "Copiar link", exact: true });
     const save = apiRequest.mock.calls.find(([, options]) => options?.method === "PUT");
     expect(save[1].body.horarios[0].horaInicio).toBe("09:00");
@@ -169,12 +169,12 @@ describe("recuperação das leituras de ativação em horários", () => {
     fireEvent.change(await screen.findByLabelText("Início do atendimento de Segunda"), {
       target: { value: "09:00" }
     });
-    fireEvent.click(screen.getByRole("button", { name: "Salvar horários", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar horários e continuar", exact: true }));
     await screen.findByRole("button", { name: "Copiar link", exact: true });
     await settle(initial, outcome);
 
     expect(screen.getByRole("button", { name: "Copiar link", exact: true })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Compartilhar perfil", exact: true })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Compartilhar link", exact: true })).toBeTruthy();
     expect(screen.getByRole("link", { name: /Ver perfil público/ }).getAttribute("href"))
       .toBe("/negocio/studio-aurora");
     expect(screen.queryByText(/não conseguimos carregar seu perfil/i)).toBeNull();
@@ -189,14 +189,14 @@ describe("recuperação das leituras de ativação em horários", () => {
     const reads = mockRequests(initial, save);
     renderPage();
     await screen.findByLabelText("Início do atendimento de Segunda");
-    fireEvent.click(screen.getByRole("button", { name: "Salvar horários", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar horários e continuar", exact: true }));
     await settle(initial, activation());
 
     expect(screen.getByLabelText("Início do atendimento de Segunda").disabled).toBe(true);
-    expect(screen.queryByRole("button", { name: "Compartilhar perfil" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Compartilhar link" })).toBeNull();
     expect(reads).toHaveLength(1);
     await settle(save, { configuracao: CONFIG, mensagem: "Horários salvos." });
-    await screen.findByRole("button", { name: "Compartilhar perfil", exact: true });
+    await screen.findByRole("button", { name: "Compartilhar link", exact: true });
     expect(reads).toHaveLength(2);
   });
 
@@ -209,7 +209,7 @@ describe("recuperação das leituras de ativação em horários", () => {
     await settle(initial, activation(false));
     fireEvent.change(start, { target: { value: "08:00" } });
 
-    await screen.findByRole("button", { name: "Compartilhar perfil", exact: true });
+    await screen.findByRole("button", { name: "Compartilhar link", exact: true });
     expect(reads).toHaveLength(2);
     expect(apiRequest.mock.calls.some(([, options]) => options?.method === "PUT")).toBe(false);
   });
@@ -224,7 +224,7 @@ describe("recuperação das leituras de ativação em horários", () => {
     await act(() => router.navigate("/painel/horarios"));
     await act(() => router.navigate("/painel/horarios?onboarding=divulgacao"));
 
-    await screen.findByRole("button", { name: "Compartilhar perfil", exact: true });
+    await screen.findByRole("button", { name: "Compartilhar link", exact: true });
     expect(reads).toHaveLength(2);
     expect(apiRequest.mock.calls.some(([, options]) => options?.method === "PUT")).toBe(false);
   });

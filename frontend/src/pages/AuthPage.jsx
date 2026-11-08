@@ -13,6 +13,7 @@ import {
 } from "../auth/session";
 import { useSession } from "../auth/SessionContext";
 import { buildProfessionalSignupPath } from "../utils/professionalEntry";
+import { SetupFlowFrame, SetupTitle } from "../components/SetupFlowFrame";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
 
 export const WHATSAPP_PATTERN = "(?:[^0-9]*[0-9]){10,11}[^0-9]*";
@@ -34,6 +35,7 @@ export function AuthPage({ mode = "login" }) {
     confirmarSenha: "",
     aceitaNotificacoesWhatsapp: false
   });
+  const [googleAvailable, setGoogleAvailable] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -208,23 +210,18 @@ export function AuthPage({ mode = "login" }) {
   }
 
   return (
+    <SetupFlowFrame enabled={professionalIntent} step={1}>
     <main className="auth-page">
       <section className="auth-card" aria-labelledby="auth-title">
-        <p className="eyebrow">{isRegister ? "Comece agora" : "Boas-vindas"}</p>
-        <h1 id="auth-title">{isRegister ? "Crie sua conta" : "Entre no Agenda Fashion"}</h1>
+        {!professionalIntent && <p className="eyebrow">{isRegister ? "Comece agora" : "Boas-vindas"}</p>}
+        <SetupTitle emoji={professionalIntent ? "💖" : undefined} id="auth-title">{isRegister ? "Crie sua conta" : "Entre no Agenda Fashion"}</SetupTitle>
         <p className="muted">
           {professionalIntent
             ? isRegister
-              ? "Crie sua conta para cadastrar seu negócio e receber agendamentos."
-              : "Entre para continuar no cadastro ou na gestão do seu negócio."
+              ? "Você atende. O AF cuida do agendamento."
+              : "Entre para continuar."
             : "Uma conta para agendar como cliente ou administrar seu negócio."}
         </p>
-
-        {isRegister && professionalIntent && (
-          <p className="muted">
-            ✨ Depois da conta, você cria o negócio, cadastra seu primeiro serviço e confirma os horários. Avisos do WhatsApp são opcionais e podem ser ativados no painel.
-          </p>
-        )}
 
         {isRegister && !professionalIntent && (
           <label className="checkbox-label">
@@ -242,8 +239,8 @@ export function AuthPage({ mode = "login" }) {
           </label>
         )}
 
-        <GoogleLoginButton onCredential={handleGoogle} />
-        <div className="auth-divider"><span>ou continue com e-mail</span></div>
+        <GoogleLoginButton onAvailabilityChange={setGoogleAvailable} onCredential={handleGoogle} />
+        {googleAvailable && <div className="auth-divider"><span>ou use seu e-mail</span></div>}
 
         <form className="stack-form" onSubmit={submit}>
           {isRegister && (
@@ -339,5 +336,6 @@ export function AuthPage({ mode = "login" }) {
         </p>
       </section>
     </main>
+    </SetupFlowFrame>
   );
 }

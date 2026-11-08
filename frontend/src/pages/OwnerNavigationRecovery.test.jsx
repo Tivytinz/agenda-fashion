@@ -112,7 +112,7 @@ it.each(["sucesso", "erro"])("descarta %s de horários sem consultar ativação 
     return Promise.resolve({ configuracao: config, horarios: [{ dia_semana: 1, trabalha: true, hora_inicio: "08:00", hora_fim: "18:00" }] });
   });
   mount("/painel/horarios", <ScheduleSettingsPage />);
-  fireEvent.click(await screen.findByRole("button", { name: "Ajustar horários" }));
+  await screen.findByLabelText("Início do atendimento de Segunda");
   fireEvent.change(screen.getByLabelText("Início do atendimento de Segunda"), { target: { value: "09:00" } });
   fireEvent.submit(screen.getByRole("button", { name: /^Salvar horários/ }).closest("form"));
   await discard();
@@ -197,7 +197,7 @@ describe("saída sem rascunho com operação pendente", () => {
     apiRequest.mockImplementation((_path, options = {}) => options.method === "PUT"
       ? mutation.promise : Promise.resolve({ configuracao: CONFIG, horarios: WEEK }));
     mount("/painel/horarios", <ScheduleSettingsPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "Confirmar horários" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Salvar horários e continuar" }));
     expect(apiRequest.mock.calls.filter(([, options]) => options?.method === "PUT")).toHaveLength(1);
     await leaveClean();
     expect(screen.getByRole("heading", { name: "Horários de atendimento", hidden: true })).toBeTruthy();
@@ -220,7 +220,7 @@ describe("saída sem rascunho com operação pendente", () => {
       return Promise.resolve({ configuracao: { ...CONFIG, origem_horarios: options.method === "PUT" ? "personalizado" : "padrao_af" }, horarios: WEEK });
     });
     mount("/painel/horarios", <ScheduleSettingsPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "Confirmar horários" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Salvar horários e continuar" }));
     await waitFor(() => expect(activationSignal).toBeTruthy());
     await leaveClean();
     expect(activationSignal.aborted).toBe(true);

@@ -171,7 +171,7 @@ test('sair durante criação impede adoção e redirecionamento por uma resposta
   state.setBusiness(BUSINESS);
   await finishMutation(page, pending, { negocio: BUSINESS }, 201);
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole('heading', { name: 'Crie seu negócio' })).not.toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Seu negócio' })).not.toBeVisible();
   expect(state.sessionReads()).toBe(reads);
 });
 

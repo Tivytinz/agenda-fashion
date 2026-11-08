@@ -104,7 +104,7 @@ function renderPage(entry = "/painel/horarios") {
 }
 
 async function openFirstScheduleEditor() {
-  fireEvent.click(await screen.findByRole("button", { name: "Ajustar horários" }));
+  await screen.findByRole("heading", { name: "Horários de atendimento" });
 }
 
 function mockFirstConfiguration() {
@@ -165,54 +165,34 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("configuração de horários", () => {
-  it("mostra a sugestão antes do editor com confirmar e ajustar", async () => {
+  it("abre dias, pausas e regras juntos sem uma confirmação intermediária", async () => {
     mockFirstConfiguration();
     renderPage();
-
-    expect(await screen.findByRole("heading", {
-      name: "Confirme quando você atende"
-    })).not.toBeNull();
-    expect(screen.getByText(/Agenda Fashion preparou horários sugeridos/i)).not.toBeNull();
-    expect(screen.getByText("Seg, Ter, Qua, Qui, Sex")).not.toBeNull();
-    expect(screen.getByText("Sáb")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Confirmar horários" })).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Pular por agora" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Ajustar horários" })).not.toBeNull();
-    expect(screen.getByText(/Ao confirmar, estes horários sugeridos serão salvos/i)).not.toBeNull();
-    expect(screen.queryByText("Ajustes avançados")).toBeNull();
-
-    await waitFor(() => {
-      expect(track).toHaveBeenCalledWith(
-        "agenda_configuracao_visualizada",
-        expect.objectContaining({
-          page: "configuracao_agenda",
-          mission: "disponibilizar_horarios",
-          properties: {
-            status: "pendente",
-            origem: "confirmacao_rapida"
-          }
-        })
-      );
-    });
+    expect(await screen.findByRole("heading", { name: "Horários de atendimento" })).not.toBeNull();
+    expect(screen.getByLabelText("Início do atendimento de Segunda").value).toBe("08:00");
+    expect(screen.getByLabelText("Fim do atendimento de Segunda").value).toBe("18:00");
+    expect(screen.getByRole("combobox", { name: "Intervalo entre clientes" })).not.toBeNull();
+    expect(screen.getByRole("spinbutton", { name: "Antecedência para cancelar" }).value).toBe("2");
+    expect(screen.getByRole("button", { name: "Salvar horários e continuar" })).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Ajustar horários" })).toBeNull();
+    expect(apiRequest.mock.calls.some(([, options]) => options?.method === "PUT")).toBe(false);
+    expect(track).toHaveBeenCalledWith("agenda_configuracao_visualizada", expect.objectContaining({
+      properties: { status: "pendente", origem: "ajuste_manual" }
+    }));
   });
 
-  it("mostra os dias fechados conforme a configuração recebida", async () => {
+  it("mostra os dias abertos e fechados conforme a configuração recebida", async () => {
     apiRequest.mockResolvedValue({
       configuracao: { origem_horarios: "padrao_af" },
-      horarios: defaultSuggestedWeek().map((day) => ({
-        ...day,
-        trabalha: day.dia_semana === 0 ? true :
-          day.dia_semana === 1 ? false : day.trabalha,
-        hora_inicio: "08:00",
-        hora_fim: "18:00"
+      horarios: defaultSuggestedWeek().map((day) => ({ ...day,
+        trabalha: day.dia_semana === 0 ? true : day.dia_semana === 1 ? false : day.trabalha,
+        hora_inicio: "08:00", hora_fim: "18:00"
       }))
     });
     renderPage();
-
-    const label = await screen.findByText("Dias sem atendimento:");
-    expect(label.parentElement.textContent).toContain("Segunda");
-    expect(label.parentElement.textContent).not.toContain("Domingo");
-    expect(screen.getByRole("button", { name: "Ajustar horários" }).type).toBe("button");
+    const monday = await screen.findByRole("checkbox", { name: /Segunda/ });
+    expect(monday.checked).toBe(false);
+    expect(screen.getByRole("checkbox", { name: /Domingo/ }).checked).toBe(true);
   });
 
   it("a dona edita a disponibilidade de uma profissional da equipe sem alterar a política do negócio", async () => {
@@ -320,7 +300,7 @@ describe("configuração de horários", () => {
     expect(
       screen.queryByRole(
         "heading",
-        { name: "Agora divulgue seu perfil" }
+        { name: "Seu link está pronto" }
       )
     ).toBeNull();
   });
@@ -362,7 +342,7 @@ describe("configuração de horários", () => {
 
     expect(
       (await screen.findAllByRole("heading", {
-        name: "Quando você recebe clientes"
+        name: "Dias de atendimento"
       })).length
     ).toBeGreaterThan(0);
     expect(
@@ -402,7 +382,7 @@ describe("configuração de horários", () => {
       "antecedenciaCancelamento"
     );
     expect(
-      screen.queryByRole("heading", { name: "Agora divulgue seu perfil" })
+      screen.queryByRole("heading", { name: "Seu link está pronto" })
     ).toBeNull();
     expect(screen.queryByTestId("destination")).toBeNull();
   });
@@ -433,7 +413,7 @@ describe("configuração de horários", () => {
     ]);
   });
 
-  it("salva a sugestão e segue para divulgação sem redirecionar ao checkout", async () => {
+  it("salva os horários e segue para divulgação sem redirecionar ao checkout", async () => {
     mockFirstConfiguration();
     const originalImplementation = apiRequest.getMockImplementation();
     apiRequest.mockImplementation((path, options = {}) => {
@@ -451,11 +431,11 @@ describe("configuração de horários", () => {
     });
 
     renderPage("/painel/horarios?plano=autonoma");
-    fireEvent.click(await screen.findByRole("button", { name: "Confirmar horários" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Salvar horários e continuar" }));
 
-    expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
+    expect(await screen.findByRole("heading", { name: "Seu link está pronto" }))
       .not.toBeNull();
-    expect(screen.getByRole("button", { name: "Compartilhar perfil" }))
+    expect(screen.getByRole("button", { name: "Compartilhar link" }))
       .not.toBeNull();
     expect(screen.queryByTestId("destination")).toBeNull();
     expect(screen.queryByRole("link", { name: "Concluir plano escolhido" }))
@@ -489,7 +469,7 @@ describe("configuração de horários", () => {
       expect.objectContaining({
         properties: {
           status: "sucesso",
-          origem: "confirmacao_rapida"
+          origem: "ajuste_manual"
         }
       })
     );
@@ -537,9 +517,9 @@ describe("configuração de horários", () => {
 
     renderPage("/painel/horarios?plano=autonoma&onboarding=divulgacao");
 
-    expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
+    expect(await screen.findByRole("heading", { name: "Seu link está pronto" }))
       .not.toBeNull();
-    expect(screen.getByRole("button", { name: "Compartilhar perfil" }))
+    expect(screen.getByRole("button", { name: "Compartilhar link" }))
       .not.toBeNull();
     expect(screen.queryByRole("button", { name: "Salvar horários" }))
       .toBeNull();
@@ -620,13 +600,13 @@ describe("configuração de horários", () => {
     expect(
       screen.queryByRole(
         "heading",
-        { name: "Agora divulgue seu perfil" }
+        { name: "Seu link está pronto" }
       )
     ).toBeNull();
     expect(
       screen.getByRole(
         "button",
-        { name: "Salvar horários" }
+        { name: "Salvar horários e continuar" }
       )
     ).not.toBeNull();
   });
@@ -673,7 +653,7 @@ describe("configuração de horários", () => {
 
     renderPage("/painel/horarios?onboarding=divulgacao");
 
-    expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
+    expect(await screen.findByRole("heading", { name: "Seu link está pronto" }))
       .not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", {
@@ -681,7 +661,7 @@ describe("configuração de horários", () => {
     }));
 
     await waitFor(() => {
-      expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
+      expect(screen.queryByRole("heading", { name: "Seu link está pronto" }))
         .toBeNull();
     });
     expect(screen.getByRole("button", { name: "Salvar horários" }))
@@ -726,7 +706,7 @@ describe("configuração de horários", () => {
 
     expect((await screen.findByTestId("destination")).textContent)
       .toBe("/painel");
-    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
+    expect(screen.queryByRole("heading", { name: "Seu link está pronto" }))
       .toBeNull();
   });
 
@@ -774,7 +754,7 @@ describe("configuração de horários", () => {
 
     expect((await screen.findByTestId("destination")).textContent)
       .toBe("/painel");
-    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
+    expect(screen.queryByRole("heading", { name: "Seu link está pronto" }))
       .toBeNull();
   });
 
@@ -808,11 +788,11 @@ describe("configuração de horários", () => {
     });
 
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Confirmar horários" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Salvar horários e continuar" }));
 
     expect((await screen.findByTestId("destination")).textContent)
       .toBe("/painel");
-    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
+    expect(screen.queryByRole("heading", { name: "Seu link está pronto" }))
       .toBeNull();
   });
 
@@ -840,11 +820,11 @@ describe("configuração de horários", () => {
     });
 
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Confirmar horários" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Salvar horários e continuar" }));
 
     expect((await screen.findByTestId("destination")).textContent)
       .toBe("/painel");
-    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
+    expect(screen.queryByRole("heading", { name: "Seu link está pronto" }))
       .toBeNull();
   });
 
@@ -941,12 +921,7 @@ describe("configuração de horários", () => {
 
     renderPage();
 
-    fireEvent.click(
-      await screen.findByRole(
-        "button",
-        { name: "Ajustar horários" }
-      )
-    );
+    await screen.findByRole("heading", { name: "Horários de atendimento" });
 
     fireEvent.click(
       screen.getByRole(
@@ -963,13 +938,13 @@ describe("configuração de horários", () => {
     expect(
       screen.queryByRole(
         "heading",
-        { name: "Agora divulgue seu perfil" }
+        { name: "Seu link está pronto" }
       )
     ).toBeNull();
     expect(
       screen.queryByRole(
         "button",
-        { name: "Compartilhar perfil" }
+        { name: "Compartilhar link" }
       )
     ).toBeNull();
     expect(
@@ -980,7 +955,7 @@ describe("configuração de horários", () => {
     ).not.toBeNull();
   });
 
-  it("não avança quando o salvamento da sugestão falha", async () => {
+  it("não avança quando o salvamento dos horários falha", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {
         return Promise.resolve({
@@ -996,19 +971,19 @@ describe("configuração de horários", () => {
     });
 
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Confirmar horários" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Salvar horários e continuar" }));
 
     expect(await screen.findByRole("alert")).not.toBeNull();
     expect(screen.getByRole("alert").textContent).toContain("Não foi possível salvar os horários");
     expect(screen.queryByTestId("destination")).toBeNull();
   });
 
-  it("abre o editor completo quando a profissional decide ajustar a sugestão", async () => {
+  it("mantém as regras visíveis junto da semana na primeira configuração", async () => {
     mockFirstConfiguration();
     renderPage();
     await openFirstScheduleEditor();
 
-    expect(screen.getByText("Ajustes avançados")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Regras de agendamento" })).not.toBeNull();
     expect(screen.getByLabelText("Início do atendimento de Segunda")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Salvar horários e continuar" }))
       .not.toBeNull();
@@ -1017,7 +992,7 @@ describe("configuração de horários", () => {
       "agenda_configuracao_visualizada",
       expect.objectContaining({
         properties: {
-          status: "editor_aberto",
+          status: "pendente",
           origem: "ajuste_manual"
         }
       })
@@ -1039,7 +1014,7 @@ describe("configuração de horários", () => {
 
     renderPage();
 
-    await screen.findByText("Quando você recebe clientes");
+    await screen.findByText("Dias de atendimento");
     const advanced = screen.getByText("Ajustes avançados").closest("details");
     expect(advanced?.open).toBe(true);
     expect(screen.getByRole("combobox", { name: "Intervalo entre clientes" }))
@@ -1100,7 +1075,7 @@ describe("configuração de horários", () => {
 
   it("não envia um período cujo fim antecede o início", async () => {
     renderPage();
-    const save = await screen.findByRole("button", { name: "Confirmar horários" });
+    const save = await screen.findByRole("button", { name: "Salvar horários e continuar" });
     fireEvent.click(save);
 
     expect(screen.getByRole("alert").textContent).toContain("horário final precisa ser depois");
@@ -1343,9 +1318,9 @@ describe("configuração de horários", () => {
     await openFirstScheduleEditor();
     fireEvent.click(screen.getByRole("button", { name: "Salvar horários e continuar" }));
 
-    expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
+    expect(await screen.findByRole("heading", { name: "Seu link está pronto" }))
       .not.toBeNull();
-    expect(await screen.findByRole("button", { name: "Compartilhar perfil" }))
+    expect(await screen.findByRole("button", { name: "Compartilhar link" }))
       .not.toBeNull();
   });
 
@@ -1382,7 +1357,7 @@ describe("configuração de horários", () => {
       expect(screen.getByText("Horários de atendimento atualizados com sucesso."))
         .not.toBeNull();
     });
-    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
+    expect(screen.queryByRole("heading", { name: "Seu link está pronto" }))
       .toBeNull();
     expect(track).not.toHaveBeenCalledWith("agenda_configurada", expect.anything());
   });

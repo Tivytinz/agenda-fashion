@@ -70,7 +70,7 @@ describe("saída da criação durante carregamento da próxima página", () => {
     await act(() => router.navigate("/planos"));
     fireEvent.click(await screen.findByRole("button", { name: "Sair sem salvar", exact: true }));
     expect(router.state.location.pathname).toBe("/planos");
-    expect(screen.getByRole("heading", { name: "Crie seu negócio", hidden: true })).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Seu negócio", hidden: true })).not.toBeNull();
     await act(async () => outcome === "sucesso"
       ? mutation.resolve({ negocio: BUSINESS }) : mutation.reject(new Error("Falha antiga")));
     expect(session.adoptCreatedBusiness).not.toHaveBeenCalled();

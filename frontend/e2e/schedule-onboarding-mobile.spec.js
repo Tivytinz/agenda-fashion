@@ -52,7 +52,7 @@ function json(route, body, status = 200) {
   });
 }
 
-test("onboarding de horários confirma a sugestão e segue para divulgação no mobile", async ({ page }) => {
+test("onboarding mostra dias e regras juntos e segue para divulgação no mobile", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("session_active", "1");
     localStorage.setItem("usuario", JSON.stringify({ id: 4, nome: "Ana" }));
@@ -138,26 +138,27 @@ test("onboarding de horários confirma a sugestão e segue para divulgação no 
 
   await page.goto("/painel/horarios?plano=autonoma");
 
-  const confirm = page.getByRole("button", { name: "Confirmar horários" });
+  const confirm = page.getByRole("button", { name: "Salvar horários e continuar" });
   const skip = page.getByRole("button", { name: "Pular por agora" });
-  const adjust = page.getByRole("button", { name: "Ajustar horários" });
+  const rules = page.getByRole("combobox", { name: "Intervalo entre clientes" });
 
-  await expect(page.getByRole("heading", { name: "Confirme quando você atende" }))
+  await expect(page.getByRole("heading", { name: "Horários de atendimento" }))
     .toBeVisible();
   await expect(confirm).toBeVisible();
   await expect(skip).toHaveCount(0);
-  await expect(adjust).toBeVisible();
-  expect((await adjust.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  await expect(rules).toBeVisible();
 
   await expect.poll(() => page.evaluate(() => (
     document.documentElement.scrollWidth === document.documentElement.clientWidth
   ))).toBe(true);
 
-  await adjust.click();
   const dayToggle = page.locator(".day-toggle").filter({ hasText: "Segunda" });
   await expect(dayToggle).toBeVisible();
-  expect((await dayToggle.boundingBox()).height).toBeGreaterThanOrEqual(44);
-  await expect(page.getByRole("heading", { name: "Quando você recebe clientes" })).toHaveCount(1);
+  const dayBox = await dayToggle.boundingBox();
+  expect(dayBox.height).toBeGreaterThanOrEqual(44);
+  const timeBox = await page.getByLabel("Início do atendimento de Segunda").boundingBox();
+  expect(dayBox.y).toBeLessThan(timeBox.y);
+  await expect(page.getByRole("heading", { name: "Regras de agendamento" })).toBeVisible();
   await expect(page.locator(".schedule-row").first()).toContainText("Segunda");
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await expect.poll(async () => {
@@ -174,25 +175,23 @@ test("onboarding de horários confirma a sugestão e segue para divulgação no 
   await expect(page).toHaveURL(
     /\/painel\/horarios\?(?=.*plano=autonoma)(?=.*onboarding=divulgacao)/
   );
-  await expect(page.getByRole("heading", { name: "Agora divulgue seu perfil" }))
+  await expect(page.getByRole("heading", { name: "Seu link está pronto" }))
     .toBeVisible();
-  await expect(page.getByRole("button", { name: "Compartilhar perfil" }))
+  await expect(page.getByRole("button", { name: "Compartilhar link" }))
     .toBeVisible();
-  const confirmationIcon = await page.locator(".onboarding-complete-icon").boundingBox();
-  expect(confirmationIcon.width).toBe(24);
-  expect(confirmationIcon.height).toBe(24);
-  const share = page.getByRole("button", { name: "Compartilhar perfil" });
-  const shareBox = await share.boundingBox();
-  const navigationBox = await page.locator(".owner-shell > .workspace-mobile-nav").boundingBox();
-  expect(shareBox.height).toBeGreaterThanOrEqual(44);
-  expect(shareBox.y + shareBox.height).toBeLessThanOrEqual(navigationBox.y);
+  const share = page.getByRole("button", { name: "Compartilhar link" });
+  await share.scrollIntoViewIfNeeded();
+  expect((await share.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  await share.click({ trial: true });
+  await expect(page.locator(".owner-sidebar")).toHaveCount(0);
+  await expect(page.locator(".owner-shell > .workspace-mobile-nav")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Concluir plano escolhido" }))
     .toHaveCount(0);
 
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Agora divulgue seu perfil" }))
+  await expect(page.getByRole("heading", { name: "Seu link está pronto" }))
     .toBeVisible();
-  await expect(page.getByRole("button", { name: "Compartilhar perfil" }))
+  await expect(page.getByRole("button", { name: "Compartilhar link" }))
     .toBeVisible();
 
   expect(savedPayload?.horarios).toEqual(expect.arrayContaining([

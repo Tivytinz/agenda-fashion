@@ -8,21 +8,18 @@ Este documento registra decisões duráveis da primeira jornada da profissional 
 
 A primeira experiência deve levar a profissional ao valor com uma jornada curta, clara e com dados estruturais suficientes para publicar um perfil utilizável:
 
-`conta → negócio completo → primeiro serviço → publicação automática → confirmação rápida da agenda → compartilhar perfil → primeiro agendamento`
+`conta → negócio completo → primeiro serviço → publicação automática → edição e salvamento da agenda → compartilhar perfil → primeiro agendamento`
 
 A preparação necessária para publicar possui duas etapas:
 
 1. `Negócio`;
 2. `Serviço`.
 
-Depois que o primeiro serviço torna o negócio elegível e a publicação é confirmada pelo backend, a interface apresenta um terceiro momento visível, `Horários`, para mostrar que o Agenda Fashion também é uma agenda editável. Essa etapa não participa do gate de publicação: o perfil já está publicado antes dela.
+Depois que o primeiro serviço torna o negócio elegível e a publicação é confirmada pelo backend, a interface abre `Horários`. O contador considera a conta: Conta → Negócio → Serviço → Horários. Essa última etapa não participa do gate de publicação: o perfil já está publicado antes dela.
 
-Na primeira passagem pelos horários, o AF mostra a disponibilidade sugerida e oferece dois caminhos:
+A primeira passagem já mostra a semana sugerida para edição, junto com pausas e regras de agendamento. `Salvar horários e continuar` é a ação principal. Não há uma tela intermediária para escolher entre confirmar ou ajustar.
 
-- `Confirmar horários`: grava a sugestão exibida e continua;
-- `Ajustar horários`: abre o editor para a profissional personalizar a disponibilidade antes de salvar.
-
-Os dois caminhos convergem, depois do salvamento bem-sucedido, para a missão de conquistar o primeiro agendamento. Com disponibilidade agendável, o CTA é divulgar o perfil; se a profissional salvar todos os dias fechados, a interface permanece no editor e pede uma faixa de atendimento antes de oferecer compartilhamento. A profissional pode editar a disponibilidade novamente quando quiser.
+Depois do salvamento bem-sucedido, a missão é conquistar o primeiro agendamento. Com disponibilidade agendável, o CTA é divulgar o perfil; se a profissional salvar todos os dias fechados, a interface permanece no editor e pede uma faixa de atendimento antes de oferecer compartilhamento. A profissional pode editar a disponibilidade novamente quando quiser.
 
 A interface deve evitar decisões que não pertencem ao momento atual, sem sacrificar a qualidade dos dados estruturais do negócio.
 
@@ -38,6 +35,8 @@ Exemplos adequados:
 - `💖` quando fizer sentido como reforço acolhedor da marca.
 
 Eles não substituem texto, rótulos, ícones acessíveis, estados de erro ou instruções necessárias.
+
+No cadastro focado, cada etapa pode usar um emoji decorativo junto ao título. O nome acessível da tela permanece textual. A linguagem fala diretamente com a profissional, com acolhimento e instruções curtas; a celebração da divulgação depende do estado canônico confirmado, sem tratar compartilhamento como agendamento ou receita.
 
 ## Cadastro profissional
 
@@ -72,9 +71,9 @@ Descrição, foto e complemento são opcionais. O upload de foto continua aconte
 
 O backend é a fonte de verdade desses requisitos. Não basta o frontend apresentar seletores ou máscaras: WhatsApp, CEP, UF, URL e demais campos obrigatórios continuam validados no servidor.
 
-Na criação padrão, a interface deve continuar diretamente para o cadastro do primeiro serviço. O sucesso de `POST /criar-negocio` já confirma a persistência do negócio e do vínculo de dona; a interface usa essa resposta canônica para atualizar imediatamente o contexto local necessário e segue para o primeiro serviço, enquanto `/minha-sessao` reconcilia os demais dados em segundo plano. Lentidão ou falha transitória nessa reconciliação não pode deixar a profissional na criação nem permitir que ela repita um POST já concluído. Isso também vale quando a profissional chega com um plano pago pré-selecionado: a escolha pode ser carregada como intenção durante `Negócio → Serviço → Horários`, mas o checkout não deve abrir antes de o primeiro serviço ser salvo e o perfil estar publicado. Depois da publicação, o fluxo apresenta primeiro os horários sugeridos. Confirmar a sugestão ou ajustar manualmente os horários leva à divulgação do perfil; uma intenção de plano pago pode ser preservada, mas não provoca checkout automático nessa conclusão.
+Na criação padrão, a interface deve continuar diretamente para o cadastro do primeiro serviço. O sucesso de `POST /criar-negocio` já confirma a persistência do negócio e do vínculo de dona; a interface usa essa resposta canônica para atualizar imediatamente o contexto local necessário e segue para o primeiro serviço, enquanto `/minha-sessao` reconcilia os demais dados em segundo plano. Lentidão ou falha transitória nessa reconciliação não pode deixar a profissional na criação nem permitir que ela repita um POST já concluído. Isso também vale quando a profissional chega com um plano pago pré-selecionado: a escolha pode ser carregada como intenção durante `Negócio → Serviço → Horários`, mas o checkout não deve abrir antes de o primeiro serviço ser salvo e o perfil estar publicado. Depois da publicação, o fluxo abre os horários sugeridos diretamente para edição. Salvar os horários leva à divulgação do perfil; uma intenção de plano pago pode ser preservada, mas não provoca checkout automático nessa conclusão.
 
-A criação do negócio apresenta o progresso da preparação da publicação; o editor de serviço mantém uma única apresentação em todas as entradas. Depois da publicação, `Horários` aparece como configuração rápida da agenda, sem comunicar que ainda falta algo para o perfil ser publicado. A entrada do primeiro serviço usa `?onboarding=servico` como marcador navegável, em vez de depender apenas de estado transitório do React Router; assim, atualizar a página ou reabrir o link preserva o próximo passo após salvar, sem mudar os campos ou o layout do editor. Quando a ativação ainda não possui nenhum serviço, a próxima ação do dashboard deve abrir diretamente esse cadastro. Se já houver apenas serviços inativos, deve abrir a gestão para permitir reativação em vez de chamar o próximo cadastro de primeiro serviço.
+O progresso é único: Conta (1 de 4), Negócio (2 de 4), Serviço (3 de 4) e Horários (4 de 4). O cadastro profissional usa uma superfície focada, sem os menus públicos ou operacionais. O editor de serviço mantém o mesmo formulário em todas as entradas. Descrição, fotos e campos opcionais permanecem visíveis, sem recolhimento. Depois da publicação, `Horários` abre diretamente para edição da agenda, sem comunicar que ainda falta algo para o perfil ser publicado. A entrada do primeiro serviço usa `?onboarding=servico` como marcador navegável, em vez de depender apenas de estado transitório do React Router; assim, atualizar a página ou reabrir o link preserva o próximo passo após salvar, sem mudar os campos ou o layout do editor. Quando a ativação ainda não possui nenhum serviço, a próxima ação do dashboard deve abrir diretamente esse cadastro. Se já houver apenas serviços inativos, deve abrir a gestão para permitir reativação em vez de chamar o próximo cadastro de primeiro serviço.
 
 O WhatsApp da conta autenticada pode preencher inicialmente o WhatsApp do negócio, mas permanece editável e o backend continua validando o valor recebido.
 
@@ -126,7 +125,7 @@ entra em estado sem oferta ativa: nenhum serviço inativo pode gerar novo
 agendamento. Um negócio que nunca foi publicado continua precisando de pelo
 menos um serviço ativo para entrar no ar pela primeira vez.
 
-## Disponibilidade padrão e confirmação rápida
+## Disponibilidade padrão e edição direta
 
 A disponibilidade é infraestrutura de agendamento e também um momento de descoberta do produto, mas não é requisito de publicação.
 
@@ -138,7 +137,7 @@ Ao criar um novo negócio, a mesma transação que cria o negócio e o vínculo 
 
 A política de cancelamento do negócio começa em **2 horas**. Ela pertence ao negócio, aceita qualquer hora inteira de 0 a 168 horas e somente a proprietária pode alterá-la; valor vazio é inválido e `0` só representa cancelamento sem antecedência quando informado explicitamente. Profissionais continuam livres para editar a própria disponibilidade, sem poder mudar essa política. Enquanto o campo legado em `agenda_configuracoes` existir para compatibilidade de rollback, o runtime novo espelha o mesmo valor de forma transacional e o banco protege escritas de versões antigas: mudança legada da dona atualiza a política canônica; tentativa legada de uma profissional é normalizada para a política do negócio. Reservas já criadas mantêm o snapshot de antecedência que possuíam no momento do agendamento.
 
-A existência dessa sugestão permite que o AF apresente uma agenda utilizável sem obrigar a profissional a montar a semana do zero. Na primeira jornada, porém, a interface torna essa disponibilidade visível logo após o primeiro serviço e pede que a profissional confirme a sugestão ou ajuste manualmente. `Confirmar horários` envia a sugestão ao fluxo de salvamento; `Ajustar horários` permite personalizá-la antes do mesmo salvamento. Se o salvamento falhar, a interface não deve avançar.
+A primeira jornada abre o editor de horários após o primeiro serviço. Dias, faixas, pausas e regras ficam visíveis; `Salvar horários e continuar` persiste a configuração e consulta a próxima missão canônica. Se o salvamento falhar, a interface não avança e mantém os dados preenchidos.
 
 `agenda_configuracoes.configurado_em` não deve ser usado como condição de elegibilidade para publicação nem como prova de confirmação manual. Desde a migration 065, a configuração e os horários padrão já nascem com esse marcador preenchido. A origem dos horários é o sinal que distingue a sugestão automática do salvamento explícito:
 
@@ -174,9 +173,9 @@ O backfill não pode publicar perfis com UF inexistente, WhatsApp/CEP inválidos
 
 ## Pós-publicação
 
-Depois da publicação confirmada pelo backend e da passagem pela configuração rápida de horários, a próxima missão é compartilhar o perfil rastreável do AF e conquistar o primeiro agendamento. Se ainda houver alguma pendência obrigatória, a interface não deve oferecer compartilhamento como se o perfil estivesse no ar.
+Depois da publicação confirmada pelo backend e da passagem pelo editor de horários, a próxima missão é compartilhar o perfil rastreável do AF e conquistar o primeiro agendamento. Se ainda houver alguma pendência obrigatória, a interface não deve oferecer compartilhamento como se o perfil estivesse no ar.
 
-Quando existir uma intenção válida de plano pago trazida desde a aquisição/cadastro, ela pode ser preservada durante `Negócio → Serviço → Horários`, mas a conclusão da agenda não redireciona automaticamente para checkout. Depois que a sugestão é confirmada ou os horários são ajustados e salvos, a missão é conquistar o primeiro agendamento; o compartilhamento aparece como CTA somente quando existe disponibilidade agendável. Upgrade e checkout aparecem depois por ação explícita ou oportunidade contextual. O backend de checkout continua revalidando que o negócio da proprietária está ativo e publicado antes de criar qualquer tentativa ou cobrança; uma URL direta não contorna essa condição. Checkout iniciado continua sendo uma etapa de monetização e não equivale a pagamento confirmado.
+Quando existir uma intenção válida de plano pago trazida desde a aquisição/cadastro, ela pode ser preservada durante `Negócio → Serviço → Horários`, mas a conclusão da agenda não redireciona automaticamente para checkout. Depois que os horários são salvos, a missão é conquistar o primeiro agendamento; o compartilhamento aparece como CTA somente quando existe disponibilidade agendável. Upgrade e checkout aparecem depois por ação explícita ou oportunidade contextual. O backend de checkout continua revalidando que o negócio da proprietária está ativo e publicado antes de criar qualquer tentativa ou cobrança; uma URL direta não contorna essa condição. Checkout iniciado continua sendo uma etapa de monetização e não equivale a pagamento confirmado.
 
 No dashboard, a missão de conquistar o primeiro agendamento deve aparecer antes de métricas e relatórios. Enquanto o perfil tiver menos de 20 visitas e ainda não tiver recebido o primeiro agendamento, a interface continua incentivando divulgação em vez de diagnosticar baixa conversão com uma amostra pequena. A partir desse volume, o AF pode sugerir revisão de serviços, preços e horários como orientação, sem tratar o número isolado como prova estatística de problema.
 
@@ -210,7 +209,7 @@ Continuar editando ou fechar a confirmação por Escape preserva
 a operação. Concluir um salvamento normalmente não sinaliza descarte.
 
 A invalidação também acompanha mudanças de pathname/query aceitas pelo roteador,
-sem depender de rascunho: confirmar os horários sugeridos ou salvar um serviço
+sem depender de rascunho: salvar os horários sugeridos ou salvar um serviço
 sem editar não exige diálogo, mas sair ainda encerra as continuações locais.
 Tentativas bloqueadas, Continuar editando, Escape e mudanças apenas de state/hash
 preservam a operação. Se o salvamento terminar com uma saída já solicitada,
@@ -260,3 +259,16 @@ backend; o rótulo não restringe o provedor nem altera dados persistidos.
 O editor de serviço é apresentado em uma coluna em todas as entradas, com formulário e ações alinhados,
 valor em reais e campos numéricos apropriados. As etapas seguintes e a publicação
 continuam dependentes das respostas canônicas do backend.
+
+## Apresentação do cadastro focado
+
+`SetupFlowFrame` apresenta marca, saída e progresso compacto. Seu contexto controla
+apenas a apresentação do cabeçalho, rodapé e navegação de gestão, preservando o
+formulário montado, os guardas de alterações não salvas e a recuperação das operações.
+Ao sair do fluxo, a navegação normal volta. Campos obrigatórios, API, banco,
+idempotência, atribuição e critérios de ativação permanecem os mesmos.
+
+A divulgação é uma conclusão da configuração, sem uma quinta etapa obrigatória.
+Mostra o endereço público legível; compartilhar e copiar continuam usando os links
+rastreáveis do componente existente. Abrir o painel não conta como primeiro
+agendamento nem como ativação concluída.
