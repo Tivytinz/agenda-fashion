@@ -37,12 +37,15 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
 
       - name: Install frontend dependencies
-        run: npm --prefix frontend ci
+        run: npm --prefix frontend ci --prefer-offline --no-audit
 
       - name: Lint React frontend
         run: npm --prefix frontend run lint
@@ -94,12 +97,15 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
 
       - name: Install frontend dependencies
-        run: npm --prefix frontend ci
+        run: npm --prefix frontend ci --prefer-offline --no-audit
 
       - name: Build React frontend
         run: npm run frontend:build
@@ -139,12 +145,15 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
 
       - name: Install frontend dependencies
-        run: npm --prefix frontend ci
+        run: npm --prefix frontend ci --prefer-offline --no-audit
 
       - name: Build React frontend
         run: npm run frontend:build
