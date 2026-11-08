@@ -31,6 +31,14 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("criação do negócio", () => {
+  it.each([
+    ["/criar-negocio", "/"],
+    ["/criar-negocio?plano=autonoma", "/planos"]
+  ])("preserva a saída contextual em %s", (path, exitTo) => {
+    render(<MemoryRouter initialEntries={[path]}><BusinessPage create /></MemoryRouter>);
+    expect(screen.getByRole("link", { name: "Sair", exact: true }).getAttribute("href")).toBe(exitTo);
+  });
+
   it("reaproveita o WhatsApp da conta e deixa descrição, foto e complemento opcionais", () => {
     render(
       <MemoryRouter initialEntries={["/criar-negocio"]}>
