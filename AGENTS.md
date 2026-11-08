@@ -374,8 +374,7 @@ manter a interface em Criar negócio nem induzir um segundo POST quando houver
 lentidão ou falha transitória.
 
 Depois que o primeiro serviço é salvo e o backend confirma a publicação, a
-interface apresenta `Horários` como terceiro momento visível da primeira
-jornada. O objetivo é mostrar que o AF é uma agenda editável sem transformar a
+interface apresenta `Horários` como quarta etapa, contando a criação da conta. O objetivo é mostrar que o AF é uma agenda editável sem transformar a
 disponibilidade em requisito de publicação. A atualização de `/minha-sessao`
 após esse salvamento é uma sincronização auxiliar e não pode bloquear a transição
 `Serviço → Horários` por lentidão ou falha transitória. Respostas assíncronas de
@@ -402,14 +401,21 @@ validação canônica o limpa antes de uma nova tentativa controlada do Bearer.
 
 O primeiro serviço, novos serviços e a edição usam o mesmo formulário e layout.
 Descrição e fotos são opcionais e ficam disponíveis em todas as entradas. O marcador
-de onboarding controla apenas a continuação após salvar, sem criar outra apresentação.
+de onboarding controla apenas a continuação após salvar, sem criar outro formulário.
 Falhas no envio de mídia preservam o serviço salvo; a retomada não regrava dados
 inalterados e revalida a publicação no backend antes de seguir para Horários.
 
-Na confirmação rápida:
-
-- `Confirmar horários` salva a sugestão exibida e continua;
-- `Ajustar horários` abre o editor antes do salvamento.
+O cadastro profissional usa um fluxo focado: Conta → Negócio → Serviço → Horários.
+As quatro etapas usam a mesma identidade, um progresso compacto e uma ação de
+salvamento principal. Menus de descoberta e de gestão ficam fora dessa experiência;
+a navegação operacional reaparece ao abrir o painel. Esse foco é apenas de
+interface e não substitui autenticação, autorização ou os contratos de persistência.
+Descrição, fotos e campos opcionais continuam visíveis junto do formulário, sem
+acordeões. Na primeira configuração da dona, a semana sugerida abre diretamente
+para edição com dias, pausas e regras visíveis. `Salvar horários e continuar`
+persiste pelo mesmo contrato canônico; não existe uma confirmação intermediária
+antes do editor. A divulgação apresenta o link e as ações de compartilhar, copiar
+e abrir o painel somente após a confirmação canônica de disponibilidade.
 
 A profissional ativa pode editar a própria disponibilidade. A proprietária pode
 editar a disponibilidade semanal de qualquer profissional ativa do negócio a
@@ -461,12 +467,12 @@ compartilhados entre os workspaces devem receber o seletor de papel
 persistido correspondente; o header escolhe o contexto, mas nunca concede
 permissão.
 
-Não existe ação `Pular por agora` nessa etapa: a dona confirma a sugestão ou
-personaliza a disponibilidade. Se o salvamento dos horários falhar, a interface
+Não existe ação `Pular por agora` nessa etapa: a dona revisa os horários e salva
+a disponibilidade pelo editor. Se o salvamento dos horários falhar, a interface
 não deve avançar.
 
-Depois do primeiro salvamento explícito da agenda, tanto a confirmação da
-sugestão quanto o ajuste manual convergem para a missão de **divulgar o perfil**
+Depois do primeiro salvamento explícito da agenda, a jornada converge para a
+missão de **divulgar o perfil**
 e conquistar o primeiro agendamento. A revalidação dessa missão usa uma leitura
 leve e canônica de ativação no backend, sem depender das consultas de métricas,
 rankings ou retenção do dashboard completo. `GET /dashboard-dono/ativacao`

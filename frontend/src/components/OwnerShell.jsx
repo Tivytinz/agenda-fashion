@@ -4,6 +4,7 @@ import { useSession } from "../auth/SessionContext";
 import afLogoTransparent from "../assets/brand/performance/af-logo-96.webp";
 import { AppIcon } from "./AppIcon";
 import { ShellContentBoundary } from "./ShellContentBoundary";
+import { useSetupFocus } from "./SetupFlowContext";
 import {
   MobileWorkspaceNavigation,
   WorkspaceLinks
@@ -15,6 +16,7 @@ function publicProfilePath(slug) {
 }
 
 export function OwnerShell({ children, links = [] }) {
+  const setupFocused = useSetupFocus();
   const { negocio } = useSession();
   const businessName = negocio?.nome || "Meu negócio";
   const profilePath = publicProfilePath(negocio?.slug);
@@ -29,9 +31,9 @@ export function OwnerShell({ children, links = [] }) {
   }, []);
 
   return (
-    <div className="owner-shell" data-frontend-context="owner">
+    <div className={`owner-shell${setupFocused ? " setup-focused" : ""}`} data-frontend-context="owner">
       <a className="owner-skip-link" href="#owner-content">Pular para o conteúdo</a>
-      <aside className="owner-sidebar" aria-label="Gestão do negócio">
+      {!setupFocused && <aside className="owner-sidebar" aria-label="Gestão do negócio">
         <Link
           aria-label="Agenda Fashion, visão geral do negócio"
           className="owner-brand"
@@ -70,10 +72,10 @@ export function OwnerShell({ children, links = [] }) {
             <small>Agenda, serviços e crescimento</small>
           </div>
         </div>
-      </aside>
+      </aside>}
 
       <div className="owner-surface">
-        <header className="owner-topbar">
+        {!setupFocused && <header className="owner-topbar">
           <div className="owner-topbar-context">
             <small>Gestão do negócio</small>
             <strong>{businessName}</strong>
@@ -94,7 +96,7 @@ export function OwnerShell({ children, links = [] }) {
               <span>Conta</span>
             </Link>
           </div>
-        </header>
+        </header>}
 
         <section className="owner-content" id="owner-content" tabIndex={-1}>
           <ShellContentBoundary>
@@ -103,10 +105,10 @@ export function OwnerShell({ children, links = [] }) {
         </section>
       </div>
 
-      <MobileWorkspaceNavigation
+      {!setupFocused && <MobileWorkspaceNavigation
         ariaLabel="Área de trabalho"
         links={links}
-      />
+      />}
     </div>
   );
 }

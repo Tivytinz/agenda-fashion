@@ -13,6 +13,7 @@ import { FirstPartyAnalyticsBridge } from "./components/FirstPartyAnalyticsBridg
 import { MarketingMetricGlossary } from "./components/MarketingMetricGlossary";
 import { LegalFooter } from "./components/LegalFooter";
 import { WorkspaceLayout } from "./components/WorkspaceLayout";
+import { SetupFlowProvider, useSetupFocus } from "./components/SetupFlowContext";
 import { markRuntimeReady } from "./utils/runtimeRecovery";
 import { HomePage } from "./pages/HomePage";
 
@@ -267,11 +268,12 @@ function AccountRoute() {
   return <AccountPage />;
 }
 
-export default function App() {
+function AppContent() {
+  const setupFocused = useSetupFocus();
   return (
-    <div className="app-shell">
+    <div className={`app-shell${setupFocused ? " setup-shell" : ""}`}>
       <FirstPartyAnalyticsBridge />
-      <AppHeader />
+      {!setupFocused && <AppHeader />}
       <Suspense fallback={<main><div className="container route-loading">Carregando...</div></main>}>
         <Routes>
           <Route path={reactRoutes.home} element={<HomePage />} />
@@ -421,7 +423,11 @@ export default function App() {
         </Routes>
       </Suspense>
       <DeferredMetaAdsBridge />
-      <LegalFooter />
+      {!setupFocused && <LegalFooter />}
     </div>
   );
+}
+
+export default function App() {
+  return <SetupFlowProvider><AppContent /></SetupFlowProvider>;
 }

@@ -176,7 +176,7 @@ describe("contexto da agenda sem reaproveitar horários de outra pessoa", () => 
         : { ...scheduleResult("08:00"), configuracao: { ...CONFIG, origem_horarios: "padrao_af" } });
     });
     mount("/painel/horarios", <ScheduleSettingsPage />);
-    fireEvent.click(await screen.findByRole("button", { name: "Confirmar horários" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Salvar horários e continuar" }));
     await waitFor(() => expect(apiRequest).toHaveBeenCalledWith(
       "/dashboard-dono/ativacao",
       expect.objectContaining({ signal: expect.any(AbortSignal) })
@@ -190,7 +190,7 @@ describe("contexto da agenda sem reaproveitar horários de outra pessoa", () => 
     }));
     expect(router.state.location.search).toBe("?profissional=33");
     expect(screen.getByLabelText("Início do atendimento de Segunda").value).toBe("14:00");
-    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Seu link está pronto" })).toBeNull();
   });
 });
 

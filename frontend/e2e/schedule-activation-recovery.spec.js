@@ -79,15 +79,14 @@ test('leitura atrasada mantém o rascunho acessível para continuar editando e s
   await start.fill('09:00');
   await releaseInitial(page, state, activation(true));
   await expect(start).toHaveValue('09:00');
-  await expect(page.getByRole('button', { name: 'Salvar horários', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Salvar horários e continuar', exact: true })).toBeVisible();
   expect(state.writes).toHaveLength(0);
 
-  await page.getByRole('navigation', { name: 'Área de trabalho' })
-    .getByRole('link', { name: /Serviços/ }).click();
+  await page.getByRole('link', { name: 'Sair', exact: true }).click();
   await page.getByRole('dialog', { name: 'Sair sem salvar?' })
     .getByRole('button', { name: 'Continuar editando' }).click();
   await expect(start).toHaveValue('09:00');
-  await page.getByRole('button', { name: 'Salvar horários', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar horários e continuar', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Copiar link', exact: true })).toBeVisible();
   expect(state.writes[0].horarios.find(day => day.diaSemana === 1).horaInicio).toBe('09:00');
   expect(state.reads).toBe(2);
@@ -97,11 +96,11 @@ test('leitura atrasada mantém o rascunho acessível para continuar editando e s
 test('resposta inicial antiga não remove o link confirmado depois de salvar', async ({ page }) => {
   const state = await setup(page, { open: false });
   await page.getByRole('checkbox', { name: /^Segunda/ }).check();
-  await page.getByRole('button', { name: 'Salvar horários', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar horários e continuar', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Copiar link', exact: true })).toBeVisible();
   await releaseInitial(page, state, activation(false));
 
-  await expect(page.getByRole('button', { name: 'Compartilhar perfil', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Compartilhar link', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: /Ver perfil público/ }))
     .toHaveAttribute('href', '/negocio/studio-aurora');
   await page.getByRole('button', { name: 'Copiar link', exact: true }).click();
@@ -113,14 +112,14 @@ test('resposta inicial antiga não remove o link confirmado depois de salvar', a
 
 test('leitura inicial não abre divulgação enquanto o salvamento ainda está pendente', async ({ page }) => {
   const state = await setup(page, { holdSave: true });
-  await page.getByRole('button', { name: 'Salvar horários', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar horários e continuar', exact: true }).click();
   await expect.poll(() => Boolean(state.pendingSave)).toBe(true);
   await releaseInitial(page, state, activation(true));
 
   await expect(page.getByLabel('Início do atendimento de Segunda')).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Compartilhar perfil', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Compartilhar link', exact: true })).toHaveCount(0);
   expect(state.reads).toBe(1);
   await json(state.pendingSave, { configuracao: CONFIG, mensagem: 'Horários salvos.' });
-  await expect(page.getByRole('button', { name: 'Compartilhar perfil', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Compartilhar link', exact: true })).toBeVisible();
   expect(state.reads).toBe(2);
 });

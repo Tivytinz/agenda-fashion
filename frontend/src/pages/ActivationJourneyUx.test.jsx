@@ -345,7 +345,7 @@ describe("jornada de ativação profissional", () => {
     );
 
     expect(screen.getByText(
-      /Descrição e fotos são opcionais/i
+      /Qual cuidado você vai oferecer/i
     )).not.toBeNull();
     expect(screen.getByRole("textbox", {
       name: "Nome do serviço"

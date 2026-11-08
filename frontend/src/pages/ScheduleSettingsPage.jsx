@@ -4,7 +4,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { track } from "../analytics/track";
 import { apiRequest } from "../api/client";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
-import { FlowSteps } from "../components/FlowSteps";
+import { SetupFlowFrame, SetupTitle } from "../components/SetupFlowFrame";
+import { buildPublicLink } from "../utils/publicLinks";
 import { PublicShareButton } from "../components/PublicShareButton";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
@@ -14,7 +15,6 @@ const DAY_SHORT_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const DURATION_OPTIONS = [30, 45, 60, 90, 120];
 const INTERVAL_OPTIONS = [0, 5, 10, 15, 30];
 const LEAD_TIME_OPTIONS = [0, 1, 2, 4, 12, 24, 48, 72];
-const ACTIVATION_STEPS = ["Negócio", "Serviço", "Horários"];
 
 function CopyIcon({ className = "" }) {
   return (
@@ -177,7 +177,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
   const [savedSchedule, setSavedSchedule] = useState("");
   const [expandedPauses, setExpandedPauses] = useState(() => new Set());
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [firstScheduleMode, setFirstScheduleMode] = useState("quick");
+  const setupSessionRef = useRef(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -256,10 +256,10 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
           configuradoEm: configuredAt,
           origemHorarios: scheduleOrigin
         };
+        setupSessionRef.current = !professionalContext && !ownerTeamSchedule && !personalized;
         setConfig(loadedConfig);
         setSavedSchedule(serializeSchedule(loadedConfig, normalizedDays));
         setAdvancedOpen(personalized);
-        setFirstScheduleMode(personalized ? "editor" : "quick");
         setDays(normalizedDays);
         setExpandedPauses(new Set(
           normalizedDays
@@ -276,7 +276,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
               : "pendente",
             origem: personalized
               ? "editor"
-              : "confirmacao_rapida"
+              : "ajuste_manual"
           }
         });
       })
@@ -292,6 +292,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
     contextoAgenda,
     loadAttempt,
     ownerTeamSchedule,
+    professionalContext,
     targetProfessionalId
   ]);
 
@@ -305,7 +306,6 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
     () => withCurrentOption(LEAD_TIME_OPTIONS, config?.antecedenciaAgendamento),
     [config?.antecedenciaAgendamento]
   );
-  const quickSummary = useMemo(() => summarizeSchedule(days), [days]);
 
   function updateDay(index, field, value) {
     setDays((current) => current.map((day, itemIndex) => itemIndex === index ? { ...day, [field]: value } : day));
@@ -364,21 +364,6 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
     });
 
     setMessage("Horário copiado para os dias ativos.");
-  }
-
-  function openFirstScheduleEditor() {
-    setError("");
-    setMessage("");
-    setFirstScheduleMode("editor");
-
-    track("agenda_configuracao_visualizada", {
-      page: "configuracao_agenda",
-      mission: "disponibilizar_horarios",
-      properties: {
-        status: "editor_aberto",
-        origem: "ajuste_manual"
-      }
-    });
   }
 
   const loadCanonicalActivationContext = useCallback(async (controller = new AbortController()) => {
@@ -541,12 +526,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
       primeiraConfiguracao &&
       contextoAgenda === "dono" &&
       !ownerTeamSchedule;
-    const submitSource = event.nativeEvent?.submitter?.dataset?.source;
-    const origem = primeiraConfiguracao
-      ? submitSource === "confirmacao_rapida"
-        ? "confirmacao_rapida"
-        : "ajuste_manual"
-      : "editor";
+    const origem = primeiraConfiguracao ? "ajuste_manual" : "editor";
 
     track("agenda_configuracao_salvamento_tentado", {
       page: "configuracao_agenda",
@@ -769,8 +749,13 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
     }
   }
 
-  if (!config && !error) return <main className="workspace-page"><LoadingState>Carregando horários...</LoadingState></main>;
-  if (!config && error) return <main className="workspace-page"><ErrorState message={error} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} /></main>;
+  if (!config) return (
+    <SetupFlowFrame enabled={!professionalContext && !ownerTeamSchedule && (shareOnboardingRequested || location.state?.onboarding === true)} exitTo="/painel" step={4} wide>
+      <main className="workspace-page">
+        {error ? <ErrorState message={error} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} /> : <LoadingState>Carregando horários...</LoadingState>}
+      </main>
+    </SetupFlowFrame>
+  );
 
   const firstConfiguration =
     config.origemHorarios !== "personalizado" &&
@@ -782,70 +767,45 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
       professionalContext ||
       ownerTeamSchedule
     );
-  const quickConfirmation =
-    firstConfiguration && firstScheduleMode === "quick";
+  // O PUT já personaliza a configuração antes de a próxima missão ser lida.
+  // Manter a superfície estável durante essa leitura e a correção de disponibilidade.
+  const setupFlow = !professionalContext && !ownerTeamSchedule && (
+    firstConfiguration || shareOnboardingRequested || (setupSessionRef.current && (saving || availabilityPending))
+  );
+  const SettingsContainer = setupFlow ? "section" : "details";
 
   return (
-    <main className={`workspace-page schedule-settings-page${quickConfirmation ? " schedule-quick-page" : ""}${!quickConfirmation && !showActivationNextStep ? " schedule-editor-page" : ""}`}>
+    <SetupFlowFrame enabled={setupFlow} exitTo="/painel" step={4} complete={showActivationNextStep && Boolean(businessContext)} wide={!showActivationNextStep}>
+    <main className={`workspace-page schedule-settings-page${!showActivationNextStep ? " schedule-editor-page" : ""}`}>
       <UnsavedChangesGuard when={hasChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
       <header className="workspace-heading">
         <div>
-          <p className="eyebrow">Disponibilidade</p>
-          <h1>Horários de atendimento</h1>
-          <p>{quickConfirmation
-            ? "Revise os dias, horários e pausas antes de confirmar."
-            : "A cliente verá apenas horários que realmente podem ser agendados."}</p>
-          {ownerTeamSchedule && (
-            <p className="muted">
-              Configurando a disponibilidade de{" "}
-              <strong>
-                {scheduleProfessional?.nome ||
-                  "uma profissional da equipe"}
-              </strong>.
-            </p>
-          )}
+          <SetupTitle emoji={setupFlow ? showActivationNextStep && businessContext ? "🎉" : "📅" : undefined} id="schedule-page-title">{showActivationNextStep
+            ? businessContext ? "Seu link está pronto" : "Horários salvos"
+            : "Horários de atendimento"}</SetupTitle>
+          {!showActivationNextStep && <p>{setupFlow ? "Sua agenda, do seu jeito." : "Defina os dias, horários e pausas."}</p>}
+          {ownerTeamSchedule && <p className="muted">Configurando a disponibilidade de <strong>{scheduleProfessional?.nome || "uma profissional da equipe"}</strong>.</p>}
         </div>
       </header>
 
-      {firstConfiguration && !showActivationNextStep && (
-        <FlowSteps
-          ariaLabel="Etapas iniciais do negócio"
-          current={3}
-          steps={ACTIVATION_STEPS}
-        />
-      )}
-
       {showActivationNextStep ? (
         <section
-          aria-labelledby="schedule-next-step-title"
+          aria-label="Divulgação do perfil"
           aria-live="polite"
           className="panel onboarding-panel is-complete schedule-publish-panel"
         >
           <div className="onboarding-complete-copy">
-            <p className="eyebrow onboarding-complete-eyebrow">
-              <ConfirmationIcon className="onboarding-complete-icon" />
-              <span>
-                {businessContext
-                  ? <>Negócio publicado <span aria-hidden="true">✨</span></>
-                  : "Horários salvos"}
-              </span>
-            </p>
-            <h2 id="schedule-next-step-title">
-              {businessContext ? "Agora divulgue seu perfil" : "Sua agenda foi atualizada"}
-            </h2>
-            <p className="schedule-publish-status">
+            <p className="schedule-publish-status" role="status">
               <ConfirmationIcon className="schedule-save-icon" />
-              <span>
-                {businessContext
-                  ? message || "Horários confirmados. Seu negócio está publicado."
-                  : "Os horários foram salvos, mas não conseguimos carregar seu perfil agora."}
-              </span>
+              <span>{businessContext ? "Perfil publicado. Horários salvos." : "Horários salvos. Não foi possível carregar o link agora."}</span>
             </p>
-            <p className="muted">
-              {businessContext
-                ? "Compartilhe no WhatsApp ou copie o link para o Instagram. As clientes poderão escolher seus serviços e horários."
-                : "Você pode seguir para o painel sem perder a configuração. A divulgação continua disponível quando o perfil puder ser carregado novamente."}
-            </p>
+            {businessContext && <>
+              <p>Compartilhe seu link. Seu próximo agendamento começa aqui.</p>
+              <label className="setup-public-link">
+                Link de agendamento
+                <input onFocus={(event) => event.target.select()} readOnly value={buildPublicLink({ businessSlug: businessContext.slug })} />
+              </label>
+            </>}
           </div>
 
           <div className="onboarding-complete-actions schedule-publish-actions">
@@ -860,7 +820,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
                   businessName={businessContext.name}
                   businessSlug={businessContext.slug}
                   className="button"
-                  label="Compartilhar perfil"
+                  label="Compartilhar link"
                   trackingMission="disponibilizar_horarios"
                   trackingPage="configuracao_agenda"
                 />
@@ -883,8 +843,8 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
               </>
             )}
 
-            {!businessContextLoading && !businessContext && (
-              <Link className="button" to="/painel">
+            {!businessContextLoading && (
+              <Link className={businessContext ? "text-button setup-finish-link" : "button"} to="/painel">
                 Ir para o painel
               </Link>
             )}
@@ -892,78 +852,10 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
         </section>
       ) : (
         <form aria-busy={saving} className="panel stack-form schedule-settings-form" onSubmit={submit}>
-          {quickConfirmation ? (
-            <section
-              aria-labelledby="schedule-activation-title"
-              className="schedule-quick-confirmation"
-            >
-              <div className="schedule-quick-copy">
-                <h2 id="schedule-activation-title">Confirme quando você atende</h2>
-                <p className="muted">
-                  O Agenda Fashion preparou horários sugeridos para você começar.
-                  Ajuste se precisar.
-                </p>
-              </div>
-
-              {quickSummary.length > 0 ? (
-                <ul className="schedule-quick-summary" aria-label="Horários sugeridos">
-                  {quickSummary.map((group) => (
-                    <li key={group.key}>
-                      <strong>{group.days}</strong>
-                      <span>{group.attendance}</span>
-                      <small>{group.pause ? `Pausa ${group.pause}` : "Sem pausa"}</small>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="schedule-quick-empty">
-                  Nenhum dia está ativo ainda. Ajuste seus horários para continuar.
-                </p>
-              )}
-
-              {days.some((day) => !day.trabalha) && (
-                <p className="schedule-quick-closed">
-                  <strong>Dias sem atendimento:</strong>{" "}
-                  {days.filter((day) => !day.trabalha)
-                    .map((day) => DAY_NAMES[day.diaSemana]).join(", ")}.
-                </p>
-              )}
-
-              <p className="schedule-quick-assurance">
-                <span aria-hidden="true">✓</span>{" "}
-                Ao confirmar, estes horários sugeridos serão salvos. Você poderá editá-los depois.
-              </p>
-
-              {error && <p className="form-error schedule-settings-error" role="alert">{error}</p>}
-
-              <div className="schedule-quick-actions">
-                {quickSummary.length > 0 && (
-                  <button
-                    className="button"
-                    data-source="confirmacao_rapida"
-                    disabled={saving}
-                    type="submit"
-                  >
-                    {saving ? "Salvando..." : "Confirmar horários"}
-                  </button>
-                )}
-                <button
-                  className="button button-secondary"
-                  disabled={saving}
-                  onClick={openFirstScheduleEditor}
-                  type="button"
-                >
-                  Ajustar horários
-                </button>
-              </div>
-            </section>
-          ) : (
-            <>
-              <section className="schedule-week-section" aria-labelledby="schedule-week-title">
-                <div className="schedule-week-heading">
+              <section className="schedule-week-section" aria-labelledby={setupFlow ? "schedule-page-title" : "schedule-week-title"}>
+                {!setupFlow && <div className="schedule-week-heading">
                   <div>
-                    <p className="eyebrow">Semana de atendimento</p>
-                    <h2 id="schedule-week-title">Quando você recebe clientes</h2>
+                    <h2 id="schedule-week-title">Dias de atendimento</h2>
                     <p className="muted">
                       {firstConfiguration || firstProfessionalConfiguration
                         ? professionalContext
@@ -974,7 +866,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
                         : "Ative os dias de trabalho e ajuste atendimento e pausa."}
                     </p>
                   </div>
-                </div>
+                </div>}
 
                 <div className="schedule-list" aria-label="Semana">
                   <div className="schedule-column-headings" aria-hidden="true">
@@ -992,7 +884,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
                           <input checked={day.trabalha} disabled={saving} onChange={(e) => toggleDay(index, e.target.checked)} type="checkbox" />
                           <span className="schedule-day-name">
                             <strong>{dayName}</strong>
-                            <small>{day.trabalha ? "Aberto" : "Fechado"}</small>
+                            {!setupFlow && <small>{day.trabalha ? "Aberto" : "Fechado"}</small>}
                           </span>
                         </label>
 
@@ -1075,18 +967,11 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
                 </div>
               </section>
 
-              <details
+              <SettingsContainer
                 className="schedule-advanced-settings"
-                onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
-                open={advancedOpen}
+                {...(!setupFlow ? { open: advancedOpen, onToggle: (event) => setAdvancedOpen(event.currentTarget.open) } : {})}
               >
-                <summary>
-                  <span aria-hidden="true">⚙️</span>{" "}
-                  Ajustes avançados
-                </summary>
-                <p className="muted">
-                  Personalize duração padrão, intervalo entre clientes e antecedências. Você pode voltar a estes ajustes quando quiser.
-                </p>
+                {setupFlow ? <h2>Regras de agendamento</h2> : <summary>Ajustes avançados</summary>}
                 <section className="settings-grid schedule-general-settings" aria-label="Configurações gerais da agenda">
                   <label>
                     Duração padrão
@@ -1134,7 +1019,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
                     </label>
                   )}
                 </section>
-              </details>
+              </SettingsContainer>
 
               {availabilityPending && (
                 <p
@@ -1165,15 +1050,14 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
                 >
                   {saving
                     ? "Salvando..."
-                    : firstConfiguration
+                    : setupFlow
                       ? "Salvar horários e continuar"
                       : "Salvar horários"}
                 </button>
               </div>
-            </>
-          )}
         </form>
       )}
     </main>
+    </SetupFlowFrame>
   );
 }

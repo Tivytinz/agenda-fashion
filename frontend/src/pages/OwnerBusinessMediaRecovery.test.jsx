@@ -106,7 +106,7 @@ it.each([4, 9])("reload na conta %s revalida o escopo da referência", async acc
     expect(apiRequest).toHaveBeenCalledTimes(1);
     expect(apiRequest.mock.calls[0][1].headers["Idempotency-Key"]).toBe(KEY);
   } else {
-    await screen.findByRole("heading", { name: "Crie seu negócio" });
+    await screen.findByRole("heading", { name: "Seu negócio" });
     expect(apiRequest).not.toHaveBeenCalled(); expect(session.adoptCreatedBusiness).not.toHaveBeenCalled();
   }
 });

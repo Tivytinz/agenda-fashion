@@ -28,7 +28,7 @@ function loadGoogleScript() {
   });
 }
 
-export function GoogleLoginButton({ onCredential, onError }) {
+export function GoogleLoginButton({ onCredential, onError, onAvailabilityChange }) {
   const containerRef = useRef(null);
   const [available, setAvailable] = useState(true);
 
@@ -54,9 +54,11 @@ export function GoogleLoginButton({ onCredential, onError }) {
           width: Math.min(containerRef.current.clientWidth || 360, 400)
         });
       })
+      .then(() => { if (active) onAvailabilityChange?.(true); })
       .catch((error) => {
         if (active) {
           setAvailable(false);
+          onAvailabilityChange?.(false);
           onError?.(error);
         }
       });
@@ -64,7 +66,7 @@ export function GoogleLoginButton({ onCredential, onError }) {
     return () => {
       active = false;
     };
-  }, [onCredential, onError]);
+  }, [onCredential, onError, onAvailabilityChange]);
 
   if (!available) {
     return null;

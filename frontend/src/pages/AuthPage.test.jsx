@@ -143,8 +143,8 @@ describe("cadastro profissional enxuto", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/Depois da conta, você cria o negócio/i)).not.toBeNull();
-    expect(screen.getByText(/Avisos do WhatsApp são opcionais/i)).not.toBeNull();
+    expect(screen.getByText(/Você atende. O AF cuida do agendamento/i)).not.toBeNull();
+    expect(screen.queryByText(/Avisos do WhatsApp são opcionais/i)).toBeNull();
     expect(screen.queryByText(/avisos operacionais do Agenda Fashion/i)).toBeNull();
     expect(screen.queryByText(/orientações de marketing do Agenda Fashion/i)).toBeNull();
     expect(screen.queryByText(/confirmações, lembretes e atualizações dos meus agendamentos/i)).toBeNull();

@@ -364,9 +364,31 @@ test('sair durante upload não envia as próximas fotos enquanto Meu negócio ca
   expect(uploads).toBe(1);
 });
 
-test('sair durante salvamento de horários não retoma ativação enquanto Meu negócio carrega', async ({ page }) => {
+async function delayedSetupExit(page) {
+  let pendingModule;
+  await page.route('**/src/pages/DashboardPage.jsx*', route => { pendingModule = route; });
+  await page.route('**/dashboard-dono?**', route => json(route, {
+    negocio: { negocio_id: BUSINESS.id, nome: BUSINESS.nome, slug: BUSINESS.slug, papel: 'dono' },
+    resumo: {}, performance: {}, ranking_servicos: [],
+    ativacao: { possui_servico_ativo: true, negocio_publicado: true, agenda_configurada: false },
+    proxima_acao_ativacao: null
+  }));
+  return {
+    async leave({ discard = true } = {}) {
+      await page.getByRole('link', { name: 'Sair', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'Sair sem salvar?' });
+      if (discard) await dialog.getByRole('button', { name: 'Sair sem salvar', exact: true }).click();
+      else await expect(dialog).not.toBeVisible();
+      await expect.poll(() => Boolean(pendingModule)).toBe(true);
+      await expect(page).toHaveURL(/\/painel$/);
+    },
+    async release() { await pendingModule?.continue(); }
+  };
+}
+
+test('sair durante salvamento de horários não retoma ativação enquanto o painel carrega', async ({ page }) => {
   await setup(page);
-  const destination = await delayedBusinessDestination(page);
+  const destination = await delayedSetupExit(page);
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   let pending;
@@ -383,7 +405,7 @@ test('sair durante salvamento de horários não retoma ativação enquanto Meu n
     });
   });
   await page.goto('/painel/horarios');
-  await page.getByRole('button', { name: 'Ajustar horários' }).click();
+  await expect(page.getByLabel("Início do atendimento de Segunda")).toBeVisible();
   await page.getByLabel('Início do atendimento de Segunda').fill('09:00');
   await page.getByRole('button', { name: 'Salvar horários e continuar' }).click();
   await expect.poll(() => Boolean(pending)).toBe(true);
@@ -391,20 +413,20 @@ test('sair durante salvamento de horários não retoma ativação enquanto Meu n
     await destination.leave();
     await finishPendingWrite(page, pending, { configuracao: CONFIG });
     expect(activationReads).toBe(0);
-    await expect(page).toHaveURL(/\/painel\/negocio$/);
+    await expect(page).toHaveURL(/\/painel$/);
     expect(errors).toEqual([]);
   } finally {
     await destination.release();
   }
-  await expect(page.getByLabel('Nome do negócio')).toHaveValue(BUSINESS.nome);
+  await expect(page.locator('.owner-sidebar')).toBeAttached();
   expect(activationReads).toBe(0);
   expect(errors).toEqual([]);
 });
 
 
-test('confirmação rápida pendente respeita saída sem rascunho e destino lento', async ({ page }) => {
+test('salvamento inicial pendente respeita saída sem rascunho e destino lento', async ({ page }) => {
   await setup(page);
-  const destination = await delayedBusinessDestination(page);
+  const destination = await delayedSetupExit(page);
   let pending;
   let activationReads = 0;
   await page.route('**/agenda-configuracao', route => {
@@ -417,17 +439,17 @@ test('confirmação rápida pendente respeita saída sem rascunho e destino lent
       proxima_acao_ativacao: { estado: 'CONQUISTAR_PRIMEIRO_AGENDAMENTO' } });
   });
   await page.goto('/painel/horarios');
-  await page.getByRole('button', { name: 'Confirmar horários', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar horários e continuar', exact: true }).click();
   await expect.poll(() => Boolean(pending)).toBe(true);
   try {
     await destination.leave({ discard: false });
     await finishPendingWrite(page, pending, { configuracao: CONFIG });
     expect(activationReads).toBe(0);
-    await expect(page).toHaveURL(/\/painel\/negocio$/);
+    await expect(page).toHaveURL(/\/painel$/);
   } finally {
     await destination.release();
   }
-  await expect(page.getByLabel('Nome do negócio')).toHaveValue(BUSINESS.nome);
+  await expect(page.locator('.owner-sidebar')).toBeAttached();
   expect(activationReads).toBe(0);
 });
 

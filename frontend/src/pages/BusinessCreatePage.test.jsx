@@ -31,6 +31,14 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("criação do negócio", () => {
+  it.each([
+    ["/criar-negocio", "/"],
+    ["/criar-negocio?plano=autonoma", "/planos"]
+  ])("preserva a saída contextual em %s", (path, exitTo) => {
+    render(<MemoryRouter initialEntries={[path]}><BusinessPage create /></MemoryRouter>);
+    expect(screen.getByRole("link", { name: "Sair", exact: true }).getAttribute("href")).toBe(exitTo);
+  });
+
   it("reaproveita o WhatsApp da conta e deixa descrição, foto e complemento opcionais", () => {
     render(
       <MemoryRouter initialEntries={["/criar-negocio"]}>
@@ -38,11 +46,9 @@ describe("criação do negócio", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole("heading", {
-      name: "Preencha os dados essenciais do perfil"
-    })).not.toBeNull();
-    expect(screen.getByText(/Descrição, foto e complemento são opcionais/i))
-      .not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Seu negócio" })).not.toBeNull();
+    expect(screen.queryByText(/Negócio completo desde o início/i)).toBeNull();
+    expect(screen.getByLabelText("Etapa 2 de 4: Negócio")).not.toBeNull();
 
     const requiredFields = [
       /Nome do negócio/,
@@ -66,7 +72,7 @@ describe("criação do negócio", () => {
 
     const whatsapp = screen.getByLabelText(/WhatsApp/);
     expect(whatsapp.value).toBe("(62) 99999-9999");
-    expect(screen.getByText(/Trouxemos o número da sua conta/i)).not.toBeNull();
+    expect(screen.queryByText(/Trouxemos o número da sua conta/i)).toBeNull();
     expect(screen.queryByText(/Sem complemento/i)).toBeNull();
     expect(screen.queryByLabelText(/Adicionar foto/i)).toBeNull();
   });

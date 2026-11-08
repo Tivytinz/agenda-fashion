@@ -10,6 +10,7 @@ import {
 import { apiRequest } from "../api/client";
 import { getBusinessContext, getPlanIntentPath, normalizePlanSlug } from "../auth/session";
 import { useSession } from "../auth/SessionContext";
+import { SetupFlowFrame, SetupTitle } from "../components/SetupFlowFrame";
 import { BackLink } from "../components/BackLink";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { PlanUpgradeOpportunity } from "../components/PlanUpgradeOpportunity";
@@ -1102,16 +1103,16 @@ export function ServiceEditorPage() {
   if (loadError) return <main className="workspace-page"><UnsavedChangesGuard onLeave={discardPendingOperations} /><BackLink to="/painel/servicos">Voltar aos serviços</BackLink><ErrorState message={loadError} onRetry={recoveryRemoved ? undefined : () => setLoadAttempt((attempt) => attempt + 1)} /></main>;
 
   return (
+    <SetupFlowFrame enabled={firstServiceOnboarding} exitTo="/painel" step={3}>
     <main className="workspace-page service-editor-page">
       <UnsavedChangesGuard when={hasChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
       <div>
-        <BackLink to="/painel/servicos">Voltar aos serviços</BackLink>
+        {!firstServiceOnboarding && <BackLink to="/painel/servicos">Voltar aos serviços</BackLink>}
         <header className="workspace-heading">
           <div>
-            <p className="eyebrow">Catálogo</p>
-            <h1>{editing ? "Editar serviço" : "Novo serviço"}</h1>
+            <SetupTitle emoji={firstServiceOnboarding ? "💅" : undefined}>{editing ? "Editar serviço" : "Novo serviço"}</SetupTitle>
             <p>
-              Preencha os dados do serviço. Descrição e fotos são opcionais.
+              Qual cuidado você vai oferecer?
             </p>
           </div>
         </header>
@@ -1119,7 +1120,6 @@ export function ServiceEditorPage() {
 
       <form aria-busy={saving} aria-label="Dados do serviço" className="service-editor-grid" onSubmit={submit}>
         <section className="panel stack-form">
-          <div><p className="eyebrow">Informações</p><h2>Detalhes do serviço</h2></div>
           <label>
             Nome do serviço
             <input disabled={fieldsDisabled} minLength="2" onChange={(event) => setForm({ ...form, nome: event.target.value })} required value={form.nome} />
@@ -1137,16 +1137,15 @@ export function ServiceEditorPage() {
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
-            <small>Ajuda a cliente a encontrar este serviço na página inicial.</small>
           </label>
           <label>
-            Descrição
+            Descrição (opcional)
             <textarea
               disabled={fieldsDisabled}
               maxLength="1200"
               onChange={(event) => setForm({ ...form, descricao: event.target.value })}
               placeholder="Explique o resultado, materiais ou diferenciais."
-              rows="5"
+              rows="3"
               value={form.descricao}
             />
             <small>{form.descricao.length}/1200 caracteres</small>
@@ -1169,15 +1168,13 @@ export function ServiceEditorPage() {
 
         <section className="panel stack-form service-media-panel">
           <div>
-            <p className="eyebrow">Apresentação</p>
             <h2>Fotos do serviço</h2>
-            <p className="muted service-media-help">Opcional para publicar. Adicione fotos quando quiser e escolha qual delas aparece como capa no catálogo e no perfil público.</p>
+            <p className="muted service-media-help">Mostre seu talento. Fotos são opcionais.</p>
           </div>
 
           <div className="service-cover-section">
             <div className="service-media-section-heading">
               <strong>Capa do serviço</strong>
-              <small>Esta é a primeira imagem que a cliente vê.</small>
             </div>
             <div className="cover-upload">
               <div className="cover-preview">
@@ -1300,5 +1297,6 @@ export function ServiceEditorPage() {
         </div>
       </form>
     </main>
+    </SetupFlowFrame>
   );
 }

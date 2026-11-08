@@ -164,14 +164,14 @@ test('sair durante criação impede adoção e redirecionamento por uma resposta
   await page.getByLabel('Número', { exact: true }).fill('10');
   await page.getByRole('button', { name: 'Criar negócio', exact: true }).click();
   await expect.poll(() => Boolean(pending)).toBe(true);
-  await page.getByRole('link', { name: 'Voltar ao início', exact: true }).click();
+  await page.getByRole('link', { name: 'Sair', exact: true }).click();
   await page.getByRole('dialog', { name: 'Sair sem salvar?' }).getByRole('button', { name: 'Sair sem salvar', exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   const reads = state.sessionReads();
   state.setBusiness(BUSINESS);
   await finishMutation(page, pending, { negocio: BUSINESS }, 201);
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole('heading', { name: 'Crie seu negócio' })).not.toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Seu negócio' })).not.toBeVisible();
   expect(state.sessionReads()).toBe(reads);
 });
 
@@ -200,7 +200,7 @@ test('confirmar saída invalida criação antes de a página de planos carregar'
   await page.getByRole('button', { name: 'Criar negócio', exact: true }).click();
   await expect.poll(() => Boolean(pendingCreation)).toBe(true);
   try {
-    await page.getByRole('link', { name: 'Voltar aos planos', exact: true }).click();
+    await page.getByRole('link', { name: 'Sair', exact: true }).click();
     await page.getByRole('dialog', { name: 'Sair sem salvar?' }).getByRole('button', { name: 'Sair sem salvar', exact: true }).click();
     await expect.poll(() => Boolean(pendingPlans)).toBe(true);
     await expect(page).toHaveURL(/\/planos$/);

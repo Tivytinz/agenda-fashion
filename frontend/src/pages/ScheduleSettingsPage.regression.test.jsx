@@ -49,7 +49,7 @@ describe("regressões da configuração de horários", () => {
     });
 
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Ajustar horários" }));
+    await screen.findByLabelText("Início do atendimento de Segunda");
 
     expect(screen.getByText("Dia")).not.toBeNull();
     expect(screen.getAllByText("Atendimento")).toHaveLength(2);
@@ -94,12 +94,12 @@ describe("regressões da configuração de horários", () => {
     });
 
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Ajustar horários" }));
+    await screen.findByLabelText("Início do atendimento de Segunda");
     fireEvent.click(screen.getByRole("button", { name: "Salvar horários e continuar" }));
 
     expect(await screen.findByText("Horários de atendimento confirmados com sucesso."))
       .not.toBeNull();
-    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
+    expect(screen.queryByRole("heading", { name: "Seu link está pronto" }))
       .toBeNull();
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
@@ -148,12 +148,12 @@ describe("regressões da configuração de horários", () => {
     });
 
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Ajustar horários" }));
+    await screen.findByLabelText("Início do atendimento de Segunda");
     fireEvent.click(screen.getByRole("button", { name: "Salvar horários e continuar" }));
 
-    expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
+    expect(await screen.findByRole("heading", { name: "Seu link está pronto" }))
       .not.toBeNull();
-    expect(screen.getByRole("button", { name: "Compartilhar perfil" }))
+    expect(screen.getByRole("button", { name: "Compartilhar link" }))
       .not.toBeNull();
     expect(screen.getByRole("button", { name: "Copiar link" }))
       .not.toBeNull();
