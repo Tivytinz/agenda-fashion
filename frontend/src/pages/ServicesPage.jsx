@@ -342,7 +342,7 @@ export function ServicesPage() {
                   <MediaThumb
                     alt={`Capa do serviço ${service.nome}`}
                     className={`management-service-media service-category-${service.categoria || "outro"}`}
-                    emoji="✦"
+                    emoji="📷"
                     src={service.foto_url}
                   />
                   {!service.foto_url && (
@@ -1181,8 +1181,8 @@ export function ServiceEditorPage() {
                 {coverPreview
                   ? <img alt="Prévia da nova capa" src={coverPreview} />
                   : form.foto_url
-                    ? <MediaThumb alt={`Capa atual do serviço ${form.nome}`} className="editor-media" emoji="✦" src={form.foto_url} />
-                    : <span><strong>✦</strong>Adicione uma foto de capa</span>}
+                    ? <MediaThumb alt={`Capa atual do serviço ${form.nome}`} className="editor-media" emoji="📷" src={form.foto_url} />
+                    : <span><strong aria-hidden="true" className="native-emoji">📷</strong>Adicione uma foto de capa</span>}
               </div>
               <label className="button button-secondary button-small">
                 {cover ? "Trocar imagem escolhida" : form.foto_url ? "Trocar capa" : "Escolher capa"}
@@ -1243,7 +1243,7 @@ export function ServiceEditorPage() {
                   return (
                     <figure className={currentCover ? "is-cover" : ""} key={photo.id}>
                       <div className="service-gallery-media">
-                        <MediaThumb alt={`Foto da galeria de ${form.nome}`} className="editor-media" emoji="✦" src={photo.foto_url} />
+                        <MediaThumb alt={`Foto da galeria de ${form.nome}`} className="editor-media" emoji="📷" src={photo.foto_url} />
                         {!photo.virtualCover && (
                           <button
                             aria-label="Remover foto da galeria"
@@ -1261,7 +1261,7 @@ export function ServiceEditorPage() {
                         {currentCover ? (
                           <span className="service-cover-current-label">
                             <ConfirmationIcon className="service-cover-badge-icon" />
-                            Capa atual
+                            <span>Capa atual</span>
                           </span>
                         ) : (
                           <button

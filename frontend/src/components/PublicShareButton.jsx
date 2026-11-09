@@ -10,21 +10,6 @@ import {
   sharePublicLink
 } from "../utils/publicLinks";
 
-function ShareIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="public-share-icon"
-      viewBox="0 0 24 24"
-    >
-      <path
-        d="M18 8a3 3 0 1 0-2.83-4A3 3 0 0 0 15 5c0 .2.02.4.06.58L8.9 9.1A3 3 0 0 0 7 8.42a3 3 0 1 0 1.9 5.48l6.16 3.52A3 3 0 0 0 15 18a3 3 0 1 0 .9-2.14l-6.17-3.53a3.1 3.1 0 0 0 0-.66l6.17-3.53A3 3 0 0 0 18 8Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
 export function PublicShareButton({
   ariaLabel,
   businessId,
@@ -235,7 +220,7 @@ export function PublicShareButton({
       title={url}
       type="button"
     >
-      <ShareIcon />
+      <span aria-hidden="true" className="public-share-icon native-emoji">{mode === "copy" ? "📋" : "📤"}</span>
       <span aria-live="polite">
         {feedback}
       </span>

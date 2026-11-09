@@ -1,9 +1,9 @@
+import { CategoryEmoji } from "./CategoryEmoji";
 import { Link, useLocation } from "react-router-dom";
 import {
   formatCurrency,
   formatLocation
 } from "../utils/format";
-import { AppIcon } from "./AppIcon";
 import { useRetryingMedia } from "../hooks/useRetryingMedia";
 import {
   serviceCategoryEmoji,
@@ -83,7 +83,7 @@ export function ServiceCard({
         ) : (
           <span className="service-discovery-placeholder">
             <strong aria-hidden="true">
-              {categoryEmoji}
+              <CategoryEmoji emoji={categoryEmoji} />
             </strong>
 
             <small>
@@ -117,7 +117,7 @@ export function ServiceCard({
 
         <div className="service-business-info">
           <strong className="discovery-labeled-value">
-            <AppIcon className="discovery-icon" name="business" />
+            <span aria-hidden="true" className="discovery-icon native-emoji">🏪</span>
             {service.negocio_nome}
           </strong>
 
@@ -136,14 +136,14 @@ export function ServiceCard({
 
         <div className="service-discovery-meta">
           <span className="discovery-labeled-value">
-            <AppIcon className="discovery-icon" name="clock" />
+            <span aria-hidden="true" className="discovery-icon native-emoji">⏰</span>
             {service.duracao_minutos
               ? `${service.duracao_minutos} min`
               : "Consulte a duração"}
           </span>
 
           <strong className="discovery-labeled-value">
-            <AppIcon className="discovery-icon" name="costs" />
+            <span aria-hidden="true" className="discovery-icon native-emoji">💰</span>
             {formatCurrency(service.valor)}
           </strong>
         </div>

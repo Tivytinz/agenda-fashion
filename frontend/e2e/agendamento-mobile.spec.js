@@ -224,3 +224,26 @@ test("perfil e agendamento permanecem contidos no celular", async ({ page }) => 
   )).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
+
+
+test("fallback de cílios no perfil usa o asset compartilhado sem substituição CSS", async ({ page }) => {
+  await page.route("**/eventos-produto", route => route.fulfill({ status: 204, body: "" }));
+  await page.route("**/perfil-negocio/studio-aurora", route => route.fulfill({
+    status: 200, contentType: "application/json",
+    body: JSON.stringify({ ...PROFILE, servicos: [
+      { ...PROFILE.servicos[0], nome: "Extensão de cílios", categoria: "cilio", foto_url: null }
+    ] })
+  }));
+  await page.goto("/negocio/studio-aurora");
+  const fallback = page.getByRole("button", { name: "Selecionar Extensão de cílios", exact: true }).locator(".af-media-fallback");
+  await expect(fallback).toBeVisible();
+  await expect(fallback.locator(".category-emoji")).toHaveAttribute("style", /cilios-emoji/);
+  await expect.poll(() => fallback.evaluate(element => ({
+    fontSize: parseFloat(getComputedStyle(element).fontSize),
+    before: getComputedStyle(element, "::before").content,
+    iconWidth: element.querySelector(".category-emoji").getBoundingClientRect().width
+  }))).toEqual({ fontSize: expect.any(Number), before: "none", iconWidth: expect.any(Number) });
+  expect(await fallback.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThan(0);
+  expect(await fallback.locator(".category-emoji").evaluate(element => element.getBoundingClientRect().width)).toBeGreaterThan(0);
+  await expectNoHorizontalOverflow(page);
+});

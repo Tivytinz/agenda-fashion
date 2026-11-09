@@ -27,6 +27,21 @@ A interface deve evitar decisões que não pertencem ao momento atual, sem sacri
 
 Emojis fazem parte da identidade do Agenda Fashion quando ajudam a leitura e reforçam o contexto de beleza, agenda, celebração ou crescimento.
 
+Emojis nativos fazem parte da identidade visual do AF. Usar caracteres Unicode
+renderizados pelo sistema da pessoa: Apple, Google, Samsung ou Microsoft podem
+apresentar desenhos diferentes. Não substituir emojis por imagens, SVGs,
+sprites, fontes baixadas ou conjuntos próprios para padronizar sua aparência.
+A consistência está no significado e no uso, não no desenho entre sistemas.
+Exceções autorizadas: sobrancelhas e cílios usam ícones próprios, pois não têm
+um emoji Unicode específico. Preservar o asset de sobrancelhas e usar o de cílios
+nas categorias e nos fallbacks sem foto de serviços, negócios e perfil.
+O componente compartilhado `CategoryEmoji` mantém a mesma representação. Essas exceções não autorizam padronizar os demais
+emojis nem transformar o olho genérico em um emoji nativo de cílios.
+Emojis decorativos devem usar `aria-hidden="true"`, acompanhar texto claro e
+manter tamanho e alinhamento legíveis. A logomarca oficial continua sendo um
+asset da marca; controles técnicos sem equivalente adequado não precisam
+receber emojis forçados.
+
 Exemplos adequados:
 
 - `💅` para catálogo, beleza e ativação de serviços;
@@ -34,7 +49,10 @@ Exemplos adequados:
 - `✨` para orientação, conclusão de etapa e publicação;
 - `💖` quando fizer sentido como reforço acolhedor da marca.
 
-Eles não substituem texto, rótulos, ícones acessíveis, estados de erro ou instruções necessárias.
+Eles não substituem texto, rótulos acessíveis, estados de erro ou instruções necessárias.
+No catálogo, usar ⏰ para duração e 💰 para valor; no fluxo, ✅ para confirmação,
+📤 para compartilhar e 📋 para copiar, sempre acompanhados do texto da ação.
+Os espaços de fotos do serviço usam 📷, inclusive os fallbacks de capa e galeria.
 
 No cadastro focado, cada etapa pode usar um emoji decorativo junto ao título. O nome acessível da tela permanece textual. A linguagem fala diretamente com a profissional, com acolhimento e instruções curtas; a celebração da divulgação depende do estado canônico confirmado, sem tratar compartilhamento como agendamento ou receita.
 

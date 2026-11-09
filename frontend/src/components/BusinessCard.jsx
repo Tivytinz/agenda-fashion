@@ -1,3 +1,4 @@
+import { CategoryEmoji } from "./CategoryEmoji";
 import { Link, useLocation } from "react-router-dom";
 import {
   formatLocation,
@@ -72,7 +73,7 @@ export function BusinessCard({ business, compact = false }) {
               className="business-specialty-emoji"
               aria-hidden="true"
             >
-              {specialtyEmoji}
+              <CategoryEmoji emoji={specialtyEmoji} />
             </span>
 
             <small>

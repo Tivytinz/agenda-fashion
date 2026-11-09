@@ -242,11 +242,11 @@
   filter: drop-shadow(0 8px 12px rgb(217 47 127 / 18%));
 }
 
-.home-category-emoji.is-custom-eyebrow {
+.home-category-emoji.is-custom-beauty {
   display: block;
   width: min(104px, 72%);
   height: 62px;
-  background-image: var(--eyebrow-emoji-url);
+  background-image: var(--beauty-emoji-url);
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
