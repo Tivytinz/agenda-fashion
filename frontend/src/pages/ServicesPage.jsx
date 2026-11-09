@@ -1261,7 +1261,7 @@ export function ServiceEditorPage() {
                         {currentCover ? (
                           <span className="service-cover-current-label">
                             <ConfirmationIcon className="service-cover-badge-icon" />
-                            Capa atual
+                            <span>Capa atual</span>
                           </span>
                         ) : (
                           <button
