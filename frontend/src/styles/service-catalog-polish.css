@@ -157,38 +157,6 @@
   padding: 8px 12px;
 }
 
-/* Fallback próprio para cílios: evita a estrela genérica no catálogo. */
-.services-management-page .service-category-cilio .af-media-fallback {
-  font-size: 0;
-}
-
-.services-management-page .service-category-cilio .af-media-fallback::before {
-  content: "";
-  display: block;
-  width: 70px;
-  height: 44px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 40'%3E%3Cpath d='M8 28c10-12 26-16 48-7' fill='none' stroke='%232f2529' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M17 24l-5-9M26 20l-2-11M36 18l1-11M46 19l4-10M54 22l6-7' fill='none' stroke='%232f2529' stroke-width='3.2' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-}
-
-/* Sobrancelhas também ganham símbolo próprio quando a foto estiver ausente. */
-.services-management-page .service-category-sobrancelha .af-media-fallback {
-  font-size: 0;
-}
-
-.services-management-page .service-category-sobrancelha .af-media-fallback::before {
-  content: "";
-  display: block;
-  width: 72px;
-  height: 34px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 38'%3E%3Cpath d='M8 26c15-12 37-15 64-6-20-3-39 0-57 10-3 2-6-1-7-4Z' fill='%232f2529'/%3E%3C/svg%3E");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-}
-
 /* A capa continua em destaque, mas sem empurrar a galeria para longe. */
 .service-editor-page .cover-preview {
   height: 180px;

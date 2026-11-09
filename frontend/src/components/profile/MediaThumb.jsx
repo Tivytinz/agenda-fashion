@@ -1,3 +1,4 @@
+import { CategoryEmoji } from "../CategoryEmoji";
 import { useRetryingMedia } from "../../hooks/useRetryingMedia";
 
 export function MediaThumb({
@@ -28,7 +29,7 @@ export function MediaThumb({
         />
       ) : (
         <span className="af-media-fallback" aria-hidden="true">
-          {emoji}
+          <CategoryEmoji emoji={emoji} />
         </span>
       )}
     </span>

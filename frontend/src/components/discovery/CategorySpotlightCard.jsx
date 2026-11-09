@@ -1,4 +1,4 @@
-import sobrancelhasEmoji from "../../assets/icons/sobrancelhas-emoji.png";
+import { CategoryEmoji } from "../CategoryEmoji";
 import { serviceCategoryEmoji } from "../../utils/specialties";
 
 export function CategorySpotlightCard({
@@ -8,7 +8,6 @@ export function CategorySpotlightCard({
   onSelect,
   subtitle
 }) {
-  const customEyebrowEmoji = category === "sobrancelha";
 
   return (
     <button
@@ -21,19 +20,7 @@ export function CategorySpotlightCard({
       type="button"
     >
       <span className="home-category-visual">
-        <span
-          aria-hidden="true"
-          className={customEyebrowEmoji
-            ? "home-category-emoji is-custom-eyebrow"
-            : "home-category-emoji"}
-          style={customEyebrowEmoji
-            ? { "--eyebrow-emoji-url": `url(${sobrancelhasEmoji})` }
-            : undefined}
-        >
-          {customEyebrowEmoji
-            ? ""
-            : serviceCategoryEmoji(category, label)}
-        </span>
+        <CategoryEmoji className="home-category-emoji" emoji={serviceCategoryEmoji(category, label)} />
 
         <span className="home-category-shade" />
       </span>

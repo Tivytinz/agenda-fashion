@@ -1234,3 +1234,24 @@ summary:focus-visible {
 }
 
 .discovery-icon { width: 18px; height: 18px; flex: 0 0 auto; }
+
+/* Emojis Unicode com desenho do sistema, sem fonte ou assets próprios do AF. */
+.native-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 1em;
+  font-weight: normal;
+  line-height: 1;
+}
+
+.category-emoji.is-custom-beauty {
+  display: inline-block;
+  width: 1.6em;
+  height: 1em;
+  flex-shrink: 0;
+  vertical-align: middle;
+  background: var(--beauty-emoji-url) center / contain no-repeat;
+}

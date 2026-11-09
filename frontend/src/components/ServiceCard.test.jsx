@@ -36,6 +36,17 @@ function renderCard(overrides = {}) {
 afterEach(cleanup);
 
 describe("ServiceCard", () => {
+  it.each([
+    ["cilio", "Extensão de cílios", "cilios-emoji.png"],
+    ["sobrancelha", "Design de sobrancelhas", "sobrancelhas-emoji.png"]
+  ])("usa o ícone da categoria %s no card sem foto", (categoria, nome, image) => {
+    const { container } = renderCard({ categoria, nome });
+    const icon = container.querySelector(".service-discovery-placeholder .category-emoji");
+    expect(icon.getAttribute("style")).toContain(image);
+    expect(icon.getAttribute("aria-hidden")).toBe("true");
+    expect(screen.getByRole("heading", { name: nome })).not.toBeNull();
+  });
+
   it("oferece horários somente quando o backend confirma a agenda online", () => {
     renderCard({ agendamento_online_disponivel: true });
 

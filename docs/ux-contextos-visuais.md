@@ -46,6 +46,23 @@ Agenda Fashion
 
 Esse mapa descreve composição visual, não autorização. Nomes de componentes não substituem os papéis persistidos nem os controles do backend.
 
+## Emojis nativos da marca
+
+Emojis nativos fazem parte da identidade visual do AF. Usar caracteres Unicode
+renderizados pelo sistema da pessoa: Apple, Google, Samsung ou Microsoft podem
+apresentar desenhos diferentes. Não substituir emojis por imagens, SVGs,
+sprites, fontes baixadas ou conjuntos próprios para padronizar sua aparência.
+A consistência está no significado e no uso, não no desenho entre sistemas.
+Exceções autorizadas: sobrancelhas e cílios usam ícones próprios, pois não têm
+um emoji Unicode específico. Preservar o asset de sobrancelhas e usar o de cílios
+nas categorias e nos fallbacks sem foto de serviços, negócios e perfil.
+O componente compartilhado `CategoryEmoji` mantém a mesma representação. Essas exceções não autorizam padronizar os demais
+emojis nem transformar o olho genérico em um emoji nativo de cílios.
+Emojis decorativos devem usar `aria-hidden="true"`, acompanhar texto claro e
+manter tamanho e alinhamento legíveis. A logomarca oficial continua sendo um
+asset da marca; controles técnicos sem equivalente adequado não precisam
+receber emojis forçados.
+
 ## Segurança e autorização
 
 Aqui existem regras mais rígidas, porque são requisitos de segurança e não apenas preferências visuais.

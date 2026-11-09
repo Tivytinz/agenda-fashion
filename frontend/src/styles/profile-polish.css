@@ -58,22 +58,6 @@
   object-fit: cover;
 }
 
-/* Ícone próprio de cílios no fallback, sem depender do emoji de olho do sistema. */
-.public-profile-page .choice-card[aria-label*="cílios" i] .af-media-fallback {
-  font-size: 0;
-}
-
-.public-profile-page .choice-card[aria-label*="cílios" i] .af-media-fallback::before {
-  content: "";
-  display: block;
-  width: 44px;
-  height: 28px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 40'%3E%3Cpath d='M8 28c10-12 26-16 48-7' fill='none' stroke='%232f2529' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M17 24l-5-9M26 20l-2-11M36 18l1-11M46 19l4-10M54 22l6-7' fill='none' stroke='%232f2529' stroke-width='3.2' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-}
-
 /*
  * O CSS-base tem uma regra genérica para spans de .choice-card que força
  * display:block. Esta regra é deliberadamente mais específica para não deixar
@@ -115,9 +99,9 @@
   background: var(--pink-600);
 }
 
-/* Ícone vetorial próprio de confirmação: verde consistente em qualquer sistema. */
+/* Confirmação por emoji nativo: o desenho acompanha o sistema. */
 .confirmation-icon {
-  display: block;
+  display: inline-flex;
   flex: 0 0 auto;
 }
 
@@ -130,6 +114,7 @@
 .public-profile-page .selected-service-icon {
   width: 15px;
   height: 15px;
+  font-size: 15px;
 }
 
 /* Compartilhar continua secundário, mas não fica apagado demais. */
@@ -169,6 +154,7 @@
 .public-profile-page .time-selected-check {
   width: 17px;
   height: 17px;
+  font-size: 17px;
 }
 
 /* As setas já comunicam a navegação: o scrollbar visual só parecia um elemento quebrado. */
@@ -197,7 +183,7 @@
   box-shadow: 0 7px 18px rgb(217 47 127 / 13%);
 }
 
-/* Etapas concluídas usam o mesmo check verde vetorial, sem círculo rosa por trás. */
+/* Etapas concluídas usam o check nativo, sem círculo rosa por trás. */
 .public-profile-page .flow-steps li.done > span,
 .booking-confirmation-page .flow-steps li.done > span {
   color: inherit;
@@ -211,6 +197,7 @@
 .booking-confirmation-page .flow-confirmation-icon {
   width: 30px;
   height: 30px;
+  font-size: 30px;
 }
 
 .public-profile-page .flow-steps::before,
@@ -228,6 +215,7 @@
 .public-profile-page .section-confirmation-icon {
   width: 27px;
   height: 27px;
+  font-size: 27px;
 }
 
 /* Confirmação: mantém a mesma linguagem visual e reduz redundâncias na última etapa. */

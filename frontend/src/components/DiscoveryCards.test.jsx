@@ -77,8 +77,8 @@ describe("imagens dos cards do catálogo", () => {
       </MemoryRouter>
     );
 
-    expect(document.querySelector(".business-specialty-emoji")?.textContent)
-      .toBe("👁️");
+    expect(document.querySelector(".business-specialty-emoji .category-emoji")?.getAttribute("style"))
+      .toContain("cilios-emoji.png");
     expect(document.querySelector(".business-specialty-emoji")?.textContent)
       .not.toBe("S");
   });
@@ -179,8 +179,8 @@ describe("imagens dos cards do catálogo", () => {
       </MemoryRouter>
     );
 
-    expect(document.querySelector(".service-discovery-placeholder strong")
-      ?.textContent).toBe("〰️");
+    expect(document.querySelector(".service-discovery-placeholder .category-emoji")
+      ?.getAttribute("style")).toContain("sobrancelhas-emoji.png");
 
     view.rerender(
       <MemoryRouter>
@@ -196,8 +196,8 @@ describe("imagens dos cards do catálogo", () => {
       </MemoryRouter>
     );
 
-    expect(document.querySelector(".service-discovery-placeholder strong")
-      ?.textContent).toBe("👁️");
+    expect(document.querySelector(".service-discovery-placeholder .category-emoji")
+      ?.getAttribute("style")).toContain("cilios-emoji.png");
   });
 
   it("identifica Bronzeamento com categoria e ícone próprios", () => {

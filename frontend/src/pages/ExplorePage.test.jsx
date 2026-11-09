@@ -409,7 +409,7 @@ describe("catálogo público paginado", () => {
     });
   });
 
-  it("usa ícones nas sete categorias e o emoji próprio de sobrancelhas", async () => {
+  it("usa emojis nativos e as exceções de sobrancelhas e cílios", async () => {
     apiRequest.mockResolvedValue({
       negocios: [],
       paginacao: { total: 0, tem_mais: false }
@@ -429,10 +429,13 @@ describe("catálogo público paginado", () => {
       .toBe("💅");
     expect(screen.getByRole("button", { name: "Sobrancelhas" })
       .querySelector(".home-category-emoji")
-      ?.classList.contains("is-custom-eyebrow")).toBe(true);
+      ?.classList.contains("is-custom-beauty")).toBe(true);
     expect(screen.getByRole("button", { name: "Sobrancelhas" })
       .querySelector(".home-category-emoji")
       ?.getAttribute("style")).toContain("sobrancelhas-emoji.png");
+    expect(screen.getByRole("button", { name: "Cílios", exact: true })
+      .querySelector(".home-category-emoji")?.getAttribute("style"))
+      .toContain("cilios-emoji.png");
     expect(screen.queryByRole("button", {
       name: "Ver todos"
     })).toBeNull();

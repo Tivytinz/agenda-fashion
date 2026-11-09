@@ -467,3 +467,20 @@ test('salvar serviço sem editar volta ao catálogo sem regravar os dados', asyn
   await expect(page).toHaveURL(/\/painel\/servicos$/);
   expect(writes).toBe(0);
 });
+
+
+test('fallbacks de fotos na gestão preservam a câmera nativa sem SVG legado', async ({ page }) => {
+  await setup(page);
+  await page.route('**/servicos', route => route.request().isNavigationRequest() ? route.continue() : json(route, { servicos: [
+    { ...SERVICE, id: 12, nome: 'Extensão de cílios', categoria: 'cilio' },
+    { ...SERVICE, id: 13, nome: 'Design de sobrancelhas', categoria: 'sobrancelha' }
+  ] }));
+  await page.goto('/painel/servicos');
+  for (const category of ['cilio', 'sobrancelha']) {
+    const fallback = page.locator(`.service-category-${category} .af-media-fallback`);
+    await expect(fallback).toBeVisible();
+    await expect(fallback).toHaveText('📷');
+    await expect.poll(() => fallback.evaluate(element => getComputedStyle(element, '::before').content)).toBe('none');
+    expect(await fallback.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThan(0);
+  }
+});
