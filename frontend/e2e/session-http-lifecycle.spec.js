@@ -44,6 +44,42 @@ function json(res, body, cookie) {
   res.end(JSON.stringify(body));
 }
 
+for (const phase of ["headers", "body"]) {
+  test(`migração legada travada em ${phase} libera nova tentativa sem perder credencial`, async ({ page, baseURL }) => {
+    let failing = true;
+    let started = false;
+    const server = await sessionServer(baseURL, (_req, res, path) => {
+      if (path === "/minha-sessao") {
+        if (!failing) return json(res, { usuario: { id: 1, nome: "Ana" }, vinculos: [] });
+        started = true;
+        if (phase === "body") {
+          res.writeHead(503, { "Content-Type": "application/json" });
+          res.flushHeaders();
+          res.write('{"erro":');
+        }
+        return;
+      }
+      json(res, {});
+    });
+    try {
+      await page.addInitScript(() => localStorage.setItem("token", "legado"));
+      await page.clock.install();
+      await page.goto(`${server.origin}/entrar`);
+      await expect.poll(() => started).toBe(true);
+      await page.clock.fastForward(20001);
+      await expect(page.getByRole("alert")).toContainText("demorou demais");
+      expect(await page.evaluate(() => localStorage.getItem("token"))).toBe("legado");
+      failing = false;
+      await page.getByRole("button", { name: "Tentar novamente" }).click();
+      await expect(page).toHaveURL(`${server.origin}/`);
+      await expect.poll(() => page.evaluate(() => localStorage.getItem("token"))).toBeNull();
+      expect(await page.evaluate(() => localStorage.getItem("session_active"))).toBe("1");
+    } finally {
+      await server.close();
+    }
+  });
+}
+
 test("Sair durante um login aguarda o cookie novo e revoga essa sessão", async ({ page, context, baseURL }) => {
   let finishLogin;
   const gate = new Promise(resolve => { finishLogin = resolve; });

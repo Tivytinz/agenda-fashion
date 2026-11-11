@@ -351,6 +351,19 @@ Novos wrappers de rede devem ser evitados quando `apiRequest` já cobre o caso,
 pois múltiplas primitives concorrentes dificultam timeout, sessão, erros e
 observabilidade.
 
+`api/requestLifecycle.js` é o mecanismo interno compartilhado de prazo e
+cancelamento, usado pelo cliente normal e pela migração legada. A migração possui
+um único prazo para sua sequência de requests. `api/errors.js` define `ApiError`,
+reexportado pelo cliente para preservar os imports existentes. A política de
+confirmação da sessão e a recuperação do bootstrap continuam no `SessionContext`.
+
+Os editores mantêm a coordenação de escrita e descarte. Subfluxos com fronteira
+própria ficam nos módulos do domínio: endereço em `useBusinessAddress`, consultas
+de reconciliação de mídia em `services/mediaRecovery` e interpretação do DTO de
+ativação em `schedule/activation`. Esses módulos não assumem autorização, locks
+de gravação ou decisões de publicação do backend. A separação é incremental;
+os hooks de edição ainda coordenam operações relacionadas do formulário.
+
 ## 11. Estado assíncrono de interface
 
 A primitive compartilhada `ScreenState.jsx` possui:

@@ -1,3 +1,4 @@
+import { useBusinessAddress } from "./useBusinessAddress";
 import { EMPTY, validateImage, normalizeBusinessForm, serializeBusinessForm, isValidLocationUrl, validateWhatsApp, validateCreationCompleteness } from "./form";
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -8,7 +9,7 @@ import {
   getPlanIntentPath,
   normalizePlanSlug
 } from "../../auth/session";
-import { formatCep, formatWhatsApp } from "../../utils/format";
+import { formatWhatsApp } from "../../utils/format";
 import { businessCreationReferenceHash, readBusinessCreationReference } from "../../utils/businessCreationReference";
 import { buildPublicLink, copyPublicLink } from "../../utils/publicLinks";
 
@@ -41,9 +42,6 @@ export function useBusinessEditor({ create = false }) {
   const [creationEnded, setCreationEnded] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [closurePendings, setClosurePendings] = useState([]);
-  const [cepLookup, setCepLookup] = useState({ status: "idle", message: "" });
-  const cepRequestRef = useRef(0);
-  const addressEditsRef = useRef({ endereco: 0, bairro: 0, cidade: 0, estado: 0 });
   const pageContextRef = useRef(null);
   const operationRef = useRef(null);
   const archiveTargetRef = useRef(null);
@@ -59,6 +57,9 @@ export function useBusinessEditor({ create = false }) {
   });
   const locationValid = isValidLocationUrl(form.localizacao_url);
   const whatsappError = validateWhatsApp(form.whatsapp);
+  const { cepLookup, update, handleCepChange, handleCepBlur, resetCepLookup } = useBusinessAddress({
+    create, usuarioId, form, setForm, setSavedForm, loading
+  });
 
   useEffect(() => {
     const context = { create, usuarioId, generation: 0 };
@@ -73,12 +74,10 @@ export function useBusinessEditor({ create = false }) {
     setCreationEnded(false);
     creationAttemptRef.current = create ? readBusinessCreationReference(location.hash, usuarioId) : null;
     archiveTargetRef.current = null;
-    setCepLookup({ status: "idle", message: "" });
 
     return () => {
       if (pageContextRef.current === context) pageContextRef.current = null;
       creationReadRef.current?.abort();
-      cepRequestRef.current += 1;
     };
   }, [create, usuarioId]);
 
@@ -110,12 +109,11 @@ export function useBusinessEditor({ create = false }) {
       }
     }
     operationRef.current = null;
-    cepRequestRef.current += 1;
+    resetCepLookup();
     setSaving(false);
     setPhotoUploading(false);
     setPublishing(false);
     setClosingBusiness(false);
-    setCepLookup({ status: "idle", message: "" });
   }
 
   function finishOperation(operation) {
@@ -262,20 +260,6 @@ export function useBusinessEditor({ create = false }) {
     return () => window.clearTimeout(timeout);
   }, [message]);
 
-  useEffect(() => {
-    if (create || loading) return;
-
-    const cepDigits = String(form.cep || "").replace(/\D/g, "");
-    if (cepDigits.length === 8 && !String(form.endereco || "").trim()) {
-      lookupCep(cepDigits, { syncBaseline: true });
-    }
-  }, [create, loading]);
-
-  function update(field, value) {
-    if (Object.hasOwn(addressEditsRef.current, field)) addressEditsRef.current[field] += 1;
-    setForm((current) => ({ ...current, [field]: value }));
-  }
-
   function toggleSpecialty(specialty) {
     setForm((current) => ({
       ...current,
@@ -283,94 +267,6 @@ export function useBusinessEditor({ create = false }) {
         ? current.areas.filter((item) => item !== specialty)
         : [...current.areas, specialty]
     }));
-  }
-
-  async function lookupCep(value, { syncBaseline = false } = {}) {
-    const cepDigits = String(value || "").replace(/\D/g, "");
-    if (cepDigits.length !== 8) return;
-
-    const requestId = cepRequestRef.current + 1;
-    cepRequestRef.current = requestId;
-    const addressEditsAtRequest = { ...addressEditsRef.current };
-    setCepLookup({ status: "loading", message: "Buscando endereço..." });
-
-    try {
-      const result = await apiRequest(`/cep/${cepDigits}`, {
-        timeoutMs: 6000
-      });
-      if (requestId !== cepRequestRef.current) return;
-
-      const addressPatch = Object.fromEntries(Object.entries({
-        endereco: result.endereco || "",
-        bairro: result.bairro || "",
-        cidade: result.cidade || "",
-        estado: result.estado || ""
-      }).filter(([field]) => addressEditsRef.current[field] === addressEditsAtRequest[field]));
-
-      setForm((current) => {
-        const currentCep = String(current.cep || "").replace(/\D/g, "");
-        if (currentCep !== cepDigits) return current;
-
-        return {
-          ...current,
-          ...addressPatch
-        };
-      });
-
-      if (syncBaseline) {
-        setSavedForm((current) => {
-          const currentCep = String(current.cep || "").replace(/\D/g, "");
-          if (currentCep !== cepDigits) return current;
-
-          return {
-            ...current,
-            ...addressPatch
-          };
-        });
-      }
-
-      setCepLookup({
-        status: "success",
-        message: result.endereco
-          ? "Endereço encontrado. Complete o número. O complemento é opcional."
-          : "CEP encontrado. Complete o endereço e o número. O complemento é opcional."
-      });
-    } catch (requestError) {
-      if (requestId !== cepRequestRef.current) return;
-
-      const notFound = /CEP não encontrado/i.test(requestError?.message || "");
-      setCepLookup({
-        status: "error",
-        message: notFound
-          ? "CEP não encontrado. Confira os números ou preencha o endereço manualmente."
-          : "Não foi possível consultar o CEP agora. Preencha o endereço manualmente."
-      });
-    }
-  }
-
-  function handleCepChange(event) {
-    const formattedCep = formatCep(event.target.value);
-    const cepDigits = String(formattedCep || "").replace(/\D/g, "");
-    update("cep", formattedCep);
-
-    if (cepDigits.length !== 8) {
-      cepRequestRef.current += 1;
-      setCepLookup({ status: "idle", message: "" });
-      return;
-    }
-
-    lookupCep(cepDigits);
-  }
-
-  function handleCepBlur() {
-    const cepDigits = String(form.cep || "").replace(/\D/g, "");
-    if (
-      cepDigits.length === 8
-      && cepLookup.status !== "loading"
-      && cepLookup.status !== "success"
-    ) {
-      lookupCep(cepDigits);
-    }
   }
 
   async function copyPublicUrl() {

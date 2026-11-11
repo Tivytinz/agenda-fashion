@@ -1,3 +1,4 @@
+import { scheduleActivationContext } from "./activation";
 import { LEAD_TIME_OPTIONS, normalizeDay, withCurrentOption, serializeSchedule, validateSchedule } from "./form";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -226,42 +227,9 @@ export function useScheduleEditor({ contextoAgenda, targetProfessionalId }) {
           { signal: controller.signal }
         );
       if (!isCurrent()) return null;
-      const activationState =
-        dashboard
-          ?.proxima_acao_ativacao
-          ?.estado ??
-        null;
-      const hasBookableAvailability =
-        dashboard
-          ?.ativacao
-          ?.possui_disponibilidade_agendavel !==
-        false;
-      const canShare =
-        activationState ===
-          "CONQUISTAR_PRIMEIRO_AGENDAMENTO" &&
-        hasBookableAvailability;
-      const guidance = dashboard?.proxima_acao_ativacao;
+      const { activationState, canShare, guidance, businessContext } = scheduleActivationContext(dashboard);
       setAvailabilityGuidance(canShare ? null : guidance);
-      const business =
-        dashboard?.negocio || {};
-
-      if (
-        canShare &&
-        business.slug
-      ) {
-        setBusinessContext({
-          id:
-            business.negocio_id ??
-            business.id,
-          name:
-            business.nome ||
-            "Seu negócio",
-          slug:
-            business.slug
-        });
-      } else {
-        setBusinessContext(null);
-      }
+      setBusinessContext(businessContext);
 
       return {
         activationState,

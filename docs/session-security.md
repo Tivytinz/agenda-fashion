@@ -147,6 +147,19 @@ Quando o browser encontra a chave histórica `token` no `localStorage`:
 
 `apiRequest()` não injeta mais Bearer automaticamente.
 
+Migração e chamadas normais usam o ciclo de cancelamento de
+`api/requestLifecycle.js`. A migração tem um prazo total de 20 segundos para a
+validação do cookie, envio do Bearer e eventual conferência de conflito, incluindo
+a leitura dos corpos. Cada etapa confere o cancelamento antes de iniciar outra
+request: uma resposta tardia não retoma a migração depois do prazo.
+
+Timeout ou falha transitória no bootstrap encerra o loading e apresenta erro com
+`Tentar novamente` na tela de acesso. A nova tentativa executa o refresh canônico,
+preservando o token legado até confirmação ou invalidação pela geração atual.
+Sem usuário validado, o estado de erro não autoriza navegação autenticada. Uma
+sincronização auxiliar de usuário já validado preserva sua sessão em memória
+quando a falha é transitória.
+
 Se o Bearer legado estiver inválido ou expirado, a sessão local é limpa e a
 pessoa precisa autenticar novamente. Falha transitória de rede não transforma
 um token em válido nem copia credencial para outro storage.

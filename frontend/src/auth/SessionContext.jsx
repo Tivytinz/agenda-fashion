@@ -27,6 +27,7 @@ import {
 const SessionContext = createContext(null);
 const SIGNED_OUT_STATE = {
   loading: false,
+  syncError: "",
   authenticated: false,
   usuario: null,
   negocioPrincipal: null,
@@ -54,6 +55,7 @@ export function SessionProvider({ children }) {
 
     return {
       loading: sessionPresent,
+      syncError: "",
       authenticated: sessionPresent,
       usuario: null,
       negocioPrincipal: null,
@@ -94,7 +96,7 @@ export function SessionProvider({ children }) {
     }
 
     if (!silent) {
-      setState((current) => ({ ...current, loading: true }));
+      setState((current) => ({ ...current, loading: true, syncError: "" }));
     }
 
     const syncController = new AbortController();
@@ -140,6 +142,7 @@ export function SessionProvider({ children }) {
 
       const next = {
         loading: false,
+        syncError: "",
         authenticated: true,
         usuario: result.usuario,
         negocioPrincipal: result.negocio || vinculos[0] || null,
@@ -169,7 +172,9 @@ export function SessionProvider({ children }) {
       } else {
         // Se este refresh silencioso tornou um refresh bloqueante anterior
         // obsoleto, a falha transitória também precisa liberar o loading.
-        setState((current) => ({ ...current, loading: false }));
+        setState((current) => current.usuario
+          ? { ...current, loading: false }
+          : { ...SIGNED_OUT_STATE, syncError: error.message || "Não foi possível carregar sua conta. Tente novamente." });
       }
       throw error;
     } finally {

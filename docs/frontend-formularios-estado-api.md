@@ -618,6 +618,11 @@ O prazo e o sinal externo permanecem ativos até concluir a leitura do corpo.
 Cancelamento nessa leitura propaga `AbortError`, sem virar sucesso vazio.
 Respostas tardias depois do cancelamento não executam limpeza de sessão.
 
+O ciclo interno `api/requestLifecycle.js` também limita a migração de sessão
+legada. Seu prazo é total: validar cookie, migrar e conferir conflito não recebem
+20 segundos adicionais por etapa. Timeout libera o bootstrap e permite repetir
+a consulta na tela de acesso, sem apagar token legado por falha transitória.
+
 Em respostas de sucesso com corpo esperado, falha de leitura ou JSON inválido
 gera `ApiError` 502 com `codigo: INVALID_RESPONSE` e `statusOriginal`. Esse erro
 não confirma o baseline do formulário nem libera automaticamente outra escrita;

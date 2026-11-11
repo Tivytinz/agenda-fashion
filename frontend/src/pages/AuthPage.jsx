@@ -15,7 +15,7 @@ import { useSession } from "../auth/SessionContext";
 import { buildProfessionalSignupPath } from "../utils/professionalEntry";
 import { SetupFlowFrame, SetupTitle } from "../components/SetupFlowFrame";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
-import { LoadingState } from "../components/ScreenState";
+import { ErrorState, LoadingState } from "../components/ScreenState";
 
 export const WHATSAPP_PATTERN = "(?:[^0-9]*[0-9]){10,11}[^0-9]*";
 
@@ -141,6 +141,9 @@ export function AuthPage({ mode = "login" }) {
 
   if (session.loading) {
     return <main className="auth-page"><LoadingState>Carregando sua conta...</LoadingState></main>;
+  }
+  if (session.syncError && !session.usuario) {
+    return <main className="auth-page"><ErrorState message={session.syncError} onRetry={() => session.refresh().catch(() => {})} /></main>;
   }
   if (session.authenticated) {
     return <Navigate replace to={destination} />;

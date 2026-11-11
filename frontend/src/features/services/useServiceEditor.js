@@ -1,3 +1,4 @@
+import { readServiceMedia, reconcileGalleryUploads } from "./mediaRecovery";
 import { EMPTY_FORM, serviceForm, serviceBody, validateImage, samePhoto } from "./form";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -390,31 +391,14 @@ export function useServiceEditor() {
   }
 
   async function recoverGalleryUploads(operation, signal) {
-    let removed = false;
-    for (const [file, attempt] of uploadAttemptsRef.current) {
-      if (!attempt.uncertain) continue;
-      try {
-        const result = await apiRequest(`/servicos/${attempt.servicoId}/fotos/tentativa`, {
-          headers: { "Idempotency-Key": attempt.key },
-          signal,
-        });
-        if (!isCurrentOperation(operation)) return;
-        if (result.estado === "nao_encontrada") {
-          // Conservar a chave: o envio original ainda pode concluir depois do GET.
-          attempt.uncertain = false;
-          continue;
-        }
-        if (!result.foto?.id) throw new Error("Não foi possível identificar a foto salva.");
-        setGallery((current) => [...current.filter((photo) => photo.id !== result.foto.id), result.foto]);
-      } catch (failure) {
-        if (!isCurrentOperation(operation)) return;
-        if (Number(failure.status) !== 410) throw failure;
-        removed = true;
-      }
-      uploadAttemptsRef.current.delete(file);
-      setGalleryFiles((current) => current.filter((item) => item !== file));
-    }
-    if (!isCurrentOperation(operation)) return;
+    const result = await reconcileGalleryUploads({
+      attempts: uploadAttemptsRef.current, signal,
+      isCurrent: () => isCurrentOperation(operation),
+      confirmPhoto: photo => setGallery(current => [...current.filter(item => item.id !== photo.id), photo]),
+      resolveFile: file => setGalleryFiles(current => current.filter(item => item !== file)),
+    });
+    if (!result) return;
+    const { removed } = result;
     setGalleryUncertain(false);
     setMediaMessage(removed
       ? "A foto foi removida e não será reenviada. Selecione outra foto para continuar."
@@ -422,16 +406,9 @@ export function useServiceEditor() {
   }
 
   async function recoverMediaState(operation, signal) {
-    const [servicesResult, photosResult] = await Promise.all([
-      apiRequest("/servicos", { signal }),
-      apiRequest(`/servicos/${persistedId}/fotos`, { signal }),
-    ]);
-    if (!isCurrentOperation(operation)) return;
-    const confirmed = extractServices(servicesResult).find(item => Number(item.id) === Number(persistedId));
-    if (!confirmed) throw new Error("Serviço não encontrado. Volte aos serviços para continuar.");
-    const photos = Array.isArray(photosResult) ? photosResult : photosResult?.fotos;
-    if (!Array.isArray(photos)) throw new Error("Não foi possível confirmar as fotos atuais. Verifique novamente.");
-    const patch = { foto_url: confirmed.foto_url || "", foto_public_id: confirmed.foto_public_id || "" };
+    const result = await readServiceMedia({ id: persistedId, signal, isCurrent: () => isCurrentOperation(operation) });
+    if (!result) return;
+    const { patch, photos } = result;
     if (mediaRecoveryRef.current?.type === "cover" && samePhoto(mediaRecoveryRef.current.photo, patch.foto_url, patch.foto_public_id)) {
       setCover(null);
     }

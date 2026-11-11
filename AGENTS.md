@@ -408,11 +408,13 @@ e toda sincronização pendente deve ser abortada antes de login, cadastro, logo
 ou outra transição que assuma uma nova geração da sessão. O cookie HttpOnly
 válido é a autoridade quando coexistir com um Bearer legado: o frontend deve
 validá-lo antes de tentar a migração e o backend de migração nunca pode
-sobrescrever um cookie de sessão já presente. Se o endpoint de migração encontrar
-um cookie que surgiu concorrentemente, deve preservar esse cookie e responder de
+sobrescrever um cookie de sessão válido já presente. Se o endpoint de migração encontrar
+um cookie válido que surgiu concorrentemente, deve preservar esse cookie e responder de
 forma compatível com bundles anteriores; o frontend atual revalida a sessão
-canônica antes de concluir a migração local. Se o cookie estiver inválido, sua
-validação canônica o limpa antes de uma nova tentativa controlada do Bearer.
+canônica antes de concluir a migração local. A consulta canônica rejeita o cookie
+inválido sem apagá-lo na resposta 401. O endpoint dedicado de migração revalida o
+cookie e só substitui o inválido pelo Bearer legado já autenticado; cookies
+válidos continuam preservados.
 
 O primeiro serviço, novos serviços e a edição usam o mesmo formulário e layout.
 Descrição e fotos são opcionais e ficam disponíveis em todas as entradas. O marcador
@@ -949,6 +951,12 @@ webhook financeiro.
 - Deploy: migrations antes da aplicação e healthcheck em `/health/ready`.
 
 O cliente HTTP mantém timeout e cancelamento até concluir a leitura do corpo.
+`api/requestLifecycle.js` concentra esse ciclo para chamadas normais e migração
+legada. A migração inteira compartilha um prazo de 20 segundos, sem reiniciá-lo
+nas consultas encadeadas. Falha transitória no bootstrap libera o carregamento
+e oferece nova tentativa no acesso, preservando a credencial legada; apenas a
+confirmação da geração atual pode removê-la. Usuário já validado permanece em
+memória em falhas transitórias de sincronização auxiliar.
 Respostas canceladas não podem causar efeitos locais nem sucesso vazio. Um 401
 só limpa a sessão local quando a geração da chamada ainda é atual na aba;
 transições de sessão e autenticações confirmadas invalidam a geração anterior.
@@ -977,7 +985,11 @@ obrigatória no backend. Tokens e botões globais pertencem a `tokens.css` e
 `controls.css`; refinamentos de página e shells mantêm escopo próprio.
 Os hooks `features/{business,services,schedule}/use*Editor.js` coordenam os
 formulários, suas escritas e recuperação; as páginas compõem a apresentação e
-conectam os guards à invalidação do hook. As cinco seções de analytics
+conectam os guards à invalidação do hook. Consulta e concorrência do endereço
+pertencem a `business/useBusinessAddress.js`; reconciliação de mídia somente por
+GET a `services/mediaRecovery.js`; interpretação da resposta canônica de ativação
+a `schedule/activation.js`. Locks e gerações de gravação continuam no editor,
+sem delegar autorização ou publicação a esses módulos. As cinco seções de analytics
 administrativo têm módulos de rota próprios, com suporte compartilhado em
 `features/admin-analytics/`. O barrel legado serve apenas para compatibilidade.
 Alterações isoladas nos estilos globais também disparam o Performance QA.

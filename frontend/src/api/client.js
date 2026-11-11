@@ -1,244 +1,84 @@
 import { clearSession, getSessionRequestGeneration } from "../auth/session";
-import {
-  readBrowserStorage
-} from "../utils/browserStorage";
+import { readBrowserStorage } from "../utils/browserStorage";
+import { ApiError } from "./errors";
+import { DEFAULT_TIMEOUT_MS, withRequestLifecycle } from "./requestLifecycle";
 
+export { ApiError } from "./errors";
 const API_URL = String(import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
-const DEFAULT_TIMEOUT_MS = 20000;
 
-export class ApiError extends Error {
-  constructor(message, status, data) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-    this.data = data;
-  }
+async function legacyFetch(path, options, request) {
+  request.throwIfAborted();
+  const response = await fetch(`${API_URL}${path}`, { ...options, credentials: "include", signal: request.signal });
+  request.throwIfAborted();
+  return response;
 }
 
-async function hasValidCookieSession(
-  signal
-) {
-  const response =
-    await fetch(
-      `${API_URL}/minha-sessao`,
-      {
-        headers: {
-          Accept:
-            "application/json"
-        },
-        credentials:
-          "include",
-        signal
-      }
-    );
-
-  if (response.ok) {
-    return true;
+async function legacyJson(response, request) {
+  let data;
+  try { data = await response.json(); }
+  catch (error) {
+    request.throwIfAborted();
+    if (error?.name === "AbortError") throw error;
+    data = {};
   }
-
-  if (
-    response.status === 401 ||
-    response.status === 403
-  ) {
-    return false;
-  }
-
-  const data =
-    await response
-      .json()
-      .catch(() => ({}));
-
-  throw new ApiError(
-    data.erro ||
-      data.mensagem ||
-      "Não foi possível validar a sessão atual antes da migração.",
-    response.status,
-    data
-  );
+  request.throwIfAborted();
+  return data;
 }
 
-async function requestLegacyMigration(
-  token,
-  signal
-) {
-  return fetch(
-    `${API_URL}/auth/migrar-sessao-legada`,
-    {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        Authorization:
-          `Bearer ${token}`
-      },
-      credentials: "include",
-      signal
-    }
-  );
+async function hasValidCookieSession(request) {
+  const response = await legacyFetch("/minha-sessao", { headers: { Accept: "application/json" } }, request);
+  if (response.ok) return true;
+  if (response.status === 401 || response.status === 403) return false;
+  const data = await legacyJson(response, request);
+  throw new ApiError(data?.erro || data?.mensagem || "Não foi possível validar a sessão atual antes da migração.", response.status, data);
 }
 
-async function resolveLegacyCookieConflict(
-  response,
-  signal
-) {
-  let cookiePresent =
-    response.status === 409;
+function requestLegacyMigration(token, request) {
+  return legacyFetch("/auth/migrar-sessao-legada", {
+    method: "POST", headers: { Accept: "application/json", Authorization: `Bearer ${token}` }
+  }, request);
+}
 
+async function resolveLegacyCookieConflict(response, request) {
+  let cookiePresent = response.status === 409;
   if (response.status === 200) {
-    const data =
-      await response
-        .json()
-        .catch(() => ({}));
-
-    cookiePresent =
-      data.codigo ===
-      "COOKIE_SESSAO_PRESENTE";
+    const data = await legacyJson(response, request);
+    cookiePresent = data?.codigo === "COOKIE_SESSAO_PRESENTE";
   }
-
-  if (!cookiePresent) {
-    return {
-      handled: false
-    };
+  if (!cookiePresent) return { handled: false };
+  if (await hasValidCookieSession(request)) {
+    return { handled: true, result: { attempted: true, migrated: false, alreadyCookie: true } };
   }
-
-  if (
-    await hasValidCookieSession(
-      signal
-    )
-  ) {
-    return {
-      handled: true,
-      result: {
-        attempted: true,
-        migrated: false,
-        alreadyCookie: true
-      }
-    };
-  }
-
-  return {
-    handled: true,
-    retry: true
-  };
+  return { handled: true, retry: true };
 }
 
-export async function migrateLegacySession({ signal } = {}) {
-  const token =
-    readBrowserStorage(
-      "local",
-      "token"
-    );
-
-  if (!token) {
-    return {
-      attempted: false,
-      migrated: false
-    };
+async function performLegacyMigration(token, request) {
+  // Cookie HttpOnly válido é a autoridade, mesmo se o Bearer for de outra conta.
+  if (await hasValidCookieSession(request)) return { attempted: true, migrated: false, alreadyCookie: true };
+  let response = await requestLegacyMigration(token, request);
+  let conflict = await resolveLegacyCookieConflict(response, request);
+  if (conflict.result) return conflict.result;
+  if (conflict.retry) {
+    // Uma única repetição compatível com backends legados, dentro do mesmo prazo.
+    response = await requestLegacyMigration(token, request);
+    conflict = await resolveLegacyCookieConflict(response, request);
+    if (conflict.result) return conflict.result;
+    if (conflict.retry) throw new ApiError("Não foi possível estabilizar a sessão atual antes da migração.", 409, { codigo: "COOKIE_SESSAO_PRESENTE" });
   }
-
-  // Cookie HttpOnly é a sessão canônica. Um Bearer legado só pode ser
-  // migrado quando não existe uma sessão atual válida.
-  if (
-    await hasValidCookieSession(
-      signal
-    )
-  ) {
-    return {
-      attempted: true,
-      migrated: false,
-      alreadyCookie: true
-    };
+  if (response.ok) return { attempted: true, migrated: true };
+  if (response.status === 401 || response.status === 403) {
+    if (await hasValidCookieSession(request)) return { attempted: true, migrated: false, alreadyCookie: true };
+    return { attempted: true, migrated: false, invalid: true };
   }
+  const data = await legacyJson(response, request);
+  throw new ApiError(data?.erro || data?.mensagem || "Não foi possível migrar a sessão antiga.", response.status, data);
+}
 
-  let response =
-    await requestLegacyMigration(
-      token,
-      signal
-    );
-
-  let cookieConflict =
-    await resolveLegacyCookieConflict(
-      response,
-      signal
-    );
-
-  if (cookieConflict.result) {
-    return cookieConflict.result;
-  }
-
-  if (cookieConflict.retry) {
-    // A validação acima limpa um cookie inválido. Tente uma única vez
-    // novamente; o backend continuará sem sobrescrever qualquer cookie
-    // que tenha surgido por uma autenticação concorrente.
-    response =
-      await requestLegacyMigration(
-        token,
-        signal
-      );
-
-    cookieConflict =
-      await resolveLegacyCookieConflict(
-        response,
-        signal
-      );
-
-    if (cookieConflict.result) {
-      return cookieConflict.result;
-    }
-
-    if (cookieConflict.retry) {
-      throw new ApiError(
-        "Não foi possível estabilizar a sessão atual antes da migração.",
-        409,
-        {
-          codigo:
-            "COOKIE_SESSAO_PRESENTE"
-        }
-      );
-    }
-  }
-
-  if (response.ok) {
-    return {
-      attempted: true,
-      migrated: true
-    };
-  }
-
-  if (
-    response.status === 401 ||
-    response.status === 403
-  ) {
-    if (
-      await hasValidCookieSession(
-        signal
-      )
-    ) {
-      return {
-        attempted: true,
-        migrated: false,
-        alreadyCookie: true
-      };
-    }
-
-    return {
-      attempted: true,
-      migrated: false,
-      invalid: true
-    };
-  }
-
-  const data =
-    await response
-      .json()
-      .catch(() => ({}));
-
-  throw new ApiError(
-    data.erro ||
-      data.mensagem ||
-      "Não foi possível migrar a sessão antiga.",
-    response.status,
-    data
-  );
+export async function migrateLegacySession({ signal, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+  const token = readBrowserStorage("local", "token");
+  if (!token) return { attempted: false, migrated: false };
+  // Não altera storage; só o provider confirma a migração ou a invalidação.
+  return withRequestLifecycle(request => performLegacyMigration(token, request), { signal, timeoutMs });
 }
 
 export async function apiRequest(path, options = {}) {
@@ -260,42 +100,14 @@ export async function apiRequest(path, options = {}) {
     body = JSON.stringify(body);
   }
 
-  const controller = new AbortController();
-  let timedOut = false;
-  const abortFromExternalSignal = () => controller.abort(externalSignal?.reason);
-
-  if (externalSignal?.aborted) {
-    abortFromExternalSignal();
-  } else {
-    externalSignal?.addEventListener("abort", abortFromExternalSignal, { once: true });
-  }
-
-  const timeoutId = Number(timeoutMs) > 0
-    ? window.setTimeout(() => {
-      timedOut = true;
-      controller.abort();
-    }, Number(timeoutMs))
-    : null;
-
-  const abortReason = () => controller.signal.reason || new DOMException("Solicitação cancelada.", "AbortError");
-  const throwIfAborted = () => {
-    if (controller.signal.aborted) throw abortReason();
-  };
-  let rejectOnAbort;
-  const aborted = new Promise((_, reject) => {
-    rejectOnAbort = () => reject(abortReason());
-    controller.signal.addEventListener("abort", rejectOnAbort, { once: true });
-    if (controller.signal.aborted) rejectOnAbort();
-  });
-
-  async function execute() {
+  return withRequestLifecycle(async ({ signal, throwIfAborted }) => {
     throwIfAborted();
     const response = await fetch(`${API_URL}${path}`, {
       ...requestOptions,
       headers,
       body,
       credentials: requestOptions.credentials || "include",
-      signal: controller.signal
+      signal
     });
     throwIfAborted();
     const noBody = response.status === 204 || response.status === 205
@@ -326,22 +138,5 @@ export async function apiRequest(path, options = {}) {
       );
     }
     return data;
-  }
-
-  try {
-    return await Promise.race([execute(), aborted]);
-  } catch (requestError) {
-    if (timedOut) {
-      throw new ApiError(
-        "A solicitação demorou demais. Verifique sua conexão e tente novamente.",
-        408,
-        { codigo: "REQUEST_TIMEOUT" }
-      );
-    }
-    throw requestError;
-  } finally {
-    if (timeoutId !== null) window.clearTimeout(timeoutId);
-    externalSignal?.removeEventListener("abort", abortFromExternalSignal);
-    controller.signal.removeEventListener("abort", rejectOnAbort);
-  }
+  }, { signal: externalSignal, timeoutMs });
 }
