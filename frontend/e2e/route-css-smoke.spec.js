@@ -146,7 +146,10 @@ test("dashboard aplica o CSS profissional ao entrar no workspace", async ({ page
   await installOwnerSession(page);
 
   await page.route("**/dashboard-dono?periodo=7dias", (route) => json(route, {
+    // O teste mede o CSS dos indicadores em um negócio já ativado.
+    // Antes do primeiro agendamento, o dashboard os oculta intencionalmente.
     resumo: {},
+    ativacao: { primeiro_agendamento_recebido: true },
     performance: {},
     ranking_servicos: []
   }));
