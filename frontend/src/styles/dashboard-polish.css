@@ -139,3 +139,20 @@
     padding-top: 0;
   }
 }
+
+/* Estado pré-ativação: a missão é a única ação primária. */
+.dashboard-page .dashboard-empty-note {
+  margin: 0;
+  line-height: 1.5;
+}
+
+@media (max-width: 520px) {
+  /* Sobrepõe o grid de duas colunas do breakpoint <=800px. */
+  .dashboard-page .metric-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-page .dashboard-today .button {
+    width: 100%;
+  }
+}

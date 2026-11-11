@@ -786,6 +786,61 @@ describe("dashboard", () => {
       })).toBeNull();
     });
   });
+
+  it("prioriza a missão antes do primeiro agendamento e compacta métricas sem dados", async () => {
+    mockDashboardRequests({
+      dashboard: {
+        ...DASHBOARD,
+        resumo: {
+          ...DASHBOARD.resumo,
+          agendamentos_hoje: 0,
+          agendamentos_periodo: 0,
+          faturamento_periodo: 0,
+          clientes_novos: 0
+        },
+        resumo_dias: [],
+        ranking_servicos: []
+      },
+      origin: { resumo: { clientes: 0 }, origens: [] }
+    });
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+    const action = await screen.findByRole("region", { name: "Divulgue seu perfil" });
+    const performance = screen.getByRole("region", { name: "Desempenho do perfil" });
+    const today = screen.getByRole("region", { name: "Agenda de hoje" });
+    expect(action.compareDocumentPosition(performance) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(performance.compareDocumentPosition(today) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(today).getByRole("link", { name: "Abrir agenda" }).classList.contains("button-secondary")).toBe(true);
+    expect(screen.queryByRole("heading", { name: "Agendamentos por dia" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Indicadores" })).toBeNull();
+    expect(screen.getByText("A origem dos clientes aparecerá aqui após o primeiro agendamento.")).not.toBeNull();
+    expect(screen.queryByText("Ver detalhes das origens")).toBeNull();
+    expect(screen.getByText("Seu negócio")).not.toBeNull();
+  });
+
+  it("mantém analytics detalhados após a ativação mesmo com período sem reservas", async () => {
+    mockDashboardRequests({
+      dashboard: {
+        ...DASHBOARD,
+        resumo: { ...DASHBOARD.resumo, agendamentos_periodo: 0 },
+        resumo_dias: [],
+        ativacao: { ...DASHBOARD.ativacao, primeiro_agendamento_recebido: true },
+        proxima_acao_ativacao: { estado: "ATIVADO", concluido: true }
+      },
+      origin: { resumo: { clientes: 0 }, origens: [] }
+    });
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+    expect(await screen.findByRole("heading", { name: "Visão geral" })).not.toBeNull();
+    expect(screen.getByRole("region", { name: "Indicadores" })).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Agendamentos por dia" })).not.toBeNull();
+    expect(screen.getByText("Nenhum agendamento no período selecionado.")).not.toBeNull();
+    expect(screen.getByText("Seu crescimento")).not.toBeNull();
+    const today = screen.getByRole("region", { name: "Agenda de hoje" });
+    expect(within(today).getByRole("link", { name: "Abrir agenda" }).classList.contains("button-secondary")).toBe(false);
+    expect(screen.queryByRole("region", { name: "Divulgue seu perfil" })).toBeNull();
+  });
+
 });
 
 it.each(["success", "error"])("não permite Copilot com período anterior durante atualização: %s", async (outcome) => {

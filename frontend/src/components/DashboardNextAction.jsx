@@ -130,11 +130,11 @@ export function DashboardNextAction({
   if (activationCompleted) return null;
 
   return (
-    <section className="panel dashboard-action-panel">
+    <section aria-labelledby="dashboard-next-action-title" className="panel dashboard-action-panel">
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Próximo passo</p>
-          <h2>{action.title}</h2>
+          <h2 id="dashboard-next-action-title">{action.title}</h2>
         </div>
       </div>
 
