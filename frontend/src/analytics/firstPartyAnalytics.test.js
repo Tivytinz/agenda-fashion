@@ -27,6 +27,16 @@ afterEach(() => {
 });
 
 describe("firstPartyAnalytics", () => {
+  it("coletor e outbox preservam keepalive sem reaproveitar Bearer legado", async () => {
+    localStorage.setItem("token", "token-da-conta-anterior");
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true })));
+    await send([{ type: "event", name: "profile_viewed", eventUuid: "c6b83d90-09f0-4ad2-83e3-8a1f44e92641" }], { keepalive: true });
+    const [, options] = fetch.mock.calls.find(([url]) => url.endsWith("/analytics/collect"));
+    expect(options).toMatchObject({ credentials: "include", keepalive: true });
+    expect(new Headers(options.headers).has("Authorization")).toBe(false);
+    expect(readOutbox()).toEqual([]);
+  });
+
   it("não captura origem de campanha antes do consentimento", () => {
     window.history.replaceState(
       {},

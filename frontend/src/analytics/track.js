@@ -1,3 +1,4 @@
+import { postTelemetry } from "./transport";
 import {
   readBrowserStorage,
   removeBrowserStorage,
@@ -418,17 +419,7 @@ export function track(name, {
       }
     };
 
-    const token = readBrowserStorage("local", "token");
-
-    void fetch(`${String(import.meta.env.VITE_API_URL || "").replace(/\/+$/, "")}/eventos-produto`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify(payload),
-      keepalive: true
-    }).catch(() => {
+    void postTelemetry("/eventos-produto", payload, { keepalive: true }).catch(() => {
       // Métricas nunca bloqueiam o agendamento.
     });
   } catch {

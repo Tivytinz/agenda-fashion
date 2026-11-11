@@ -43,10 +43,8 @@ const loadAdminWhatsAppStyles = () => import("./styles/admin-whatsapp.css");
 const loadDashboardStyles = () => import("./styles/dashboard-polish.css");
 const loadAgendaStyles = () => import("./styles/agenda-polish.css");
 const loadScheduleStyles = () => import("./styles/schedule-polish.css");
-const loadServicesStyles = () => Promise.all([
-  import("./styles/service-media-polish.css"),
-  import("./styles/service-catalog-polish.css")
-]);
+const loadServicesStyles = () => import("./styles/service-media-polish.css");
+const loadServiceCatalogStyles = () => import("./styles/service-catalog-polish.css");
 const loadBusinessStyles = () => import("./styles/business-polish.css");
 const loadSubscriptionStyles = () => import("./styles/subscription-polish.css");
 const loadPlansStyles = () => import("./styles/plans-polish.css");
@@ -163,8 +161,8 @@ const ServiceEditorPage = lazyNamedWithStyles(
   "ServiceEditorPage"
 );
 const ServicesPage = lazyNamedWithStyles(
-  loadServicesStyles,
-  () => import("./pages/ServicesPage"),
+  loadServiceCatalogStyles,
+  () => import("./pages/ServiceCatalogPage"),
   "ServicesPage"
 );
 const ProfessionalsPage = lazyNamedWithStyles(

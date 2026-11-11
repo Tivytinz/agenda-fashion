@@ -57,6 +57,7 @@ frontend/
 │   ├── auth/
 │   ├── components/
 │   ├── config/
+│   ├── features/
 │   ├── hooks/
 │   ├── pages/
 │   ├── styles/
@@ -78,6 +79,7 @@ Responsabilidades gerais:
 - `api/`: primitive HTTP compartilhada;
 - `auth/`: sessão, resolução de contexto e proteção de rotas;
 - `analytics/`: telemetria comportamental e bridges de marketing permitidas;
+- `features/`: normalização, validação e serialização específicas de domínio;
 - `utils/`: lógica reutilizável que não pertence a um componente;
 - `styles/`: fundações, design systems contextuais e refinamentos de feature;
 - `assets/`: recursos visuais versionados junto do frontend.
@@ -334,11 +336,13 @@ O contrato atual inclui:
 - serialização automática de objetos para JSON;
 - preservação de `FormData`;
 - `credentials: "include"`;
-- compatibilidade com token armazenado quando presente;
+- cookie HttpOnly nas chamadas normais e migração explícita do token legado;
 - `AbortController`;
-- timeout padrão de 20 segundos;
+- timeout padrão de 20 segundos cobrindo headers e leitura do corpo;
 - `ApiError` com `status` e dados da resposta;
-- limpeza da sessão local quando a resposta é HTTP 401.
+- erro 502 `INVALID_RESPONSE` quando um sucesso com corpo esperado chega
+  incompleto ou com JSON inválido, preservando respostas sem corpo 204/205/HEAD;
+- limpeza da sessão local em HTTP 401 somente para a geração atual da aba.
 
 O servidor não usa prefixo global `/api`; o frontend não deve introduzir esse
 prefixo unilateralmente.
@@ -741,3 +745,37 @@ renderização inicial do banner; busca e links internos antecipam essa montagem
 `DiscoveryBoundary` protege o módulo de resultados, mantendo busca e banner
 acessíveis se ele falhar. O sinal de montagem continua necessário para rolar até
 seções que pertencem ao catálogo lazy.
+
+## Fronteira do catálogo e editor de serviços
+
+`ServiceCatalogPage.jsx` coordena consulta, visibilidade e remoção do catálogo.
+`ServicesPage.jsx` mantém o editor único de criação, edição e onboarding, com
+reexport do catálogo para compatibilidade das importações existentes.
+`utils/serviceCatalog.js` concentra categorias e normalização compartilhadas.
+As rotas permanecem iguais; separar módulos não cria outra jornada de serviço.
+
+Catálogo carrega `service-catalog-polish.css`; editor carrega
+`service-media-polish.css`. Regras de gestão não pertencem ao CSS do editor.
+Extrações futuras de Negócio, Horários e Analytics devem preservar recuperação,
+idempotência e contratos, sem reescrever telas inteiras.
+
+## Responsabilidades de formulários, sessão e telemetria
+
+`features/business/form.js`, `features/services/form.js` e
+`features/schedule/form.js` concentram as transformações, baselines serializados
+e validações de UX dos formulários. As páginas mantêm a composição, as operações
+pendentes e a recuperação canônica; extrações futuras dessas operações precisam
+preservar os mesmos locks locais, referências de tentativa e guardas de contexto.
+Esses módulos não substituem validações de domínio no backend.
+
+`auth/sessionTransitions.js` coordena as escritas de sessão da mesma aba, com
+ordenação e invalidação por intenção. O provider continua responsável pelo
+estado React e pelo refresh; nenhuma proteção local autoriza uma operação.
+
+`analytics/transport.js` compartilha apenas o POST com cookie e keepalive.
+Outbox, retry, consentimento e semântica de evento continuam nos coletores;
+telemetria não usa o logout global do cliente HTTP nem injeta Bearer legado.
+
+`src/architecture.test.js` protege imports entre camadas, ausência de ciclos
+JS/JSX, parsing dos módulos e ownership de tokens/botões globais. Imports de
+compatibilidade entre páginas continuam permitidos durante extrações graduais.

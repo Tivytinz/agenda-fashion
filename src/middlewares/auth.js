@@ -3,7 +3,6 @@ const authSessionRepository = require(
 );
 const registrador = require("../utils/registrador");
 const {
-  limparCookieSessao,
   obterTokenDaRequisicao,
 } = require(
   "../config/sessionCookie"
@@ -21,6 +20,8 @@ const {
  * Rotas que usam este middleware
  * só continuam quando existe um
  * token JWT válido.
+ * Rejeitar uma credencial não altera cookies: a resposta pode chegar depois
+ * de outro login. Limpeza explícita pertence ao logout/redefinição de senha.
  */
 function tokenAnteriorATrocaDeSenha(
   decoded,
@@ -64,7 +65,6 @@ module.exports = async function auth(
 ) {
   const {
     token,
-    origem,
   } = obterTokenDaRequisicao(req);
 
   if (!token) {
@@ -81,10 +81,6 @@ module.exports = async function auth(
       verificarToken(token);
 
     if (!decoded?.id) {
-      if (origem === "cookie") {
-        limparCookieSessao(res);
-      }
-
       return res
         .status(401)
         .json({
@@ -111,10 +107,6 @@ module.exports = async function auth(
           .senha_alterada_em
       )
     ) {
-      if (origem === "cookie") {
-        limparCookieSessao(res);
-      }
-
       return res
         .status(401)
         .json({
@@ -151,10 +143,6 @@ module.exports = async function auth(
       erro.name ===
       "TokenExpiredError"
     ) {
-      if (origem === "cookie") {
-        limparCookieSessao(res);
-      }
-
       return res
         .status(401)
         .json({
@@ -172,10 +160,6 @@ module.exports = async function auth(
       )
     ) {
       return next(erro);
-    }
-
-    if (origem === "cookie") {
-      limparCookieSessao(res);
     }
 
     return res

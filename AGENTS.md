@@ -948,6 +948,34 @@ webhook financeiro.
 - CI/CD: GitHub Actions e Railway.
 - Deploy: migrations antes da aplicação e healthcheck em `/health/ready`.
 
+O cliente HTTP mantém timeout e cancelamento até concluir a leitura do corpo.
+Respostas canceladas não podem causar efeitos locais nem sucesso vazio. Um 401
+só limpa a sessão local quando a geração da chamada ainda é atual na aba;
+transições de sessão e autenticações confirmadas invalidam a geração anterior.
+Essa geração não substitui autorização no servidor nem sincroniza identidade
+entre abas. `auth` e `optionalAuth` rejeitam credenciais inválidas sem enviar
+exclusão de cookies: respostas antigas não podem apagar o cookie de outro login.
+Logout e redefinição de senha mantêm sua limpeza explícita; validação de conta,
+revogação e troca de senha continuam obrigatórias no backend.
+
+Na mesma aba, login/cadastro/Google/logout compartilham uma fila de escritas de
+sessão e uma intenção atual. Sair invalida autenticações anteriores e limpa a
+interface imediatamente; se uma autenticação já foi enviada, o logout aguarda
+sua resposta para revogar o cookie resultante. Só a intenção atual pode salvar
+metadados, sincronizar ou concluir a autenticação. O acesso aguarda o bootstrap
+da sessão e bloqueia envios simultâneos por senha/Google. A fila não coordena
+abas nem substitui a autorização no servidor.
+Sucesso HTTP com corpo esperado ilegível ou JSON inválido gera 502
+`INVALID_RESPONSE`, sem confirmar formulários. Respostas 204/205/HEAD aceitam
+corpo ausente; erros HTTP preservam o status original.
+
+Os coletores de analytics compartilham transporte por cookie HttpOnly, sem
+reaproveitar Bearer legado. Consentimento, keepalive e outbox continuam sob
+controle dos coletores. Normalização/validação de formulário pertence a
+`frontend/src/features/*/form.js`; validação de segurança e domínio permanece
+obrigatória no backend. Tokens e botões globais pertencem a `tokens.css` e
+`controls.css`; refinamentos de página e shells mantêm escopo próprio.
+
 O frontend é uma única aplicação React. As rotas privadas de negócio continuam
 entrando pela resolução contextual de `WorkspaceLayout`: vínculos de dona são
 delegados para `OwnerShell` com design system `--owner-*`, enquanto vínculos de

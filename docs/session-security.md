@@ -23,6 +23,21 @@ O middleware obrigatório `auth` calcula o mesmo hash e recusa tokens revogados 
 
 `POST /logout` preserva o comportamento idempotente: sem token ou com token já inválido/expirado, a saída local continua podendo concluir. Falhas inesperadas de banco/configuração não devem ser mascaradas; o cookie é limpo e o erro segue para o tratamento central.
 
+Na mesma aba, `SessionProvider` usa a fila de `auth/sessionTransitions.js` para
+ordenar login, cadastro, Google e logout. Cada ação marca uma intenção; respostas
+de autenticações substituídas não gravam metadados nem restauram a conta. Sair
+continua imediato na interface, invalida autenticações enfileiradas e aguarda a
+escrita em andamento antes de chamar o logout. Assim, o backend recebe e revoga
+o cookie retornado por uma autenticação que já havia sido enviada.
+
+As requisições seguintes aguardam conclusão, erro ou abort no cliente; erro não
+trava a fila. Abortar não desfaz uma escrita já concluída no servidor. Repetir
+Sair reutiliza o logout pendente e invalida intenções de entrada intermediárias.
+O formulário de acesso aguarda a sessão inicial; senha e Google compartilham o
+bloqueio de envio, e callbacks do SDK desmontado/bloqueado são descartados.
+Essa coordenação é local à aba e não modifica o contrato de `/logout`, a
+revogação no backend ou a autorização das operações de negócio.
+
 ## Recuperação de senha
 
 O fluxo de recuperação usa token aleatório de uso único com validade de 30
@@ -66,7 +81,18 @@ A Wave A corrige o hardening que estava pendente no estado executável anterior.
 
 O middleware obrigatório `auth` já consultava o estado da sessão com o hash do JWT. Na Wave A, `optionalAuth` passou a enviar o mesmo hash ao repository e só vincula `req.user` quando a sessão não está revogada.
 
-A rota continua pública quando não há identidade válida: JWT revogado, expirado ou inválido não transforma autenticação opcional em erro obrigatório. Quando o token revogado veio pelo cookie, o cookie é limpo.
+A rota continua pública quando não há identidade válida: JWT revogado, expirado ou inválido não transforma autenticação opcional em erro obrigatório. A identidade inválida não é vinculada à requisição.
+
+`auth` e `optionalAuth` não enviam exclusão de cookie ao recusar uma credencial.
+Uma consulta pendente pode responder depois de outro login; apagar o cookie
+nessa resposta também apagaria a sessão nova. A autenticação obrigatória mantém
+o 401 e a opcional mantém o visitante, sem afrouxar validação de conta,
+revogação, expiração ou troca de senha. Logout e redefinição de senha continuam
+operações explícitas de limpeza de cookie.
+
+No frontend, a geração capturada por `apiRequest` impede que um 401 anterior a
+uma transição ou autenticação nova limpe a sessão atual na mesma aba. Essa
+geração não é autoridade de autenticação nem sincroniza identidades entre abas.
 
 A Wave A foi validada e mergeada na `main`, incluindo o teste de regressão. A análise detalhada está em [`frontend-seguranca.md`](./frontend-seguranca.md).
 
@@ -104,12 +130,14 @@ a compatibilidade do backend.
 
 Quando o browser encontra a chave histórica `token` no `localStorage`:
 
-1. chama `POST /auth/migrar-sessao-legada` uma única vez com o Bearer antigo;
-2. o middleware `auth` valida conta, expiração, revogação e troca de senha;
-3. o controller grava o mesmo JWT válido no cookie HttpOnly;
-4. o frontend remove `localStorage.token`;
-5. grava apenas `session_active`;
-6. `/minha-sessao` e as demais chamadas passam a usar somente cookie.
+1. valida primeiro o cookie atual por `/minha-sessao` e o preserva se válido;
+2. quando necessário, chama `POST /auth/migrar-sessao-legada` com o Bearer antigo;
+3. o middleware `auth` valida conta, expiração, revogação e troca de senha;
+4. o controller preserva cookie válido ou grava o JWT legado validado em cookie
+   HttpOnly; conflitos de migração são conferidos pelo cliente;
+5. após confirmar cookie ou migração, o frontend remove `localStorage.token`
+   e grava apenas `session_active`;
+6. `/minha-sessao` e as demais chamadas usam somente cookie.
 
 `apiRequest()` não injeta mais Bearer automaticamente.
 

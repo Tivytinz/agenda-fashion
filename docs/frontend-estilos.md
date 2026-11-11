@@ -6,6 +6,15 @@ Este documento registra a direção atual para evoluir o CSS do Agenda Fashion s
 
 Ele funciona como referência de ownership, carregamento e manutenção. A solução concreta pode variar quando acessibilidade, compatibilidade, simplicidade ou a tarefa da página justificarem uma composição diferente.
 
+
+A fundação global tem ownership explícito: `tokens.css` contém o `:root` global
+e `controls.css` contém as regras globais `.button*`, incluindo estados e
+refinamentos do AF. `index.css` importa ambos antes das regras de estrutura.
+`af-experience.css` mantém refinamentos de experiência sem redefinir essa
+fundação. Tokens e variantes com escopo de shell/feature continuam no contexto.
+A ordem das regras dos controles preserva os estados visuais já implementados;
+a consolidação não troca os emojis nativos nem o design system dos shells.
+
 ## Princípios
 
 1. A experiência pública, profissional e de negócio preserva uma identidade reconhecível do Agenda Fashion sem exigir a mesma composição em todas as telas.
@@ -75,7 +84,8 @@ O projeto já usa esse padrão em áreas como:
 - `DashboardPage`: `dashboard-polish.css`;
 - `AgendaWorkspacePage`: `agenda-polish.css`;
 - `ScheduleSettingsPage`: `schedule-polish.css`;
-- `ServicesPage` e `ServiceEditorPage`: estilos de mídia e catálogo de serviços;
+- `ServicesPage` (catálogo): `service-catalog-polish.css`;
+- `ServiceEditorPage` (criação, edição e onboarding): `service-media-polish.css`;
 - `BusinessPage`: `business-polish.css`;
 - `SubscriptionPage`: `subscription-polish.css`;
 - `PlansPage`: `plans-polish.css`;

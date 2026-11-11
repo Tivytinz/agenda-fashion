@@ -1,4 +1,4 @@
-import { clearSession } from "../auth/session";
+import { clearSession, getSessionRequestGeneration } from "../auth/session";
 import {
   readBrowserStorage
 } from "../utils/browserStorage";
@@ -248,6 +248,7 @@ export async function apiRequest(path, options = {}) {
     clearSessionOnUnauthorized = true,
     ...requestOptions
   } = options;
+  const sessionGeneration = getSessionRequestGeneration();
   const headers = new Headers(options.headers || {});
 
   headers.set("Accept", "application/json");
@@ -276,15 +277,59 @@ export async function apiRequest(path, options = {}) {
     }, Number(timeoutMs))
     : null;
 
-  let response;
-  try {
-    response = await fetch(`${API_URL}${path}`, {
+  const abortReason = () => controller.signal.reason || new DOMException("Solicitação cancelada.", "AbortError");
+  const throwIfAborted = () => {
+    if (controller.signal.aborted) throw abortReason();
+  };
+  let rejectOnAbort;
+  const aborted = new Promise((_, reject) => {
+    rejectOnAbort = () => reject(abortReason());
+    controller.signal.addEventListener("abort", rejectOnAbort, { once: true });
+    if (controller.signal.aborted) rejectOnAbort();
+  });
+
+  async function execute() {
+    throwIfAborted();
+    const response = await fetch(`${API_URL}${path}`, {
       ...requestOptions,
       headers,
       body,
       credentials: requestOptions.credentials || "include",
       signal: controller.signal
     });
+    throwIfAborted();
+    const noBody = response.status === 204 || response.status === 205
+      || String(requestOptions.method || "GET").toUpperCase() === "HEAD";
+    const data = noBody ? {} : await response.json().catch((error) => {
+      throwIfAborted();
+      if (error?.name === "AbortError") throw error;
+      // Um erro HTTP continua sendo erro mesmo sem JSON utilizável. Em 2xx,
+      // um corpo incompleto/inválido nunca confirma uma leitura ou gravação.
+      if (!response.ok) return {};
+      throw new ApiError(
+        "Não foi possível confirmar a resposta do servidor. Atualize os dados antes de tentar novamente.",
+        502,
+        { codigo: "INVALID_RESPONSE", statusOriginal: response.status }
+      );
+    });
+    // Nenhuma resposta cancelada pode produzir efeitos locais tardios.
+    throwIfAborted();
+    if (!response.ok) {
+      if (response.status === 401 && clearSessionOnUnauthorized
+        && sessionGeneration === getSessionRequestGeneration()) {
+        clearSession({ notify: true });
+      }
+      throw new ApiError(
+        data?.erro || data?.mensagem || "Não foi possível concluir a solicitação.",
+        response.status,
+        data
+      );
+    }
+    return data;
+  }
+
+  try {
+    return await Promise.race([execute(), aborted]);
   } catch (requestError) {
     if (timedOut) {
       throw new ApiError(
@@ -297,21 +342,6 @@ export async function apiRequest(path, options = {}) {
   } finally {
     if (timeoutId !== null) window.clearTimeout(timeoutId);
     externalSignal?.removeEventListener("abort", abortFromExternalSignal);
+    controller.signal.removeEventListener("abort", rejectOnAbort);
   }
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    if (response.status === 401 && clearSessionOnUnauthorized) {
-      clearSession({ notify: true });
-    }
-
-    throw new ApiError(
-      data.erro || data.mensagem || "Não foi possível concluir a solicitação.",
-      response.status,
-      data
-    );
-  }
-
-  return data;
 }

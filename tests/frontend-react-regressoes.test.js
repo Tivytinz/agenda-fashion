@@ -485,6 +485,8 @@ describe(
       () => {
         const css = [
           "frontend/src/styles/index.css",
+          "frontend/src/styles/tokens.css",
+          "frontend/src/styles/controls.css",
           "frontend/src/styles/responsive.css",
         ].map(ler).join("\n");
 
@@ -584,7 +586,7 @@ describe(
         );
         const base = ler(
           "frontend/src/styles/index.css"
-        );
+        ) + ler("frontend/src/styles/tokens.css") + ler("frontend/src/styles/controls.css");
         const experiencia = ler(
           "frontend/src/styles/af-experience.css"
         );

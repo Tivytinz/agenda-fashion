@@ -15,7 +15,7 @@ vi.mock("../api/client", () => ({
   migrateLegacySession: vi.fn()
 }));
 
-function SessionProbe() {
+function SessionProbe({ onAuthError = () => {} }) {
   const session = useSession();
   return (
     <>
@@ -34,19 +34,25 @@ function SessionProbe() {
       </button>
       <button
         type="button"
-        onClick={() => session.login({ email: "bruna@example.com", senha: "senha" }).catch(() => {})}
+        onClick={() => session.login({ email: "bruna@example.com", senha: "senha" }).catch(onAuthError)}
       >
         Entrar como Bruna
+      </button>
+      <button type="button" onClick={() => session.register({ email: "bruna@example.com", senha: "senha" }).catch(() => {})}>
+        Cadastrar Bruna
+      </button>
+      <button type="button" onClick={() => session.loginWithGoogle("credencial-teste").catch(() => {})}>
+        Entrar com Google
       </button>
     </>
   );
 }
 
-function renderSession() {
+function renderSession({ onAuthError } = {}) {
   return render(
     <MemoryRouter initialEntries={["/conta"]}>
       <SessionProvider>
-        <SessionProbe />
+        <SessionProbe onAuthError={onAuthError} />
       </SessionProvider>
     </MemoryRouter>
   );
@@ -85,6 +91,128 @@ afterEach(() => {
 });
 
 describe("sincronização da sessão", () => {
+  it("falha de autenticação ultrapassada não substitui o resultado da intenção nova", async () => {
+    const onAuthError = vi.fn();
+    renderSession({ onAuthError });
+    await screen.findByText("Ana");
+    let rejectOld;
+    let current;
+    apiRequest.mockImplementation(path => {
+      if (path === "/login") return new Promise((_resolve, reject) => { rejectOld = reject; });
+      if (path === "/cadastro") current = { usuario: { id: 3, nome: "Conta nova" }, vinculos: [] };
+      return Promise.resolve(current);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Entrar como Bruna" }));
+    await waitFor(() => expect(rejectOld).toBeTypeOf("function"));
+    fireEvent.click(screen.getByRole("button", { name: "Cadastrar Bruna" }));
+    await act(async () => rejectOld(Object.assign(new Error("Erro antigo"), { status: 401 })));
+    await screen.findByText("Conta nova");
+    expect(onAuthError).toHaveBeenCalledWith(expect.objectContaining({ name: "AbortError" }));
+  });
+
+  it.each([
+    ["Entrar como Bruna", "/login"],
+    ["Cadastrar Bruna", "/cadastro"],
+    ["Entrar com Google", "/auth/google"]
+  ])("Sair durante %s aguarda a escrita e não restaura a conta", async (action, path) => {
+    renderSession();
+    await screen.findByText("Ana");
+    let finishAuthentication;
+    apiRequest.mockImplementation(requestPath => requestPath === path
+      ? new Promise(resolve => { finishAuthentication = resolve; }) : Promise.resolve({}));
+    fireEvent.click(screen.getByRole("button", { name: action }));
+    await waitFor(() => expect(finishAuthentication).toBeTypeOf("function"));
+    fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+    expect(screen.getByText("Desconectada")).not.toBeNull();
+    expect(apiRequest.mock.calls.filter(([p]) => p === "/logout")).toHaveLength(0);
+    await act(async () => finishAuthentication({ usuario: { id: 2, nome: "Bruna" } }));
+    await waitFor(() => expect(apiRequest.mock.calls.filter(([p]) => p === "/logout")).toHaveLength(1));
+    expect(screen.queryByText("Bruna")).toBeNull();
+    expect(localStorage.getItem("session_active")).toBeNull();
+  });
+
+  it("ordena autenticações concorrentes e aplica apenas a intenção mais recente", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    let finishOld;
+    let current;
+    apiRequest.mockImplementation(path => {
+      if (path === "/login") return new Promise(resolve => { finishOld = resolve; });
+      if (path === "/cadastro") current = { usuario: { id: 3, nome: "Conta mais recente" }, vinculos: [] };
+      return Promise.resolve(current);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Entrar como Bruna" }));
+    await waitFor(() => expect(finishOld).toBeTypeOf("function"));
+    fireEvent.click(screen.getByRole("button", { name: "Cadastrar Bruna" }));
+    expect(apiRequest.mock.calls.filter(([p]) => p === "/cadastro")).toHaveLength(0);
+    await act(async () => finishOld({ usuario: { id: 2, nome: "Conta antiga" } }));
+    await screen.findByText("Conta mais recente");
+    expect(screen.queryByText("Conta antiga")).toBeNull();
+  });
+
+  it("Sair novamente cancela uma autenticação ainda enfileirada", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    let finishLogout;
+    apiRequest.mockImplementationOnce(() => new Promise(resolve => { finishLogout = resolve; }));
+    fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+    await waitFor(() => expect(finishLogout).toBeTypeOf("function"));
+    fireEvent.click(screen.getByRole("button", { name: "Entrar como Bruna" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+    await act(async () => finishLogout({}));
+    expect(apiRequest.mock.calls.filter(([p]) => p === "/login")).toHaveLength(0);
+    expect(screen.getByText("Desconectada")).not.toBeNull();
+  });
+
+  it.each([
+    ["Entrar como Bruna", "/login", false],
+    ["Cadastrar Bruna", "/cadastro", false],
+    ["Entrar com Google", "/auth/google", false],
+    ["Entrar como Bruna", "/login", true],
+    ["Cadastrar Bruna", "/cadastro", true],
+    ["Entrar com Google", "/auth/google", true]
+  ])("%s espera o logout pendente (%s, falha=%s)", async (action, path, failLogout) => {
+    let finishLogout;
+    let failPendingLogout;
+    let current = { usuario: { id: 1, nome: "Ana" }, negocio: null, vinculos: [] };
+    apiRequest.mockImplementation((requestPath) => {
+      if (requestPath === "/logout") return new Promise((resolve, reject) => {
+        finishLogout = resolve;
+        failPendingLogout = reject;
+      });
+      if (requestPath === path) current = { usuario: { id: 2, nome: "Bruna" }, negocio: null, vinculos: [] };
+      return Promise.resolve(current);
+    });
+    renderSession();
+    await screen.findByText("Ana");
+    fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+    expect(screen.getByText("Desconectada")).not.toBeNull();
+    expect(localStorage.getItem("session_active")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: action }));
+    await act(async () => {});
+    expect(apiRequest.mock.calls.filter(([p]) => p === path)).toHaveLength(0);
+    await act(async () => {
+      if (failLogout) failPendingLogout(Object.assign(new Error("Tempo limite"), { status: 408 }));
+      else finishLogout({});
+    });
+    await screen.findByText("Bruna");
+    expect(apiRequest.mock.calls.filter(([p]) => p === path)).toHaveLength(1);
+    expect(localStorage.getItem("session_active")).toBe("1");
+  });
+
+  it("repete a saída local sem enviar dois logouts concorrentes", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    let finishLogout;
+    apiRequest.mockImplementationOnce(() => new Promise(resolve => { finishLogout = resolve; }));
+    fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+    await waitFor(() => expect(finishLogout).toBeTypeOf("function"));
+    expect(apiRequest.mock.calls.filter(([path]) => path === "/logout")).toHaveLength(1);
+    expect(screen.getByText("Desconectada")).not.toBeNull();
+    await act(async () => finishLogout({}));
+  });
+
   it("arquivamento confirmado retira só o negócio encerrado e preserva a conta e outro vínculo", async () => {
     const owner = { id: 9, papel: "dono" };
     const professional = { id: 22, papel: "profissional" };

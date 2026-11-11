@@ -955,7 +955,12 @@ describe("configuração de horários", () => {
     ).not.toBeNull();
   });
 
-  it("não avança quando o salvamento dos horários falha", async () => {
+  it.each([
+    new Error("Não foi possível salvar os horários"),
+    Object.assign(new Error("Resposta incompleta: confirme os horários"), {
+      status: 502, data: { codigo: "INVALID_RESPONSE" }
+    })
+  ])("não avança quando o salvamento dos horários falha: %s", async (error) => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {
         return Promise.resolve({
@@ -965,7 +970,7 @@ describe("configuração de horários", () => {
         });
       }
       if (path === "/agenda-configuracao" && options.method === "PUT") {
-        return Promise.reject(new Error("Não foi possível salvar os horários"));
+        return Promise.reject(error);
       }
       return Promise.reject(new Error(`Rota inesperada: ${path}`));
     });
@@ -974,8 +979,10 @@ describe("configuração de horários", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Salvar horários e continuar" }));
 
     expect(await screen.findByRole("alert")).not.toBeNull();
-    expect(screen.getByRole("alert").textContent).toContain("Não foi possível salvar os horários");
+    expect(screen.getByRole("alert").textContent).toContain(error.message);
     expect(screen.queryByTestId("destination")).toBeNull();
+    expect(screen.queryByText("Horários atualizados.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Salvar horários e continuar" })).not.toBeNull();
   });
 
   it("mantém as regras visíveis junto da semana na primeira configuração", async () => {

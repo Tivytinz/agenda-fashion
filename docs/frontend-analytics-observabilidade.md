@@ -496,6 +496,16 @@ Uma falha de telemetria nunca pode impedir:
 
 Eventos de saída/fechamento podem usar `keepalive`.
 
+`analytics/transport.js` é o transporte compartilhado de `/analytics/collect`
+e `/eventos-produto`: POST JSON com `credentials: "include"` e keepalive quando
+solicitado. Ele usa o cookie HttpOnly atual e não injeta Bearer de localStorage;
+a migração legada pertence ao fluxo de sessão, evitando atribuir o evento à
+conta antiga quando coexistem cookie e token legado.
+
+Consentimento, minimização, outbox, retry e idempotência continuam com seus
+responsáveis atuais. O transporte não dispara logout global nem bloqueia o
+agendamento diante de falha de telemetria.
+
 Isso aumenta a chance de entrega quando a página está sendo encerrada.
 
 Não é garantia de entrega.

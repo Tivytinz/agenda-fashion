@@ -8,6 +8,7 @@ import {
   useState
 } from "react";
 import { useLocation } from "react-router-dom";
+import { createSessionTransitions, supersededSessionTransition } from "./sessionTransitions";
 import {
   apiRequest,
   migrateLegacySession
@@ -18,6 +19,7 @@ import {
   completeLegacySessionMigration,
   getBusinessContextForPath,
   hasSession,
+  invalidateSessionRequests,
   saveSession,
   SESSION_CLEARED_EVENT
 } from "./session";
@@ -41,6 +43,9 @@ export function SessionProvider({ children }) {
   const refreshRequestRef = useRef(0);
   const lastAppliedRefreshRef = useRef(0);
   const sessionSyncAbortRef = useRef(null);
+  const pendingLogoutRef = useRef(null);
+  const transitionsRef = useRef(null);
+  if (!transitionsRef.current) transitionsRef.current = createSessionTransitions();
   const [state, setState] = useState(() => {
     const sessionPresent =
       hasSession();
@@ -67,6 +72,7 @@ export function SessionProvider({ children }) {
 
   const beginSessionTransition = useCallback(() => {
     sessionGenerationRef.current += 1;
+    invalidateSessionRequests();
     abortSessionSync();
   }, [abortSessionSync]);
 
@@ -201,61 +207,42 @@ export function SessionProvider({ children }) {
     };
   }, [beginSessionTransition]);
 
-  const login = useCallback(async (payload) => {
+  const authenticate = useCallback((path, body) => {
+    const transitions = transitionsRef.current;
+    const intent = transitions.begin();
     beginSessionTransition();
-    const result = await apiRequest("/login", {
-      method: "POST",
-      body: payload
+    return transitions.enqueue(async () => {
+      if (!transitions.isCurrent(intent)) throw supersededSessionTransition();
+      try {
+        const result = await apiRequest(path, { method: "POST", body });
+        if (!transitions.isCurrent(intent)) throw supersededSessionTransition();
+        saveSession(result);
+        const current = await refresh();
+        if (!transitions.isCurrent(intent)) throw supersededSessionTransition();
+        return { ...current, contaCriada: Boolean(result.contaCriada) };
+      } catch (error) {
+        if (!transitions.isCurrent(intent)) throw supersededSessionTransition();
+        throw error;
+      }
     });
-    saveSession(result);
-    return refresh();
   }, [beginSessionTransition, refresh]);
 
-  const register = useCallback(async (payload) => {
-    beginSessionTransition();
-    const result = await apiRequest("/cadastro", {
-      method: "POST",
-      body: payload
-    });
-    saveSession(result);
-    const current = await refresh();
+  const login = useCallback(payload => authenticate("/login", payload), [authenticate]);
+  const register = useCallback(payload => authenticate("/cadastro", payload), [authenticate]);
 
-    return {
-      ...current,
-      contaCriada: Boolean(result.contaCriada)
-    };
-  }, [beginSessionTransition, refresh]);
-
-  const loginWithGoogle = useCallback(async (
+  const loginWithGoogle = useCallback((
     credential,
     marketing,
     meta,
     aceitaNotificacoesWhatsapp,
     perfilProfissional
-  ) => {
-    beginSessionTransition();
-    const result = await apiRequest("/auth/google", {
-      method: "POST",
-      body: {
-        credential,
-        ...(typeof aceitaNotificacoesWhatsapp === "boolean"
-          ? { aceitaNotificacoesWhatsapp }
-          : {}),
-        ...(marketing ? { marketing } : {}),
-        ...(meta ? { meta } : {}),
-        ...(typeof perfilProfissional === "boolean"
-          ? { perfil_profissional: perfilProfissional }
-          : {})
-      }
-    });
-    saveSession(result);
-    const current = await refresh();
-
-    return {
-      ...current,
-      contaCriada: Boolean(result.contaCriada)
-    };
-  }, [beginSessionTransition, refresh]);
+  ) => authenticate("/auth/google", {
+    credential,
+    ...(typeof aceitaNotificacoesWhatsapp === "boolean" ? { aceitaNotificacoesWhatsapp } : {}),
+    ...(marketing ? { marketing } : {}),
+    ...(meta ? { meta } : {}),
+    ...(typeof perfilProfissional === "boolean" ? { perfil_profissional: perfilProfissional } : {})
+  }), [authenticate]);
 
   const adoptCreatedBusiness = useCallback((business) => {
     const businessId = Number(business?.id);
@@ -316,18 +303,26 @@ export function SessionProvider({ children }) {
     return true;
   }, [beginSessionTransition]);
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(() => {
+    // Mesmo uma saída repetida cancela autenticações enfileiradas depois dela.
+    const transitions = transitionsRef.current;
+    transitions.begin();
     beginSessionTransition();
     clearSession();
     setState(SIGNED_OUT_STATE);
+    if (pendingLogoutRef.current) return pendingLogoutRef.current;
 
-    try {
-      await apiRequest("/logout", {
-        method: "POST"
-      });
-    } catch {
-      // A saída local precisa funcionar mesmo durante uma falha de rede.
-    }
+    const pending = transitions.enqueue(async () => {
+      try {
+        await apiRequest("/logout", { method: "POST" });
+      } catch {
+        // A saída local precisa funcionar mesmo durante uma falha de rede.
+      } finally {
+        if (pendingLogoutRef.current === pending) pendingLogoutRef.current = null;
+      }
+    });
+    pendingLogoutRef.current = pending;
+    return pending;
   }, [beginSessionTransition]);
 
   const routeSession = useMemo(() => ({

@@ -44,7 +44,7 @@ describe("ownership de CSS por rota", () => {
       ["SubscriptionPage", "loadSubscriptionStyles"],
       ["PlansPage", "loadPlansStyles"],
       ["ServiceEditorPage", "loadServicesStyles"],
-      ["ServicesPage", "loadServicesStyles"],
+      ["ServicesPage", "loadServiceCatalogStyles"],
       ["AdminSaasHealthPage", "loadAdminSaasHealthStyles"],
       ["AdminWhatsAppPage", "loadAdminWhatsAppStyles"]
     ].forEach(([pagina, loader]) => {

@@ -5,23 +5,6 @@
  * às áreas públicas, de agendamento, profissionais e administrativas.
  */
 
-:root {
-  --wine: #382f34;
-  --ink: #332c30;
-  --muted: #746970;
-  --line: #efdee6;
-  --surface: #ffffff;
-  --pink-700: #a92762;
-  --shadow: 0 12px 34px rgb(217 47 127 / 7%);
-  --shadow-hover: 0 18px 44px rgb(217 47 127 / 13%);
-  --af-page: #fff8fb;
-  --af-page-strong: #fff1f6;
-  --af-graphite: #382f34;
-  --af-graphite-soft: #746970;
-  --af-card-radius: 22px;
-  --af-control-radius: 14px;
-}
-
 body {
   color: var(--af-graphite);
   background: var(--af-page);
@@ -52,27 +35,6 @@ strong {
 .text-link:hover,
 .text-button:hover {
   color: var(--pink-600);
-}
-
-.button {
-  border-radius: 999px;
-  box-shadow: 0 9px 22px rgb(217 47 127 / 13%);
-}
-
-.button:hover {
-  box-shadow: 0 12px 28px rgb(217 47 127 / 20%);
-}
-
-.button-secondary {
-  color: var(--af-graphite);
-  border-color: var(--pink-100);
-  background: #fff;
-  box-shadow: 0 7px 18px rgb(217 47 127 / 6%);
-}
-
-.button-secondary:hover {
-  border-color: var(--pink-500);
-  background: var(--pink-50);
 }
 
 .page-content {

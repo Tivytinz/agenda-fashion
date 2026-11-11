@@ -127,18 +127,15 @@ Novo código não deve voltar a persistir JWT no browser storage.
 
 ## 6. Compatibilidade Bearer legada
 
-Ainda existe compatibilidade temporária:
+A sessão principal usa cookie HttpOnly. `apiRequest` não injeta Bearer em
+chamadas normais. Ao encontrar `localStorage.token`, `migrateLegacySession`
+valida primeiro o cookie atual e usa `/auth/migrar-sessao-legada` quando
+necessário. O token local só é removido após confirmar a migração, a existência
+de cookie válido ou a invalidade da credencial legada.
 
-- `apiRequest` lê `localStorage.token` se existir;
-- envia `Authorization: Bearer ...`;
-- backend prioriza Bearer sobre cookie;
-- `hasSession()` ainda reconhece o token legado.
-
-Isso existe para migração.
-
-Não usar essa compatibilidade como padrão para feature nova.
-
-O objetivo de segurança continua sendo cookie HttpOnly como sessão primária.
+O backend ainda aceita Bearer para clientes legados. Sua retirada depende dos
+critérios de observabilidade; isso não autoriza novas features a persistirem
+JWT em JavaScript.
 
 ## 7. Por que localStorage não deve guardar segredo
 
@@ -198,7 +195,7 @@ Essa resposta do backend é superior ao cache local.
 
 `apiRequest` trata 401 globalmente.
 
-Ao receber 401:
+Ao receber 401 da geração atual de sessão na aba:
 
 ```text
 clearSession({ notify: true })
@@ -207,6 +204,23 @@ clearSession({ notify: true })
 e o `SessionProvider` volta ao estado signed-out.
 
 Isso reduz telas privadas operando depois de expiração da sessão.
+
+Início de transição, autenticação confirmada, migração concluída e limpeza
+local invalidam gerações anteriores. Um 401 antigo continua chegando como erro
+ao chamador, mas não limpa o estado local atual. Essa proteção é local à aba.
+
+No backend, `auth` e `optionalAuth` não enviam exclusão de cookie ao recusar
+credenciais. A resposta pode chegar depois de outro login; apenas ignorá-la no
+React não impediria o navegador de aplicar o `Set-Cookie` antigo. As mesmas
+validações de conta, revogação, assinatura e expiração continuam obrigatórias.
+Logout e redefinição de senha mantêm limpeza explícita.
+
+Na mesma aba, login/cadastro/Google/logout usam uma fila de escrita e uma
+intenção atual. Sair invalida autenticações anteriores, aguarda a escrita em
+andamento para revogar o cookie retornado e não permite restaurar estado local
+com a resposta antiga. Só a intenção mais recente pode concluir a autenticação.
+O bootstrap de sessão bloqueia a oferta prematura do formulário de acesso;
+callbacks de senha/Google compartilham proteção contra envio simultâneo.
 
 ## 11. 403 não é o mesmo que 401
 
@@ -378,9 +392,13 @@ A validação cobre:
 
 - passar o hash do token também no `optionalAuth`;
 - manter visitante sem token funcionando;
-- limpar cookie revogado quando aplicável;
+- manter a rota pública como visitante diante de token revogado;
 - adicionar teste de token revogado no `optionalAuth`;
 - revisar collectors e outras rotas que usam autenticação opcional.
+
+A limpeza automática do cookie em rejeições foi retirada para preservar logins
+posteriores diante de respostas fora de ordem. A recusa da identidade continua
+obrigatória e é coberta por regressões de revogação e concorrência.
 
 ## 20. Recuperação de senha
 

@@ -8,12 +8,23 @@ const SESSION_ACTIVE_KEY = "session_active";
 const SESSION_KEYS = ["token", SESSION_ACTIVE_KEY, "usuario", "negocio"];
 export const SESSION_CLEARED_EVENT = "agenda-fashion:session-cleared";
 
+let requestGeneration = 0;
+
+export function getSessionRequestGeneration() {
+  return requestGeneration;
+}
+
+export function invalidateSessionRequests() {
+  requestGeneration += 1;
+}
+
 export function clearStoredSessionMetadata() {
   removeBrowserStorage("local", "usuario");
   removeBrowserStorage("local", "negocio");
 }
 
 export function completeLegacySessionMigration() {
+  invalidateSessionRequests();
   removeBrowserStorage("local", "token");
   writeBrowserStorage("local", SESSION_ACTIVE_KEY, "1");
 }
@@ -26,10 +37,12 @@ export function saveSession(result) {
     return;
   }
 
+  invalidateSessionRequests();
   writeBrowserStorage("local", SESSION_ACTIVE_KEY, "1");
 }
 
 export function clearSession({ notify = false } = {}) {
+  invalidateSessionRequests();
   SESSION_KEYS.forEach((key) => removeBrowserStorage("local", key));
 
   if (notify && typeof window !== "undefined") {
