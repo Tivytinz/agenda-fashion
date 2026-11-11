@@ -42,3 +42,10 @@ it("libera todas as URLs também no ciclo adicional do StrictMode", () => {
     URL.createObjectURL.mock.results.map(({ value }) => value)
   );
 });
+
+it("codifica metacaracteres da URL antes de usá-la como origem da imagem", () => {
+  URL.createObjectURL.mockReturnValue('blob:local/<capa>"');
+  render(<FileImagePreview alt="Capa" file={new File(["image"], "foto.jpg")} />);
+  expect(screen.getByRole("img", { name: "Capa" }).getAttribute("src"))
+    .toBe("blob:local/%3Ccapa%3E%22");
+});

@@ -17,5 +17,5 @@ export function FileImagePreview({ file, alt }) {
 
   const src = preview?.file === file ? preview?.url || "" : "";
   if (!src.startsWith("blob:")) return null;
-  return <img alt={alt} src={src} />;
+  return <img alt={alt} src={encodeURI(src)} />;
 }

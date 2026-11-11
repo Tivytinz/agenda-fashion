@@ -837,7 +837,8 @@ image/webp
 O mimetype declarado não é suficiente.
 
 A prévia local da capa usa `FileImagePreview`: recebe o arquivo selecionado,
-cria sua própria URL e aceita somente o protocolo `blob:`. Texto ou URLs
+cria sua própria URL, aceita somente o protocolo `blob:` e codifica a URL no
+atributo da imagem. Texto ou URLs
 vindos de outros campos do formulário não são usados nessa prévia. Trocar o
 arquivo ou desmontar o componente revoga a URL anterior, inclusive em
 StrictMode. Essa prévia não substitui a validação de conteúdo no backend.
