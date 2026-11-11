@@ -23,6 +23,14 @@ function storage() {
 }
 
 describe("track attribution", () => {
+  test("evento legado usa o cookie atual sem reaproveitar o token de outra conta", () => {
+    localStorage.setItem("token", "token-da-conta-anterior");
+    track("tela_visualizada", { page: "home" });
+    const [, options] = fetch.mock.calls.find(([url]) => url.endsWith("/eventos-produto"));
+    expect(options).toMatchObject({ credentials: "include", keepalive: true });
+    expect(new Headers(options.headers).has("Authorization")).toBe(false);
+  });
+
   beforeEach(() => {
     vi.stubGlobal("sessionStorage", storage());
     vi.stubGlobal("localStorage", storage());

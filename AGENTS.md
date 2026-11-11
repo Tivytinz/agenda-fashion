@@ -408,11 +408,13 @@ e toda sincronização pendente deve ser abortada antes de login, cadastro, logo
 ou outra transição que assuma uma nova geração da sessão. O cookie HttpOnly
 válido é a autoridade quando coexistir com um Bearer legado: o frontend deve
 validá-lo antes de tentar a migração e o backend de migração nunca pode
-sobrescrever um cookie de sessão já presente. Se o endpoint de migração encontrar
-um cookie que surgiu concorrentemente, deve preservar esse cookie e responder de
+sobrescrever um cookie de sessão válido já presente. Se o endpoint de migração encontrar
+um cookie válido que surgiu concorrentemente, deve preservar esse cookie e responder de
 forma compatível com bundles anteriores; o frontend atual revalida a sessão
-canônica antes de concluir a migração local. Se o cookie estiver inválido, sua
-validação canônica o limpa antes de uma nova tentativa controlada do Bearer.
+canônica antes de concluir a migração local. A consulta canônica rejeita o cookie
+inválido sem apagá-lo na resposta 401. O endpoint dedicado de migração revalida o
+cookie e só substitui o inválido pelo Bearer legado já autenticado; cookies
+válidos continuam preservados.
 
 O primeiro serviço, novos serviços e a edição usam o mesmo formulário e layout.
 Descrição e fotos são opcionais e ficam disponíveis em todas as entradas. O marcador
@@ -948,6 +950,50 @@ webhook financeiro.
 - CI/CD: GitHub Actions e Railway.
 - Deploy: migrations antes da aplicação e healthcheck em `/health/ready`.
 
+O cliente HTTP mantém timeout e cancelamento até concluir a leitura do corpo.
+`api/requestLifecycle.js` concentra esse ciclo para chamadas normais e migração
+legada. A migração inteira compartilha um prazo de 20 segundos, sem reiniciá-lo
+nas consultas encadeadas. Falha transitória no bootstrap libera o carregamento
+e oferece nova tentativa no acesso, preservando a credencial legada; apenas a
+confirmação da geração atual pode removê-la. Usuário já validado permanece em
+memória em falhas transitórias de sincronização auxiliar.
+Respostas canceladas não podem causar efeitos locais nem sucesso vazio. Um 401
+só limpa a sessão local quando a geração da chamada ainda é atual na aba;
+transições de sessão e autenticações confirmadas invalidam a geração anterior.
+Essa geração não substitui autorização no servidor nem sincroniza identidade
+entre abas. `auth` e `optionalAuth` rejeitam credenciais inválidas sem enviar
+exclusão de cookies: respostas antigas não podem apagar o cookie de outro login.
+Logout e redefinição de senha mantêm sua limpeza explícita; validação de conta,
+revogação e troca de senha continuam obrigatórias no backend.
+
+Na mesma aba, login/cadastro/Google/logout compartilham uma fila de escritas de
+sessão e uma intenção atual. Sair invalida autenticações anteriores e limpa a
+interface imediatamente; se uma autenticação já foi enviada, o logout aguarda
+sua resposta para revogar o cookie resultante. Só a intenção atual pode salvar
+metadados, sincronizar ou concluir a autenticação. O acesso aguarda o bootstrap
+da sessão e bloqueia envios simultâneos por senha/Google. A fila não coordena
+abas nem substitui a autorização no servidor.
+Sucesso HTTP com corpo esperado ilegível ou JSON inválido gera 502
+`INVALID_RESPONSE`, sem confirmar formulários. Respostas 204/205/HEAD aceitam
+corpo ausente; erros HTTP preservam o status original.
+
+Os coletores de analytics compartilham transporte por cookie HttpOnly, sem
+reaproveitar Bearer legado. Consentimento, keepalive e outbox continuam sob
+controle dos coletores. Normalização/validação de formulário pertence a
+`frontend/src/features/*/form.js`; validação de segurança e domínio permanece
+obrigatória no backend. Tokens e botões globais pertencem a `tokens.css` e
+`controls.css`; refinamentos de página e shells mantêm escopo próprio.
+Os hooks `features/{business,services,schedule}/use*Editor.js` coordenam os
+formulários, suas escritas e recuperação; as páginas compõem a apresentação e
+conectam os guards à invalidação do hook. Consulta e concorrência do endereço
+pertencem a `business/useBusinessAddress.js`; reconciliação de mídia somente por
+GET a `services/mediaRecovery.js`; interpretação da resposta canônica de ativação
+a `schedule/activation.js`. Locks e gerações de gravação continuam no editor,
+sem delegar autorização ou publicação a esses módulos. As cinco seções de analytics
+administrativo têm módulos de rota próprios, com suporte compartilhado em
+`features/admin-analytics/`. O barrel legado serve apenas para compatibilidade.
+Alterações isoladas nos estilos globais também disparam o Performance QA.
+
 O frontend é uma única aplicação React. As rotas privadas de negócio continuam
 entrando pela resolução contextual de `WorkspaceLayout`: vínculos de dona são
 delegados para `OwnerShell` com design system `--owner-*`, enquanto vínculos de
@@ -1361,6 +1407,12 @@ audits e Playwright aplicável. A suíte Playwright principal é distribuída em
 quatro shards paralelos no GitHub Actions para reduzir o caminho crítico sem
 reduzir cobertura; a aceitação full-stack continua executando uma vez dentro
 do primeiro shard.
+
+Os shards E2E usam a imagem oficial do Playwright em Ubuntu Noble, com versão
+alinhada ao lockfile do frontend e navegadores/dependências já instalados.
+Não executar `playwright install --with-deps` em cada shard. O preflight abre
+Chromium e WebKit antes da suíte; no container, PostgreSQL usa o hostname
+do serviço `postgres`, não o loopback do container de testes.
 
 Mudanças em caminhos públicos críticos de performance (home, catálogo, perfil,
 componentes/estilos relacionados e scripts de medição) também disparam o

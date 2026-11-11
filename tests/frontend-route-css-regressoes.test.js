@@ -44,7 +44,7 @@ describe("ownership de CSS por rota", () => {
       ["SubscriptionPage", "loadSubscriptionStyles"],
       ["PlansPage", "loadPlansStyles"],
       ["ServiceEditorPage", "loadServicesStyles"],
-      ["ServicesPage", "loadServicesStyles"],
+      ["ServicesPage", "loadServiceCatalogStyles"],
       ["AdminSaasHealthPage", "loadAdminSaasHealthStyles"],
       ["AdminWhatsAppPage", "loadAdminWhatsAppStyles"]
     ].forEach(([pagina, loader]) => {
@@ -105,9 +105,9 @@ describe("ownership de CSS por rota", () => {
 
   test("nao carrega refinamentos administrativos pelo workspace profissional", () => {
     const workspace = ler("frontend/src/components/WorkspaceLayout.jsx");
-    const overview = ler("frontend/src/pages/AdminAnalyticsV2Pages.jsx");
+    const overview = ler("frontend/src/features/admin-analytics/components.jsx");
 
     expect(workspace).not.toContain('import "../styles/admin-refinements.css"');
-    expect(overview).toContain('import "../styles/admin-refinements.css"');
+    expect(overview).toContain('import "../../styles/admin-refinements.css"');
   });
 });

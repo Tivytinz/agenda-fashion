@@ -1,3 +1,4 @@
+import { postTelemetry } from "./transport";
 import {
   readBrowserStorage,
   writeBrowserStorage
@@ -7,8 +8,6 @@ import {
   MARKETING_CONSENT
 } from "./marketingConsent";
 
-const API_URL = String(import.meta.env.VITE_API_URL || "")
-  .replace(/\/+$/, "");
 const VISITOR_KEY = "af_analytics_visitor_v2";
 const SESSION_KEY = "af_analytics_session_v2";
 const ONBOARDING_FLOW_KEY = "af_analytics_onboarding_flow_v2";
@@ -353,17 +352,7 @@ export function clearFirstPartyMarketingAttribution() {
 }
 
 async function postPayload(payload, { keepalive = false } = {}) {
-  const token = readBrowserStorage("local", "token");
-  const response = await fetch(`${API_URL}/analytics/collect`, {
-    method: "POST",
-    credentials: "include",
-    keepalive,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    body: JSON.stringify(payload)
-  });
+  const response = await postTelemetry("/analytics/collect", payload, { keepalive });
 
   if (!response?.ok) {
     const error = new Error("Falha ao entregar analytics first-party.");

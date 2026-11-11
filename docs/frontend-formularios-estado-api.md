@@ -578,13 +578,17 @@ estruturado.
 
 ## 23. HTTP 401 e expiração de sessão
 
-Quando `apiRequest` recebe HTTP 401:
+Quando `apiRequest` recebe HTTP 401 da geração atual de sessão na aba:
 
 ```text
 clearSession({ notify: true })
 ```
 
 O evento atualiza o `SessionProvider`, que volta ao estado deslogado.
+Uma resposta anterior a uma transição ou autenticação nova continua retornando
+erro ao chamador, mas não limpa a sessão atual. `auth` e `optionalAuth` também
+não apagam cookies em rejeições; isso evita que um 401 antigo invalide o cookie
+novo independentemente do JavaScript.
 
 Uma página não precisa implementar sua própria limpeza global de sessão para
 cada request.
@@ -609,6 +613,22 @@ codigo: REQUEST_TIMEOUT
 ```
 
 e mensagem amigável.
+
+O prazo e o sinal externo permanecem ativos até concluir a leitura do corpo.
+Cancelamento nessa leitura propaga `AbortError`, sem virar sucesso vazio.
+Respostas tardias depois do cancelamento não executam limpeza de sessão.
+
+O ciclo interno `api/requestLifecycle.js` também limita a migração de sessão
+legada. Seu prazo é total: validar cookie, migrar e conferir conflito não recebem
+20 segundos adicionais por etapa. Timeout libera o bootstrap e permite repetir
+a consulta na tela de acesso, sem apagar token legado por falha transitória.
+
+Em respostas de sucesso com corpo esperado, falha de leitura ou JSON inválido
+gera `ApiError` 502 com `codigo: INVALID_RESPONSE` e `statusOriginal`. Esse erro
+não confirma o baseline do formulário nem libera automaticamente outra escrita;
+os fluxos com resultado incerto mantêm sua recuperação por leitura. Respostas
+204/205 e chamadas HEAD aceitam ausência de corpo. Erros HTTP mantêm o status
+original mesmo quando o corpo não contém JSON utilizável.
 
 Uma chamada pode escolher timeout específico.
 

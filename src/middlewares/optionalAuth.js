@@ -7,7 +7,6 @@ const authSessionRepository = require(
 );
 const registrador = require("../utils/registrador");
 const {
-  limparCookieSessao,
   obterTokenDaRequisicao,
 } = require(
   "../config/sessionCookie"
@@ -43,6 +42,8 @@ function obterJwtSecret() {
  *
  * Sem token ou com token inválido:
  * a requisição continua como visitante.
+ * Não apagar cookies na resposta: outro login pode ter ocorrido enquanto
+ * esta consulta validava a credencial anterior.
  */
 module.exports =
   async function optionalAuth(
@@ -52,7 +53,6 @@ module.exports =
   ) {
     const {
       token,
-      origem,
     } = obterTokenDaRequisicao(req);
 
     /*
@@ -115,15 +115,7 @@ module.exports =
             id:
               decoded.id,
           };
-        } else if (
-          origem === "cookie"
-        ) {
-          limparCookieSessao(res);
         }
-      } else if (
-        origem === "cookie"
-      ) {
-        limparCookieSessao(res);
       }
     } catch (erro) {
       /*
@@ -135,10 +127,6 @@ module.exports =
        */
       req.user =
         undefined;
-
-      if (origem === "cookie") {
-        limparCookieSessao(res);
-      }
 
       if (
         ![

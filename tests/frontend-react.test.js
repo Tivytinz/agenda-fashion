@@ -298,7 +298,7 @@ describe(
         );
         const negocio = ler(
           "frontend/src/pages/BusinessPage.jsx"
-        );
+        ) + ler("frontend/src/features/business/useBusinessEditor.js");
 
         expect(app).toContain(
           "path={reactRoutes.login}"
@@ -339,10 +339,10 @@ describe(
         );
         const servicos = ler(
           "frontend/src/pages/ServicesPage.jsx"
-        );
+        ) + ler("frontend/src/features/services/useServiceEditor.js");
         const horarios = ler(
           "frontend/src/pages/ScheduleSettingsPage.jsx"
-        );
+        ) + ler("frontend/src/features/schedule/useScheduleEditor.js");
         const profissionais = ler(
           "frontend/src/pages/ProfessionalsPage.jsx"
         );

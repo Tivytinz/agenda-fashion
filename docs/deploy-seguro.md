@@ -26,6 +26,15 @@ Ele valida, na mesma revisão:
 
 Execuções obsoletas da mesma PR ou ref podem ser canceladas para que apenas a revisão mais recente seja considerada.
 
+Os quatro shards E2E executam na imagem oficial
+`mcr.microsoft.com/playwright:v1.62.1-noble`, alinhada à versão de
+`@playwright/test` no `frontend/package-lock.json`. Ao atualizar Playwright,
+atualizar a imagem no mesmo patch. Navegadores e bibliotecas do sistema vêm
+pré-instalados; não reinstalar pacotes Ubuntu a cada execução. O preflight abre
+Chromium e WebKit com limite de tempo antes dos testes, sem substituir a suíte.
+O PostgreSQL continua sendo um serviço isolado de teste, acessado pelo hostname
+`postgres` a partir do container E2E. Os jobs nativos mantêm `127.0.0.1`.
+
 Os testes Playwright de UX podem interceptar APIs quando o objetivo é validar navegação, responsividade e estados de interface. Isso não os torna testes full-stack. A suíte separada em `frontend/e2e-fullstack` existe para validar contratos P0 contra a aplicação servida pelo Express e o PostgreSQL de teste reais. O workflow `Security CI` complementa o Quality Gate com análise CodeQL. Revisão automática do diff de dependências depende do Dependency Graph do GitHub e permanece fora do gate até essa configuração externa ser habilitada e validada.
 
 ## Ordem obrigatória

@@ -28,8 +28,10 @@ function loadGoogleScript() {
   });
 }
 
-export function GoogleLoginButton({ onCredential, onError, onAvailabilityChange }) {
+export function GoogleLoginButton({ onCredential, onError, onAvailabilityChange, disabled = false }) {
   const containerRef = useRef(null);
+  const disabledRef = useRef(disabled);
+  disabledRef.current = disabled;
   const [available, setAvailable] = useState(true);
 
   useEffect(() => {
@@ -44,7 +46,7 @@ export function GoogleLoginButton({ onCredential, onError, onAvailabilityChange 
 
         window.google.accounts.id.initialize({
           client_id: config.googleClientId,
-          callback: ({ credential }) => onCredential(credential)
+          callback: ({ credential }) => { if (active && !disabledRef.current) onCredential(credential); }
         });
         window.google.accounts.id.renderButton(containerRef.current, {
           theme: "outline",
@@ -72,5 +74,5 @@ export function GoogleLoginButton({ onCredential, onError, onAvailabilityChange 
     return null;
   }
 
-  return <div className="google-login" ref={containerRef} />;
+  return <div aria-disabled={disabled} className="google-login" inert={disabled || undefined} ref={containerRef} />;
 }

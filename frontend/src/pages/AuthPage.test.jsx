@@ -25,11 +25,12 @@ import { safeReturnPath, WHATSAPP_PATTERN } from "./AuthPage";
 const login = vi.fn();
 const register = vi.fn();
 const loginWithGoogle = vi.fn();
+let sessionLoading = false;
 
 vi.mock("../auth/SessionContext", () => ({
   useSession: () => ({
     authenticated: false,
-    loading: false,
+    loading: sessionLoading,
     temNegocio: false,
     ehAdministrador: false,
     login,
@@ -45,6 +46,7 @@ vi.mock("../components/GoogleLoginButton", () => ({
 const { AuthPage } = await import("./AuthPage");
 
 beforeEach(() => {
+  sessionLoading = false;
   login.mockReset();
   register.mockReset();
   loginWithGoogle.mockReset();
@@ -80,6 +82,13 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("retorno após autenticação", () => {
+  it("aguarda a sessão inicial antes de oferecer senha ou Google", () => {
+    sessionLoading = true;
+    render(<MemoryRouter><AuthPage /></MemoryRouter>);
+    expect(screen.getByText("Carregando sua conta...")).not.toBeNull();
+    expect(screen.queryByLabelText("E-mail")).toBeNull();
+    expect(screen.queryByText("Entrar com Google")).toBeNull();
+  });
   it("aceita somente caminhos internos", () => {
     expect(safeReturnPath("/minha-agenda?filtro=hoje")).toBe("/minha-agenda?filtro=hoje");
     expect(safeReturnPath("//site-malicioso.test")).toBe("");

@@ -37,3 +37,19 @@ O GitHub Actions executa, nesta ordem relevante:
 7. Playwright mobile.
 
 Uma falha na detecção de código morto deve ser tratada pela causa: remover o arquivo realmente órfão ou corrigir a configuração/entrypoint quando houver uso real não reconhecido. Não adicionar exceções apenas para fazer o CI passar.
+
+## Fronteiras arquiteturais do frontend
+
+`frontend/src/architecture.test.js` roda com Vitest no gate frontend existente.
+Usa o parser do ESLint já instalado para analisar imports estáticos, reexports e
+imports dinâmicos literais; erro de parsing falha o teste, sem pular o módulo.
+
+- API, sessão, analytics, componentes, hooks, features e utils não importam pages.
+- Utils não dependem de componentes ou hooks de React.
+- O grafo dos módulos JS/JSX locais de produção não admite ciclos.
+- O `:root` global pertence a `tokens.css`; `.button*` global a `controls.css`.
+
+Módulos de teste ficam fora do grafo de produção. Arquivos de feature com escopo
+próprio mantêm seus estilos e os imports de compatibilidade entre páginas não
+são proibidos. Novas exceções exigem uma justificativa arquitetural específica,
+sem ampliar permissões apenas para fazer o gate passar.

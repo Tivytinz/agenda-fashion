@@ -171,7 +171,7 @@ describe(
     );
 
     test(
-      "remove o cookie quando o JWT da sessão é inválido",
+      "recusa JWT inválido sem apagar um cookie de login posterior",
       async () => {
         const resposta =
           await request(
@@ -191,13 +191,7 @@ describe(
           resposta.headers[
             "set-cookie"
           ]
-        ).toEqual(
-          expect.arrayContaining([
-            expect.stringContaining(
-              "af_session=;"
-            ),
-          ])
-        );
+        ).toBeUndefined();
       }
     );
 
@@ -415,7 +409,7 @@ describe(
     );
 
     test(
-      "limpa cookie de sessão revogada sem bloquear a rota pública",
+      "recusa identidade revogada sem bloquear a rota pública nem alterar cookies",
       async () => {
         authSessionRepository
           .buscarEstadoDaSessao
@@ -452,13 +446,7 @@ describe(
           resposta.headers[
             "set-cookie"
           ]
-        ).toEqual(
-          expect.arrayContaining([
-            expect.stringContaining(
-              "af_session=;"
-            ),
-          ])
-        );
+        ).toBeUndefined();
       }
     );
   }

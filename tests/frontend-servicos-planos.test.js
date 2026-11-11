@@ -11,7 +11,9 @@ describe("Sprint de catálogo, planos e navegação", () => {
     const routes = JSON.parse(
       ler("src/config/reactRoutes.json")
     );
-    const services = ler("frontend/src/pages/ServicesPage.jsx");
+    const services = ler("frontend/src/pages/ServicesPage.jsx")
+      + ler("frontend/src/features/services/useServiceEditor.js");
+    const serviceForm = ler("frontend/src/features/services/form.js");
 
     expect(app).toContain("path={reactRoutes.newService}");
     expect(app).toContain("path={reactRoutes.editService}");
@@ -20,8 +22,9 @@ describe("Sprint de catálogo, planos e navegação", () => {
     expect(services).toContain('`/servicos/${savedId}/foto`');
     expect(services).toContain('`/servicos/${savedId}/fotos`');
     expect(services).toContain('`/servicos/fotos/${photo.id}`');
-    expect(services).toContain("descricao: form.descricao.trim()");
-    expect(services).toContain("ativo: form.ativo");
+    expect(services).toContain("serviceBody(form)");
+    expect(serviceForm).toContain("descricao: form.descricao.trim()");
+    expect(serviceForm).toContain("ativo: form.ativo");
   });
 
   test("corrige os planos na origem e usa pluralização natural", () => {
@@ -48,7 +51,8 @@ describe("Sprint de catálogo, planos e navegação", () => {
   });
 
   test("mantém retornos contextuais nas telas prioritárias", () => {
-    const services = ler("frontend/src/pages/ServicesPage.jsx");
+    const services = ler("frontend/src/pages/ServicesPage.jsx")
+      + ler("frontend/src/features/services/useServiceEditor.js");
     const plans = ler("frontend/src/pages/PlansPage.jsx");
     const account = ler("frontend/src/pages/AccountPage.jsx");
     const business = ler("frontend/src/pages/BusinessPage.jsx");

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { trackGoogleSignUp } from "../analytics/googleMeasurement";
 import {
@@ -15,6 +15,7 @@ import { useSession } from "../auth/SessionContext";
 import { buildProfessionalSignupPath } from "../utils/professionalEntry";
 import { SetupFlowFrame, SetupTitle } from "../components/SetupFlowFrame";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
+import { ErrorState, LoadingState } from "../components/ScreenState";
 
 export const WHATSAPP_PATTERN = "(?:[^0-9]*[0-9]){10,11}[^0-9]*";
 
@@ -38,6 +39,7 @@ export function AuthPage({ mode = "login" }) {
   const [googleAvailable, setGoogleAvailable] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const authIntent = useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -77,6 +79,8 @@ export function AuthPage({ mode = "login" }) {
   ]);
 
   const handleGoogle = useCallback(async (credential) => {
+    if (submittingRef.current || session.loading) return;
+    submittingRef.current = true;
     setError("");
     setSubmitting(true);
     try {
@@ -128,13 +132,20 @@ export function AuthPage({ mode = "login" }) {
 
       finish(current);
     } catch (requestError) {
-      setError(requestError.message);
+      if (requestError.name !== "AbortError") setError(requestError.message);
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }, [finish, form.aceitaNotificacoesWhatsapp, isRegister, professionalIntent, session]);
 
-  if (!session.loading && session.authenticated) {
+  if (session.loading) {
+    return <main className="auth-page"><LoadingState>Carregando sua conta...</LoadingState></main>;
+  }
+  if (session.syncError && !session.usuario) {
+    return <main className="auth-page"><ErrorState message={session.syncError} onRetry={() => session.refresh().catch(() => {})} /></main>;
+  }
+  if (session.authenticated) {
     return <Navigate replace to={destination} />;
   }
 
@@ -144,6 +155,7 @@ export function AuthPage({ mode = "login" }) {
 
   async function submit(event) {
     event.preventDefault();
+    if (submittingRef.current || session.loading) return;
     setError("");
 
     if (isRegister && form.senha !== form.confirmarSenha) {
@@ -151,6 +163,7 @@ export function AuthPage({ mode = "login" }) {
       return;
     }
 
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const action = isRegister ? session.register : session.login;
@@ -203,8 +216,9 @@ export function AuthPage({ mode = "login" }) {
 
       finish(current);
     } catch (requestError) {
-      setError(requestError.message);
+      if (requestError.name !== "AbortError") setError(requestError.message);
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
@@ -239,7 +253,7 @@ export function AuthPage({ mode = "login" }) {
           </label>
         )}
 
-        <GoogleLoginButton onAvailabilityChange={setGoogleAvailable} onCredential={handleGoogle} />
+        <GoogleLoginButton disabled={submitting} onAvailabilityChange={setGoogleAvailable} onCredential={handleGoogle} />
         {googleAvailable && <div className="auth-divider"><span>ou use seu e-mail</span></div>}
 
         <form className="stack-form" onSubmit={submit}>
