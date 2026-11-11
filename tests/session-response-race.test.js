@@ -1,4 +1,5 @@
 const express = require("express");
+const { rateLimit } = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
 const request = require("supertest");
 const auth = require("../src/middlewares/auth");
@@ -12,8 +13,15 @@ function token(id, options = {}) {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "1h", ...options });
 }
 
-function createApp() {
+function createApp({ limit = 100 } = {}) {
   const app = express();
+  // As rotas auxiliares também limitam tráfego antes de autenticar requisições.
+  app.use(rateLimit({
+    windowMs: 60 * 1000,
+    limit,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+  }));
   app.post("/login-teste", (_req, res) => {
     definirCookieSessao(res, token(2));
     res.status(204).end();
@@ -25,6 +33,15 @@ function createApp() {
 }
 
 afterEach(() => jest.clearAllMocks());
+
+test.each(["/protegida", "/publica"])("limita tráfego em %s antes de consultar a sessão", async (path) => {
+  authSessionRepository.buscarEstadoDaSessao.mockResolvedValue({ id: 2, ativo: true, senha_alterada_em: null });
+  const app = createApp({ limit: 1 });
+  const cookie = `af_session=${token(2)}`;
+  await request(app).get(path).set("Cookie", cookie).expect(200);
+  await request(app).get(path).set("Cookie", cookie).expect(429);
+  expect(authSessionRepository.buscarEstadoDaSessao).toHaveBeenCalledTimes(1);
+});
 
 test.each([
   ["/protegida", 401],
