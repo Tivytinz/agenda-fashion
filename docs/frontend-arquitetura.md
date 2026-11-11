@@ -756,17 +756,27 @@ As rotas permanecem iguais; separar módulos não cria outra jornada de serviço
 
 Catálogo carrega `service-catalog-polish.css`; editor carrega
 `service-media-polish.css`. Regras de gestão não pertencem ao CSS do editor.
-Extrações futuras de Negócio, Horários e Analytics devem preservar recuperação,
-idempotência e contratos, sem reescrever telas inteiras.
+As rotas de analytics administrativo carregam módulos distintos para visão
+geral, aquisição, jornada, retenção e receita. `AdminAnalyticsV2Pages.jsx` é
+apenas uma ponte de compatibilidade; as rotas não o importam. Formatação,
+rótulos, leitura cancelável e componentes compartilhados pertencem a
+`features/admin-analytics/`, sem dependência de páginas.
 
 ## Responsabilidades de formulários, sessão e telemetria
 
 `features/business/form.js`, `features/services/form.js` e
 `features/schedule/form.js` concentram as transformações, baselines serializados
-e validações de UX dos formulários. As páginas mantêm a composição, as operações
-pendentes e a recuperação canônica; extrações futuras dessas operações precisam
-preservar os mesmos locks locais, referências de tentativa e guardas de contexto.
+e validações de UX dos formulários. `useBusinessEditor`, `useServiceEditor` e
+`useScheduleEditor`, nas mesmas features, coordenam estado, operações pendentes
+e recuperação canônica. As páginas mantêm a apresentação e os guards de saída,
+conectados à invalidação do respectivo hook. A extração preserva locks locais,
+referências de tentativa, ordem de efeitos e guardas de contexto; não cria
+outro formulário ou uma segunda jornada de onboarding.
 Esses módulos não substituem validações de domínio no backend.
+
+O filtro do `Performance QA` inclui também os estilos globais `index.css`,
+`tokens.css`, `controls.css` e `af-experience.css`: mudanças isoladas nesses
+arquivos afetam as páginas públicas e precisam medir a build da branch.
 
 `auth/sessionTransitions.js` coordena as escritas de sessão da mesma aba, com
 ordenação e invalidação por intenção. O provider continua responsável pelo

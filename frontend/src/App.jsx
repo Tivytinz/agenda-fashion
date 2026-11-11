@@ -56,17 +56,31 @@ const AdminLayout = lazyNamedWithStyles(
   "AdminLayout"
 );
 
-const loadAdminAnalyticsV2Page = (name) => lazyNamedWithStyles(
+const AdminOverviewPage = lazyNamedWithStyles(
   loadAdminCommandStyles,
-  () => import("./pages/AdminAnalyticsV2Pages"),
-  name
+  () => import("./pages/AdminOverviewPage"),
+  "AdminOverviewV2Page"
 );
-
-const AdminOverviewPage = loadAdminAnalyticsV2Page("AdminOverviewV2Page");
-const AdminAcquisitionPage = loadAdminAnalyticsV2Page("AdminAcquisitionV2Page");
-const AdminJourneyPage = loadAdminAnalyticsV2Page("AdminJourneyV2Page");
-const AdminRetentionPage = loadAdminAnalyticsV2Page("AdminRetentionV2Page");
-const AdminRevenuePage = loadAdminAnalyticsV2Page("AdminRevenueV2Page");
+const AdminAcquisitionPage = lazyNamedWithStyles(
+  loadAdminCommandStyles,
+  () => import("./pages/AdminAcquisitionPage"),
+  "AdminAcquisitionV2Page"
+);
+const AdminJourneyPage = lazyNamedWithStyles(
+  loadAdminCommandStyles,
+  () => import("./pages/AdminJourneyPage"),
+  "AdminJourneyV2Page"
+);
+const AdminRetentionPage = lazyNamedWithStyles(
+  loadAdminCommandStyles,
+  () => import("./pages/AdminRetentionPage"),
+  "AdminRetentionV2Page"
+);
+const AdminRevenuePage = lazyNamedWithStyles(
+  loadAdminCommandStyles,
+  () => import("./pages/AdminRevenuePage"),
+  "AdminRevenueV2Page"
+);
 
 const AdminOperationPage = lazyNamedWithStyles(
   loadAdminCommandStyles,

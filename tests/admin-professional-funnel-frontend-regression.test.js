@@ -4,7 +4,7 @@ const path = require("path");
 const paginas = fs.readFileSync(
   path.join(
     __dirname,
-    "../frontend/src/pages/AdminAnalyticsV2Pages.jsx"
+    "../frontend/src/pages/AdminAcquisitionPage.jsx"
   ),
   "utf8"
 );

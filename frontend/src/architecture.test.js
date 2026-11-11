@@ -64,6 +64,36 @@ it("mantém o grafo de imports JS/JSX sem ciclos", () => {
   expect(cycles).toEqual([]);
 });
 
+it("carrega cada seção administrativa sem importar as outras seções", () => {
+  const appDependencies = graph.get(join(root, "App.jsx"));
+  const sections = ["Overview", "Acquisition", "Journey", "Retention", "Revenue"]
+    .map(name => join(root, `pages/Admin${name}Page.jsx`));
+  expect(appDependencies).not.toContain(join(root, "pages/AdminAnalyticsV2Pages.jsx"));
+  for (const section of sections) {
+    expect(appDependencies).toContain(section);
+    const reachable = new Set();
+    function visit(file) {
+      if (reachable.has(file)) return;
+      reachable.add(file);
+      (graph.get(file) || []).forEach(visit);
+    }
+    visit(section);
+    expect(sections.filter(other => other !== section && reachable.has(other))).toEqual([]);
+  }
+});
+
+it("mantém operações dos três editores fora da composição das páginas", () => {
+  for (const [page, feature, hook] of [
+    ["BusinessPage", "business", "useBusinessEditor"],
+    ["ServicesPage", "services", "useServiceEditor"],
+    ["ScheduleSettingsPage", "schedule", "useScheduleEditor"]
+  ]) {
+    const file = join(root, `pages/${page}.jsx`);
+    expect(graph.get(file)).toContain(join(root, `features/${feature}/${hook}.js`));
+    expect(graph.get(file)).not.toContain(join(root, "api/client.js"));
+  }
+});
+
 it("mantém tokens e primitives globais sob um único ownership", () => {
   const entry = readFileSync(join(root, "styles/index.css"), "utf8");
   expect(entry).toContain('@import "./tokens.css"');

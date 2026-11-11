@@ -11,7 +11,8 @@ describe("Sprint de catálogo, planos e navegação", () => {
     const routes = JSON.parse(
       ler("src/config/reactRoutes.json")
     );
-    const services = ler("frontend/src/pages/ServicesPage.jsx");
+    const services = ler("frontend/src/pages/ServicesPage.jsx")
+      + ler("frontend/src/features/services/useServiceEditor.js");
     const serviceForm = ler("frontend/src/features/services/form.js");
 
     expect(app).toContain("path={reactRoutes.newService}");
@@ -50,7 +51,8 @@ describe("Sprint de catálogo, planos e navegação", () => {
   });
 
   test("mantém retornos contextuais nas telas prioritárias", () => {
-    const services = ler("frontend/src/pages/ServicesPage.jsx");
+    const services = ler("frontend/src/pages/ServicesPage.jsx")
+      + ler("frontend/src/features/services/useServiceEditor.js");
     const plans = ler("frontend/src/pages/PlansPage.jsx");
     const account = ler("frontend/src/pages/AccountPage.jsx");
     const business = ler("frontend/src/pages/BusinessPage.jsx");

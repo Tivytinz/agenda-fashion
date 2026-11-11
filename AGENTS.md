@@ -975,6 +975,12 @@ controle dos coletores. Normalização/validação de formulário pertence a
 `frontend/src/features/*/form.js`; validação de segurança e domínio permanece
 obrigatória no backend. Tokens e botões globais pertencem a `tokens.css` e
 `controls.css`; refinamentos de página e shells mantêm escopo próprio.
+Os hooks `features/{business,services,schedule}/use*Editor.js` coordenam os
+formulários, suas escritas e recuperação; as páginas compõem a apresentação e
+conectam os guards à invalidação do hook. As cinco seções de analytics
+administrativo têm módulos de rota próprios, com suporte compartilhado em
+`features/admin-analytics/`. O barrel legado serve apenas para compatibilidade.
+Alterações isoladas nos estilos globais também disparam o Performance QA.
 
 O frontend é uma única aplicação React. As rotas privadas de negócio continuam
 entrando pela resolução contextual de `WorkspaceLayout`: vínculos de dona são
