@@ -70,6 +70,15 @@ No dashboard, esses convites também não devem competir com uma etapa canônica
 
 O cadastro de cliente continua podendo oferecer separadamente a preferência de notificações dos próprios agendamentos.
 
+O cadastro profissional apresenta emojis Unicode decorativos nos rótulos de nome,
+e-mail, WhatsApp e senhas, sem incluí-los no nome acessível. Cada campo de senha
+permite mostrar ou ocultar o conteúdo independentemente; 🙈 indica valor oculto
+e 🐵 valor visível. Os botões não submetem o formulário e permanecem acessíveis.
+Criar conta permanece indisponível até nome, e-mail, WhatsApp com DDD, senha
+com oito caracteres ou mais e confirmação coincidente estarem válidos.
+Validações nativas e do backend permanecem obrigatórias. A primeira etapa não
+exibe o slogan de marketing sob o título.
+
 ## Criação do negócio
 
 Todo novo negócio deve nascer com as informações estruturais essenciais do perfil preenchidas. A criação exige:

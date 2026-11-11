@@ -152,11 +152,76 @@ describe("cadastro profissional enxuto", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/Você atende. O AF cuida do agendamento/i)).not.toBeNull();
+    expect(screen.queryByText(/Você atende. O AF cuida do agendamento/i)).toBeNull();
     expect(screen.queryByText(/Avisos do WhatsApp são opcionais/i)).toBeNull();
     expect(screen.queryByText(/avisos operacionais do Agenda Fashion/i)).toBeNull();
     expect(screen.queryByText(/orientações de marketing do Agenda Fashion/i)).toBeNull();
     expect(screen.queryByText(/confirmações, lembretes e atualizações dos meus agendamentos/i)).toBeNull();
+  });
+
+  it("mantém os emojis decorativos fora do nome acessível dos campos", () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+        <AuthPage mode="register" />
+      </MemoryRouter>
+    );
+    for (const name of ["Nome completo", "E-mail", "WhatsApp com DDD", "Senha", "Confirme a senha"]) {
+      expect(screen.getByLabelText(name)).not.toBeNull();
+    }
+    expect(Array.from(container.querySelectorAll(".auth-field-emoji"), node => node.textContent))
+      .toEqual(["👤", "✉️", "📱", "🔒", "🔒"]);
+    expect(container.querySelectorAll('.auth-field-emoji[aria-hidden="true"]')).toHaveLength(5);
+  });
+
+  it("alternância 🙈/🐵 revela cada senha independentemente sem submeter", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+        <AuthPage mode="register" />
+      </MemoryRouter>
+    );
+    const password = screen.getByLabelText("Senha");
+    const confirm = screen.getByLabelText("Confirme a senha");
+    await user.type(password, "senha1234");
+    expect(password.type).toBe("password");
+    expect(confirm.type).toBe("password");
+    expect(screen.getByRole("button", { name: "Mostrar senha" }).textContent).toBe("🙈");
+    await user.click(screen.getByRole("button", { name: "Mostrar senha" }));
+    expect(password.type).toBe("text");
+    expect(password.value).toBe("senha1234");
+    expect(confirm.type).toBe("password");
+    expect(screen.getByRole("button", { name: "Ocultar senha" }).textContent).toBe("🐵");
+    await user.click(screen.getByRole("button", { name: "Mostrar confirmação da senha" }));
+    expect(confirm.type).toBe("text");
+    await user.click(screen.getByRole("button", { name: "Ocultar senha" }));
+    expect(password.type).toBe("password");
+    expect(screen.getByRole("button", { name: "Mostrar senha" }).textContent).toBe("🙈");
+    expect(register).not.toHaveBeenCalled();
+  });
+
+  it("só habilita Criar conta quando todos os campos são válidos e as senhas coincidem", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+        <AuthPage mode="register" />
+      </MemoryRouter>
+    );
+    const create = screen.getByRole("button", { name: "Criar conta" });
+    expect(create.disabled).toBe(true);
+    await user.type(screen.getByLabelText("Nome completo"), "Ana Profissional");
+    await user.type(screen.getByLabelText("E-mail"), "ana@exemplo.com");
+    await user.type(screen.getByLabelText("WhatsApp com DDD"), "(62) 99999-8888");
+    await user.type(screen.getByLabelText("Senha"), "senha1234");
+    await user.type(screen.getByLabelText("Confirme a senha"), "senha5678");
+    expect(create.disabled).toBe(true);
+    expect(screen.getByText("As senhas precisam ser iguais.")).not.toBeNull();
+    await user.clear(screen.getByLabelText("Confirme a senha"));
+    await user.type(screen.getByLabelText("Confirme a senha"), "senha1234");
+    expect(create.disabled).toBe(false);
+    await user.clear(screen.getByLabelText("E-mail"));
+    expect(create.disabled).toBe(true);
+    await user.type(screen.getByLabelText("E-mail"), "ana@exemplo.com");
+    expect(create.disabled).toBe(false);
   });
 
   it("CA-AUT-01: envia intenção profissional ao backend sem criar outro tipo de conta", async () => {
