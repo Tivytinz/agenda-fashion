@@ -267,3 +267,10 @@
 .auth-page .auth-password-feedback { color: #9c284e; font-size: 13px; line-height: 1.4; }
 .auth-page .auth-required-hint { color: var(--muted); text-align: center; font-size: 13px; line-height: 1.4; }
 .setup-flow .auth-card .button:disabled { border-color: transparent; background: #efd6e1; color: #74445a; box-shadow: none; cursor: not-allowed; transform: none; }
+.auth-page .auth-password-hint {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  margin-top: -8px;
+}

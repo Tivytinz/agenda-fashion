@@ -16,41 +16,14 @@ import { buildProfessionalSignupPath } from "../utils/professionalEntry";
 import { SetupFlowFrame, SetupTitle } from "../components/SetupFlowFrame";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
 import { ErrorState, LoadingState } from "../components/ScreenState";
+import { AuthFieldLabel } from "../components/AuthFieldLabel";
+import { PasswordField } from "../components/PasswordField";
+import { isRegistrationComplete, WHATSAPP_PATTERN } from "../auth/registrationValidation";
 
-export const WHATSAPP_PATTERN = "(?:[^0-9]*[0-9]){10,11}[^0-9]*";
+export { WHATSAPP_PATTERN } from "../auth/registrationValidation";
 
 export function safeReturnPath(value) {
   return safeInternalPath(value);
-}
-
-function AuthFieldLabel({ emoji, children }) {
-  return (
-    <span className="auth-field-label">
-      {emoji && <span aria-hidden="true" className="auth-field-emoji">{emoji}</span>}
-      <span>{children}</span>
-    </span>
-  );
-}
-
-function PasswordField({ id, label, emoji, value, onChange, autoComplete, minLength }) {
-  const [visible, setVisible] = useState(false);
-  const action = visible ? "Ocultar" : "Mostrar";
-  const name = label === "Senha" ? "senha" : "confirmação da senha";
-
-  return (
-    <div className="auth-password-field">
-      <label htmlFor={id}><AuthFieldLabel emoji={emoji}>{label}</AuthFieldLabel></label>
-      <div className="auth-password-input-wrap">
-        <input autoComplete={autoComplete} id={id} minLength={minLength}
-          onChange={onChange} required type={visible ? "text" : "password"} value={value} />
-        <button aria-label={action + " " + name} aria-pressed={visible}
-          className="auth-password-toggle" onClick={() => setVisible(current => !current)}
-          type="button">
-          <span aria-hidden="true">{visible ? "🐵" : "🙈"}</span>
-        </button>
-      </div>
-    </div>
-  );
 }
 
 export function AuthPage({ mode = "login" }) {
@@ -81,14 +54,7 @@ export function AuthPage({ mode = "login" }) {
     };
   }, [location.search]);
   const professionalIntent = authIntent.professional;
-  const whatsappDigits = form.whatsapp.replace(/\D/g, "");
-  const registrationComplete =
-    form.nome.trim().length >= 2 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()) &&
-    (whatsappDigits.length === 10 || whatsappDigits.length === 11) &&
-    form.senha.length >= 8 &&
-    form.confirmarSenha.length >= 8 &&
-    form.senha === form.confirmarSenha;
+  const registrationComplete = isRegistrationComplete(form);
 
   const authRequestedPath = safeReturnPath(location.state?.from);
 
@@ -302,7 +268,9 @@ export function AuthPage({ mode = "login" }) {
             <label>
               <AuthFieldLabel emoji={professionalIntent ? "👤" : undefined}>Nome completo</AuthFieldLabel>
               <input
+                aria-label="Nome completo"
                 autoComplete="name"
+                maxLength={120}
                 minLength="2"
                 onChange={(event) => update("nome", event.target.value)}
                 required
@@ -313,7 +281,9 @@ export function AuthPage({ mode = "login" }) {
           <label>
             <AuthFieldLabel emoji={professionalIntent ? "✉️" : undefined}>E-mail</AuthFieldLabel>
             <input
+              aria-label="E-mail"
               autoComplete="email"
+              maxLength={160}
               onChange={(event) => update("email", event.target.value)}
               required
               type="email"
@@ -324,6 +294,7 @@ export function AuthPage({ mode = "login" }) {
             <label>
               <AuthFieldLabel emoji={professionalIntent ? "📱" : undefined}>WhatsApp com DDD</AuthFieldLabel>
               <input
+                aria-label="WhatsApp com DDD"
                 autoComplete="tel"
                 inputMode="tel"
                 onChange={(event) => update("whatsapp", event.target.value)}
@@ -339,10 +310,16 @@ export function AuthPage({ mode = "login" }) {
             emoji={professionalIntent ? "🔒" : undefined}
             id="af-auth-password"
             label="Senha"
+            describedBy={isRegister ? "af-auth-password-hint" : undefined}
             minLength={isRegister ? 8 : undefined}
             onChange={(event) => update("senha", event.target.value)}
             value={form.senha}
           />
+          {isRegister && (
+            <small id="af-auth-password-hint" className="auth-password-hint">
+              Use pelo menos 8 caracteres.
+            </small>
+          )}
           {!isRegister && (
             <Link className="forgot-password-link" to="/esqueci-senha">
               Esqueci minha senha
@@ -353,13 +330,16 @@ export function AuthPage({ mode = "login" }) {
               emoji={professionalIntent ? "🔒" : undefined}
               id="af-auth-confirm-password"
               label="Confirme a senha"
+              describedBy={form.confirmarSenha && form.senha !== form.confirmarSenha
+                ? "af-auth-password-match-status"
+                : undefined}
               minLength={8}
               onChange={(event) => update("confirmarSenha", event.target.value)}
               value={form.confirmarSenha}
             />
           )}
           {isRegister && form.confirmarSenha.length > 0 && form.senha !== form.confirmarSenha && (
-            <small className="auth-password-feedback" role="status">As senhas precisam ser iguais.</small>
+            <small className="auth-password-feedback" id="af-auth-password-match-status" role="status">As senhas precisam ser iguais.</small>
           )}
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="button button-full"

@@ -256,14 +256,22 @@ test(
     await confirmarSenha.fill(
       "senha-diferente"
     );
-    await criarConta.click();
-
+    await expect(
+      criarConta
+    ).toBeDisabled();
     await expect(
       page.getByRole(
-        "alert"
+        "status"
       )
     ).toHaveText(
       "As senhas precisam ser iguais."
     );
+
+    await confirmarSenha.fill(
+      "senha-teste-123"
+    );
+    await expect(
+      criarConta
+    ).toBeEnabled();
   }
 );
