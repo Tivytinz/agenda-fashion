@@ -23,7 +23,8 @@ import {
 import { safeReturnPath, WHATSAPP_PATTERN } from "./AuthPage";
 import { trackFirstPartyEvent } from "../analytics/firstPartyAnalytics";
 
-vi.mock("../analytics/firstPartyAnalytics", () => ({
+vi.mock("../analytics/firstPartyAnalytics", async (importOriginal) => ({
+  ...(await importOriginal()),
   trackFirstPartyEvent: vi.fn()
 }));
 
