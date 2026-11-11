@@ -40,6 +40,14 @@ beforeEach(() => {
       }
     ],
     transicoes: [],
+    cadastroProfissional: {
+      visualizacoes: 8,
+      sessoes_visita: 6,
+      sessoes_inicio: 4,
+      sessoes_envio: 3,
+      sessoes_erro: 2,
+      erros_validacao: 5
+    },
     eventos: [],
     dispositivos: [],
     reconciliacaoConversoesMarketing: {
@@ -149,6 +157,15 @@ describe("jornada administrativa v2", () => {
         signal: expect.any(AbortSignal)
       })
     );
+
+    expect(screen.getByRole("heading", {
+      name: "Cadastro profissional — interação com o formulário"
+    })).not.toBeNull();
+    const signup = screen.getByRole("region", { name: "Etapas do cadastro profissional" });
+    expect(within(signup).getByText("Sessões com visita")).not.toBeNull();
+    expect(within(signup).getByText("Tentaram cadastrar")).not.toBeNull();
+    expect(within(signup).getByText("Encontraram erro")).not.toBeNull();
+    expect(screen.getByText(/Uma sessão pode conter vários erros/)).not.toBeNull();
 
     expect(
       screen.getByRole(

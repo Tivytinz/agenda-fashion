@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isRegistrationComplete, passwordByteLength } from "./registrationValidation";
+import {
+  isRegistrationComplete,
+  passwordByteLength,
+  registrationFieldError
+} from "./registrationValidation";
 
 const complete = {
   nome: "Ana Profissional",
@@ -10,6 +14,16 @@ const complete = {
 };
 
 describe("elegibilidade do cadastro na interface", () => {
+  it("classifica erro sem produzir valores pessoais e retorna null no campo válido", () => {
+    expect(registrationFieldError(complete, "email")).toBeNull();
+    expect(registrationFieldError({ ...complete, email: "invalido" }, "email")).toBe("invalid_format");
+    expect(registrationFieldError({ ...complete, senha: "" }, "senha")).toBe("required");
+    expect(registrationFieldError({ ...complete, confirmarSenha: "diferente" }, "confirmarSenha")).toBe("mismatch");
+    expect(registrationFieldError({ ...complete, whatsapp: "123" }, "whatsapp")).toBe("invalid_length");
+    expect(registrationFieldError(complete, "campo_desconhecido")).toBeNull();
+  });
+
+
   it("aceita os dados válidos sem permitir divergência na confirmação", () => {
     expect(isRegistrationComplete(complete)).toBe(true);
     expect(isRegistrationComplete({ ...complete, confirmarSenha: "outra1234" })).toBe(false);

@@ -1,4 +1,5 @@
 import { postTelemetry } from "./transport";
+import { normalizePlanSlug } from "../auth/session";
 import {
   readBrowserStorage,
   writeBrowserStorage
@@ -225,13 +226,21 @@ function deviceInfo() {
   };
 }
 
-function route(pathname) {
+function route(pathname, search = "") {
   const path = String(pathname || "/").replace(/\/{2,}/g, "/");
 
   if (path === "/") return ["home", "/"];
   if (path === "/para-profissionais") return ["professional_landing", "/para-profissionais"];
   if (path === "/entrar") return ["login", "/entrar"];
-  if (path === "/cadastro") return ["register", "/cadastro"];
+  if (path === "/cadastro") {
+    const params = new URLSearchParams(search);
+    return [
+      params.get("tipo") === "profissional" || Boolean(normalizePlanSlug(params.get("plano")))
+        ? "professional_register"
+        : "register",
+      "/cadastro"
+    ];
+  }
   if (path === "/criar-negocio") return ["create_business", "/criar-negocio"];
   if (path === "/planos") return ["plans", "/planos"];
   if (path === "/checkout") return ["checkout", "/checkout"];
@@ -550,7 +559,7 @@ export function startFirstPartyPageView({
 }) {
   try {
     bindLifecycle();
-    const [pageKey, routeTemplate] = route(pathname);
+    const [pageKey, routeTemplate] = route(pathname, search);
 
     // Não mede o uso do próprio painel administrativo para não inflar usuários ativos.
     if (pageKey === "admin") {
@@ -655,6 +664,21 @@ export function trackFirstPartyEvent(name, {
       canonicalProperties = {
         method: String(properties.metodo || "share").slice(0, 120)
       };
+      flowUuidValue = flowUuid(ONBOARDING_FLOW_KEY);
+    } else if ([
+      "professional_signup_started",
+      "professional_signup_submitted",
+      "professional_signup_validation_error"
+    ].includes(name)) {
+      if (currentView.pageKey !== "professional_register") return;
+      if (name === "professional_signup_validation_error") {
+        const fields = ["name", "email", "whatsapp", "password", "password_confirmation", "form"];
+        const reasons = ["required", "too_short", "too_long", "invalid_format", "invalid_length", "mismatch", "server_rejected"];
+        if (!fields.includes(properties.field) || !reasons.includes(properties.reason)) return;
+        canonicalProperties = { field: properties.field, reason: properties.reason };
+      } else {
+        canonicalProperties = { method: properties.method === "google" ? "google" : "email" };
+      }
       flowUuidValue = flowUuid(ONBOARDING_FLOW_KEY);
     } else if (!["business_creation_started", "first_service_creation_started", "profile_viewed", "profile_shared", "booking_started", "booking_completed", "checkout_viewed"].includes(name)) {
       return;

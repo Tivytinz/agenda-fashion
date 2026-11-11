@@ -212,7 +212,7 @@ async function buscarJornada(periodo = "30") {
   const filtroEvento = filtroTimestamp(seguro, "e.occurred_at");
   const filtroSessao = filtroTimestamp(seguro, "s.iniciada_em");
 
-  const [telas, transicoes, eventos, dispositivos] = await Promise.all([
+  const [telas, transicoes, eventos, dispositivos, cadastroProfissional] = await Promise.all([
     db.query(
       `
       SELECT
@@ -281,6 +281,43 @@ async function buscarJornada(periodo = "30") {
       LIMIT 50
       `
     ),
+    db.query(
+      `
+      WITH visitas AS (
+        SELECT v.id, v.sessao_id
+        FROM analytics_visualizacoes_tela v
+        WHERE v.page_key = 'professional_register'
+          ${filtroVisualizacao}
+      ),
+      etapas AS (
+        SELECT
+          v.id,
+          v.sessao_id,
+          COUNT(e.id) FILTER (WHERE e.nome = 'professional_signup_started') AS inicios,
+          COUNT(e.id) FILTER (WHERE e.nome = 'professional_signup_submitted') AS envios,
+          COUNT(e.id) FILTER (WHERE e.nome = 'professional_signup_validation_error') AS erros
+        FROM visitas v
+        LEFT JOIN analytics_eventos e
+          ON e.visualizacao_id = v.id
+          AND e.origem = 'frontend'
+          AND e.nome IN (
+            'professional_signup_started',
+            'professional_signup_submitted',
+            'professional_signup_validation_error'
+          )
+          ${filtroEvento}
+        GROUP BY v.id, v.sessao_id
+      )
+      SELECT
+        COUNT(*)::INT AS visualizacoes,
+        COUNT(DISTINCT sessao_id)::INT AS sessoes_visita,
+        COUNT(DISTINCT sessao_id) FILTER (WHERE inicios > 0)::INT AS sessoes_inicio,
+        COUNT(DISTINCT sessao_id) FILTER (WHERE envios > 0)::INT AS sessoes_envio,
+        COUNT(DISTINCT sessao_id) FILTER (WHERE erros > 0)::INT AS sessoes_erro,
+        COALESCE(SUM(erros), 0)::INT AS erros_validacao
+      FROM etapas
+      `
+    ),
   ]);
 
   return {
@@ -289,6 +326,7 @@ async function buscarJornada(periodo = "30") {
     transicoes: transicoes.rows,
     eventos: eventos.rows,
     dispositivos: dispositivos.rows,
+    cadastroProfissional: cadastroProfissional.rows[0] || null,
   };
 }
 

@@ -7,6 +7,7 @@ export function PasswordField({
   emoji,
   value,
   onChange,
+  onBlur,
   autoComplete,
   minLength,
   describedBy
@@ -28,6 +29,7 @@ export function PasswordField({
           id={id}
           minLength={minLength}
           onChange={onChange}
+          onBlur={onBlur}
           required
           type={visible ? "text" : "password"}
           value={value}

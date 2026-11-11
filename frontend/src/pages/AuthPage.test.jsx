@@ -21,6 +21,11 @@ import {
   vi
 } from "vitest";
 import { safeReturnPath, WHATSAPP_PATTERN } from "./AuthPage";
+import { trackFirstPartyEvent } from "../analytics/firstPartyAnalytics";
+
+vi.mock("../analytics/firstPartyAnalytics", () => ({
+  trackFirstPartyEvent: vi.fn()
+}));
 
 const login = vi.fn();
 const register = vi.fn();
@@ -50,6 +55,7 @@ beforeEach(() => {
   login.mockReset();
   register.mockReset();
   loginWithGoogle.mockReset();
+  trackFirstPartyEvent.mockClear();
 
   login.mockResolvedValue({
     authenticated: true,
@@ -145,6 +151,55 @@ describe("destino por intenção da autenticação", () => {
 });
 
 describe("cadastro profissional enxuto", () => {
+  it("instrumenta início, erro e tentativa profissionais uma vez e sem enviar valores dos campos", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+        <AuthPage mode="register" />
+      </MemoryRouter>
+    );
+    const email = screen.getByLabelText("E-mail");
+    await user.type(screen.getByLabelText("Nome completo"), "Ana Profissional");
+    await user.type(email, "invalido");
+    await user.tab();
+
+    expect(trackFirstPartyEvent).toHaveBeenCalledWith(
+      "professional_signup_started", { properties: { method: "email" } }
+    );
+    expect(trackFirstPartyEvent.mock.calls.filter(([event]) =>
+      event === "professional_signup_started")).toHaveLength(1);
+    expect(trackFirstPartyEvent).toHaveBeenCalledWith(
+      "professional_signup_validation_error",
+      { properties: { field: "email", reason: "invalid_format" } }
+    );
+
+    await user.clear(email);
+    await user.type(email, "ana@exemplo.com");
+    await user.type(screen.getByLabelText("WhatsApp com DDD"), "62999998888");
+    await user.type(screen.getByLabelText("Senha"), "senha1234");
+    await user.type(screen.getByLabelText("Confirme a senha"), "senha1234");
+    await user.click(screen.getByRole("button", { name: "Criar conta" }));
+    expect(trackFirstPartyEvent).toHaveBeenCalledWith(
+      "professional_signup_submitted", { properties: { method: "email" } }
+    );
+    const payloads = JSON.stringify(trackFirstPartyEvent.mock.calls);
+    expect(payloads).not.toContain("ana@exemplo.com");
+    expect(payloads).not.toContain("62999998888");
+    expect(payloads).not.toContain("senha1234");
+  });
+
+  it("não classifica alterações no cadastro de cliente como aquisição profissional", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={["/cadastro"]}>
+        <AuthPage mode="register" />
+      </MemoryRouter>
+    );
+    await user.type(screen.getByLabelText("Nome completo"), "Cliente Teste");
+    await user.type(screen.getByLabelText("E-mail"), "cliente@exemplo.com");
+    expect(trackFirstPartyEvent).not.toHaveBeenCalled();
+  });
+
   it("deixa consentimentos de WhatsApp para o momento contextual no painel", () => {
     render(
       <MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>

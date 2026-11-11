@@ -27,6 +27,15 @@ afterEach(() => {
 });
 
 describe("firstPartyAnalytics", () => {
+  it("distingue páginas de cadastro profissional e cliente sem persistir a query", () => {
+    expect(route("/cadastro", "?tipo=profissional&utm_source=google"))
+      .toEqual(["professional_register", "/cadastro"]);
+    expect(route("/cadastro", "?plano=pro")).toEqual(["professional_register", "/cadastro"]);
+    expect(route("/cadastro", "?plano=../../secreto")).toEqual(["register", "/cadastro"]);
+    expect(route("/cadastro", "?tipo=cliente")).toEqual(["register", "/cadastro"]);
+  });
+
+
   it("coletor e outbox preservam keepalive sem reaproveitar Bearer legado", async () => {
     localStorage.setItem("token", "token-da-conta-anterior");
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true })));

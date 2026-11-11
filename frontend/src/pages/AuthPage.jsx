@@ -18,7 +18,12 @@ import { GoogleLoginButton } from "../components/GoogleLoginButton";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { AuthFieldLabel } from "../components/AuthFieldLabel";
 import { PasswordField } from "../components/PasswordField";
-import { isRegistrationComplete, WHATSAPP_PATTERN } from "../auth/registrationValidation";
+import {
+  isRegistrationComplete,
+  registrationFieldError,
+  WHATSAPP_PATTERN
+} from "../auth/registrationValidation";
+import { trackFirstPartyEvent } from "../analytics/firstPartyAnalytics";
 
 export { WHATSAPP_PATTERN } from "../auth/registrationValidation";
 
@@ -43,6 +48,8 @@ export function AuthPage({ mode = "login" }) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const signupStartedRef = useRef(false);
+  const signupIssuesRef = useRef(new Set());
 
   const authIntent = useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -55,6 +62,33 @@ export function AuthPage({ mode = "login" }) {
   }, [location.search]);
   const professionalIntent = authIntent.professional;
   const registrationComplete = isRegistrationComplete(form);
+  const trackProfessionalStart = useCallback((method = "email") => {
+    if (!isRegister || !professionalIntent || signupStartedRef.current) return;
+    signupStartedRef.current = true;
+    trackFirstPartyEvent("professional_signup_started", {
+      properties: { method }
+    });
+  }, [isRegister, professionalIntent]);
+
+  function trackProfessionalIssue(field) {
+    if (!isRegister || !professionalIntent) return;
+    const reason = field === "form" ? "server_rejected" : registrationFieldError(form, field);
+    if (!reason) return;
+    const safeFields = {
+      nome: "name",
+      email: "email",
+      whatsapp: "whatsapp",
+      senha: "password",
+      confirmarSenha: "password_confirmation",
+      form: "form"
+    };
+    const key = `${field}:${reason}`;
+    if (!safeFields[field] || signupIssuesRef.current.has(key)) return;
+    signupIssuesRef.current.add(key);
+    trackFirstPartyEvent("professional_signup_validation_error", {
+      properties: { field: safeFields[field], reason }
+    });
+  }
 
   const authRequestedPath = safeReturnPath(location.state?.from);
 
@@ -87,6 +121,12 @@ export function AuthPage({ mode = "login" }) {
     submittingRef.current = true;
     setError("");
     setSubmitting(true);
+    trackProfessionalStart("google");
+    if (isRegister && professionalIntent) {
+      trackFirstPartyEvent("professional_signup_submitted", {
+        properties: { method: "google" }
+      });
+    }
     try {
       const marketing = isRegister
         ? getMarketingContext(
@@ -141,7 +181,7 @@ export function AuthPage({ mode = "login" }) {
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [finish, form.aceitaNotificacoesWhatsapp, isRegister, professionalIntent, session]);
+  }, [finish, form.aceitaNotificacoesWhatsapp, isRegister, professionalIntent, session, trackProfessionalStart]);
 
   if (session.loading) {
     return <main className="auth-page"><LoadingState>Carregando sua conta...</LoadingState></main>;
@@ -154,6 +194,7 @@ export function AuthPage({ mode = "login" }) {
   }
 
   function update(field, value) {
+    if (field !== "aceitaNotificacoesWhatsapp") trackProfessionalStart("email");
     setForm((current) => ({ ...current, [field]: value }));
   }
 
@@ -171,6 +212,12 @@ export function AuthPage({ mode = "login" }) {
 
     submittingRef.current = true;
     setSubmitting(true);
+    if (isRegister && professionalIntent) {
+      trackProfessionalStart("email");
+      trackFirstPartyEvent("professional_signup_submitted", {
+        properties: { method: "email" }
+      });
+    }
     try {
       const action = isRegister ? session.register : session.login;
       const meta =
@@ -222,7 +269,10 @@ export function AuthPage({ mode = "login" }) {
 
       finish(current);
     } catch (requestError) {
-      if (requestError.name !== "AbortError") setError(requestError.message);
+      if (requestError.name !== "AbortError") {
+        setError(requestError.message);
+        if (isRegister && professionalIntent) trackProfessionalIssue("form");
+      }
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -273,6 +323,7 @@ export function AuthPage({ mode = "login" }) {
                 maxLength={120}
                 minLength="2"
                 onChange={(event) => update("nome", event.target.value)}
+                onBlur={() => trackProfessionalIssue("nome")}
                 required
                 value={form.nome}
               />
@@ -285,6 +336,7 @@ export function AuthPage({ mode = "login" }) {
               autoComplete="email"
               maxLength={160}
               onChange={(event) => update("email", event.target.value)}
+              onBlur={() => trackProfessionalIssue("email")}
               required
               type="email"
               value={form.email}
@@ -298,6 +350,7 @@ export function AuthPage({ mode = "login" }) {
                 autoComplete="tel"
                 inputMode="tel"
                 onChange={(event) => update("whatsapp", event.target.value)}
+                onBlur={() => trackProfessionalIssue("whatsapp")}
                 pattern={WHATSAPP_PATTERN}
                 required
                 title="Informe um WhatsApp com DDD, usando 10 ou 11 dígitos."
@@ -313,6 +366,7 @@ export function AuthPage({ mode = "login" }) {
             describedBy={isRegister ? "af-auth-password-hint" : undefined}
             minLength={isRegister ? 8 : undefined}
             onChange={(event) => update("senha", event.target.value)}
+            onBlur={() => trackProfessionalIssue("senha")}
             value={form.senha}
           />
           {isRegister && (
@@ -335,6 +389,7 @@ export function AuthPage({ mode = "login" }) {
                 : undefined}
               minLength={8}
               onChange={(event) => update("confirmarSenha", event.target.value)}
+              onBlur={() => trackProfessionalIssue("confirmarSenha")}
               value={form.confirmarSenha}
             />
           )}

@@ -16,6 +16,9 @@ const EVENTOS_FRONTEND = new Set([
   "booking_started",
   "booking_completed",
   "checkout_viewed",
+  "professional_signup_started",
+  "professional_signup_submitted",
+  "professional_signup_validation_error",
 ]);
 
 const MOTIVOS_SAIDA = new Set([
@@ -25,6 +28,10 @@ const MOTIVOS_SAIDA = new Set([
   "unload",
   "session_end",
 ]);
+
+const SIGNUP_FIELDS = new Set(["name", "email", "whatsapp", "password", "password_confirmation", "form"]);
+const SIGNUP_REASONS = new Set(["required", "too_short", "too_long", "invalid_format", "invalid_length", "mismatch", "server_rejected"]);
+const SIGNUP_METHODS = new Set(["email", "google"]);
 
 const BOOKING_INTENTS = new Set([
   "new_booking",
@@ -48,6 +55,9 @@ const PROPRIEDADES_PERMITIDAS = Object.freeze({
   ]),
   booking_completed: new Set(["status"]),
   checkout_viewed: new Set(["plan_slug"]),
+  professional_signup_started: new Set(["method"]),
+  professional_signup_submitted: new Set(["method"]),
+  professional_signup_validation_error: new Set(["field", "reason"]),
 });
 
 const SEARCH_HOSTS = new Set([
@@ -178,6 +188,18 @@ function propriedadesSeguras(nome, propriedades) {
       resultado[chave] = typeof valor === "string"
         ? textoSeguro(valor, 120)
         : valor;
+    }
+  }
+
+  if (nome === "professional_signup_validation_error") {
+    // Impede conteúdo livre/PII mesmo em propriedades permitidas.
+    if (!SIGNUP_FIELDS.has(resultado.field) || !SIGNUP_REASONS.has(resultado.reason)) {
+      throw criarErro("Propriedades do erro de cadastro inválidas.");
+    }
+  }
+  if (nome === "professional_signup_started" || nome === "professional_signup_submitted") {
+    if (!SIGNUP_METHODS.has(resultado.method)) {
+      throw criarErro("Método de cadastro inválido.");
     }
   }
 

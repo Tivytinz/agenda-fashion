@@ -428,6 +428,52 @@ describe(
       }
     );
 
+    test("admite eventos de cadastro com propriedades enumeradas, descartando PII adicional", () => {
+      const evento = {
+        type: "event",
+        eventUuid: EVENT_UUID,
+        viewUuid: VIEW_UUID,
+        schemaVersion: 1,
+        occurredAt: AGORA
+      };
+      const started = normalizarItem({
+        ...evento,
+        name: "professional_signup_started",
+        properties: { method: "email", senha: "nao-transmitir" }
+      });
+      expect(started.properties).toEqual({ method: "email" });
+      expect(normalizarItem({
+        ...evento, name: "professional_signup_submitted",
+        properties: { method: "google" }
+      }).properties).toEqual({ method: "google" });
+      const issue = normalizarItem({
+        ...evento, name: "professional_signup_validation_error",
+        properties: { field: "password_confirmation", reason: "mismatch", email: "nao-enviar@example.com" }
+      });
+      expect(issue.properties).toEqual({
+        field: "password_confirmation", reason: "mismatch"
+      });
+    });
+
+    test("rejeita PII disfarçada nos campos ou métodos de eventos de cadastro", () => {
+      const base = {
+        type: "event", eventUuid: EVENT_UUID, schemaVersion: 1,
+        occurredAt: AGORA
+      };
+      expect(() => normalizarItem({
+        ...base, name: "professional_signup_validation_error",
+        properties: { field: "ana@exemplo.com", reason: "invalid_format" }
+      })).toThrow("Propriedades do erro de cadastro inválidas.");
+      expect(() => normalizarItem({
+        ...base, name: "professional_signup_validation_error",
+        properties: { field: "email", reason: "ana@exemplo.com" }
+      })).toThrow("Propriedades do erro de cadastro inválidas.");
+      expect(() => normalizarItem({
+        ...base, name: "professional_signup_submitted",
+        properties: { method: "email-de-usuario" }
+      })).toThrow("Método de cadastro inválido.");
+    });
+
     test(
       "rejeita evento frontend desconhecido",
       () => {

@@ -19,6 +19,7 @@ export function AdminJourneyV2Page() {
         const transitions = Array.isArray(data.transicoes) ? data.transicoes : [];
         const events = Array.isArray(data.eventos) ? data.eventos : [];
         const devices = Array.isArray(data.dispositivos) ? data.dispositivos : [];
+        const signup = data.cadastroProfissional || null;
         const reconciliation = data.reconciliacaoPipelines || {};
         const conversionHealth = data.saudeConversoesMarketing || {};
         const conversionSummary = conversionHealth.resumo || {};
@@ -102,6 +103,31 @@ export function AdminJourneyV2Page() {
 
         return (
           <>
+            {signup && (
+              <section className="panel admin-journey-signup-panel">
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">Ativação</p>
+                    <h2>Cadastro profissional — interação com o formulário</h2>
+                    <p className="muted">
+                      Coorte de sessões que visualizaram o cadastro profissional no período.
+                      Os eventos precisam pertencer a essa visualização. Não equivalem a contas criadas.
+                    </p>
+                  </div>
+                </div>
+                <section className="admin-command-summary-grid is-period-summary" aria-label="Etapas do cadastro profissional">
+                  <MetricCard label="Sessões com visita" hint="sessões com a página de cadastro profissional" value={formatNumber(signup.sessoes_visita)} />
+                  <MetricCard label="Iniciaram" hint="sessões com primeira interação registrada" value={formatNumber(signup.sessoes_inicio)} />
+                  <MetricCard label="Tentaram cadastrar" hint="sessões com envio de dados válidos ao servidor ou credencial Google" value={formatNumber(signup.sessoes_envio)} />
+                  <MetricCard label="Encontraram erro" hint="sessões com erros de validação observados" value={formatNumber(signup.sessoes_erro)} />
+                </section>
+                <p className="muted">
+                  {formatNumber(signup.erros_validacao)} ocorrência(s) de validação no período.
+                  Uma sessão pode conter vários erros. Cadastros concluídos, negócios e primeiros agendamentos
+                  permanecem no funil operacional, confirmado pelo backend. Não atribuir abandono apenas por ausência de evento.
+                </p>
+              </section>
+            )}
             <section className="panel admin-journey-screens-panel">
               <div className="panel-heading">
                 <div>

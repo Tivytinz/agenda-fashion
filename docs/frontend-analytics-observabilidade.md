@@ -314,7 +314,29 @@ profile_shared
 booking_started
 booking_completed
 checkout_viewed
+professional_signup_started
+professional_signup_submitted
+professional_signup_validation_error
 ```
+
+No cadastro profissional, a rota `/cadastro?tipo=profissional` (ou plano
+válido) recebe `pageKey=professional_register`; o cadastro de cliente
+mantém `pageKey=register`. Ambos preservam `routeTemplate=/cadastro`
+sem transportar query strings ou conteúdo digitado ao coletor.
+
+O início acontece uma vez por montagem da tela, na primeira alteração de
+um campo ou credencial Google. Tentativa ocorre quando a interface envia
+formulário válido ou credencial Google, e **não** significa conta criada.
+Os erros são capturados ao sair de um campo inválido e, em rejeição de
+cadastro por API, com códigos estáticos `field`/`reason`.
+Não armazenar valores digitados, PII, corpo de erro nem senha.
+
+A página de Jornada do Admin compara sessões que efetivamente
+visualizaram o cadastro profissional com os eventos vinculados à mesma
+visualização, preservando a distinção entre eventos, sessões e fatos reais.
+Esses marcos são observabilidade de UX, não novos estágios transacionais do
+funil de aquisição. Uma sessão sem evento de envio não comprova abandono.
+
 
 Propriedades também são whitelistadas por evento.
 
