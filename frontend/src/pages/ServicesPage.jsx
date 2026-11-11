@@ -6,6 +6,7 @@ import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 import { MediaThumb } from "../components/profile/MediaThumb";
+import { FileImagePreview } from "../components/FileImagePreview";
 import { SERVICE_CATEGORIES } from "../utils/serviceCatalog";
 
 // Preserva a importação existente do catálogo durante a separação dos módulos.
@@ -39,7 +40,6 @@ export function ServiceEditorPage() {
     fieldsDisabled,
     mediaBusy,
     hasChanges,
-    coverPreview,
     galleryItems,
     discardPendingOperations,
     isGalleryCover,
@@ -130,8 +130,8 @@ export function ServiceEditorPage() {
             </div>
             <div className="cover-upload">
               <div className="cover-preview">
-                {coverPreview
-                  ? <img alt="Prévia da nova capa" src={coverPreview} />
+                {cover
+                  ? <FileImagePreview alt="Prévia da nova capa" file={cover} />
                   : form.foto_url
                     ? <MediaThumb alt={`Capa atual do serviço ${form.nome}`} className="editor-media" emoji="📷" src={form.foto_url} />
                     : <span><strong aria-hidden="true" className="native-emoji">📷</strong>Adicione uma foto de capa</span>}

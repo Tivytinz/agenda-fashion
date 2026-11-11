@@ -81,7 +81,6 @@ export function useServiceEditor() {
     || Boolean(cover)
     || galleryFiles.length > 0
   );
-  const coverPreview = useMemo(() => cover ? URL.createObjectURL(cover) : "", [cover]);
   const galleryItems = useMemo(() => {
     if (!form.foto_url || gallery.some((photo) => samePhoto(photo, form.foto_url, form.foto_public_id))) {
       return gallery;
@@ -166,10 +165,6 @@ export function useServiceEditor() {
   function finishOperation(operation) {
     if (operationRef.current === operation) operationRef.current = null;
   }
-
-  useEffect(() => () => {
-    if (coverPreview) URL.revokeObjectURL(coverPreview);
-  }, [coverPreview]);
 
   useEffect(() => {
     if (!mediaMessage) return undefined;
@@ -741,7 +736,6 @@ export function useServiceEditor() {
     fieldsDisabled,
     mediaBusy,
     hasChanges,
-    coverPreview,
     galleryItems,
     discardPendingOperations,
     isGalleryCover,
