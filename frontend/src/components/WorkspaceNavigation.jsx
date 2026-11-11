@@ -10,7 +10,7 @@ import {
   isExactNavigationRoute,
   isWorkspaceRouteActive,
   splitMobileLinks
-} from "./workspaceNavigation";
+} from "./workspaceNavigation.js";
 
 export function WorkspaceLinks({
   links,

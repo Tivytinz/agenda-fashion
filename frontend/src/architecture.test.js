@@ -106,3 +106,19 @@ it("mantém tokens e primitives globais sob um único ownership", () => {
   }
   expect(conflicts).toEqual([]);
 });
+
+it("distingue componentes JSX e helpers JS da navegação no Vite", () => {
+  for (const path of [
+    "components/OwnerShell.jsx",
+    "components/ProfessionalShell.jsx",
+    "components/WorkspaceLayout.jsx"
+  ]) {
+    const source = readFileSync(join(root, path), "utf8");
+    expect(source, path).toContain('from "./WorkspaceNavigation.jsx"');
+  }
+
+  const navigation = readFileSync(join(root, "components/WorkspaceNavigation.jsx"), "utf8");
+  expect(navigation).toContain('from "./workspaceNavigation.js"');
+  expect(navigation).toContain("export function WorkspaceLinks(");
+  expect(navigation).toContain("export function MobileWorkspaceNavigation(");
+});

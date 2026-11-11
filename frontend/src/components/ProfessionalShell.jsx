@@ -7,7 +7,7 @@ import { ShellContentBoundary } from "./ShellContentBoundary";
 import {
   MobileWorkspaceNavigation,
   WorkspaceLinks
-} from "./WorkspaceNavigation";
+} from "./WorkspaceNavigation.jsx";
 
 export function ProfessionalShell({ children, links = [] }) {
   const { negocio, vinculos = [] } = useSession();

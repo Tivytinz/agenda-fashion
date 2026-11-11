@@ -8,7 +8,7 @@ import { useSetupFocus } from "./SetupFlowContext";
 import {
   MobileWorkspaceNavigation,
   WorkspaceLinks
-} from "./WorkspaceNavigation";
+} from "./WorkspaceNavigation.jsx";
 
 function publicProfilePath(slug) {
   const normalized = String(slug || "").trim();
