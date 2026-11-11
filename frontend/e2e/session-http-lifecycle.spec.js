@@ -1,30 +1,73 @@
-import { createServer } from "node:http";
+import { createServer, request as httpRequest } from "node:http";
 import { expect, test } from "@playwright/test";
+
+// Cookies são entregues por HTTP real; a UI e seus módulos continuam no Vite.
+// Assim a verificação inclui o transporte de cookies HttpOnly pelo navegador.
+async function sessionServer(baseURL, handleApi) {
+  const server = createServer((req, res) => {
+    const path = new URL(req.url, baseURL).pathname;
+    const isApi = String(req.headers.accept || "").includes("application/json")
+      || ["POST", "PUT", "PATCH", "DELETE"].includes(req.method);
+    if (isApi) {
+      req.resume();
+      Promise.resolve(handleApi(req, res, path)).catch(error => {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ erro: error.message }));
+      });
+      return;
+    }
+    const upstreamUrl = new URL(baseURL);
+    upstreamUrl.pathname = path;
+    upstreamUrl.search = new URL(req.url, baseURL).search;
+    const upstream = httpRequest(upstreamUrl, {
+      method: req.method,
+      headers: { ...req.headers, host: new URL(baseURL).host }
+    }, response => {
+      res.writeHead(response.statusCode, response.headers);
+      response.pipe(res);
+    });
+    upstream.on("error", () => { res.writeHead(502); res.end(); });
+    req.pipe(upstream);
+  });
+  await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
+  return {
+    origin: `http://127.0.0.1:${server.address().port}`,
+    close: async () => {
+      server.closeAllConnections();
+      await new Promise(resolve => server.close(resolve));
+    }
+  };
+}
+
+function json(res, body, cookie) {
+  res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store", ...(cookie ? { "Set-Cookie": cookie } : {}) });
+  res.end(JSON.stringify(body));
+}
 
 test("Sair durante um login aguarda o cookie novo e revoga essa sessão", async ({ page, context, baseURL }) => {
   let finishLogin;
   const gate = new Promise(resolve => { finishLogin = resolve; });
   const events = [];
-  await context.addCookies([{ name: "af_session", value: "anterior", url: baseURL }]);
-  await page.addInitScript(() => localStorage.setItem("session_active", "1"));
-  await page.route("**/*", async route => {
-    const req = route.request(), path = new URL(req.url()).pathname;
-    if (!["fetch", "xhr"].includes(req.resourceType())) return route.continue();
+  const logoutCookies = [];
+  const server = await sessionServer(baseURL, async (req, res, path) => {
     if (path === "/login") {
       events.push("login:start");
       await gate;
       events.push("login:response");
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ usuario: { id: 2, nome: "Bruna" } }), headers: { "Set-Cookie": "af_session=nova; Path=/; HttpOnly; SameSite=Lax" } });
+      return json(res, { usuario: { id: 2, nome: "Bruna" } }, "af_session=nova; Path=/; HttpOnly; SameSite=Lax");
     }
     if (path === "/logout") {
-      expect((await req.allHeaders()).cookie).toContain("af_session=nova");
+      logoutCookies.push(req.headers.cookie);
       events.push("logout:nova");
-      return route.fulfill({ status: 204, headers: { "Set-Cookie": "af_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax" } });
+      res.writeHead(204, { "Set-Cookie": "af_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax" });
+      return res.end();
     }
-    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ usuario: { id: 1, nome: "Ana" }, vinculos: [] }) });
+    return json(res, { usuario: { id: 1, nome: "Ana" }, vinculos: [] });
   });
+  await context.addCookies([{ name: "af_session", value: "anterior", url: server.origin }]);
+  await page.addInitScript(() => localStorage.setItem("session_active", "1"));
   try {
-    await page.goto("/e2e/fixtures/session-transitions.html");
+    await page.goto(`${server.origin}/e2e/fixtures/session-transitions.html`);
     await expect(page.getByTestId("session")).toHaveText("Ana");
     await page.getByRole("button", { name: "Autenticar" }).click();
     await expect.poll(() => events).toEqual(["login:start"]);
@@ -33,10 +76,12 @@ test("Sair durante um login aguarda o cookie novo e revoga essa sessão", async 
     expect(events).toEqual(["login:start"]);
     finishLogin();
     await expect.poll(() => events).toEqual(["login:start", "login:response", "logout:nova"]);
+    expect(logoutCookies).toHaveLength(1);
+    expect(logoutCookies[0]).toContain("af_session=nova");
     await expect.poll(async () => (await context.cookies()).some(cookie => cookie.name === "af_session")).toBe(false);
     await expect(page.getByTestId("session")).toHaveText("Desconectada");
     expect(await page.evaluate(() => localStorage.getItem("session_active"))).toBeNull();
-  } finally { finishLogin(); }
+  } finally { finishLogin(); await server.close(); }
 });
 
 test("formulário de acesso aguarda a consulta inicial de sessão", async ({ page }) => {
@@ -62,32 +107,27 @@ test("novo login espera o logout encerrar o cookie anterior", async ({ page, con
   let finishLogout;
   const logoutGate = new Promise(resolve => { finishLogout = resolve; });
   const events = [];
-  await context.addCookies([{ name: "af_session", value: "anterior", url: baseURL }]);
-  await page.addInitScript(() => localStorage.setItem("session_active", "1"));
-  await page.route("**/*", async route => {
-    const req = route.request();
-    if (!["fetch", "xhr"].includes(req.resourceType())) return route.continue();
-    const path = new URL(req.url()).pathname;
+  const server = await sessionServer(baseURL, async (req, res, path) => {
     if (path === "/logout") {
       events.push("logout:start");
       await logoutGate;
       events.push("logout:response");
-      return route.fulfill({ status: 204, headers: { "Set-Cookie": "af_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax" } });
+      res.writeHead(204, { "Set-Cookie": "af_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax" });
+      return res.end();
     }
     if (path === "/login") {
       events.push("login");
-      return route.fulfill({
-        status: 200, contentType: "application/json", body: JSON.stringify(next),
-        headers: { "Set-Cookie": "af_session=nova; Path=/; HttpOnly; SameSite=Lax" }
-      });
+      return json(res, next, "af_session=nova; Path=/; HttpOnly; SameSite=Lax");
     }
     let body = [];
-    if (path === "/minha-sessao") body = (await req.allHeaders()).cookie?.includes("af_session=nova") ? next : previous;
+    if (path === "/minha-sessao") body = req.headers.cookie?.includes("af_session=nova") ? next : previous;
     if (path === "/auth/configuracao-publica") body = { googleClientId: "" };
-    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+    return json(res, body);
   });
+  await context.addCookies([{ name: "af_session", value: "anterior", url: server.origin }]);
+  await page.addInitScript(() => localStorage.setItem("session_active", "1"));
   try {
-    await page.goto("/");
+    await page.goto(server.origin);
     await page.getByLabel("Abrir conta de Ana").click();
     await page.getByRole("button", { name: "Sair", exact: true }).click();
     await expect.poll(() => events).toEqual(["logout:start"]);
@@ -106,6 +146,7 @@ test("novo login espera o logout encerrar o cookie anterior", async ({ page, con
     expect((await context.cookies()).find(cookie => cookie.name === "af_session")?.value).toBe("nova");
   } finally {
     finishLogout();
+    await server.close();
   }
 });
 

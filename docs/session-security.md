@@ -38,6 +38,12 @@ bloqueio de envio, e callbacks do SDK desmontado/bloqueado são descartados.
 Essa coordenação é local à aba e não modifica o contrato de `/logout`, a
 revogação no backend ou a autorização das operações de negócio.
 
+Os cenários Playwright de concorrência de cookies usam HTTP real em loopback
+para entregar e excluir cookies HttpOnly, com a interface e o provider reais.
+A ordem e o cookie recebido no logout são conferidos no servidor auxiliar,
+além do estado visual e do cookie final do navegador. Esses cenários mantêm o
+domínio simulado e não substituem a aceitação full-stack com Express/PostgreSQL.
+
 ## Recuperação de senha
 
 O fluxo de recuperação usa token aleatório de uso único com validade de 30
