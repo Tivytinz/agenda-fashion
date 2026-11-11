@@ -118,7 +118,13 @@ jobs:
 
   e2e:
     name: End-to-end quality (shard ${{ matrix.shard }}/4)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    container:
+      # Manter a versão alinhada ao frontend/package-lock.json.
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
+      options: --init --ipc=host
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/agenda_fashion_test
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -165,8 +171,24 @@ jobs:
       - name: Apply test migrations
         run: npm run migrate:test
 
-      - name: Install mobile browsers
-        run: npm --prefix frontend exec -- playwright install --with-deps chromium webkit
+      - name: Verify preinstalled browsers
+        timeout-minutes: 2
+        working-directory: frontend
+        run: |
+          node --input-type=module <<'JS'
+          import { chromium, webkit } from "playwright";
+          for (const browserType of [chromium, webkit]) {
+            const browser = await browserType.launch({ headless: true, timeout: 15000 });
+            try {
+              const page = await browser.newPage();
+              await page.setContent("<title>AF browser check</title>");
+              if (await page.title() !== "AF browser check") throw new Error("Browser check failed");
+              console.log(`${browserType.name()}: ready`);
+            } finally {
+              await browser.close();
+            }
+          }
+          JS
 
       - name: Test mobile frontend
         run: npm --prefix frontend run test:e2e -- --shard=${{ matrix.shard }}/4

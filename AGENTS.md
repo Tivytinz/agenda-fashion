@@ -1396,6 +1396,12 @@ quatro shards paralelos no GitHub Actions para reduzir o caminho crítico sem
 reduzir cobertura; a aceitação full-stack continua executando uma vez dentro
 do primeiro shard.
 
+Os shards E2E usam a imagem oficial do Playwright em Ubuntu Noble, com versão
+alinhada ao lockfile do frontend e navegadores/dependências já instalados.
+Não executar `playwright install --with-deps` em cada shard. O preflight abre
+Chromium e WebKit antes da suíte; no container, PostgreSQL usa o hostname
+do serviço `postgres`, não o loopback do container de testes.
+
 Mudanças em caminhos públicos críticos de performance (home, catálogo, perfil,
 componentes/estilos relacionados e scripts de medição) também disparam o
 `Performance QA` no pull request para `main`. Essa workflow permanece
