@@ -62,6 +62,7 @@ A base só é classificada como pronta quando possuir, no mínimo:
 - 200 agendamentos rotulados;
 - 20 faltas;
 - 20 atendimentos realizados;
+- cobertura de captura mínima de 80% dos agendamentos elegíveis à extração v1 (medida independentemente da rotulagem). Agendamentos reagendados sem snapshot temporal original ficam fora do denominador enquanto a extração v1 não os admite;
 - cobertura mínima de 80% entre desfechos explícitos e compromissos já vencidos
   que ainda permanecem ativos.
 
@@ -74,7 +75,7 @@ Antes do baseline, o backend expõe somente para administradores
 `GET /admin/saude/ml-no-show`. O diagnóstico é agregado e não retorna nome,
 telefone, WhatsApp, e-mail, texto livre ou identificadores de cliente. Ele mostra:
 
-- prontidão global pelos gates acima;
+- prontidão global pelos gates acima, incluindo cobertura de captura e cobertura de desfecho separadas;
 - quantidade de negócios com amostras e com rótulos;
 - participação da base rotulada concentrada nos negócios mais representados;
 - cobertura de desfecho e prevalência de falta por negócio;

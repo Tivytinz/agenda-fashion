@@ -187,6 +187,42 @@ async function rotularAmostrasPendentes() {
   return resultado.rowCount || 0;
 }
 
+async function obterCoberturaCaptura() {
+  const resultado = await db.query(`
+    SELECT
+      COUNT(*)::INT AS total_elegiveis,
+      COUNT(amostra.agendamento_id)::INT AS total_capturados,
+      (
+        SELECT COUNT(*)::INT
+        FROM ml_agendamento_no_show_amostras historica
+        WHERE EXISTS (
+          SELECT 1 FROM agendamento_reagendamentos reagendamento_historico
+          WHERE reagendamento_historico.agendamento_id = historica.agendamento_id
+        )
+      ) AS amostras_reagendadas_legadas
+    FROM agendamentos agendamento
+    INNER JOIN negocios negocio ON negocio.id = agendamento.negocio_id
+    LEFT JOIN ml_agendamento_no_show_amostras amostra
+      ON amostra.agendamento_id = agendamento.id
+    WHERE agendamento.created_at IS NOT NULL
+      AND agendamento.data IS NOT NULL
+      AND agendamento.horario IS NOT NULL
+      AND agendamento.duracao_minutos > 0
+      AND agendamento.inicio_previsto_em IS NOT NULL
+      -- A captura v1 exclui reagendamentos até haver snapshot original.
+      AND NOT EXISTS (
+        SELECT 1
+        FROM agendamento_reagendamentos reagendamento
+        WHERE reagendamento.agendamento_id = agendamento.id
+      )
+  `);
+  return resultado.rows[0] || {
+    total_elegiveis: 0,
+    total_capturados: 0,
+    amostras_reagendadas_legadas: 0,
+  };
+}
+
 async function obterProntidao() {
   const resultado = await db.query(`
     SELECT
@@ -448,6 +484,7 @@ module.exports = {
   capturarAmostrasPendentes,
   rotularAmostrasPendentes,
   obterProntidao,
+  obterCoberturaCaptura,
   obterResumoMaturidadeNegocios,
   listarMaturidadeNegocios,
   listarMaturidadeSegmentosCliente,

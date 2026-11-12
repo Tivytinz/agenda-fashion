@@ -2,6 +2,7 @@ const mockRepository = {
   capturarAmostrasPendentes: jest.fn(),
   rotularAmostrasPendentes: jest.fn(),
   obterProntidao: jest.fn(),
+  obterCoberturaCaptura: jest.fn(),
   obterResumoMaturidadeNegocios: jest.fn(),
   listarMaturidadeNegocios: jest.fn(),
   listarMaturidadeSegmentosCliente: jest.fn(),
@@ -20,6 +21,11 @@ const service = require(
 describe("fundação de dados de ML para no-show", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRepository.obterCoberturaCaptura.mockResolvedValue({
+      total_elegiveis: 250,
+      total_capturados: 240,
+      amostras_reagendadas_legadas: 0,
+    });
     mockRepository.obterResumoMaturidadeNegocios
       .mockResolvedValue({
         negocios_com_amostras: 0,
@@ -42,7 +48,7 @@ describe("fundação de dados de ML para no-show", () => {
       faltas: 12,
       realizados: 168,
       pendentes_vencidos: 0,
-    })).toMatchObject({
+    }, { total_elegiveis: 250, total_capturados: 240 })).toMatchObject({
       pronta_para_treinamento: false,
       motivos: [
         "amostras_rotuladas_insuficientes",
@@ -58,7 +64,7 @@ describe("fundação de dados de ML para no-show", () => {
       faltas: "25",
       realizados: "195",
       pendentes_vencidos: "20",
-    })).toMatchObject({
+    }, { total_elegiveis: 250, total_capturados: 240 })).toMatchObject({
       pronta_para_treinamento: true,
       motivos: [],
       dados: {
@@ -79,13 +85,52 @@ describe("fundação de dados de ML para no-show", () => {
       faltas: 30,
       realizados: 180,
       pendentes_vencidos: 90,
-    })).toMatchObject({
+    }, { total_elegiveis: 250, total_capturados: 240 })).toMatchObject({
       pronta_para_treinamento: false,
       motivos: ["cobertura_desfecho_insuficiente"],
       dados: {
         cobertura_desfecho: 0.7,
       },
     });
+  });
+
+  test("bloqueia treino quando o backfill ainda não capturou os elegíveis", () => {
+    const dados = { total_amostras: 220, amostras_rotuladas: 210, faltas: 30, realizados: 180, pendentes_vencidos: 10 };
+    expect(service.avaliarProntidao(dados, {
+      total_elegiveis: 1000, total_capturados: 220,
+    })).toMatchObject({
+      pronta_para_treinamento: false,
+      motivos: expect.arrayContaining(["cobertura_captura_insuficiente"]),
+      dados: { cobertura_captura: 0.22 },
+    });
+  });
+
+  test("rotulagem aguarda a conclusão da captura", async () => {
+    let liberarCaptura;
+    const capturaPendente = new Promise((resolve) => {
+      liberarCaptura = resolve;
+    });
+    mockRepository.capturarAmostrasPendentes.mockReturnValue(capturaPendente);
+    mockRepository.rotularAmostrasPendentes.mockResolvedValue(0);
+    mockRepository.obterProntidao.mockResolvedValue({});
+    const coleta = service.coletar({ limite: 10 });
+    expect(mockRepository.rotularAmostrasPendentes).not.toHaveBeenCalled();
+    liberarCaptura(1);
+    await coleta;
+    expect(mockRepository.rotularAmostrasPendentes).toHaveBeenCalledTimes(1);
+  });
+
+  test("bloqueia prontidão se a base contém amostras reagendadas legadas", () => {
+    const resultado = service.avaliarProntidao({
+      total_amostras: 250, amostras_rotuladas: 220,
+      faltas: 25, realizados: 195, pendentes_vencidos: 10,
+    }, {
+      total_elegiveis: 250, total_capturados: 240,
+      amostras_reagendadas_legadas: 2,
+    });
+    expect(resultado.pronta_para_treinamento).toBe(false);
+    expect(resultado.motivos).toContain("amostras_reagendadas_legadas");
+    expect(resultado.dados.amostras_reagendadas_legadas).toBe(2);
   });
 
   test("coleta, rotula e devolve prontidão agregada sem PII", async () => {
