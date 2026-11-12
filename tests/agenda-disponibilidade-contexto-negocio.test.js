@@ -165,7 +165,7 @@ describe("disponibilidade contextual por negócio", () => {
 
     expect(
       agendaConfiguracaoRepository.listarHorarios
-    ).toHaveBeenCalledWith(7, 20);
+    ).toHaveBeenCalledWith(7, 20, undefined);
 
     expect(
       agendaPublicaRepository.listarAgendamentosOcupados
