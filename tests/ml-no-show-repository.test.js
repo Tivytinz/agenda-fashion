@@ -35,6 +35,9 @@ describe("repository de amostras de no-show", () => {
     expect(sql).toContain(
       "primeiro_reagendamento.previous_data"
     );
+    expect(sql).toContain("atributo.inicio_previsto_em");
+    expect(sql).toContain("primeiro_reagendamento.agendamento_id IS NULL");
+    expect(sql).not.toContain("atributo.fuso_horario");
     expect(sql).toContain(
       "historico.created_at ASC"
     );
