@@ -165,6 +165,31 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("configuração de horários", () => {
+  it("retorna à edição do serviço e recupera horários ainda não salvos na mesma guia", async () => {
+    mockFirstConfiguration();
+    const entry = "/painel/horarios?servico_retorno=702";
+    function ServiceReview() {
+      const navigate = useNavigate();
+      return <main>
+        <h1>Editar serviço salvo</h1>
+        <button onClick={() => navigate(entry)} type="button">Continuar para horários</button>
+      </main>;
+    }
+    render(<MemoryRouter initialEntries={[entry]}>
+      <Routes>
+        <Route path="/painel/horarios" element={<ScheduleSettingsPage />} />
+        <Route path="/painel/servicos/:id/editar" element={<ServiceReview />} />
+      </Routes>
+    </MemoryRouter>);
+    const start = await screen.findByLabelText("Início do atendimento de Segunda");
+    fireEvent.change(start, { target: { value: "09:00" } });
+    fireEvent.click(screen.getByRole("link", { name: "Voltar" }));
+    expect(await screen.findByRole("heading", { name: "Editar serviço salvo" })).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Continuar para horários" }));
+    expect((await screen.findByLabelText("Início do atendimento de Segunda")).value).toBe("09:00");
+    expect(apiRequest.mock.calls.filter(([, options]) => options?.method === "PUT")).toHaveLength(0);
+  });
+
   it("oferece retorno ao serviço confirmado, dica e emojis sem alterar os campos", async () => {
     mockFirstConfiguration();
     renderPage("/painel/horarios?servico_retorno=71&plano=autonoma");
