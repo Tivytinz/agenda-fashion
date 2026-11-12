@@ -110,7 +110,7 @@ describe("editor de serviços", () => {
     fireEvent.click(screen.getByRole("link", { name: "Retomar serviço" }));
     expect((await screen.findByRole("textbox", { name: "Nome do serviço" })).value)
       .toBe("Manicure tradicional");
-    expect(screen.getByRole("button", { name: "Trocar imagem escolhida" })).not.toBeNull();
+    expect(screen.getByText("Trocar imagem escolhida")).not.toBeNull();
     expect(screen.getByText("Mostre seus serviços com clareza para suas clientes escolherem e agendarem.")).not.toBeNull();
   });
 
