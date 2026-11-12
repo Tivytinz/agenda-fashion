@@ -24,6 +24,7 @@ describe("fundação de dados de ML para no-show", () => {
     mockRepository.obterCoberturaCaptura.mockResolvedValue({
       total_elegiveis: 250,
       total_capturados: 240,
+      amostras_reagendadas_legadas: 0,
     });
     mockRepository.obterResumoMaturidadeNegocios
       .mockResolvedValue({
@@ -117,6 +118,19 @@ describe("fundação de dados de ML para no-show", () => {
     liberarCaptura(1);
     await coleta;
     expect(mockRepository.rotularAmostrasPendentes).toHaveBeenCalledTimes(1);
+  });
+
+  test("bloqueia prontidão se a base contém amostras reagendadas legadas", () => {
+    const resultado = service.avaliarProntidao({
+      total_amostras: 250, amostras_rotuladas: 220,
+      faltas: 25, realizados: 195, pendentes_vencidos: 10,
+    }, {
+      total_elegiveis: 250, total_capturados: 240,
+      amostras_reagendadas_legadas: 2,
+    });
+    expect(resultado.pronta_para_treinamento).toBe(false);
+    expect(resultado.motivos).toContain("amostras_reagendadas_legadas");
+    expect(resultado.dados.amostras_reagendadas_legadas).toBe(2);
   });
 
   test("coleta, rotula e devolve prontidão agregada sem PII", async () => {
