@@ -9,29 +9,16 @@ async function capturarAmostrasPendentes({ limite }) {
           a.negocio_id,
           a.client_id,
           a.cliente_id,
-          COALESCE(
-            primeiro_reagendamento.previous_data,
-            a.data
-          ) AS data,
-          COALESCE(
-            primeiro_reagendamento.previous_horario,
-            a.horario
-          ) AS horario,
+          a.data,
+          a.horario,
           a.duracao_minutos,
           a.status,
           a.status_atendimento_em,
           a.created_at,
-          COALESCE(
-            NULLIF(n.fuso_horario, ''),
-            'America/Sao_Paulo'
-          ) AS fuso_horario
+          a.inicio_previsto_em
         FROM agendamentos a
-        INNER JOIN negocios n
-          ON n.id = a.negocio_id
         LEFT JOIN LATERAL (
-          SELECT
-            historico.previous_data,
-            historico.previous_horario
+          SELECT historico.agendamento_id
           FROM agendamento_reagendamentos historico
           WHERE historico.agendamento_id = a.id
           ORDER BY
@@ -44,6 +31,15 @@ async function capturarAmostrasPendentes({ limite }) {
           FROM ml_agendamento_no_show_amostras amostra
           WHERE amostra.agendamento_id = a.id
         )
+          -- O histórico de reagendamento não armazena o fuso original.
+          -- Até existir snapshot temporal auditável, não inferir instante
+          -- de criação usando o fuso atual do negócio.
+          AND primeiro_reagendamento.agendamento_id IS NULL
+          AND a.created_at IS NOT NULL
+          AND a.data IS NOT NULL
+          AND a.horario IS NOT NULL
+          AND a.inicio_previsto_em IS NOT NULL
+          AND a.duracao_minutos > 0
         ORDER BY
           a.created_at ASC,
           a.id ASC
@@ -121,11 +117,7 @@ async function capturarAmostrasPendentes({ limite }) {
             0,
             EXTRACT(
               EPOCH FROM (
-                (
-                  (
-                    atributo.data + atributo.horario
-                  ) AT TIME ZONE atributo.fuso_horario
-                )
+                atributo.inicio_previsto_em
                 - atributo.created_at
               )
             ) / 3600
@@ -187,6 +179,42 @@ async function rotularAmostrasPendentes() {
   return resultado.rowCount || 0;
 }
 
+async function obterCoberturaCaptura() {
+  const resultado = await db.query(`
+    SELECT
+      COUNT(*)::INT AS total_elegiveis,
+      COUNT(amostra.agendamento_id)::INT AS total_capturados,
+      (
+        SELECT COUNT(*)::INT
+        FROM ml_agendamento_no_show_amostras historica
+        WHERE EXISTS (
+          SELECT 1 FROM agendamento_reagendamentos reagendamento_historico
+          WHERE reagendamento_historico.agendamento_id = historica.agendamento_id
+        )
+      ) AS amostras_reagendadas_legadas
+    FROM agendamentos agendamento
+    INNER JOIN negocios negocio ON negocio.id = agendamento.negocio_id
+    LEFT JOIN ml_agendamento_no_show_amostras amostra
+      ON amostra.agendamento_id = agendamento.id
+    WHERE agendamento.created_at IS NOT NULL
+      AND agendamento.data IS NOT NULL
+      AND agendamento.horario IS NOT NULL
+      AND agendamento.duracao_minutos > 0
+      AND agendamento.inicio_previsto_em IS NOT NULL
+      -- A captura v1 exclui reagendamentos até haver snapshot original.
+      AND NOT EXISTS (
+        SELECT 1
+        FROM agendamento_reagendamentos reagendamento
+        WHERE reagendamento.agendamento_id = agendamento.id
+      )
+  `);
+  return resultado.rows[0] || {
+    total_elegiveis: 0,
+    total_capturados: 0,
+    amostras_reagendadas_legadas: 0,
+  };
+}
+
 async function obterProntidao() {
   const resultado = await db.query(`
     SELECT
@@ -202,14 +230,8 @@ async function obterProntidao() {
         WHERE amostra.rotulo_falta IS NULL
           AND agendamento.status IN ('agendado', 'confirmado')
           AND (
-            (
-              agendamento.data
-              + agendamento.horario
-              + agendamento.duracao_minutos * INTERVAL '1 minute'
-            ) AT TIME ZONE COALESCE(
-              NULLIF(negocio.fuso_horario, ''),
-              'America/Sao_Paulo'
-            )
+            agendamento.inicio_previsto_em
+            + agendamento.duracao_minutos * INTERVAL '1 minute'
           ) < NOW()
       )::INT AS pendentes_vencidos,
       MIN(rotulado_em) FILTER (
@@ -253,14 +275,8 @@ const MATURIDADE_POR_NEGOCIO_CTE = `
         WHERE amostra.rotulo_falta IS NULL
           AND agendamento.status IN ('agendado', 'confirmado')
           AND (
-            (
-              agendamento.data
-              + agendamento.horario
-              + agendamento.duracao_minutos * INTERVAL '1 minute'
-            ) AT TIME ZONE COALESCE(
-              NULLIF(negocio.fuso_horario, ''),
-              'America/Sao_Paulo'
-            )
+            agendamento.inicio_previsto_em
+            + agendamento.duracao_minutos * INTERVAL '1 minute'
           ) < NOW()
       )::INT AS pendentes_vencidos,
       MIN(amostra.rotulado_em) FILTER (
@@ -343,14 +359,8 @@ async function listarMaturidadeSegmentosCliente() {
         WHERE amostra.rotulo_falta IS NULL
           AND agendamento.status IN ('agendado', 'confirmado')
           AND (
-            (
-              agendamento.data
-              + agendamento.horario
-              + agendamento.duracao_minutos * INTERVAL '1 minute'
-            ) AT TIME ZONE COALESCE(
-              NULLIF(negocio.fuso_horario, ''),
-              'America/Sao_Paulo'
-            )
+            agendamento.inicio_previsto_em
+            + agendamento.duracao_minutos * INTERVAL '1 minute'
           ) < NOW()
       )::INT AS pendentes_vencidos,
       MIN(amostra.rotulado_em) FILTER (
@@ -395,15 +405,9 @@ async function listarMaturidadeMensal({ meses = 12 } = {}) {
           WHERE amostra.rotulo_falta IS NULL
             AND agendamento.status IN ('agendado', 'confirmado')
             AND (
-              (
-                agendamento.data
-                + agendamento.horario
-                + agendamento.duracao_minutos * INTERVAL '1 minute'
-              ) AT TIME ZONE COALESCE(
-                NULLIF(negocio.fuso_horario, ''),
-                'America/Sao_Paulo'
-              )
-            ) < NOW()
+            agendamento.inicio_previsto_em
+            + agendamento.duracao_minutos * INTERVAL '1 minute'
+          ) < NOW()
         )::INT AS pendentes_vencidos,
         MIN(amostra.rotulado_em) FILTER (
           WHERE amostra.rotulo_falta IS NOT NULL
@@ -448,6 +452,7 @@ module.exports = {
   capturarAmostrasPendentes,
   rotularAmostrasPendentes,
   obterProntidao,
+  obterCoberturaCaptura,
   obterResumoMaturidadeNegocios,
   listarMaturidadeNegocios,
   listarMaturidadeSegmentosCliente,
