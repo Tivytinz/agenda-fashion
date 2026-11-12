@@ -439,9 +439,9 @@ describe(
       const started = normalizarItem({
         ...evento,
         name: "professional_signup_started",
-        properties: { method: "email", senha: "nao-transmitir" }
+        properties: { method: "email", trigger: "form_input", senha: "nao-transmitir" }
       });
-      expect(started.properties).toEqual({ method: "email" });
+      expect(started.properties).toEqual({ method: "email", trigger: "form_input" });
       expect(normalizarItem({
         ...evento, name: "professional_signup_submitted",
         properties: { method: "google" }

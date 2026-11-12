@@ -325,9 +325,15 @@ válido) recebe `pageKey=professional_register`; o cadastro de cliente
 mantém `pageKey=register`. Ambos preservam `routeTemplate=/cadastro`
 sem transportar query strings ou conteúdo digitado ao coletor.
 
-O início acontece uma vez por montagem da tela, na primeira alteração de
-um campo ou credencial Google. Tentativa ocorre quando a interface envia
-formulário válido ou credencial Google, e **não** significa conta criada.
+O início acontece uma vez por montagem da tela, no primeiro preenchimento de
+campo (`trigger=form_input`) ou quando a credencial Google é entregue ao AF
+(`trigger=google_credential`). O botão Google usa um iframe externo;
+**não existe medição confiável do clique** dentro dele. Credencial recebida
+não significa que o clique foi observado nem que a conta foi criada.
+Tentativa ocorre quando a interface envia formulário válido ou credencial
+Google, e **não** significa conta criada. O método da tentativa (e-mail ou
+Google) é a referência para comparar os canais de cadastro, pois a mesma
+pessoa pode iniciar pelo e-mail e concluir pelo Google.
 Erros de campo são capturados ao sair do campo inválido com códigos
 estáticos `field`/`reason`. O mesmo erro não se repete por novo foco sem
 edição; uma nova edição permite registrar outra validação. Falhas de rede,
@@ -346,7 +352,9 @@ A página de Jornada do Admin só mostra o resumo quando houver visitas
 profissionais na janela; compara sessões que efetivamente visualizaram
 a página com os eventos vinculados à mesma visualização, separando erros
 de campo de problemas de solicitação e preservando a distinção entre
-eventos, sessões e fatos reais.
+eventos, sessões e fatos reais. A seção informa sessões com tentativas
+por e-mail e Google separadamente. Uma sessão pode ter tentativas dos
+dois métodos; não se deve somar os subtotais como pessoas únicas.
 Esses marcos são observabilidade de UX, não novos estágios transacionais do
 funil de aquisição. Uma sessão sem evento de envio não comprova abandono.
 

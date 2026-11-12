@@ -684,6 +684,11 @@ export function trackFirstPartyEvent(name, {
         ];
         if (!["email", "google"].includes(properties.method) || !reasons.includes(properties.reason)) return;
         canonicalProperties = { method: properties.method, reason: properties.reason };
+      } else if (name === "professional_signup_started") {
+        const triggers = ["form_input", "google_credential"];
+        if (!["email", "google"].includes(properties.method) || !triggers.includes(properties.trigger)) return;
+        if ((properties.method === "google") !== (properties.trigger === "google_credential")) return;
+        canonicalProperties = { method: properties.method, trigger: properties.trigger };
       } else {
         canonicalProperties = { method: properties.method === "google" ? "google" : "email" };
       }

@@ -63,11 +63,11 @@ export function AuthPage({ mode = "login" }) {
   }, [location.search]);
   const professionalIntent = authIntent.professional;
   const registrationComplete = isRegistrationComplete(form);
-  const trackProfessionalStart = useCallback((method = "email") => {
+  const trackProfessionalStart = useCallback((method = "email", trigger = "form_input") => {
     if (!isRegister || !professionalIntent || signupStartedRef.current) return;
     signupStartedRef.current = true;
     trackFirstPartyEvent("professional_signup_started", {
-      properties: { method }
+      properties: { method, trigger }
     });
   }, [isRegister, professionalIntent]);
 
@@ -132,7 +132,7 @@ export function AuthPage({ mode = "login" }) {
     submittingRef.current = true;
     setError("");
     setSubmitting(true);
-    trackProfessionalStart("google");
+    trackProfessionalStart("google", "google_credential");
     if (isRegister && professionalIntent) {
       trackFirstPartyEvent("professional_signup_submitted", {
         properties: { method: "google" }

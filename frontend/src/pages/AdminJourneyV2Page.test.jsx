@@ -45,6 +45,8 @@ beforeEach(() => {
       sessoes_visita: 6,
       sessoes_inicio: 4,
       sessoes_envio: 3,
+      sessoes_envio_email: 2,
+      sessoes_envio_google: 2,
       sessoes_erro: 2,
       sessoes_erro_requisicao: 1,
       erros_validacao: 5,
@@ -199,6 +201,7 @@ describe("jornada administrativa v2", () => {
     expect(within(signup).getByText("Encontraram erro de campo")).not.toBeNull();
     expect(within(signup).getByText("Falha de solicitação")).not.toBeNull();
     expect(screen.getByText(/Uma sessão pode conter vários eventos/)).not.toBeNull();
+    expect(screen.getByText(/Uma mesma sessão pode tentar os dois métodos/)).not.toBeNull();
 
     expect(
       screen.getByRole(

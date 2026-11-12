@@ -123,6 +123,11 @@ export function AdminJourneyV2Page() {
                   <MetricCard label="Falha de solicitação" hint="sessões com falha HTTP ou resultado do fluxo não confirmado; isso não comprova que a conta não foi criada" value={formatNumber(signup.sessoes_erro_requisicao)} />
                 </section>
                 <p className="muted">
+                  Tentativas por método: e-mail {formatNumber(signup.sessoes_envio_email)} sessão(ões),
+                  {" "}Google {formatNumber(signup.sessoes_envio_google)} sessão(ões).
+                  Uma mesma sessão pode tentar os dois métodos: não somar estes valores.
+                </p>
+                <p className="muted">
                   {formatNumber(signup.erros_validacao)} ocorrência(s) de validação e
                   {" "}{formatNumber(signup.erros_requisicao)} problema(s) de solicitação observados no período.
                   Uma sessão pode conter vários eventos. Falha de solicitação não prova que a conta não foi criada.

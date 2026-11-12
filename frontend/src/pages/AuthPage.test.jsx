@@ -208,6 +208,9 @@ describe("cadastro profissional enxuto", () => {
       { properties: { method: "google", reason: "auth_rejected" } }
     ));
     expect(trackFirstPartyEvent).toHaveBeenCalledWith(
+      "professional_signup_started", { properties: { method: "google", trigger: "google_credential" } }
+    );
+    expect(trackFirstPartyEvent).toHaveBeenCalledWith(
       "professional_signup_submitted", { properties: { method: "google" } }
     );
     expect(JSON.stringify(trackFirstPartyEvent.mock.calls)).not.toContain("Credencial privada");
@@ -228,7 +231,7 @@ describe("cadastro profissional enxuto", () => {
     await user.tab();
 
     expect(trackFirstPartyEvent).toHaveBeenCalledWith(
-      "professional_signup_started", { properties: { method: "email" } }
+      "professional_signup_started", { properties: { method: "email", trigger: "form_input" } }
     );
     expect(trackFirstPartyEvent.mock.calls.filter(([event]) =>
       event === "professional_signup_started")).toHaveLength(1);

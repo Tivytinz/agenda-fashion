@@ -295,6 +295,8 @@ async function buscarJornada(periodo = "30") {
           v.sessao_id,
           COUNT(e.id) FILTER (WHERE e.nome = 'professional_signup_started') AS inicios,
           COUNT(e.id) FILTER (WHERE e.nome = 'professional_signup_submitted') AS envios,
+          COUNT(e.id) FILTER (WHERE e.nome = 'professional_signup_submitted' AND e.propriedades->>'method' = 'email') AS envios_email,
+          COUNT(e.id) FILTER (WHERE e.nome = 'professional_signup_submitted' AND e.propriedades->>'method' = 'google') AS envios_google,
           COUNT(e.id) FILTER (WHERE e.nome = 'professional_signup_validation_error') AS erros,
           COUNT(e.id) FILTER (WHERE e.nome = 'professional_signup_request_error') AS erros_requisicao
         FROM visitas v
@@ -315,6 +317,8 @@ async function buscarJornada(periodo = "30") {
         COUNT(DISTINCT sessao_id)::INT AS sessoes_visita,
         COUNT(DISTINCT sessao_id) FILTER (WHERE inicios > 0)::INT AS sessoes_inicio,
         COUNT(DISTINCT sessao_id) FILTER (WHERE envios > 0)::INT AS sessoes_envio,
+        COUNT(DISTINCT sessao_id) FILTER (WHERE envios_email > 0)::INT AS sessoes_envio_email,
+        COUNT(DISTINCT sessao_id) FILTER (WHERE envios_google > 0)::INT AS sessoes_envio_google,
         COUNT(DISTINCT sessao_id) FILTER (WHERE erros > 0)::INT AS sessoes_erro,
         COUNT(DISTINCT sessao_id) FILTER (WHERE erros_requisicao > 0)::INT AS sessoes_erro_requisicao,
         COALESCE(SUM(erros), 0)::INT AS erros_validacao,

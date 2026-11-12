@@ -33,6 +33,7 @@ const MOTIVOS_SAIDA = new Set([
 const SIGNUP_FIELDS = new Set(["name", "email", "whatsapp", "password", "password_confirmation", "form"]);
 const SIGNUP_REASONS = new Set(["required", "too_short", "too_long", "invalid_format", "invalid_length", "mismatch"]);
 const SIGNUP_METHODS = new Set(["email", "google"]);
+const SIGNUP_START_TRIGGERS = new Set(["form_input", "google_credential"]);
 const SIGNUP_REQUEST_REASONS = new Set([
   "conflict", "invalid_request", "auth_rejected", "rate_limited",
   "timeout", "network_error", "server_error", "unknown"
@@ -60,7 +61,7 @@ const PROPRIEDADES_PERMITIDAS = Object.freeze({
   ]),
   booking_completed: new Set(["status"]),
   checkout_viewed: new Set(["plan_slug"]),
-  professional_signup_started: new Set(["method"]),
+  professional_signup_started: new Set(["method", "trigger"]),
   professional_signup_submitted: new Set(["method"]),
   professional_signup_validation_error: new Set(["field", "reason"]),
   professional_signup_request_error: new Set(["method", "reason"]),
@@ -206,6 +207,12 @@ function propriedadesSeguras(nome, propriedades) {
   if (nome === "professional_signup_started" || nome === "professional_signup_submitted") {
     if (!SIGNUP_METHODS.has(resultado.method)) {
       throw criarErro("Método de cadastro inválido.");
+    }
+  }
+  if (nome === "professional_signup_started") {
+    if (!SIGNUP_START_TRIGGERS.has(resultado.trigger) ||
+        (resultado.method === "google") !== (resultado.trigger === "google_credential")) {
+      throw criarErro("Gatilho de início de cadastro inválido.");
     }
   }
   if (nome === "professional_signup_request_error") {
