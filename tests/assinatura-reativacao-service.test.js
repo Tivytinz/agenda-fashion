@@ -80,6 +80,26 @@ test("ausência confirmada restaura cancelamento e encerra a obrigação", async
   expect(repository.registrarReativacao).not.toHaveBeenCalled();
 });
 
+test("recorrência incompatível é removida sem ativar assinatura", async () => {
+  pendente();
+  asaas.buscarAssinaturaPorReferencia.mockResolvedValue({
+    id: "sub_incompativel",
+    status: "ACTIVE",
+    nextDueDate: "2099-12-02"
+  });
+  operacoes.marcarRemocao.mockResolvedValue({
+    ...operacao(),
+    estado: "REMOVING",
+    asaas_subscription_id: "sub_incompativel"
+  });
+
+  await reconciliarReativacaoAbandonada(7);
+
+  expect(repository.registrarReativacao).not.toHaveBeenCalled();
+  expect(asaas.removerAssinaturaAsaas).toHaveBeenCalledWith("sub_incompativel");
+  expect(asaas.criarAssinaturaAsaas).not.toHaveBeenCalled();
+});
+
 test("erro ambíguo de consulta mantém a operação recuperável", async () => {
   pendente(); asaas.buscarAssinaturaPorReferencia.mockRejectedValue(new Error("timeout"));
   await expect(reconciliarReativacaoAbandonada(7)).resolves.toBeNull();
