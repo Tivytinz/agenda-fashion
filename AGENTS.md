@@ -338,6 +338,22 @@ Todo novo negócio deve ser criado com os dados estruturais exigidos pelo backen
 para o fluxo atual. Descrição, fotos e complemento permanecem opcionais quando o
 contrato vigente assim definir.
 
+O cadastro determina o fuso horário IANA a partir do estado do endereço, sem
+confiar no fuso do aparelho. Em estado com mais de um fuso operacional (ex.: AM
+e PE), a profissional confirma explicitamente o fuso local antes da criação;
+o backend valida a correspondência entre estado e fuso e não grava um default
+incorreto. O cadastro oferece um link de busca no Google Maps gerado a partir
+do endereço, mas essa busca não equivale à verificação de coordenadas; a dona
+confere o local. Links de localização enviados na criação precisam ser HTTPS
+e de provedores de mapas reconhecidos.
+
+Rascunhos ainda não enviados podem sobreviver a uma recarga por até 30 minutos
+em `sessionStorage`, vinculados à conta e somente à guia. Nunca usar `localStorage`
+para dados pessoais do formulário, nem guardar senha ou token. Limpar o rascunho
+após criação confirmada, saída descartada, expiração ou troca de identidade.
+A chave de idempotência continua independente do rascunho: uma resposta de
+criação incerta exige consulta canônica, não reenvio automático de POST.
+
 A publicação é automática quando o negócio atende aos requisitos estruturais e
 possui ao menos um serviço ativo, desde que a proprietária não tenha
 despublicado o perfil manualmente.

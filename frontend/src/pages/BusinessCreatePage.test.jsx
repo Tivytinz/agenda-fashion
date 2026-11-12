@@ -24,6 +24,7 @@ vi.mock("../auth/SessionContext", () => ({
 }));
 
 beforeEach(() => {
+  sessionStorage.clear();
   apiRequest.mockReset();
   refreshSession.mockReset();
 });
@@ -37,6 +38,37 @@ describe("criação do negócio", () => {
   ])("preserva a saída contextual em %s", (path, exitTo) => {
     render(<MemoryRouter initialEntries={[path]}><BusinessPage create /></MemoryRouter>);
     expect(screen.getByRole("link", { name: "Sair", exact: true }).getAttribute("href")).toBe(exitTo);
+  });
+
+  it("recupera rascunho da mesma conta após remount, sem localStorage", async () => {
+    const { unmount } = render(
+      <MemoryRouter initialEntries={["/criar-negocio"]}><BusinessPage create /></MemoryRouter>
+    );
+    fireEvent.change(screen.getByLabelText("Nome do negócio"), {
+      target: { value: "Studio retomado" }
+    });
+    await waitFor(() => expect(sessionStorage.getItem("af_business_creation_draft_v1"))
+      .toContain("Studio retomado"));
+    unmount();
+    render(<MemoryRouter initialEntries={["/criar-negocio"]}><BusinessPage create /></MemoryRouter>);
+    expect(screen.getByLabelText("Nome do negócio").value).toBe("Studio retomado");
+  });
+
+  it("seleciona fuso ambíguo e oferece link de busca a partir do endereço", async () => {
+    render(<MemoryRouter initialEntries={["/criar-negocio"]}><BusinessPage create /></MemoryRouter>);
+    fireEvent.change(screen.getByRole("combobox", { name: "Estado" }), {
+      target: { value: "AM" }
+    });
+    const zone = await screen.findByRole("combobox", { name: /Fuso horário do atendimento/ });
+    expect(zone.required).toBe(true);
+    fireEvent.change(zone, { target: { value: "America/Eirunepe" } });
+    expect(zone.value).toBe("America/Eirunepe");
+    for (const [label, value] of [
+      ["Endereço", "Rua do Rio"], ["Número", "10"], ["Bairro", "Centro"], ["Cidade", "Manaus"]
+    ]) fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    fireEvent.click(screen.getByRole("button", { name: /Gerar link de busca/ }));
+    expect(screen.getByLabelText(/Link da localização/).value)
+      .toContain("www.google.com/maps/search/");
   });
 
   it("reaproveita o WhatsApp da conta e deixa descrição, foto e complemento opcionais", () => {
