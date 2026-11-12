@@ -73,6 +73,19 @@ describe("firstPartyAnalytics", () => {
     expect(acquisition).not.toHaveProperty("fbclid");
   });
 
+  it("preserva evidência de link AF sem confundir com campanha publicitária", () => {
+    setMarketingConsent(MARKETING_CONSENT.DENIED);
+    window.history.replaceState({}, "", "/negocio/salao?af_source=agenda_fashion&af_medium=whatsapp&af_content=negocio&utm_source=google&gclid=click-123");
+    expect(captureAcquisition()).toMatchObject({
+      afSource: "agenda_fashion",
+      afMedium: "whatsapp",
+      afContent: "negocio",
+      landingPage: "/negocio/salao"
+    });
+    expect(captureAcquisition()).not.toHaveProperty("utmSource");
+    expect(captureAcquisition()).not.toHaveProperty("gclid");
+  });
+
   it("inclui UTM e click ids somente depois do consentimento de marketing", () => {
     setMarketingConsent(MARKETING_CONSENT.GRANTED);
     window.history.replaceState(
