@@ -1,0 +1,56 @@
+[
+  {
+    "name": "professional_signup_started",
+    "properties": {
+      "method": "email",
+      "trigger": "form_input"
+    }
+  },
+  {
+    "name": "professional_signup_started",
+    "properties": {
+      "method": "google",
+      "trigger": "google_credential"
+    }
+  },
+  {
+    "name": "professional_signup_submitted",
+    "properties": {
+      "method": "email"
+    }
+  },
+  {
+    "name": "professional_signup_submitted",
+    "properties": {
+      "method": "google"
+    }
+  },
+  {
+    "name": "professional_signup_validation_error",
+    "properties": {
+      "field": "email",
+      "reason": "invalid_format"
+    }
+  },
+  {
+    "name": "professional_signup_validation_error",
+    "properties": {
+      "field": "password_confirmation",
+      "reason": "mismatch"
+    }
+  },
+  {
+    "name": "professional_signup_request_error",
+    "properties": {
+      "method": "email",
+      "reason": "timeout"
+    }
+  },
+  {
+    "name": "professional_signup_request_error",
+    "properties": {
+      "method": "google",
+      "reason": "network_error"
+    }
+  }
+]

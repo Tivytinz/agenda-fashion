@@ -2,6 +2,7 @@ const negocioRepository = require(
   "../repositories/negocioRepository"
 );
 const { createHash } = require("crypto");
+const { urlMapaReconhecido } = require("../domain/urlPublicacao");
 
 function normalizarChaveCriacao(valor, obrigatoria = false) {
   if (valor == null && !obrigatoria) return null;
@@ -38,6 +39,7 @@ const {
 } = require(
   "../utils/fusoHorario"
 );
+const FUSOS_POR_ESTADO = require("../config/businessTimeZones.json");
 
 const ESTADOS_BRASILEIROS = new Set([
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
@@ -184,18 +186,12 @@ function normalizarUrl(valor) {
     const url =
       new URL(texto);
 
-    if (
-      !["http:", "https:"].includes(
-        url.protocol
-      )
-    ) {
-      throw new Error();
-    }
+    if (!urlMapaReconhecido(url)) throw new Error();
 
     return url.toString();
   } catch {
     throw new AppError(
-      "Digite uma URL de localização válida.",
+      "Informe um link HTTPS do Google Maps ou Apple Mapas.",
       400
     );
   }
@@ -235,18 +231,23 @@ function normalizarCoordenada({
   return numero;
 }
 
-function normalizarFusoHorario(valor) {
-  const fuso =
-    normalizarTexto(valor) ||
-    FUSO_HORARIO_PADRAO;
+function normalizarFusoHorario(valor, estado) {
+  const fusoInformado = normalizarTexto(valor);
+  const permitidos = FUSOS_POR_ESTADO[estado] || [];
 
-  if (!fusoHorarioValido(fuso)) {
-    throw new AppError(
-      "Fuso horário inválido.",
-      400
-    );
+  // Não escolher silenciosamente Manaus ou Recife em municípios com
+  // outro fuso (oeste do Amazonas e Fernando de Noronha).
+  if (!fusoInformado && permitidos.length > 1) {
+    throw new AppError("Selecione o fuso horário da cidade do negócio.", 400);
   }
 
+  const fuso = fusoInformado || permitidos[0]?.value || FUSO_HORARIO_PADRAO;
+  if (!fusoHorarioValido(fuso)) {
+    throw new AppError("Fuso horário inválido.", 400);
+  }
+  if (permitidos.length > 0 && !permitidos.some((opcao) => opcao.value === fuso)) {
+    throw new AppError("Fuso horário incompatível com o estado do negócio.", 400);
+  }
   return fuso;
 }
 
@@ -513,7 +514,8 @@ function validarDadosNegocio(
 
     fuso_horario:
       normalizarFusoHorario(
-        dados.fuso_horario
+        dados.fuso_horario,
+        normalizarEstado(dados.estado)
       ),
 
     /*

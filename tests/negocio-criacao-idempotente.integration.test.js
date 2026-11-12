@@ -39,6 +39,28 @@ async function send({ key = KEY, extra, usuarioId = a.profissional.id } = {}) {
 function read({ key = KEY, usuarioId = a.profissional.id } = {}) {
   return request(app).get("/criar-negocio/tentativa").set("X-Test-Usuario", String(usuarioId)).set("Idempotency-Key", key);
 }
+test("criação no Acre deriva o fuso e inicializa a disponibilidade no mesmo negócio", async () => {
+  const response = await send({ extra: { estado: "AC", cidade: "Rio Branco", cep: "69900000" } });
+  expect(response.status).toBe(201);
+  expect(response.body.negocio.fuso_horario).toBe("America/Rio_Branco");
+  const agenda = await db.query("SELECT COUNT(*)::int AS n FROM agenda_horarios WHERE negocio_id=$1", [response.body.negocio.id]);
+  expect(agenda.rows[0].n).toBe(7);
+});
+
+test("exige fuso explícito em região ambígua e rejeita zona incompatível", async () => {
+  expect((await send({ extra: { estado: "AM", cidade: "Manaus" } })).status).toBe(400);
+  expect((await send({ extra: { estado: "GO", fuso_horario: "America/Manaus" } })).status).toBe(400);
+  const response = await send({ extra: { estado: "AM", fuso_horario: "America/Eirunepe" } });
+  expect(response.status).toBe(201);
+  expect(response.body.negocio.fuso_horario).toBe("America/Eirunepe");
+});
+
+test("link externo arbitrário não vira localização publicável", async () => {
+  const result = await send({ extra: { localizacao_url: "https://example.com/negocio" } });
+  expect(result.status).toBe(400);
+  expect((await read()).body.estado).toBe("nao_encontrada");
+});
+
 test("resposta perdida é recuperada por GET e replay sem criar outro negócio ou agenda", async () => {
   expect((await read()).body).toEqual({ estado: "nao_encontrada" });
   const first = await send(); const replay = await send(); const recovered = await read();

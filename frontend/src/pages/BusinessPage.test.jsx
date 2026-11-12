@@ -527,7 +527,7 @@ describe("publicação do negócio", () => {
 
     fireEvent.change(whatsapp, { target: { value: "11 98765-4321" } });
     fireEvent.change(maps, { target: { value: "javascript:alert(1)" } });
-    expect(screen.getByText("Use um link HTTP ou HTTPS válido.")).not.toBeNull();
+    expect(screen.getByText("Use um link HTTPS do Google Maps ou Apple Mapas.")).not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
     expect(await screen.findByRole("alert")).not.toBeNull();
@@ -536,9 +536,7 @@ describe("publicação do negócio", () => {
 
   it.each([
     "https://www.google.com.br/maps/place/Studio+Victor",
-    "https://maps.apple.com/?q=Studio+Victor&ll=-16.68,-49.25",
-    "https://example.com/local",
-    "http://example.com/local"
+    "https://maps.apple.com/?q=Studio+Victor&ll=-16.68,-49.25"
   ])("aceita a localização %s conforme o contrato da API", async (url) => {
     apiRequest.mockImplementation((path, options = {}) => Promise.resolve({
       negocio: { ...BUSINESS, ...(options.body || {}) },
@@ -555,6 +553,20 @@ describe("publicação do negócio", () => {
       expect.objectContaining({ method: "PUT", body: expect.objectContaining({ localizacao_url: url }) })
     ));
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("impede salvar novo link externo, mas não altera links antigos automaticamente", async () => {
+    apiRequest.mockResolvedValue({
+      negocio: BUSINESS, publicacao: { publicado: false, pode_publicar: true, pendencias: [] }
+    });
+    renderPage();
+    await screen.findByDisplayValue("Studio Victor");
+    fireEvent.change(screen.getByLabelText(/Link da localização/), {
+      target: { value: "https://example.com/local" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect((await screen.findByRole("alert")).textContent).toMatch(/HTTPS do Google Maps ou Apple Mapas/);
+    expect(apiRequest.mock.calls.filter(([, options]) => options?.method === "PUT")).toHaveLength(0);
   });
 
   it("mantém o salvamento confirmado quando a atualização secundária da sessão falha", async () => {

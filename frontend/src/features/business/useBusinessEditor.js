@@ -1,11 +1,13 @@
 import { useBusinessAddress } from "./useBusinessAddress";
-import { EMPTY, validateImage, normalizeBusinessForm, serializeBusinessForm, isValidLocationUrl, validateWhatsApp, validateCreationCompleteness } from "./form";
+import { EMPTY, validateImage, normalizeBusinessForm, serializeBusinessForm, isValidLocationUrl, isBusinessMapUrl, timeZonesForState, firstMissingBusinessField, validateWhatsApp, validateCreationCompleteness, buildBusinessMapSearchUrl, isStaleGeneratedMapSearch } from "./form";
+import { clearBusinessCreationDraft, readBusinessCreationDraft, saveBusinessCreationDraft } from "./draft";
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../../api/client";
 import { useSession } from "../../auth/SessionContext";
 import {
+  ANALYTICS_IDENTITY_BOUNDARY_EVENT,
   getPlanIntentPath,
   normalizePlanSlug
 } from "../../auth/session";
@@ -26,7 +28,9 @@ export function useBusinessEditor({ create = false }) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
-  const [form, setForm] = useState(EMPTY);
+  const [form, setForm] = useState(() => create
+    ? normalizeBusinessForm(readBusinessCreationDraft(usuarioId) || EMPTY)
+    : EMPTY);
   const [savedForm, setSavedForm] = useState(EMPTY);
   const [loading, setLoading] = useState(() => !create || Boolean(readBusinessCreationReference(location.hash, usuarioId)));
   const [saving, setSaving] = useState(false);
@@ -47,6 +51,10 @@ export function useBusinessEditor({ create = false }) {
   const archiveTargetRef = useRef(null);
   const creationAttemptRef = useRef(null);
   const creationReadRef = useRef(null);
+  const formRef = useRef(null);
+  const creationCompletedRef = useRef(false);
+  const draftOwnerRef = useRef(usuarioId);
+  const skipDraftWriteRef = useRef(false);
   const mutationBusy = saving || photoUploading || publishing || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded;
 
   const unsavedChanges = !loading
@@ -55,11 +63,71 @@ export function useBusinessEditor({ create = false }) {
   const publicUrl = buildPublicLink({
     businessSlug: form.slug
   });
-  const locationValid = isValidLocationUrl(form.localizacao_url);
+  const staleMapSearch = isStaleGeneratedMapSearch(form);
+  const unchangedLegacyLocation = !create &&
+    String(form.localizacao_url || "").trim() ===
+    String(savedForm.localizacao_url || "").trim();
+  const locationValid = !staleMapSearch && isValidLocationUrl(form.localizacao_url)
+    && (unchangedLegacyLocation || !String(form.localizacao_url || "").trim() ||
+      isBusinessMapUrl(form.localizacao_url));
   const whatsappError = validateWhatsApp(form.whatsapp);
+  const timeZoneOptions = timeZonesForState(form.estado);
+  const mapSuggestion = buildBusinessMapSearchUrl(form);
+
+  function focusFormField(field) {
+    formRef.current?.querySelector(`[name="${field}"]`)?.focus();
+  }
+
+  function suggestMapLink() {
+    if (!mapSuggestion) return;
+    update("localizacao_url", mapSuggestion);
+    setMessage("Link de busca preparado. Confira o endereço no mapa antes de continuar.");
+  }
   const { cepLookup, update, handleCepChange, handleCepBlur, resetCepLookup } = useBusinessAddress({
     create, usuarioId, form, setForm, setSavedForm, loading
   });
+
+  // Rascunho temporário vinculado à conta e à guia; sem persistência no localStorage.
+  useEffect(() => {
+    if (!create || draftOwnerRef.current === usuarioId) return;
+    draftOwnerRef.current = usuarioId;
+    creationCompletedRef.current = false;
+    skipDraftWriteRef.current = true;
+    setForm(normalizeBusinessForm(readBusinessCreationDraft(usuarioId) || EMPTY));
+    setSavedForm(EMPTY);
+  }, [create, usuarioId]);
+
+  useEffect(() => {
+    if (!create || !usuarioId || creationCompletedRef.current) return;
+    if (skipDraftWriteRef.current) {
+      skipDraftWriteRef.current = false;
+      return;
+    }
+    saveBusinessCreationDraft(usuarioId, form);
+  }, [create, usuarioId, form]);
+
+  useEffect(() => {
+    if (!create) return undefined;
+    const discardPrivateDraft = () => {
+      creationCompletedRef.current = true;
+      clearBusinessCreationDraft();
+    };
+    window.addEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, discardPrivateDraft);
+    return () => window.removeEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, discardPrivateDraft);
+  }, [create]);
+
+  // O ViaCEP ou a edição do endereço pode trocar a UF depois da renderização.
+  // Um fuso incompatível nunca acompanha automaticamente um novo estado.
+  useEffect(() => {
+    if (!create && !form.id) return;
+    const choices = timeZonesForState(form.estado);
+    setForm((current) => {
+      const valid = choices.some(option => option.value === current.fuso_horario);
+      const next = valid ? current.fuso_horario
+        : choices.length === 1 ? choices[0].value : "";
+      return current.fuso_horario === next ? current : { ...current, fuso_horario: next };
+    });
+  }, [create, form.estado, form.id]);
 
   useEffect(() => {
     const context = { create, usuarioId, generation: 0 };
@@ -98,6 +166,10 @@ export function useBusinessEditor({ create = false }) {
   }
 
   function discardPendingOperations() {
+    if (create) {
+      creationCompletedRef.current = true;
+      clearBusinessCreationDraft();
+    }
     // Suspense pode manter a tela antiga montada enquanto o destino carrega.
     if (pageContextRef.current) pageContextRef.current.generation += 1;
     if (creationReadRef.current) {
@@ -142,6 +214,9 @@ export function useBusinessEditor({ create = false }) {
 
   function adoptCreatedBusiness(result, operation) {
     if (!result.negocio?.id) throw new Error("Não foi possível identificar o negócio salvo. Verifique novamente.");
+    if (!isCurrentOperation(operation)) return;
+    creationCompletedRef.current = true;
+    clearBusinessCreationDraft();
     const normalized = normalizeBusinessForm(result.negocio);
     flushSync(() => { setForm(normalized); setSavedForm(normalized); });
     if (!isCurrentOperation(operation)) return;
@@ -309,6 +384,7 @@ export function useBusinessEditor({ create = false }) {
       const completenessError = validateCreationCompleteness(form);
       if (completenessError) {
         setError(completenessError);
+        focusFormField(firstMissingBusinessField(form));
         return;
       }
     } else if (form.areas.length === 0) {
@@ -318,11 +394,21 @@ export function useBusinessEditor({ create = false }) {
 
     if (whatsappError) {
       setError(whatsappError);
+      focusFormField("whatsapp");
+      return;
+    }
+
+    if (timeZoneOptions.length > 1 && !form.fuso_horario) {
+      setError("Escolha o fuso horário da cidade do negócio.");
+      focusFormField("fuso_horario");
       return;
     }
 
     if (!locationValid) {
-      setError("Informe um link HTTP ou HTTPS válido para a localização.");
+      setError(staleMapSearch
+        ? "O link de busca aponta para o endereço anterior. Gere outro link ou informe o local atualizado."
+        : "Informe um link HTTPS do Google Maps ou Apple Mapas.");
+      focusFormField("localizacao_url");
       return;
     }
 
@@ -334,6 +420,9 @@ export function useBusinessEditor({ create = false }) {
       ...form,
       whatsapp: String(form.whatsapp).replace(/\D/g, ""),
       cep: String(form.cep).replace(/\D/g, ""),
+      fuso_horario: create
+        ? (form.fuso_horario || (timeZoneOptions.length === 1 ? timeZoneOptions[0].value : ""))
+        : form.fuso_horario,
       especialidades: form.areas,
       areas: form.areas
     };
@@ -593,6 +682,10 @@ export function useBusinessEditor({ create = false }) {
   }
 
   return {
+    formRef,
+    timeZoneOptions,
+    mapSuggestion,
+    suggestMapLink,
     selectedPlan,
     form,
     savedForm,
@@ -616,6 +709,7 @@ export function useBusinessEditor({ create = false }) {
     hasChanges,
     publicUrl,
     locationValid,
+    staleMapSearch,
     whatsappError,
     discardPendingOperations,
     update,

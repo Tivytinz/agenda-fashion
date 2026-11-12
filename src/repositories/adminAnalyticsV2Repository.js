@@ -212,7 +212,7 @@ async function buscarJornada(periodo = "30") {
   const filtroEvento = filtroTimestamp(seguro, "e.occurred_at");
   const filtroSessao = filtroTimestamp(seguro, "s.iniciada_em");
 
-  const [telas, transicoes, eventos, dispositivos] = await Promise.all([
+  const [telas, transicoes, eventos, dispositivos, cadastroProfissional] = await Promise.all([
     db.query(
       `
       SELECT
@@ -281,6 +281,102 @@ async function buscarJornada(periodo = "30") {
       LIMIT 50
       `
     ),
+    db.query(
+      `
+      WITH visitas AS (
+        SELECT v.id, v.sessao_id, v.entrou_em, v.created_at
+        FROM analytics_visualizacoes_tela v
+        WHERE v.page_key = 'professional_register'
+          ${filtroVisualizacao}
+      ),
+      etapas AS (
+        SELECT
+          v.id,
+          v.sessao_id,
+          COUNT(e.id) FILTER (WHERE e.nome = 'professional_signup_started') AS inicios,
+          COUNT(e.id) FILTER (WHERE e.nome = 'professional_signup_submitted') AS envios,
+          COUNT(e.id) FILTER (WHERE e.nome = 'professional_signup_submitted' AND e.propriedades->>'method' = 'email') AS envios_email,
+          COUNT(e.id) FILTER (WHERE e.nome = 'professional_signup_submitted' AND e.propriedades->>'method' = 'google') AS envios_google,
+          COUNT(e.id) FILTER (WHERE e.nome = 'professional_signup_validation_error') AS erros,
+          COUNT(e.id) FILTER (WHERE e.nome = 'professional_signup_request_error') AS erros_requisicao
+        FROM visitas v
+        LEFT JOIN analytics_eventos e
+          ON e.visualizacao_id = v.id
+          AND e.sessao_id = v.sessao_id
+          AND e.origem = 'frontend'
+          AND e.nome IN (
+            'professional_signup_started',
+            'professional_signup_submitted',
+            'professional_signup_validation_error',
+            'professional_signup_request_error'
+          )
+          ${filtroEvento}
+        GROUP BY v.id, v.sessao_id
+      ),
+      -- Vínculo observacional: visita recebida pelo servidor antes da
+      -- criação, evento de envio próximo à criação (tolerância de relógio
+      -- de até 5 min) e sessão identificada pelo backend após a criação.
+      -- Não atribui causalidade nem substitui fatos transacionais.
+      contas_vinculadas AS (
+        SELECT DISTINCT u.id AS usuario_id, u.created_at AS criado_em
+        FROM visitas v
+        JOIN analytics_sessoes s ON s.id = v.sessao_id
+        JOIN usuarios u ON u.id = s.usuario_id
+        JOIN analytics_eventos e
+          ON e.visualizacao_id = v.id
+          AND e.sessao_id = s.id
+          AND e.origem = 'frontend'
+          AND e.nome = 'professional_signup_submitted'
+          ${filtroEvento}
+        WHERE u.perfil_profissional_ativado_em IS NOT NULL
+          -- Ambos os lados vêm do PostgreSQL: uma conta pré-existente
+          -- não vira cadastro novo só por autenticar a sessão.
+          AND u.created_at >= v.created_at
+          -- O navegador pode estar adiantado ou atrasado. Janela curta
+          -- evita uma correspondência ilimitada com eventos antigos.
+          AND u.created_at BETWEEN
+            e.occurred_at - INTERVAL '5 minutes'
+            AND e.occurred_at + INTERVAL '5 minutes'
+          -- A última atualização da sessão vem do relógio do servidor.
+          AND u.created_at <= s.updated_at
+      ),
+      negocios_vinculados AS (
+        SELECT DISTINCT c.usuario_id, n.id AS negocio_id
+        FROM contas_vinculadas c
+        JOIN usuarios_negocios un
+          ON un.usuario_id = c.usuario_id
+          AND un.papel = 'dono'
+          AND un.ativo = TRUE
+        JOIN negocios n
+          ON n.id = un.negocio_id
+          AND n.ativo = TRUE
+          AND n.created_at >= c.criado_em
+      )
+      SELECT
+        COUNT(*)::INT AS visualizacoes,
+        COUNT(DISTINCT sessao_id)::INT AS sessoes_visita,
+        COUNT(DISTINCT sessao_id) FILTER (WHERE inicios > 0)::INT AS sessoes_inicio,
+        COUNT(DISTINCT sessao_id) FILTER (WHERE envios > 0)::INT AS sessoes_envio,
+        COUNT(DISTINCT sessao_id) FILTER (WHERE envios_email > 0)::INT AS sessoes_envio_email,
+        COUNT(DISTINCT sessao_id) FILTER (WHERE envios_google > 0)::INT AS sessoes_envio_google,
+        COUNT(DISTINCT sessao_id) FILTER (WHERE erros > 0)::INT AS sessoes_erro,
+        COUNT(DISTINCT sessao_id) FILTER (WHERE erros_requisicao > 0)::INT AS sessoes_erro_requisicao,
+        COALESCE(SUM(erros), 0)::INT AS erros_validacao,
+        COALESCE(SUM(erros_requisicao), 0)::INT AS erros_requisicao,
+        (SELECT COUNT(*)::INT FROM contas_vinculadas) AS contas_novas_vinculadas,
+        (SELECT COUNT(DISTINCT usuario_id)::INT FROM negocios_vinculados)
+          AS contas_com_negocio_vinculadas,
+        (
+          SELECT COUNT(DISTINCT b.usuario_id)::INT
+          FROM negocios_vinculados b
+          JOIN agendamentos ag ON ag.negocio_id = b.negocio_id
+          WHERE COALESCE(ag.status, 'agendado') NOT IN (
+            'cancelado', 'cancelamento_solicitado'
+          )
+        ) AS contas_com_agendamento_vinculadas
+      FROM etapas
+      `
+    ),
   ]);
 
   return {
@@ -289,6 +385,7 @@ async function buscarJornada(periodo = "30") {
     transicoes: transicoes.rows,
     eventos: eventos.rows,
     dispositivos: dispositivos.rows,
+    cadastroProfissional: cadastroProfissional.rows[0] || null,
   };
 }
 

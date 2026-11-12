@@ -9,7 +9,7 @@ const ESTADOS_BRASILEIROS = new Set([
   "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
 ]);
 
-const { urlPublicacaoValida } = require("../domain/urlPublicacao");
+const { urlPublicacaoValida, urlMapaReconhecido } = require("../domain/urlPublicacao");
 
 const TAMANHO_MAXIMO_FOTO =
   5 * 1024 * 1024;
@@ -331,7 +331,7 @@ function normalizarWhatsapp(
 }
 
 function normalizarUrl(
-  valor
+  valor, { legado = false } = {}
 ) {
   const url =
     normalizarTexto(
@@ -373,6 +373,9 @@ function normalizarUrl(
     );
   }
 
+  if (!legado && !urlMapaReconhecido(urlValidada)) {
+    throw new ValidationError("Informe um link HTTPS do Google Maps ou Apple Mapas.");
+  }
   return urlValidada.toString();
 }
 

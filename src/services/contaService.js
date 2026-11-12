@@ -343,6 +343,40 @@ async function atualizarMinhaConta({
   };
 }
 
+// E-mail é credencial de login: a alteração exige senha atual no backend.
+async function atualizarEmailConta({ usuarioId, email, senhaAtual }) {
+  const id = normalizarUsuarioId(usuarioId);
+  const emailNormalizado = String(email ?? "").trim().toLowerCase();
+  if (emailNormalizado.length > 160 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalizado)) {
+    throw criarErro("Digite um e-mail válido.", 400);
+  }
+  if (typeof senhaAtual !== "string" || !senhaAtual) {
+    throw criarErro("Informe a senha atual para alterar o e-mail.", 400);
+  }
+  const identidade = await contaRepository.buscarSenhaUsuario(id);
+  validarContaAtiva(identidade);
+  if (!identidade.senha) {
+    throw criarErro("Esta conta não tem senha disponível para confirmar a alteração do e-mail.", 409);
+  }
+  if (!(await bcrypt.compare(senhaAtual, identidade.senha))) {
+    throw criarErro("Senha atual incorreta.", 400);
+  }
+  try {
+    const atualizado = await contaRepository.atualizarEmailUsuario({
+      usuarioId: id, email: emailNormalizado
+    });
+    if (!atualizado) throw criarErro("Usuário não encontrado.", 404);
+  } catch (erro) {
+    if (erro.code === "23505") throw criarErro("Este e-mail já está sendo utilizado.", 409);
+    throw erro;
+  }
+  return {
+    mensagem: "E-mail atualizado com sucesso.",
+    usuario: await contaRepository.buscarUsuarioPorId(id)
+  };
+}
+
 async function atualizarPreferenciaWhatsapp({
   usuarioId,
   aceitaAlertasOperacionais,
@@ -742,6 +776,7 @@ async function removerImagemSilenciosamente(
 module.exports = {
   buscarMinhaConta,
   atualizarMinhaConta,
+  atualizarEmailConta,
   atualizarPreferenciaWhatsapp,
   atualizarNotificacoesWhatsapp,
   alterarSenha,

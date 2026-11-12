@@ -1,0 +1,172 @@
+{
+  "AC": [
+    {
+      "value": "America/Rio_Branco",
+      "label": "Horário do Acre"
+    }
+  ],
+  "AL": [
+    {
+      "value": "America/Maceio",
+      "label": "Horário de Alagoas"
+    }
+  ],
+  "AM": [
+    {
+      "value": "America/Manaus",
+      "label": "Horário de Manaus"
+    },
+    {
+      "value": "America/Eirunepe",
+      "label": "Horário do oeste do Amazonas"
+    }
+  ],
+  "AP": [
+    {
+      "value": "America/Belem",
+      "label": "Horário do Amapá"
+    }
+  ],
+  "BA": [
+    {
+      "value": "America/Bahia",
+      "label": "Horário da Bahia"
+    }
+  ],
+  "CE": [
+    {
+      "value": "America/Fortaleza",
+      "label": "Horário do Ceará"
+    }
+  ],
+  "DF": [
+    {
+      "value": "America/Sao_Paulo",
+      "label": "Horário de Brasília"
+    }
+  ],
+  "ES": [
+    {
+      "value": "America/Sao_Paulo",
+      "label": "Horário de Brasília"
+    }
+  ],
+  "GO": [
+    {
+      "value": "America/Sao_Paulo",
+      "label": "Horário de Brasília"
+    }
+  ],
+  "MA": [
+    {
+      "value": "America/Fortaleza",
+      "label": "Horário do Maranhão"
+    }
+  ],
+  "MG": [
+    {
+      "value": "America/Sao_Paulo",
+      "label": "Horário de Brasília"
+    }
+  ],
+  "MS": [
+    {
+      "value": "America/Campo_Grande",
+      "label": "Horário de Mato Grosso do Sul"
+    }
+  ],
+  "MT": [
+    {
+      "value": "America/Cuiaba",
+      "label": "Horário de Mato Grosso"
+    }
+  ],
+  "PA": [
+    {
+      "value": "America/Belem",
+      "label": "Horário do Pará"
+    }
+  ],
+  "PB": [
+    {
+      "value": "America/Fortaleza",
+      "label": "Horário da Paraíba"
+    }
+  ],
+  "PE": [
+    {
+      "value": "America/Recife",
+      "label": "Horário do Recife"
+    },
+    {
+      "value": "America/Noronha",
+      "label": "Horário de Fernando de Noronha"
+    }
+  ],
+  "PI": [
+    {
+      "value": "America/Fortaleza",
+      "label": "Horário do Piauí"
+    }
+  ],
+  "PR": [
+    {
+      "value": "America/Sao_Paulo",
+      "label": "Horário de Brasília"
+    }
+  ],
+  "RJ": [
+    {
+      "value": "America/Sao_Paulo",
+      "label": "Horário de Brasília"
+    }
+  ],
+  "RN": [
+    {
+      "value": "America/Fortaleza",
+      "label": "Horário do Rio Grande do Norte"
+    }
+  ],
+  "RO": [
+    {
+      "value": "America/Porto_Velho",
+      "label": "Horário de Rondônia"
+    }
+  ],
+  "RR": [
+    {
+      "value": "America/Boa_Vista",
+      "label": "Horário de Roraima"
+    }
+  ],
+  "RS": [
+    {
+      "value": "America/Sao_Paulo",
+      "label": "Horário de Brasília"
+    }
+  ],
+  "SC": [
+    {
+      "value": "America/Sao_Paulo",
+      "label": "Horário de Brasília"
+    }
+  ],
+  "SE": [
+    {
+      "value": "America/Maceio",
+      "label": "Horário de Sergipe"
+    }
+  ],
+  "SP": [
+    {
+      "value": "America/Sao_Paulo",
+      "label": "Horário de Brasília"
+    }
+  ],
+  "TO": [
+    {
+      "value": "America/Araguaina",
+      "label": "Horário do Tocantins"
+    }
+  ]
+}

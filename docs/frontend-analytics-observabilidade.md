@@ -314,7 +314,73 @@ profile_shared
 booking_started
 booking_completed
 checkout_viewed
+professional_signup_started
+professional_signup_submitted
+professional_signup_validation_error
+professional_signup_request_error
 ```
+
+No cadastro profissional, a rota `/cadastro?tipo=profissional` (ou plano
+válido) recebe `pageKey=professional_register`; o cadastro de cliente
+mantém `pageKey=register`. Ambos preservam `routeTemplate=/cadastro`
+sem transportar query strings ou conteúdo digitado ao coletor.
+
+O início acontece uma vez por montagem da tela, no primeiro preenchimento de
+campo (`trigger=form_input`) ou quando a credencial Google é entregue ao AF
+(`trigger=google_credential`). O botão Google usa um iframe externo;
+**não existe medição confiável do clique** dentro dele. Credencial recebida
+não significa que o clique foi observado nem que a conta foi criada.
+Tentativa ocorre quando a interface envia formulário válido ou credencial
+Google, e **não** significa conta criada.
+Por compatibilidade, o backend aceita eventos `professional_signup_started`
+já enfileirados por clientes antigos sem `trigger`, atribuindo o gatilho
+canônico ao método validado; novos eventos sempre devem enviá-lo. O método da tentativa (e-mail ou
+Google) é a referência para comparar os canais de cadastro, pois a mesma
+pessoa pode iniciar pelo e-mail e concluir pelo Google.
+Erros de campo são capturados ao sair do campo inválido com códigos
+estáticos `field`/`reason`. O mesmo erro não se repete por novo foco sem
+edição; uma nova edição permite registrar outra validação. Falhas de rede,
+timeout, conflito HTTP, rejeição de dados, autenticação, limitação de
+requisições e problemas do servidor são registradas separadamente como
+`professional_signup_request_error`, em ambos os métodos (e-mail e Google).
+O evento contém exclusivamente `method` e `reason` enumerados. Não
+armazenar valores digitados, PII, URL, mensagem/corpo de erro nem senha.
+
+Falhas HTTP ou da sincronização da sessão não comprovam que a transação
+de criação da conta foi revertida; por isso o relatório apresenta problemas
+**observados pelo cliente**, sem contabilizá-los como cadastros não criados.
+A ausência de qualquer evento também não prova abandono.
+
+A página de Jornada do Admin só mostra o resumo quando houver visitas
+profissionais na janela; compara sessões que efetivamente visualizaram
+a página com os eventos vinculados à mesma visualização, separando erros
+de campo de problemas de solicitação e preservando a distinção entre
+eventos, sessões e fatos reais. A seção informa sessões com tentativas
+por e-mail e Google separadamente. Uma sessão pode ter tentativas dos
+dois métodos; não se deve somar os subtotais como pessoas únicas.
+A reconciliação da Jornada usa exclusivamente a sessão identificada
+pelo backend (`analytics_sessoes.usuario_id`), com evento de tentativa
+vinculado à visualização profissional. Para preservar a sequência,
+a visita deve ter sido recebida pelo PostgreSQL antes de a conta ser
+criada (`analytics_visualizacoes_tela.created_at <= usuarios.created_at`),
+e a sessão deve ter sido atualizada no servidor após a criação
+(`analytics_sessoes.updated_at >= usuarios.created_at`).
+O horário do envio (`analytics_eventos.occurred_at`) pode divergir em
+até cinco minutos do horário de criação da conta. Essa tolerância
+é limitada e **não** converte eventos arbitrariamente antigos ou uma
+conta preexistente em novo cadastro. Eventos entregues tardiamente
+podem ficar fora do subconjunto: a conciliação é conservadora.
+Sessões sem autenticação comprovada não são vinculadas artificialmente. A etapa de negócio exige vínculo
+ativo de dona com negócio próprio; agendamento exige linha real não
+cancelada desse negócio. Uma conta é contada uma vez por indicador,
+mesmo após múltiplas visitas ou tentativas.
+
+Esses números são subconjuntos **observados e vinculáveis** e podem
+subestimar o funil pela perda de telemetria, navegação ou bloqueio de
+rastreamento. Não são taxas de conversão globais nem substituem o funil
+transacional canônico, que usa fatos de domínio e atribuição consentida.
+Uma sessão sem evento de envio não comprova abandono.
+
 
 Propriedades também são whitelistadas por evento.
 
@@ -2037,3 +2103,104 @@ Atualizar este documento quando mudar de forma durável:
 
 Não atualizar por simples mudança de copy de um evento se a arquitetura e a
 semântica permanecerem iguais.
+
+
+### Sessões first-party e identidade (11/11/2026)
+
+A fronteira de autenticação separa as sessões de analytics no logout, expiração,
+limpeza de sessão e reautenticação de uma conta já autenticada. A troca de
+identidade confirmada por `/minha-sessao` também separa sessões; uma saída
+observada em outra aba invalida os lotes pendentes na aba atual. `sessionUuid`,
+`flowUuid` e o outbox antigo são descartados na fronteira, sem remover o
+identificador pseudônimo do visitante do navegador. A primeira inscrição de
+uma pessoa anônima conserva a sessão para associar tentativa e conta criada.
+
+O objetivo é impedir que eventos locais pendentes de A sejam enviados na
+sessão de B. O navegador não consegue cancelar um POST já entregue ao servidor;
+a checagem de conflito de sessão autenticada no backend continua obrigatória.
+Descartar eventos na fronteira pode subestimar o tráfego, mas não gera
+conversão fictícia. O campo `analytics_sessoes.identificado_em` passa a
+registrar o instante do primeiro vínculo autenticado confirmado pelo
+PostgreSQL, não o relógio do dispositivo. Linhas históricas não são regravadas;
+não comparar esse campo entre versões sem considerar o corte de comportamento.
+
+Na Jornada, `contas_com_agendamento_vinculadas` significa agendamento não
+cancelado em **qualquer negócio ativo próprio** da conta vinculada. No funil
+canônico, primeiro agendamento usa o primeiro negócio selecionado para a
+coorte. Essas medidas não devem ser comparadas como equivalentes.
+
+### Isolamento entre abas, retomada e outbox (12/11/2026)
+
+- A fila first-party passou de `localStorage` compartilhado para
+  `sessionStorage` por aba. A fila global legada é descartada, não migrada:
+  payload antigo não pode reaparecer sob outra conta. Isso pode reduzir
+  telemetria pendente, sem alterar agendamentos ou conversões transacionais.
+- `af_auth_revision_v1` propaga somente um aviso opaco de mudança de
+  autenticação entre abas. A aba receptora oculta a identidade anterior,
+  descarta sua fila e revalida `/minha-sessao` antes de retomar a coleta.
+  Eventos de `storage` não concedem autenticação nem autorizam recursos.
+- A fronteira local suspende analytics; a retomada ocorre somente após
+  `/minha-sessao` autenticado, rejeição canônica 401/403 ou confirmação
+  HTTP do logout. Falha de rede mantém a coleta suspensa, mas login posterior
+  validado pode recuperá-la sem navegação. Sinais repetidos não duplicam a
+  visualização ainda ativa.
+- O mutex de entrega da fila é liberado por geração de identidade. Um POST
+  antigo que nunca terminar não impede entregas novas; se terminar atrasado,
+  não pode limpar a fila da identidade atual. POST já recebido pelo backend
+  continua sujeito à proteção de conflito HTTP 409.
+- Cada guia possui um identificador aleatório próprio em `sessionStorage`
+  e uma reivindicação de posse por documento em `localStorage`. Se a guia
+  for clonada (com ou sem `window.opener`) e a identidade de guia copiada
+  pertencer a outro documento, a sessão, os fluxos e a fila copiados são
+  descartados antes da medição. Sem acesso a storage compartilhado, o
+  coletor prefere sessão nova, sem prometer isolamento completo em modos
+  restritivos do navegador. Sessões V2 já existentes na implantação
+  que ainda não possuem identificador de guia são preservadas; nessa janela
+  de migração, a duplicação sem `opener` não pode ser inferida de forma
+  segura até o primeiro marcador de posse ser criado.
+- A fila ativa permanece em `sessionStorage`, mas cada alteração é espelhada
+  num diário durável `af_analytics_parked_v1_<tabUuid>` por guia, limitado a
+  40 lotes por guia e retenção de 24 horas. Em um novo acesso online, o
+  diário só é recuperado para o mesmo visitante pseudônimo e a mesma
+  revisão opaca de autenticação; quando há sessão ativa, a recuperação
+  aguarda a confirmação de `/minha-sessao`. Diários de outras identidades
+  são descartados. Guias vivas não têm a fila tomada por outras guias,
+  salvo após inatividade prolongada; UUIDs de page views e eventos permitem
+  deduplicação no backend se houver reenvio após entrega incerta.
+- A gravação durável ocorre em cada inclusão/remoção, não depende de
+  `pagehide`. Em `pagehide` sem BFCache o documento libera sua posse.
+  Isso reduz perdas causadas por encerramento abrupto ou falta de rede,
+  mas não garante entrega se o navegador bloquear ou apagar `localStorage`,
+  nem quando a pessoa nunca voltar. A fila não é receita nem conversão
+  canônica. O tratamento de consentimento retira UTM/click IDs do diário
+  e volta a sanitizar antes do envio.
+- Encerramento canônico por 401/403 em `/minha-sessao` e migração de
+  credencial legada definitivamente inválida publicam também o aviso de
+  logout confirmado (`af_auth_logout_ready_v1`), além da fronteira de
+  identidade. Abas sem marcador de sessão podem assim retomar a medição
+  anônima na mesma rota, sem depender de uma navegação posterior.
+- Avisos de logout antigos não liberam a coleta enquanto houver marcador
+  local de sessão ativa. Falhas transitórias de rede não publicam confirmação
+  de logout. Em `saveSession`, o marcador local é persistido antes da revisão
+  `af_auth_revision_v1`, evitando que uma aba receba o aviso antes da
+  escrita da nova sessão.
+
+A criação de índice em `analytics_eventos.visualizacao_id` deve depender de
+`EXPLAIN (ANALYZE, BUFFERS)` com volume representativo; não criar migration
+por hipótese de desempenho.
+
+### Recuperação incremental com a fila cheia
+
+O diário offline não deve ser removido quando a fila ativa já contém 40 lotes.
+A recuperação transfere somente o número de lotes que cabe, preserva os
+excedentes no snapshot original e retenta conforme a fila é drenada.
+Quando o snapshot pertencer à mesma guia, o excedente é estacionado em outra
+chave antes de sobrescrever o diário ativo. Os UUIDs continuam sendo usados
+na deduplicação do coletor.
+
+A aplicação reavalia a recuperação quando recebe conexão, volta ao primeiro
+plano e após envios confirmados, além de repetir a verificação a cada minuto
+enquanto aberta. Snapshots com mais de 24 horas são removidos nas próximas
+verificações; não existe garantia de exclusão offline sem nova execução do app,
+nem de envio se a pessoa nunca retornar. As guias sem armazenamento
+compartilhado funcional não podem ter recuperação durável garantida.

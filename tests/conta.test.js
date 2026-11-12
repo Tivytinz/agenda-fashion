@@ -36,6 +36,9 @@ jest.mock(
     atualizarUsuario:
       jest.fn(),
 
+    atualizarEmailUsuario:
+      jest.fn(),
+
     atualizarPreferenciaWhatsapp:
       jest.fn(),
 
@@ -254,6 +257,58 @@ describe(
             result:
               "ok",
           });
+    });
+
+
+    describe("alteração de e-mail na conta", () => {
+      test("rejeita solicitações sem autenticação", async () => {
+        const res = await request(app).put("/conta/email")
+          .send({ email: "novo@example.com", senhaAtual: "segredo" });
+        expect(res.status).toBe(401);
+        expect(contaRepository.atualizarEmailUsuario).not.toHaveBeenCalled();
+      });
+      test("valida formato e exige senha atual", async () => {
+        const token = `Bearer ${gerarToken()}`;
+        const bad = await request(app).put("/conta/email")
+          .set("Authorization", token).send({ email: "inválido", senhaAtual: "senha" });
+        expect(bad.status).toBe(400);
+        const noPass = await request(app).put("/conta/email")
+          .set("Authorization", token).send({ email: "novo@example.com" });
+        expect(noPass.status).toBe(400);
+        expect(contaRepository.atualizarEmailUsuario).not.toHaveBeenCalled();
+      });
+      test("não altera credencial com senha errada", async () => {
+        contaRepository.buscarSenhaUsuario.mockResolvedValue({ id: 7, ativo: true, senha: "hash" });
+        bcrypt.compare.mockResolvedValue(false);
+        const res = await request(app).put("/conta/email")
+          .set("Authorization", `Bearer ${gerarToken()}`)
+          .send({ email: "novo@example.com", senhaAtual: "errada" });
+        expect(res.status).toBe(400);
+        expect(contaRepository.atualizarEmailUsuario).not.toHaveBeenCalled();
+      });
+      test("aceita e-mail normalizado para o próprio usuário, sem expor senha", async () => {
+        contaRepository.buscarSenhaUsuario.mockResolvedValue({ id: 7, ativo: true, senha: "hash" });
+        bcrypt.compare.mockResolvedValue(true);
+        contaRepository.atualizarEmailUsuario.mockResolvedValue({ id: 7, email: "novo@example.com" });
+        contaRepository.buscarUsuarioPorId.mockResolvedValue(criarUsuario({ email: "novo@example.com", email_verificado_em: null }));
+        const res = await request(app).put("/conta/email")
+          .set("Authorization", `Bearer ${gerarToken()}`)
+          .send({ email: " NOVO@example.com ", senhaAtual: "correta" });
+        expect(res.status).toBe(200);
+        expect(res.body.usuario.email).toBe("novo@example.com");
+        expect(res.body.usuario).not.toHaveProperty("senha");
+        expect(contaRepository.atualizarEmailUsuario).toHaveBeenCalledWith({ usuarioId: 7, email: "novo@example.com" });
+      });
+      test("rejeita e-mail de outra conta", async () => {
+        contaRepository.buscarSenhaUsuario.mockResolvedValue({ id: 7, ativo: true, senha: "hash" });
+        bcrypt.compare.mockResolvedValue(true);
+        contaRepository.atualizarEmailUsuario.mockRejectedValue({ code: "23505" });
+        const res = await request(app).put("/conta/email")
+          .set("Authorization", `Bearer ${gerarToken()}`)
+          .send({ email: "ocupado@example.com", senhaAtual: "correta" });
+        expect(res.status).toBe(409);
+        expect(res.body.erro).toMatch(/já está sendo utilizado/);
+      });
     });
 
     test(

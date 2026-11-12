@@ -325,21 +325,38 @@ export function DashboardPage() {
   ) : null;
 
   const prioritizeAgenda = data.ativacao?.primeiro_agendamento_recebido === true;
+  // Uma reserva não cancelada é a autoridade para concluir ativação.
+  // Métricas não substituem o estado canônico; apenas controlam a apresentação.
+  const showBookingAnalytics = prioritizeAgenda || Number(summary.agendamentos_periodo) > 0;
   const todayPanel = (
     <section className="panel dashboard-today" aria-label="Agenda de hoje">
       <div>
         <p className="eyebrow">Hoje</p>
         <h2>{summary.agendamentos_hoje ?? 0} {Number(summary.agendamentos_hoje) === 1 ? "agendamento" : "agendamentos"}</h2>
       </div>
-      <Link className="button" to="/painel/agenda">Abrir agenda</Link>
+      <Link className={`button${prioritizeAgenda ? "" : " button-secondary"}`} to="/painel/agenda">Abrir agenda</Link>
     </section>
+  );
+
+  const performancePanel = (
+      <section className="panel dashboard-performance-panel" aria-label="Desempenho do perfil">
+        <div className="panel-heading">
+          <div><p className="eyebrow">Aquisição</p><h2>Desempenho do perfil</h2></div>
+        </div>
+        <dl className="data-list">
+          <div><dt>Visitas ao perfil</dt><dd>{displayMetric(performance.visitas_perfil, profileDataAvailable)}</dd></div>
+          <div><dt>Cliques no WhatsApp</dt><dd>{displayMetric(performance.cliques_whatsapp, profileDataAvailable)}</dd></div>
+          <div><dt>Cliques no mapa</dt><dd>{displayMetric(performance.cliques_maps, profileDataAvailable)}</dd></div>
+          <div><dt>Favoritos recebidos</dt><dd>{displayMetric(performance.favoritos_recebidos, favoritesAvailable)}</dd></div>
+        </dl>
+      </section>
   );
 
   return (
     <main aria-busy={refreshing} className="workspace-page dashboard-page">
       <header className="workspace-heading">
         <div>
-          <p className="eyebrow">Seu crescimento</p>
+          <p className="eyebrow">{prioritizeAgenda ? "Seu crescimento" : "Seu negócio"}</p>
           <h1>Visão geral</h1>
           <p>Cada agendamento é um passo para tornar seu negócio mais forte.</p>
         </div>
@@ -371,6 +388,8 @@ export function DashboardPage() {
           {growthPanel}
         </>
       )}
+
+      {!prioritizeAgenda && performancePanel}
 
       {shouldOfferAgendaUpgrade && (
         <PlanUpgradeOpportunity
@@ -467,6 +486,8 @@ export function DashboardPage() {
 
       {!prioritizeAgenda && todayPanel}
 
+      {showBookingAnalytics && (
+        <>
       <h2 className="dashboard-section-title">No período selecionado</h2>
 
       <section className="metric-grid" aria-label="Indicadores">
@@ -479,6 +500,7 @@ export function DashboardPage() {
         ))}
       </section>
 
+      {(prioritizeAgenda || dailySummary.length > 0) && (
       <section className="panel dashboard-daily-panel" aria-labelledby="dashboard-daily-title">
         <div className="panel-heading">
           <div>
@@ -501,6 +523,9 @@ export function DashboardPage() {
           </div>
         ) : <p className="muted">Nenhum agendamento no período selecionado.</p>}
       </section>
+      )}
+        </>
+      )}
 
       {activationCompleted && (
         <section className="panel dashboard-history" aria-labelledby="dashboard-history-title">
@@ -524,6 +549,10 @@ export function DashboardPage() {
 
         {originLoading ? (
           <p className="muted" role="status">Carregando origem dos clientes...</p>
+        ) : hasCustomerOrigin && Number(customerOriginSummary.clientes) === 0 ? (
+          <p className="muted dashboard-empty-note">
+            A origem dos clientes aparecerá aqui após o primeiro agendamento.
+          </p>
         ) : hasCustomerOrigin ? (
           <>
             <dl className="data-list">
@@ -619,17 +648,7 @@ export function DashboardPage() {
         )}
       </section>
 
-      <section className="panel dashboard-performance-panel" aria-label="Desempenho do perfil">
-        <div className="panel-heading">
-          <div><p className="eyebrow">Aquisição</p><h2>Desempenho do perfil</h2></div>
-        </div>
-        <dl className="data-list">
-          <div><dt>Visitas ao perfil</dt><dd>{displayMetric(performance.visitas_perfil, profileDataAvailable)}</dd></div>
-          <div><dt>Cliques no WhatsApp</dt><dd>{displayMetric(performance.cliques_whatsapp, profileDataAvailable)}</dd></div>
-          <div><dt>Cliques no mapa</dt><dd>{displayMetric(performance.cliques_maps, profileDataAvailable)}</dd></div>
-          <div><dt>Favoritos recebidos</dt><dd>{displayMetric(performance.favoritos_recebidos, favoritesAvailable)}</dd></div>
-        </dl>
-      </section>
+      {prioritizeAgenda && performancePanel}
 
       {Array.isArray(data.ranking_servicos) && data.ranking_servicos.length > 0 && (
         <section className="panel">

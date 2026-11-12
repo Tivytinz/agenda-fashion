@@ -62,7 +62,10 @@ describe("Sprint de catálogo, planos e navegação", () => {
     expect(account).toContain("Voltar à área de trabalho");
     expect(business).toContain('exitTo={selectedPlan ? "/planos" : "/"}');
     const setup = ler("frontend/src/components/SetupFlowFrame.jsx");
-    expect(setup).toContain('to={exitTo}>Sair</Link>');
+    expect(setup).toContain('to={exitTo}');
+    expect(setup).toContain('onClick={onExit}');
+    expect(setup).toContain('}Sair');
+    expect(business).toContain('getPlanIntentPath("/cadastro?tipo=profissional", selectedPlan)');
   });
 
   test("mantém os emojis de fallback centralizados nas mídias", () => {

@@ -1,18 +1,25 @@
 import { useBusinessEditor } from "../features/business/useBusinessEditor";
 import { BRAZILIAN_STATES } from "../features/business/form";
+import { getPlanIntentPath } from "../auth/session";
 import { Link } from "react-router-dom";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
+import { CategoryEmoji } from "../components/CategoryEmoji";
 import { SetupFlowFrame, SetupTitle } from "../components/SetupFlowFrame";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatWhatsApp } from "../utils/format";
 import {
-  BUSINESS_SPECIALTIES
+  BUSINESS_SPECIALTIES,
+  serviceCategoryEmoji
 } from "../utils/specialties";
 
 export function BusinessPage({ create = false }) {
   const {
+    formRef,
+    timeZoneOptions,
+    mapSuggestion,
+    suggestMapLink,
     selectedPlan,
     form,
     savedForm,
@@ -36,6 +43,7 @@ export function BusinessPage({ create = false }) {
     hasChanges,
     publicUrl,
     locationValid,
+    staleMapSearch,
     whatsappError,
     discardPendingOperations,
     update,
@@ -52,6 +60,8 @@ export function BusinessPage({ create = false }) {
   if (loading) return <main className="workspace-page"><UnsavedChangesGuard onLeave={discardPendingOperations} /><LoadingState>Carregando negócio...</LoadingState></main>;
   if (error && !form.nome && !create) return <main className="workspace-page"><ErrorState message={error} /></main>;
 
+  const firstStepPath = create ? getPlanIntentPath("/cadastro?tipo=profissional", selectedPlan) : undefined;
+
   const addressFields = (
     <div className="form-grid business-address-grid">
       <label className="business-cep-field">
@@ -61,6 +71,7 @@ export function BusinessPage({ create = false }) {
           aria-invalid={cepLookup.status === "error" ? "true" : undefined}
           autoComplete="postal-code"
           disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}
+          name="cep"
           inputMode="numeric"
           maxLength="9"
           onBlur={handleCepBlur}
@@ -79,44 +90,64 @@ export function BusinessPage({ create = false }) {
       <span className="field-wide business-address-divider" aria-hidden="true" />
       <label>
         Endereço
-        <input autoComplete="street-address" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("endereco", event.target.value)} required={create} value={form.endereco} />
+        <input autoComplete="street-address" maxLength="180" name="endereco" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("endereco", event.target.value)} required={create} value={form.endereco} />
       </label>
       <label>
         Número
-        <input disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("numero", event.target.value)} required={create} value={form.numero} />
+        <input maxLength="20" name="numero" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("numero", event.target.value)} required={create} value={form.numero} />
       </label>
       <label>
         {create ? "Complemento (opcional)" : "Complemento"}
-        <input disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("complemento", event.target.value)} value={form.complemento} />
+        <input maxLength="120" name="complemento" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("complemento", event.target.value)} value={form.complemento} />
       </label>
       <label>
         Bairro
-        <input disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("bairro", event.target.value)} required={create} value={form.bairro} />
+        <input maxLength="100" name="bairro" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("bairro", event.target.value)} required={create} value={form.bairro} />
       </label>
       <label>
         Cidade
-        <input disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("cidade", event.target.value)} required={create} value={form.cidade} />
+        <input maxLength="100" name="cidade" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("cidade", event.target.value)} required={create} value={form.cidade} />
       </label>
       <label>
         Estado
-        <select aria-label="Estado" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("estado", event.target.value)} required value={form.estado}>
+        <select aria-label="Estado" name="estado" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} onChange={(event) => update("estado", event.target.value)} required value={form.estado}>
           <option value="">Selecione a UF</option>
           {BRAZILIAN_STATES.map((state) => (
             <option key={state} value={state}>{state}</option>
           ))}
         </select>
       </label>
+      {form.estado && timeZoneOptions.length > 0 && (
+        <div className="field-wide">
+          {timeZoneOptions.length > 1 ? (
+            <label>
+              Fuso horário do atendimento
+              <select name="fuso_horario" required disabled={mutationBusy}
+                value={form.fuso_horario}
+                onChange={(event) => update("fuso_horario", event.target.value)}>
+                <option value="">Selecione o fuso da sua cidade</option>
+                {timeZoneOptions.map((option) => (
+                  <option value={option.value} key={option.value}>{option.label}</option>
+                ))}
+              </select>
+              <small>O horário escolhido será usado na agenda. Alterações com reservas futuras ativas precisam ser resolvidas antes de salvar.</small>
+            </label>
+          ) : (
+            <small>Horário local: {timeZoneOptions[0].label}.</small>
+          )}
+        </div>
+      )}
     </div>
   );
 
   return (
-    <SetupFlowFrame enabled={create} exitTo={selectedPlan ? "/planos" : "/"} step={2}>
+    <SetupFlowFrame backDisabled={mutationBusy} backTo={firstStepPath} enabled={create} exitTo={selectedPlan ? "/planos" : "/"} step={2}>
     <main className={create ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
-      <UnsavedChangesGuard when={unsavedChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
+      <UnsavedChangesGuard when={unsavedChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} preserveOnNavigateTo={create && !mutationBusy ? firstStepPath : undefined} />
       <header className="workspace-heading">
         <div>
           {!create && <p className="eyebrow">Presença pública</p>}
-          <SetupTitle emoji={create ? "✨" : undefined}>{create ? "Seu negócio" : "Meu negócio"}</SetupTitle>
+          <SetupTitle emoji={create ? "🏪" : undefined}>{create ? "Seu negócio" : "Meu negócio"}</SetupTitle>
           <p>
             {create
               ? "Vamos apresentar seu negócio às clientes."
@@ -167,7 +198,7 @@ export function BusinessPage({ create = false }) {
         </section>
       )}
 
-      <form aria-busy={mutationBusy} className="panel stack-form business-settings-form" onSubmit={submit}>
+      <form aria-busy={mutationBusy} className="panel stack-form business-settings-form" onSubmit={submit} ref={formRef}>
         {!create && (
           <section className="business-form-section business-photo-section">
             <div className="business-form-heading">
@@ -209,8 +240,8 @@ export function BusinessPage({ create = false }) {
           </div>}
           <div className="form-grid">
             <label className="field-wide">
-              Nome do negócio
-              <input disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} minLength="2" onChange={(event) => update("nome", event.target.value)} required value={form.nome} />
+              {create ? <span className="business-field-label"><span aria-hidden="true" className="business-field-emoji">🏷️</span>Nome do negócio</span> : "Nome do negócio"}
+              <input aria-label={create ? "Nome do negócio" : undefined} disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} minLength="2" maxLength="120" name="nome" onChange={(event) => update("nome", event.target.value)} required value={form.nome} />
             </label>
             {!create && form.slug && (
               <div className="field-wide public-address-card" data-testid="public-address-hint">
@@ -225,8 +256,9 @@ export function BusinessPage({ create = false }) {
               </div>
             )}
             <label className="field-wide">
-              Descrição (opcional)
+              {create ? <span className="business-field-label"><span aria-hidden="true" className="business-field-emoji">📝</span>Descrição (opcional)</span> : "Descrição (opcional)"}
               <textarea
+                aria-label={create ? "Descrição (opcional)" : undefined}
                 disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}
                 maxLength="1000"
                 onChange={(event) => update("descricao", event.target.value)}
@@ -237,16 +269,19 @@ export function BusinessPage({ create = false }) {
             </label>
             <fieldset aria-label="Especialidades" className="specialty-field field-wide" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}>
               <div className="specialty-heading-row">
-                <p>{create ? "Especialidades" : "Selecione tudo o que o negócio oferece."}</p>
+                <p>{create ? <><span aria-hidden="true" className="business-field-emoji">💖</span>Especialidades</> : "Selecione tudo o que o negócio oferece."}</p>
               </div>
               <div className="specialty-selector">
                 {BUSINESS_SPECIALTIES.map(([value, label]) => (
                   <label className={form.areas.includes(value) ? "specialty-option selected" : "specialty-option"} key={value}>
                     <input
+                      aria-label={create ? label : undefined}
                       checked={form.areas.includes(value)}
+                      name="areas"
                       onChange={() => toggleSpecialty(value)}
                       type="checkbox"
                     />
+                    {create && <CategoryEmoji emoji={serviceCategoryEmoji(value)} />}
                     <span>{label}</span>
                   </label>
                 ))}
@@ -258,7 +293,7 @@ export function BusinessPage({ create = false }) {
         <section className="business-form-section">
           <div className="business-form-heading">
             {!create && <p className="eyebrow">Contato</p>}
-            <h2>{create ? "Contato" : "Como falar com o negócio"}</h2>
+            <h2>{create ? <><span aria-hidden="true" className="business-section-emoji">💬</span>Contato</> : "Como falar com o negócio"}</h2>
           </div>
           <div className="form-grid">
             <label>
@@ -269,6 +304,7 @@ export function BusinessPage({ create = false }) {
                 aria-invalid={whatsappError ? "true" : undefined}
                 inputMode="tel"
                 maxLength="15"
+                name="whatsapp"
                 onChange={(event) => update("whatsapp", formatWhatsApp(event.target.value))}
                 placeholder="(00) 12345-6789"
                 required={create}
@@ -280,13 +316,25 @@ export function BusinessPage({ create = false }) {
                   : "Usado para confirmações e contato das clientes.")}
               </small>}
             </label>
-            <label>
+          </div>
+        </section>
+
+        <section className="business-form-section business-address-section">
+          <div className="business-form-heading">
+            {!create && <p className="eyebrow">Endereço</p>}
+            <h2>{create ? <><span aria-hidden="true" className="business-section-emoji">📍</span>Endereço</> : "Onde acontece o atendimento"}</h2>
+            {!create && <p>Comece pelo CEP e complete os detalhes do local.</p>}
+          </div>
+          {addressFields}
+          <div className="form-grid">
+            <label className="field-wide">
               Link da localização
               <input
+                name="localizacao_url"
                 aria-invalid={!locationValid ? "true" : undefined}
-                disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}
+                disabled={mutationBusy}
                 onChange={(event) => update("localizacao_url", event.target.value)}
-                placeholder="https://..."
+                placeholder="https://maps.google.com/..."
                 required={create}
                 type="url"
                 value={form.localizacao_url}
@@ -294,28 +342,25 @@ export function BusinessPage({ create = false }) {
               <span className="maps-field-helper">
                 <small className={!locationValid ? "field-helper is-error" : "field-helper"}>
                   {!locationValid
-                    ? "Use um link HTTP ou HTTPS válido."
-                    : form.localizacao_url
-                      ? ""
-                      : create
-                        ? "Google Maps ou Apple Mapas."
-                        : "Cole um link do Google Maps ou Apple Mapas."}
+                    ? staleMapSearch
+                      ? "O endereço mudou. Gere novamente o link de busca ou cole outro link válido."
+                      : "Use um link HTTPS do Google Maps ou Apple Mapas."
+                    : create ? "Confira se o endereço indicado no mapa está correto." : "Cole um link do Google Maps ou Apple Mapas."}
                 </small>
                 {locationValid && form.localizacao_url && (
-                  <a href={form.localizacao_url} rel="noreferrer" target="_blank">Testar link ↗</a>
+                  <a href={form.localizacao_url} rel="noopener noreferrer" target="_blank">Conferir no mapa ↗</a>
                 )}
               </span>
             </label>
+            {(create || staleMapSearch) && (
+              <div className="field-wide">
+                <button type="button" className="button button-secondary button-small"
+                  disabled={!mapSuggestion || mutationBusy} onClick={suggestMapLink}>
+                  Gerar link de busca a partir do endereço
+                </button>
+              </div>
+            )}
           </div>
-        </section>
-
-        <section className="business-form-section business-address-section">
-          <div className="business-form-heading">
-            {!create && <p className="eyebrow">Endereço</p>}
-            <h2>{create ? "Endereço" : "Onde acontece o atendimento"}</h2>
-            {!create && <p>Comece pelo CEP e complete os detalhes do local.</p>}
-          </div>
-          {addressFields}
         </section>
 
         {error && <p className="form-error business-form-feedback" role="alert">{error}</p>}

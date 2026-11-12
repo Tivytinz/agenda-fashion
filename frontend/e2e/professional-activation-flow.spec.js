@@ -421,6 +421,7 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
   releasePostBusinessSessionRefresh();
 
   expect(businessPayload).toEqual(expect.objectContaining({
+    fuso_horario: "America/Sao_Paulo",
     nome: "Studio Aurora",
     descricao: "",
     especialidades: ["Unhas"],

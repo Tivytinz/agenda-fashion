@@ -1,5 +1,19 @@
 import { formatCep, formatWhatsApp } from "../../utils/format";
 import { normalizeBusinessSpecialties } from "../../utils/specialties";
+import BUSINESS_TIME_ZONES from "../../../../src/config/businessTimeZones.json";
+
+export { BUSINESS_TIME_ZONES };
+export function timeZonesForState(estado) {
+  return BUSINESS_TIME_ZONES[String(estado || "").toUpperCase()] || [];
+}
+
+// Link de busca, não geocodificação certificada: a profissional deve conferir.
+export function buildBusinessMapSearchUrl(form) {
+  const address = [form.endereco, form.numero, form.bairro, form.cidade, form.estado, "Brasil"]
+    .map(value => String(value || "").trim());
+  if (address.slice(0, 5).some(value => !value)) return "";
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address.join(", "))}`;
+}
 
 export const BRAZILIAN_STATES = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
@@ -23,6 +37,7 @@ export const EMPTY = {
   complemento: "",
   cep: "",
   localizacao_url: "",
+  fuso_horario: "",
   foto_url: "",
   slug: "",
   areas: []
@@ -60,6 +75,10 @@ export function normalizeBusinessForm(business = {}) {
       business.whatsapp || business.whatsapp_negocio
     ),
     cep: formatCep(business.cep),
+    fuso_horario: business.fuso_horario ||
+      (timeZonesForState(business.estado).length === 1
+        ? timeZonesForState(business.estado)[0].value
+        : ""),
     areas: normalizeBusinessSpecialties(business)
   };
 }
@@ -82,6 +101,31 @@ export function isValidLocationUrl(value) {
   }
 }
 
+export function isBusinessMapUrl(value) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return false;
+    const host = url.hostname.toLowerCase();
+    return ["maps.google.com", "maps.google.com.br", "maps.app.goo.gl", "maps.apple.com"]
+      .includes(host) ||
+      (["www.google.com", "www.google.com.br", "google.com", "google.com.br"]
+        .includes(host) && /^\/maps(?:\/|$)/.test(url.pathname));
+  } catch {
+    return false;
+  }
+}
+
+// Links gerados a partir de uma busca precisam ser regenerados quando
+// a profissional muda o endereço. Não alteramos links manuais silenciosamente.
+export function isStaleGeneratedMapSearch(form) {
+  try {
+    const url = new URL(form?.localizacao_url || "");
+    const generated = url.hostname === "www.google.com" &&
+      url.pathname === "/maps/search/" && url.searchParams.get("api") === "1";
+    return generated && url.toString() !== buildBusinessMapSearchUrl(form);
+  } catch { return false; }
+}
+
 export function validateWhatsApp(value) {
   const digits = String(value || "").replace(/\D/g, "");
   if (!digits) return "";
@@ -90,16 +134,20 @@ export function validateWhatsApp(value) {
     : "Informe um WhatsApp com DDD e 10 ou 11 dígitos.";
 }
 
-export function validateCreationCompleteness(form) {
-  if (!Array.isArray(form.areas) || form.areas.length === 0) {
-    return "Preencha todas as informações do negócio antes de continuar. Campo pendente: Especialidades.";
+export function firstMissingBusinessField(form) {
+  if (!Array.isArray(form.areas) || form.areas.length === 0) return "areas";
+  for (const [field] of CREATION_REQUIRED_FIELDS) {
+    if (!String(form[field] ?? "").trim()) return field;
   }
-
-  for (const [field, label] of CREATION_REQUIRED_FIELDS) {
-    if (!String(form[field] ?? "").trim()) {
-      return `Preencha todas as informações do negócio antes de continuar. Campo pendente: ${label}.`;
-    }
-  }
-
+  if (timeZonesForState(form.estado).length > 1 && !form.fuso_horario) return "fuso_horario";
   return "";
+}
+
+export function validateCreationCompleteness(form) {
+  const missing = firstMissingBusinessField(form);
+  if (!missing) return "";
+  const labels = Object.fromEntries(CREATION_REQUIRED_FIELDS.map(([field, label]) => [field, label]));
+  labels.areas = "Especialidades";
+  labels.fuso_horario = "Fuso horário";
+  return `Preencha todas as informações do negócio antes de continuar. Campo pendente: ${labels[missing]}.`;
 }

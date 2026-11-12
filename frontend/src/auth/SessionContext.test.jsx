@@ -8,7 +8,13 @@ import {
   migrateLegacySession
 } from "../api/client";
 import { SessionProvider, useSession } from "./SessionContext";
-import { clearSession } from "./session";
+import {
+  clearSession,
+  ANALYTICS_IDENTITY_BOUNDARY_EVENT,
+  ANALYTICS_VIEW_READY_EVENT,
+  AUTH_REVISION_STORAGE_KEY,
+  AUTH_LOGOUT_READY_STORAGE_KEY
+} from "./session";
 
 vi.mock("../api/client", () => ({
   apiRequest: vi.fn(),
@@ -91,6 +97,186 @@ afterEach(() => {
 });
 
 describe("sincronização da sessão", () => {
+  it("troca de identidade confirmada por refresh emite nova fronteira analítica", async () => {
+    const boundaries = vi.fn();
+    window.addEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, boundaries);
+    try {
+      renderSession();
+      await screen.findByText("Ana");
+      apiRequest.mockResolvedValue({
+        usuario: { id: 2, nome: "Bruna" }, negocio: null, vinculos: []
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Sincronizar" }));
+      await screen.findByText("Bruna");
+      expect(boundaries).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, boundaries);
+    }
+  });
+
+  it("logout confirma readiness somente depois da resposta HTTP", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    let finishLogout;
+    const ready = vi.fn();
+    window.addEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    try {
+      apiRequest.mockImplementation((path) => path === "/logout"
+        ? new Promise((resolve) => { finishLogout = resolve; })
+        : Promise.resolve({}));
+      fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+      await waitFor(() => expect(finishLogout).toBeTypeOf("function"));
+      expect(ready).not.toHaveBeenCalled();
+      await act(async () => finishLogout({}));
+      expect(ready).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    }
+  });
+
+  it("expiração canônica comunica a retomada anônima às outras abas", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    const unauthorized = Object.assign(new Error("Sessão expirada"), { status: 401 });
+    apiRequest.mockRejectedValueOnce(unauthorized);
+    const ready = vi.fn();
+    window.addEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Sincronizar" }));
+      await screen.findByText("Desconectada");
+      expect(ready).toHaveBeenCalledTimes(1);
+      const marker = localStorage.getItem(AUTH_LOGOUT_READY_STORAGE_KEY);
+      expect(marker).toBeTruthy();
+      // Equivale ao storage event recebido na outra aba já sem sessão.
+      fireEvent(window, new StorageEvent("storage", {
+        key: AUTH_LOGOUT_READY_STORAGE_KEY,
+        newValue: marker
+      }));
+      expect(ready).toHaveBeenCalledTimes(2);
+    } finally {
+      window.removeEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    }
+  });
+
+  it("aviso antigo de logout não libera analytics durante uma sessão ativa", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    const ready = vi.fn();
+    window.addEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    try {
+      fireEvent(window, new StorageEvent("storage", {
+        key: AUTH_LOGOUT_READY_STORAGE_KEY,
+        newValue: "logout-antigo"
+      }));
+      expect(ready).not.toHaveBeenCalled();
+      expect(screen.getByText("Ana")).not.toBeNull();
+    } finally {
+      window.removeEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    }
+  });
+
+  it("logout com erro de rede permanece suspenso até login validado", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    let current = { usuario: { id: 1, nome: "Ana" }, negocio: null, vinculos: [] };
+    apiRequest.mockImplementation((path) => {
+      if (path === "/logout") return Promise.reject(new Error("Rede indisponível"));
+      if (path === "/login") {
+        current = { usuario: { id: 2, nome: "Bruna" }, negocio: null, vinculos: [] };
+      }
+      return Promise.resolve(current);
+    });
+    const ready = vi.fn();
+    window.addEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+      await waitFor(() => expect(apiRequest.mock.calls.some(([path]) => path === "/logout")).toBe(true));
+      await act(async () => {});
+      expect(ready).toHaveBeenCalledTimes(0);
+      expect(localStorage.getItem(AUTH_LOGOUT_READY_STORAGE_KEY)).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Entrar como Bruna" }));
+      await screen.findByText("Bruna");
+      expect(ready).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    }
+  });
+
+  it("troca de conta em outra aba oculta a anterior até /minha-sessao confirmar", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    let finishRefresh;
+    apiRequest.mockImplementation((path) => path === "/minha-sessao"
+      ? new Promise((resolve) => { finishRefresh = resolve; })
+      : Promise.resolve({}));
+    const ready = vi.fn();
+    window.addEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    try {
+      fireEvent(window, new StorageEvent("storage", {
+        key: AUTH_REVISION_STORAGE_KEY, newValue: "outra-aba"
+      }));
+      expect(screen.queryByText("Ana")).toBeNull();
+      expect(ready).not.toHaveBeenCalled();
+      await waitFor(() => expect(finishRefresh).toBeTypeOf("function"));
+      await act(async () => finishRefresh({
+        usuario: { id: 2, nome: "Bruna" }, negocio: null, vinculos: []
+      }));
+      await screen.findByText("Bruna");
+      expect(ready).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    }
+  });
+
+  it("falha na revalidação entre abas não reexibe identidade anterior", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    apiRequest.mockRejectedValueOnce(new Error("Falha transitória"));
+    fireEvent(window, new StorageEvent("storage", {
+      key: AUTH_REVISION_STORAGE_KEY, newValue: "outra-aba"
+    }));
+    await waitFor(() => expect(screen.getByTestId("session-loading").textContent).toBe("Pronta"));
+    expect(screen.queryByText("Ana")).toBeNull();
+    expect(screen.getByText("Desconectada")).not.toBeNull();
+  });
+
+  it("login existente vindo da visita anônima abre nova fronteira de analytics", async () => {
+    localStorage.removeItem("session_active");
+    renderSession();
+    await screen.findByText("Desconectada");
+    apiRequest.mockResolvedValue({
+      usuario: { id: 2, nome: "Bruna" }, negocio: null, vinculos: []
+    });
+    const boundary = vi.fn();
+    window.addEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, boundary);
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Entrar como Bruna" }));
+      await screen.findByText("Bruna");
+      expect(boundary).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, boundary);
+    }
+  });
+
+  it("troca de vínculo comercial não altera a identidade da sessão de analytics", async () => {
+    const boundaries = vi.fn();
+    window.addEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, boundaries);
+    try {
+      apiRequest.mockResolvedValue({
+        usuario: { id: 1, nome: "Ana" },
+        vinculos: [{ id: 9, papel: "dono" }],
+        negocio: { id: 9, papel: "dono" },
+        temNegocio: true
+      });
+      renderSession();
+      await screen.findByText("Ana");
+      fireEvent.click(screen.getByRole("button", { name: "Adotar arquivamento" }));
+      expect(boundaries).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, boundaries);
+    }
+  });
+
   it("falha de autenticação ultrapassada não substitui o resultado da intenção nova", async () => {
     const onAuthError = vi.fn();
     renderSession({ onAuthError });
@@ -423,6 +609,28 @@ describe("sincronização da sessão", () => {
       "/minha-sessao",
       expect.anything()
     );
+  });
+
+  it("migração legada rejeitada comunica o logout confirmado entre abas", async () => {
+    localStorage.removeItem("session_active");
+    localStorage.setItem("token", "jwt-expirado");
+    migrateLegacySession.mockResolvedValueOnce({
+      attempted: true, migrated: false, invalid: true
+    });
+    const ready = vi.fn();
+    window.addEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    try {
+      renderSession();
+      await waitFor(() => expect(ready).toHaveBeenCalledTimes(1));
+      expect(screen.getByText("Desconectada")).not.toBeNull();
+      expect(localStorage.getItem("token")).toBeNull();
+      expect(localStorage.getItem(AUTH_LOGOUT_READY_STORAGE_KEY)).toBeTruthy();
+      expect(apiRequest).not.toHaveBeenCalledWith(
+        "/minha-sessao", expect.anything()
+      );
+    } finally {
+      window.removeEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    }
   });
 
   it("mantém a sessão utilizável enquanto uma sincronização silenciosa está pendente", async () => {

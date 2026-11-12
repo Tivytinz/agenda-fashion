@@ -1,11 +1,28 @@
 import { postTelemetry } from "./transport";
 import {
+  ANALYTICS_IDENTITY_BOUNDARY_EVENT,
+  ANALYTICS_VIEW_READY_EVENT,
+  AUTH_REVISION_STORAGE_KEY,
+  hasSession,
+  normalizePlanSlug
+} from "../auth/session";
+import {
+  ensureAnalyticsTabIsolation,
+  parkAnalyticsOutbox,
+  recoverParkedOutbox,
+  pruneExpiredParkedOutboxes,
+  releaseAnalyticsTab,
+  scrubParkedAttribution
+} from "./tabOutboxRecovery";
+import {
   readBrowserStorage,
+  removeBrowserStorage,
   writeBrowserStorage
 } from "../utils/browserStorage";
 import {
   getMarketingConsent,
-  MARKETING_CONSENT
+  MARKETING_CONSENT,
+  MARKETING_CONSENT_EVENT
 } from "./marketingConsent";
 
 const VISITOR_KEY = "af_analytics_visitor_v2";
@@ -34,6 +51,10 @@ const MARKETING_ACQUISITION_KEYS = [
 let currentView = null;
 let lifecycleBound = false;
 let outboxFlushPromise = null;
+let identityGeneration = 0;
+let analyticsSuspended = false;
+let legacyOutboxDiscarded = false;
+let identityConfirmedForRecovery = false;
 
 function uuid() {
   try {
@@ -145,7 +166,13 @@ function captureAcquisition() {
   };
 }
 
+// A posse por documento também cobre "Duplicar guia" sem window.opener.
+function isolateInheritedTabStorage() {
+  ensureAnalyticsTabIsolation();
+}
+
 function readSession() {
+  isolateInheritedTabStorage();
   return parseJson(readBrowserStorage("session", SESSION_KEY));
 }
 
@@ -225,13 +252,21 @@ function deviceInfo() {
   };
 }
 
-function route(pathname) {
+function route(pathname, search = "") {
   const path = String(pathname || "/").replace(/\/{2,}/g, "/");
 
   if (path === "/") return ["home", "/"];
   if (path === "/para-profissionais") return ["professional_landing", "/para-profissionais"];
   if (path === "/entrar") return ["login", "/entrar"];
-  if (path === "/cadastro") return ["register", "/cadastro"];
+  if (path === "/cadastro") {
+    const params = new URLSearchParams(search);
+    return [
+      params.get("tipo") === "profissional" || Boolean(normalizePlanSlug(params.get("plano")))
+        ? "professional_register"
+        : "register",
+      "/cadastro"
+    ];
+  }
   if (path === "/criar-negocio") return ["create_business", "/criar-negocio"];
   if (path === "/planos") return ["plans", "/planos"];
   if (path === "/checkout") return ["checkout", "/checkout"];
@@ -265,10 +300,19 @@ function flowUuid(key, { renew = false } = {}) {
   return created;
 }
 
+function discardLegacyOutbox() {
+  if (legacyOutboxDiscarded) return;
+  // A fila antiga global não tem isolamento entre contas e abas.
+  removeBrowserStorage("local", OUTBOX_KEY);
+  legacyOutboxDiscarded = true;
+}
+
 function readOutbox() {
+  isolateInheritedTabStorage();
+  discardLegacyOutbox();
   try {
     const parsed = JSON.parse(
-      readBrowserStorage("local", OUTBOX_KEY) || "[]"
+      readBrowserStorage("session", OUTBOX_KEY) || "[]"
     );
     if (!Array.isArray(parsed)) return [];
 
@@ -289,14 +333,51 @@ function readOutbox() {
 }
 
 function writeOutbox(entries) {
-  writeBrowserStorage(
-    "local",
-    OUTBOX_KEY,
-    JSON.stringify(
-      (Array.isArray(entries) ? entries : [])
-        .slice(-OUTBOX_MAX_ITEMS)
+  discardLegacyOutbox();
+  const pending = (Array.isArray(entries) ? entries : []).slice(-OUTBOX_MAX_ITEMS);
+  const saved = writeBrowserStorage("session", OUTBOX_KEY, JSON.stringify(pending));
+  // Diário durável por guia. A gravação acontece na inclusão, não somente no
+  // fechamento; cobre encerramentos abruptos que não emitem pagehide.
+  parkAnalyticsOutbox({
+    entries: pending.map(entry => ({
+      ...entry,
+      payload: getMarketingConsent() === MARKETING_CONSENT.GRANTED
+        ? entry.payload
+        : {
+            ...entry.payload,
+            acquisition: stripMarketingAcquisition(entry.payload?.acquisition || {})
+          }
+    })),
+    revision: authRevision(),
+    visitorId: visitorUuid()
+  });
+  return saved;
+}
+
+function authRevision() {
+  return readBrowserStorage("local", AUTH_REVISION_STORAGE_KEY) || "";
+}
+
+function restorePendingOutbox({ confirmed = false } = {}) {
+  if (confirmed) identityConfirmedForRecovery = true;
+  if (analyticsSuspended || (hasSession() && !identityConfirmedForRecovery)) return;
+  const added = recoverParkedOutbox({
+    revision: authRevision(),
+    visitorId: visitorUuid(),
+    entries: readOutbox(),
+    persist: entries => writeOutbox(
+      getMarketingConsent() === MARKETING_CONSENT.GRANTED
+        ? entries
+        : entries.map(entry => ({
+            ...entry,
+            payload: {
+              ...entry.payload,
+              acquisition: stripMarketingAcquisition(entry.payload?.acquisition || {})
+            }
+          }))
     )
-  );
+  });
+  if (added > 0 || readOutbox().length > 0) void flushOutbox();
 }
 
 function enqueuePayload(payload) {
@@ -346,13 +427,19 @@ export function clearFirstPartyMarketingAttribution() {
         }
       }))
     );
+    scrubParkedAttribution(stripMarketingAcquisition);
   } catch {
     // Privacidade deve falhar de forma conservadora sem bloquear a aplicação.
   }
 }
 
 async function postPayload(payload, { keepalive = false } = {}) {
-  const response = await postTelemetry("/analytics/collect", payload, { keepalive });
+  // Uma revogação pode acontecer depois da gravação do lote: aplicar também
+  // no último ponto antes da transmissão para evitar atribuição sem consentimento.
+  const sanitized = getMarketingConsent() === MARKETING_CONSENT.GRANTED
+    ? payload
+    : { ...payload, acquisition: stripMarketingAcquisition(payload.acquisition || {}) };
+  const response = await postTelemetry("/analytics/collect", sanitized, { keepalive });
 
   if (!response?.ok) {
     const error = new Error("Falha ao entregar analytics first-party.");
@@ -369,44 +456,67 @@ async function postPayload(payload, { keepalive = false } = {}) {
 }
 
 async function flushOutbox({ keepalive = false } = {}) {
-  if (outboxFlushPromise) {
-    return outboxFlushPromise;
-  }
+  if (analyticsSuspended) return;
+  if (outboxFlushPromise) return outboxFlushPromise;
 
-  outboxFlushPromise = (async () => {
+  const generation = identityGeneration;
+  const work = (async () => {
     let processed = 0;
-
-    while (processed < OUTBOX_FLUSH_LIMIT) {
+    while (processed < OUTBOX_FLUSH_LIMIT && generation === identityGeneration) {
       const entry = readOutbox()[0];
       if (!entry) break;
-
       try {
         await postPayload(entry.payload, { keepalive });
+        // Um POST antigo pode terminar depois do logout: não drenar a fila nova.
+        if (generation !== identityGeneration) break;
         removeOutboxEntry(entry.id);
+        // O espaço recém-liberado permite recuperar parte da fila de outra
+        // guia sem descartar o excedente ainda estacionado.
+        restorePendingOutbox();
       } catch (error) {
+        if (generation !== identityGeneration) break;
         if (error?.retryable === false) {
           removeOutboxEntry(entry.id);
           processed += 1;
           continue;
         }
-
         break;
       }
-
       processed += 1;
     }
   })();
-
+  outboxFlushPromise = work;
   try {
-    await outboxFlushPromise;
+    await work;
   } finally {
-    outboxFlushPromise = null;
+    if (outboxFlushPromise === work) {
+      outboxFlushPromise = null;
+      if (identityGeneration !== generation && readOutbox().length) {
+        void flushOutbox();
+      }
+    }
   }
+}
+
+// A fronteira invalida lotes pendentes, fluxos e sessão sem apagar a identidade
+// pseudônima do navegador; previne atribuição cruzada entre contas.
+export function resetFirstPartyAnalyticsSession({ suspend = false } = {}) {
+  identityGeneration += 1;
+  currentView = null;
+  analyticsSuspended = suspend;
+  // POST antigo não deve bloquear a fila nova se nunca responder.
+  // Sua finalização ainda respeita identityGeneration e não altera o lote novo.
+  outboxFlushPromise = null;
+  identityConfirmedForRecovery = false;
+  removeBrowserStorage("session", SESSION_KEY);
+  removeBrowserStorage("session", ONBOARDING_FLOW_KEY);
+  removeBrowserStorage("session", BOOKING_FLOW_KEY);
+  writeOutbox([]);
 }
 
 async function send(items, { keepalive = false } = {}) {
   try {
-    if (!Array.isArray(items) || items.length === 0) return;
+    if (analyticsSuspended || !Array.isArray(items) || items.length === 0) return;
     const session = touchSession(ensureSession());
     const acquisition = mergeDefined(
       session.acquisition || {},
@@ -493,13 +603,49 @@ function bindLifecycle() {
     }
   });
 
-  window.addEventListener("pagehide", () => {
+  window.addEventListener("pagehide", event => {
+    // O engagement final entra no diário no momento do enqueue.
     flushCurrentView("pagehide", true);
+    // Em bfcache, o documento continua vivo; preservar sua posse.
+    if (!event.persisted) releaseAnalyticsTab();
   });
 
   window.addEventListener("online", () => {
+    restorePendingOutbox();
     void flushOutbox();
   });
+  window.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") restorePendingOutbox();
+  });
+  pruneExpiredParkedOutboxes();
+  // Encerramentos abruptos nem sempre emitem pagehide. Reavaliar a posse
+  // expirada também quando a guia permanece aberta sem outro evento.
+  window.setInterval(() => {
+    pruneExpiredParkedOutboxes();
+    if (document.visibilityState !== "hidden" && navigator.onLine !== false) {
+      restorePendingOutbox();
+    }
+  }, 60_000);
+  window.addEventListener(ANALYTICS_VIEW_READY_EVENT, () => {
+    // O bridge pode retirar a suspensão na mesma emissão do evento.
+    // Recuperar após seus listeners evita adiar a fila para o próximo online.
+    queueMicrotask(() => restorePendingOutbox({ confirmed: true }));
+  });
+
+  const enforceConsent = () => {
+    if (getMarketingConsent() !== MARKETING_CONSENT.GRANTED) {
+      clearFirstPartyMarketingAttribution();
+    }
+  };
+  window.addEventListener(MARKETING_CONSENT_EVENT, enforceConsent);
+  window.addEventListener("storage", (event) => {
+    if (event.key === "af_marketing_consent_v2") enforceConsent();
+  });
+
+  window.addEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, () => {
+    resetFirstPartyAnalyticsSession({ suspend: true });
+  });
+  restorePendingOutbox();
 }
 
 function autoJourneyEvent(pageKey, search, state) {
@@ -546,11 +692,16 @@ function autoJourneyEvent(pageKey, search, state) {
 export function startFirstPartyPageView({
   pathname,
   search = "",
-  state = null
+  state = null,
+  resumeAfterBoundary = false
 }) {
   try {
     bindLifecycle();
-    const [pageKey, routeTemplate] = route(pathname);
+    if (analyticsSuspended && !resumeAfterBoundary) return;
+    // Readiness repetido ou refresh silencioso não duplica a view ativa.
+    if (resumeAfterBoundary && !analyticsSuspended && currentView) return;
+    if (resumeAfterBoundary) analyticsSuspended = false;
+    const [pageKey, routeTemplate] = route(pathname, search);
 
     // Não mede o uso do próprio painel administrativo para não inflar usuários ativos.
     if (pageKey === "admin") {
@@ -656,6 +807,35 @@ export function trackFirstPartyEvent(name, {
         method: String(properties.metodo || "share").slice(0, 120)
       };
       flowUuidValue = flowUuid(ONBOARDING_FLOW_KEY);
+    } else if ([
+      "professional_signup_started",
+      "professional_signup_submitted",
+      "professional_signup_validation_error",
+      "professional_signup_request_error"
+    ].includes(name)) {
+      if (currentView.pageKey !== "professional_register") return;
+      if (name === "professional_signup_validation_error") {
+        const fields = ["name", "email", "whatsapp", "password", "password_confirmation", "form"];
+        const reasons = ["required", "too_short", "too_long", "invalid_format", "invalid_length", "mismatch"];
+        if (!fields.includes(properties.field) || !reasons.includes(properties.reason)) return;
+        canonicalProperties = { field: properties.field, reason: properties.reason };
+      } else if (name === "professional_signup_request_error") {
+        const reasons = [
+          "conflict", "invalid_request", "auth_rejected", "rate_limited",
+          "timeout", "network_error", "server_error", "unknown"
+        ];
+        if (!["email", "google"].includes(properties.method) || !reasons.includes(properties.reason)) return;
+        canonicalProperties = { method: properties.method, reason: properties.reason };
+      } else if (name === "professional_signup_started") {
+        const triggers = ["form_input", "google_credential"];
+        if (!["email", "google"].includes(properties.method) || !triggers.includes(properties.trigger)) return;
+        if ((properties.method === "google") !== (properties.trigger === "google_credential")) return;
+        canonicalProperties = { method: properties.method, trigger: properties.trigger };
+      } else {
+        if (!["email", "google"].includes(properties.method)) return;
+        canonicalProperties = { method: properties.method };
+      }
+      flowUuidValue = flowUuid(ONBOARDING_FLOW_KEY);
     } else if (!["business_creation_started", "first_service_creation_started", "profile_viewed", "profile_shared", "booking_started", "booking_completed", "checkout_viewed"].includes(name)) {
       return;
     }
@@ -696,5 +876,6 @@ export const firstPartyAnalyticsInternals = {
   uuidValido,
   readOutbox,
   flushOutbox,
+  resetFirstPartyAnalyticsSession,
   send
 };

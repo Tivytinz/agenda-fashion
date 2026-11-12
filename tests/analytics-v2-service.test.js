@@ -428,6 +428,95 @@ describe(
       }
     );
 
+    test("admite eventos de cadastro com propriedades enumeradas, descartando PII adicional", () => {
+      const evento = {
+        type: "event",
+        eventUuid: EVENT_UUID,
+        viewUuid: VIEW_UUID,
+        schemaVersion: 1,
+        occurredAt: AGORA
+      };
+      const started = normalizarItem({
+        ...evento,
+        name: "professional_signup_started",
+        properties: { method: "email", trigger: "form_input", senha: "nao-transmitir" }
+      });
+      expect(started.properties).toEqual({ method: "email", trigger: "form_input" });
+      // Lotes pendentes de navegadores anteriores não devem ser descartados.
+      const antigoEmail = normalizarItem({
+        ...evento,
+        name: "professional_signup_started",
+        properties: { method: "email" }
+      });
+      const antigoGoogle = normalizarItem({
+        ...evento,
+        name: "professional_signup_started",
+        properties: { method: "google" }
+      });
+      expect(antigoEmail.properties).toEqual({ method: "email", trigger: "form_input" });
+      expect(antigoGoogle.properties).toEqual({ method: "google", trigger: "google_credential" });
+      expect(normalizarItem({
+        ...evento, name: "professional_signup_submitted",
+        properties: { method: "google" }
+      }).properties).toEqual({ method: "google" });
+      const issue = normalizarItem({
+        ...evento, name: "professional_signup_validation_error",
+        properties: { field: "password_confirmation", reason: "mismatch", email: "nao-enviar@example.com" }
+      });
+      expect(issue.properties).toEqual({
+        field: "password_confirmation", reason: "mismatch"
+      });
+    });
+
+    test("rejeita PII disfarçada nos campos ou métodos de eventos de cadastro", () => {
+      const base = {
+        type: "event", eventUuid: EVENT_UUID, schemaVersion: 1,
+        occurredAt: AGORA
+      };
+      expect(() => normalizarItem({
+        ...base, name: "professional_signup_validation_error",
+        properties: { field: "ana@exemplo.com", reason: "invalid_format" }
+      })).toThrow("Propriedades do erro de cadastro inválidas.");
+      expect(() => normalizarItem({
+        ...base, name: "professional_signup_validation_error",
+        properties: { field: "email", reason: "ana@exemplo.com" }
+      })).toThrow("Propriedades do erro de cadastro inválidas.");
+      expect(() => normalizarItem({
+        ...base, name: "professional_signup_submitted",
+        properties: { method: "email-de-usuario" }
+      })).toThrow("Método de cadastro inválido.");
+    });
+
+    test("separa erros de requisição de erros de campo e descarta PII adicional", () => {
+      const base = {
+        type: "event", eventUuid: EVENT_UUID, viewUuid: VIEW_UUID,
+        schemaVersion: 1, occurredAt: AGORA
+      };
+      expect(normalizarItem({
+        ...base, name: "professional_signup_request_error",
+        properties: {
+          method: "google", reason: "network_error",
+          email: "pessoa@exemplo.com", senha: "nunca-enviar"
+        }
+      }).properties).toEqual({ method: "google", reason: "network_error" });
+      expect(normalizarItem({
+        ...base, name: "professional_signup_request_error",
+        properties: { method: "email", reason: "conflict" }
+      }).properties).toEqual({ method: "email", reason: "conflict" });
+      expect(() => normalizarItem({
+        ...base, name: "professional_signup_request_error",
+        properties: { method: "email", reason: "email@exemplo.com" }
+      })).toThrow("Propriedades do erro de requisição inválidas.");
+      expect(() => normalizarItem({
+        ...base, name: "professional_signup_request_error",
+        properties: { method: "senha123", reason: "server_error" }
+      })).toThrow("Propriedades do erro de requisição inválidas.");
+      expect(() => normalizarItem({
+        ...base, name: "professional_signup_validation_error",
+        properties: { field: "form", reason: "server_rejected" }
+      })).toThrow("Propriedades do erro de cadastro inválidas.");
+    });
+
     test(
       "rejeita evento frontend desconhecido",
       () => {

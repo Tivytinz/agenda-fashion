@@ -216,6 +216,60 @@ resposta canônica de cada escrita permite seguir para a próxima etapa sem exig
 uma segunda gravação. Resultado incerto exige reconciliação por leitura, não
 reenvio cego da mutação.
 
+O cadastro determina o fuso horário IANA a partir do estado do endereço, sem
+confiar no fuso do aparelho. Em estado com mais de um fuso operacional (ex.: AM
+e PE), a profissional confirma explicitamente o fuso local antes da criação;
+o backend valida a correspondência entre estado e fuso e não grava um default
+incorreto. O cadastro oferece um link de busca no Google Maps gerado a partir
+do endereço, mas essa busca não equivale à verificação de coordenadas; a dona
+confere o local. Links de localização enviados na criação precisam ser HTTPS
+e de provedores de mapas reconhecidos.
+
+Após a criação, alterar o estado do negócio também exige revisar o fuso
+IANA. Em UF de fuso único, a escolha pode ser derivada; em UF ambígua, deve
+ser explicitamente confirmada pela proprietária. A API valida essa escolha
+e só altera o fuso quando não existirem agendamentos futuros ativos
+(`agendado` ou `confirmado`), preservando o snapshot dos agendamentos já
+confirmados. A proprietária precisa resolver/reagendar os próximos horários
+antes de alterar o fuso. Nunca atualizar silenciosamente o fuso somente
+porque o endereço foi editado sem validação no backend.
+
+A localização de novas criações e de links **alterados** no perfil exige
+HTTPS de um provedor de mapas reconhecido. Links legados anteriormente
+persistidos continuam aceitos quando permanecem inalterados; a regra de
+publicação anterior também os tolera temporariamente para evitar
+despublicação retroativa sem inventário/migração controlada. Não confundir
+essa exceção de compatibilidade com um endereço geocodificado/verificado.
+Links de busca gerados no AF tornam-se pendentes de regeneração se o endereço
+for alterado. Não reescrever links personalizados sem ação explícita da dona.
+
+Na etapa 2, o botão Voltar retorna a `/cadastro?tipo=profissional`
+(etapa 1), preservando a intenção de plano e o rascunho da criação do
+negócio. Depois de criar a conta, retornar à etapa 1 abre a edição inline dos dados
+da MESMA identidade, sem reenviar o cadastro ou sair para `/conta`.
+Nome e WhatsApp usam `PUT /conta`; e-mail usa `PUT /conta/email`, com
+senha atual, unicidade e desativação da verificação do endereço anterior;
+a troca de senha usa `PUT /conta/senha`, também com senha atual, e reautentica
+com a nova senha após a revogação das sessões antigas.
+Sem alterações, Continuar não faz chamadas de gravação. Ao salvar, a sessão
+é reconciliada antes de retornar à etapa 2. Credenciais nunca são retidas em
+rascunhos; apenas a saída real e confirmada descarta o rascunho do negócio.
+E-mail de conta sem senha disponível exige fluxo de reautenticação próprio
+antes de ser alterado; não contornar a proteção no frontend.
+
+Rascunhos ainda não enviados podem sobreviver a uma recarga por até 30 minutos
+em `sessionStorage`, vinculados à conta e somente à guia. Nunca usar `localStorage`
+para dados pessoais do formulário, nem guardar senha ou token. Limpar o rascunho
+após criação confirmada, saída descartada, expiração ou troca de identidade.
+A recuperação de rascunhos exige posse confirmada da guia por um
+identificador opaco, compartilhado apenas para verificar clones de
+`sessionStorage`. Sem confirmação (inclusive storage bloqueado), descartar
+o rascunho copiado em vez de associá-lo a outra guia. Nenhum dado pessoal
+do rascunho deve entrar no armazenamento compartilhado.
+
+A chave de idempotência continua independente do rascunho: uma resposta de
+criação incerta exige consulta canônica, não reenvio automático de POST.
+
 A publicação é automática quando o negócio atende aos requisitos estruturais e
 possui ao menos um serviço ativo, salvo despublicação manual persistida. Apenas
 ação explícita da dona pode limpar essa intenção, sempre sujeita à elegibilidade

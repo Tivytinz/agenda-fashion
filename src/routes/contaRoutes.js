@@ -12,6 +12,7 @@ const upload = require(
 
 const {
   limitarUpload,
+  criarLimitador,
 } = require(
   "../middlewares/rateLimits"
 );
@@ -70,6 +71,22 @@ router.put(
   "/conta",
   auth,
   contaController.atualizarMinhaConta
+);
+
+// A rota de credenciais limita tentativas por conta, depois de autenticar.
+const limitarAlteracaoEmail = criarLimitador({
+  limite: 5,
+  janelaMs: 15 * 60 * 1000,
+  mensagem: "Muitas tentativas de alteração do e-mail. Tente novamente mais tarde.",
+  chave: (req) => `usuario:${req.user.id}`,
+  ignorarSucesso: true
+});
+
+router.put(
+  "/conta/email",
+  auth,
+  limitarAlteracaoEmail,
+  contaController.atualizarEmailConta
 );
 
 router.put(

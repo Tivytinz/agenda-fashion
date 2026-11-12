@@ -149,12 +149,14 @@ describe("jornada de ativação profissional", () => {
       name: "Divulgue seu perfil"
     });
     const mission = missionHeading.closest("section");
-    const metrics = screen.getByLabelText("Indicadores");
+    // Antes do primeiro agendamento, métricas vazias não competem com a missão.
+    const performance = screen.getByRole("region", { name: "Desempenho do perfil" });
 
     expect(Boolean(
-      mission.compareDocumentPosition(metrics)
+      mission.compareDocumentPosition(performance)
       & Node.DOCUMENT_POSITION_FOLLOWING
     )).toBe(true);
+    expect(screen.queryByLabelText("Indicadores")).toBeNull();
     expect(apiRequest.mock.calls.some(
       ([path]) => path === "/agenda-configuracao/status"
     )).toBe(false);

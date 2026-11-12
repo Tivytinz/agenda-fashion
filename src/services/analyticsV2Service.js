@@ -16,6 +16,10 @@ const EVENTOS_FRONTEND = new Set([
   "booking_started",
   "booking_completed",
   "checkout_viewed",
+  "professional_signup_started",
+  "professional_signup_submitted",
+  "professional_signup_validation_error",
+  "professional_signup_request_error",
 ]);
 
 const MOTIVOS_SAIDA = new Set([
@@ -24,6 +28,15 @@ const MOTIVOS_SAIDA = new Set([
   "pagehide",
   "unload",
   "session_end",
+]);
+
+const SIGNUP_FIELDS = new Set(["name", "email", "whatsapp", "password", "password_confirmation", "form"]);
+const SIGNUP_REASONS = new Set(["required", "too_short", "too_long", "invalid_format", "invalid_length", "mismatch"]);
+const SIGNUP_METHODS = new Set(["email", "google"]);
+const SIGNUP_START_TRIGGERS = new Set(["form_input", "google_credential"]);
+const SIGNUP_REQUEST_REASONS = new Set([
+  "conflict", "invalid_request", "auth_rejected", "rate_limited",
+  "timeout", "network_error", "server_error", "unknown"
 ]);
 
 const BOOKING_INTENTS = new Set([
@@ -48,6 +61,10 @@ const PROPRIEDADES_PERMITIDAS = Object.freeze({
   ]),
   booking_completed: new Set(["status"]),
   checkout_viewed: new Set(["plan_slug"]),
+  professional_signup_started: new Set(["method", "trigger"]),
+  professional_signup_submitted: new Set(["method"]),
+  professional_signup_validation_error: new Set(["field", "reason"]),
+  professional_signup_request_error: new Set(["method", "reason"]),
 });
 
 const SEARCH_HOSTS = new Set([
@@ -178,6 +195,34 @@ function propriedadesSeguras(nome, propriedades) {
       resultado[chave] = typeof valor === "string"
         ? textoSeguro(valor, 120)
         : valor;
+    }
+  }
+
+  if (nome === "professional_signup_validation_error") {
+    // Impede conteúdo livre/PII mesmo em propriedades permitidas.
+    if (!SIGNUP_FIELDS.has(resultado.field) || !SIGNUP_REASONS.has(resultado.reason)) {
+      throw criarErro("Propriedades do erro de cadastro inválidas.");
+    }
+  }
+  if (nome === "professional_signup_started" || nome === "professional_signup_submitted") {
+    if (!SIGNUP_METHODS.has(resultado.method)) {
+      throw criarErro("Método de cadastro inválido.");
+    }
+  }
+  if (nome === "professional_signup_started") {
+    // Compatibilidade com eventos enfileirados por versões anteriores do navegador.
+    // O método já foi validado; não inferir gatilhos de strings livres.
+    if (resultado.trigger === undefined) {
+      resultado.trigger = resultado.method === "google" ? "google_credential" : "form_input";
+    }
+    if (!SIGNUP_START_TRIGGERS.has(resultado.trigger) ||
+        (resultado.method === "google") !== (resultado.trigger === "google_credential")) {
+      throw criarErro("Gatilho de início de cadastro inválido.");
+    }
+  }
+  if (nome === "professional_signup_request_error") {
+    if (!SIGNUP_METHODS.has(resultado.method) || !SIGNUP_REQUEST_REASONS.has(resultado.reason)) {
+      throw criarErro("Propriedades do erro de requisição inválidas.");
     }
   }
 

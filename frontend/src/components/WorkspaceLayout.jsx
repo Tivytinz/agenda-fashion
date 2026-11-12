@@ -32,7 +32,7 @@ export const PROFESSIONAL_LINKS = [
   ["/profissional/conta", "Minha conta", "account"]
 ];
 
-export { MobileWorkspaceNavigation } from "./WorkspaceNavigation";
+export { MobileWorkspaceNavigation } from "./WorkspaceNavigation.jsx";
 
 export function WorkspaceLayout({ children }) {
   const { negocio } = useSession();

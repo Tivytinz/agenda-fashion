@@ -2,8 +2,11 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  firstPartyAnalyticsInternals
+  firstPartyAnalyticsInternals,
+  startFirstPartyPageView
 } from "./firstPartyAnalytics";
+import { clearSession, saveSession } from "../auth/session";
+import { tabOutboxRecoveryInternals } from "./tabOutboxRecovery";
 import {
   MARKETING_CONSENT,
   setMarketingConsent
@@ -14,19 +17,129 @@ const {
   clearFirstPartyMarketingAttribution,
   flushOutbox,
   readOutbox,
+  resetFirstPartyAnalyticsSession,
   route,
   send,
   uuidValido
 } = firstPartyAnalyticsInternals;
 
 afterEach(() => {
+  resetFirstPartyAnalyticsSession();
   window.localStorage.clear();
   window.sessionStorage.clear();
   window.history.replaceState({}, "", "/");
   vi.unstubAllGlobals();
+  tabOutboxRecoveryInternals.simulateNewDocument();
 });
 
 describe("firstPartyAnalytics", () => {
+  it("logout separa identidades e descarta eventos pendentes sem trocar o visitante", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 503 })));
+    startFirstPartyPageView({ pathname: "/cadastro", search: "?tipo=profissional" });
+    const oldSession = JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).id;
+    const visitor = localStorage.getItem("af_analytics_visitor_v2");
+
+    await send([{ type: "event", eventUuid: "c6b83d90-09f0-4ad2-83e3-8a1f44e92641",
+      name: "professional_signup_submitted", occurredAt: new Date().toISOString(),
+      schemaVersion: 1, properties: { method: "email" } }]);
+    expect(readOutbox().length).toBeGreaterThan(0);
+
+    clearSession();
+    expect(readOutbox()).toHaveLength(0);
+    expect(sessionStorage.getItem("af_analytics_session_v2")).toBeNull();
+
+    startFirstPartyPageView({ pathname: "/" });
+    expect(sessionStorage.getItem("af_analytics_session_v2")).toBeNull();
+    startFirstPartyPageView({ pathname: "/", resumeAfterBoundary: true });
+    const newSession = JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).id;
+    expect(newSession).not.toBe(oldSession);
+    expect(localStorage.getItem("af_analytics_visitor_v2")).toBe(visitor);
+    expect(readOutbox().every(entry => entry.payload.sessionUuid === newSession)).toBe(true);
+  });
+
+  it("primeiro cadastro anônimo preserva a sessão; autenticação já existente a renova", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, status: 202 })));
+    startFirstPartyPageView({ pathname: "/cadastro", search: "?tipo=profissional" });
+    await flushOutbox();
+    const anonymousSession = JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).id;
+    saveSession({ usuario: { id: 11 } });
+    expect(JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).id).toBe(anonymousSession);
+
+    saveSession({ usuario: { id: 22 } });
+    expect(sessionStorage.getItem("af_analytics_session_v2")).toBeNull();
+    startFirstPartyPageView({ pathname: "/", resumeAfterBoundary: true });
+    expect(JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).id).not.toBe(anonymousSession);
+  });
+
+  it("não entrega lote enfileirado por A ao concluir uma requisição antiga após troca de conta", async () => {
+    let releaseFirst;
+    const fetchMock = vi.fn()
+      .mockImplementationOnce(() => new Promise(resolve => { releaseFirst = resolve; }))
+      .mockResolvedValue({ ok: true, status: 202 });
+    vi.stubGlobal("fetch", fetchMock);
+    startFirstPartyPageView({ pathname: "/" });
+    const firstSession = JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).id;
+    await vi.waitFor(() => expect(releaseFirst).toBeTypeOf("function"));
+
+    clearSession();
+    startFirstPartyPageView({ pathname: "/para-profissionais", resumeAfterBoundary: true });
+    // A requisição de A permanece sem resposta; B deve transmitir mesmo assim.
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    const nextSession = JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).id;
+    expect(nextSession).not.toBe(firstSession);
+
+    releaseFirst({ ok: true, status: 202 });
+    await vi.waitFor(() => expect(readOutbox()).toHaveLength(0));
+    const deliveredSessions = fetchMock.mock.calls.map(([, options]) =>
+      JSON.parse(options.body).sessionUuid
+    );
+    expect(deliveredSessions).toEqual([firstSession, nextSession]);
+  });
+
+  it("outbox novo usa sessionStorage e não compartilha a fila local legada", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 503 })));
+    await send([{ type: "event", eventUuid: "c6b83d90-09f0-4ad2-83e3-8a1f44e92641",
+      schemaVersion: 1, name: "profile_viewed", occurredAt: new Date().toISOString() }]);
+    expect(readOutbox()).toHaveLength(1);
+    expect(sessionStorage.getItem("af_analytics_outbox_v2")).not.toBeNull();
+    expect(localStorage.getItem("af_analytics_outbox_v2")).toBeNull();
+    expect(tabOutboxRecoveryInternals.parkedKeys()).toHaveLength(1);
+  });
+
+  it("abandona identidade e outbox herdados de janela com opener", async () => {
+    const inherited = "6a9fa7d3-9c56-4b11-8e18-5f328f2b2af1";
+    sessionStorage.setItem("af_analytics_session_v2", JSON.stringify({
+      id: inherited, lastActivityAt: Date.now(), sequence: 7
+    }));
+    sessionStorage.setItem("af_analytics_outbox_v2", JSON.stringify([{
+      id: "c6b83d90-09f0-4ad2-83e3-8a1f44e92641", createdAt: Date.now(),
+      payload: { sessionUuid: inherited, items: [] }
+    }]));
+    vi.stubGlobal("opener", {});
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, status: 202 })));
+    startFirstPartyPageView({ pathname: "/" });
+    const next = JSON.parse(sessionStorage.getItem("af_analytics_session_v2"));
+    expect(next.id).not.toBe(inherited);
+    expect(readOutbox().every((entry) => entry.payload.sessionUuid !== inherited)).toBe(true);
+  });
+
+  it("readiness repetido não cria page view duplicada", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, status: 202 })));
+    startFirstPartyPageView({ pathname: "/" });
+    const oldSequence = JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).sequence;
+    startFirstPartyPageView({ pathname: "/", resumeAfterBoundary: true });
+    expect(JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).sequence).toBe(oldSequence);
+  });
+
+  it("distingue páginas de cadastro profissional e cliente sem persistir a query", () => {
+    expect(route("/cadastro", "?tipo=profissional&utm_source=google"))
+      .toEqual(["professional_register", "/cadastro"]);
+    expect(route("/cadastro", "?plano=pro")).toEqual(["professional_register", "/cadastro"]);
+    expect(route("/cadastro", "?plano=../../secreto")).toEqual(["register", "/cadastro"]);
+    expect(route("/cadastro", "?tipo=cliente")).toEqual(["register", "/cadastro"]);
+  });
+
+
   it("coletor e outbox preservam keepalive sem reaproveitar Bearer legado", async () => {
     localStorage.setItem("token", "token-da-conta-anterior");
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true })));
@@ -53,6 +166,19 @@ describe("firstPartyAnalytics", () => {
     expect(acquisition).not.toHaveProperty("utmMedium");
     expect(acquisition).not.toHaveProperty("utmCampaign");
     expect(acquisition).not.toHaveProperty("gclid");
+  });
+
+  it("revogação do consentimento em outra aba limpa dados do outbox desta aba", async () => {
+    setMarketingConsent(MARKETING_CONSENT.GRANTED);
+    window.history.replaceState({}, "", "/para-profissionais?utm_source=google&gclid=teste");
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 503 })));
+    startFirstPartyPageView({ pathname: "/para-profissionais" });
+    await vi.waitFor(() => expect(readOutbox().length).toBeGreaterThan(0));
+    expect(readOutbox()[0].payload.acquisition.utmSource).toBe("google");
+    localStorage.setItem("af_marketing_consent_v2", JSON.stringify({ version: 2, status: "denied" }));
+    window.dispatchEvent(new StorageEvent("storage", { key: "af_marketing_consent_v2" }));
+    expect(readOutbox()[0].payload.acquisition).not.toHaveProperty("utmSource");
+    expect(readOutbox()[0].payload.acquisition).not.toHaveProperty("gclid");
   });
 
   it("mantém campanha fora do Analytics V2 quando a preferência está negada", () => {

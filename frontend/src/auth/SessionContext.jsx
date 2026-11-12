@@ -21,6 +21,10 @@ import {
   hasSession,
   invalidateSessionRequests,
   saveSession,
+  notifyAnalyticsIdentityBoundary,
+  notifyAnalyticsViewReady,
+  AUTH_REVISION_STORAGE_KEY,
+  AUTH_LOGOUT_READY_STORAGE_KEY,
   SESSION_CLEARED_EVENT
 } from "./session";
 
@@ -45,6 +49,7 @@ export function SessionProvider({ children }) {
   const lastAppliedRefreshRef = useRef(0);
   const sessionSyncAbortRef = useRef(null);
   const pendingLogoutRef = useRef(null);
+  const verifiedIdentityRef = useRef(null);
   const transitionsRef = useRef(null);
   if (!transitionsRef.current) transitionsRef.current = createSessionTransitions();
   const [state, setState] = useState(() => {
@@ -89,6 +94,7 @@ export function SessionProvider({ children }) {
     );
 
     if (!hasSession()) {
+      verifiedIdentityRef.current = null;
       sessionGenerationRef.current += 1;
       lastAppliedRefreshRef.current = requestId;
       setState(SIGNED_OUT_STATE);
@@ -115,7 +121,11 @@ export function SessionProvider({ children }) {
         sessionGenerationRef.current += 1;
         lastAppliedRefreshRef.current = requestId;
         clearSession();
+        verifiedIdentityRef.current = null;
         setState(SIGNED_OUT_STATE);
+        // O backend rejeitou o legado e não encontrou cookie válido.
+        // Avisar outras abas e retomar a navegação pública nesta rota.
+        notifyAnalyticsViewReady({ broadcastLogout: true });
         return null;
       }
 
@@ -152,8 +162,15 @@ export function SessionProvider({ children }) {
         administrador: result.administrador || null,
         ehAdministrador: Boolean(result.ehAdministrador)
       };
+      if (verifiedIdentityRef.current !== null &&
+          String(verifiedIdentityRef.current) !== String(result.usuario?.id)) {
+        notifyAnalyticsIdentityBoundary();
+      }
+      verifiedIdentityRef.current = result.usuario?.id ?? null;
       lastAppliedRefreshRef.current = requestId;
       setState(next);
+      // Somente a sessão HTTP confirmada pode retomar a coleta na mesma rota.
+      notifyAnalyticsViewReady();
 
       return {
         ...next,
@@ -168,7 +185,11 @@ export function SessionProvider({ children }) {
         sessionGenerationRef.current += 1;
         lastAppliedRefreshRef.current = requestId;
         clearSession();
+        verifiedIdentityRef.current = null;
         setState(SIGNED_OUT_STATE);
+        // 401/403 canônico comprova a expiração; outras abas precisam
+        // reabrir a medição anônima depois de invalidarem a identidade.
+        notifyAnalyticsViewReady({ broadcastLogout: true });
       } else {
         // Se este refresh silencioso tornou um refresh bloqueante anterior
         // obsoleto, a falha transitória também precisa liberar o loading.
@@ -195,11 +216,35 @@ export function SessionProvider({ children }) {
   useEffect(() => {
     function handleSessionCleared() {
       beginSessionTransition();
+      verifiedIdentityRef.current = null;
       setState(SIGNED_OUT_STATE);
     }
 
     function handleStorage(event) {
+      if (event.key === AUTH_LOGOUT_READY_STORAGE_KEY) {
+        // Logout confirmado na outra aba só libera view anônima se não houve novo login.
+        if (!hasSession()) notifyAnalyticsViewReady();
+        return;
+      }
+
+      if (event.key === AUTH_REVISION_STORAGE_KEY) {
+        // Outra aba pode trocar de conta mantendo session_active='1'.
+        // Suspender medição, ocultar o estado anterior e revalidar no servidor.
+        notifyAnalyticsIdentityBoundary({ broadcast: false });
+        transitionsRef.current.begin();
+        beginSessionTransition();
+        verifiedIdentityRef.current = null;
+        if (!hasSession()) {
+          setState(SIGNED_OUT_STATE);
+        } else {
+          setState({ ...SIGNED_OUT_STATE, loading: true });
+          void refresh().catch(() => {});
+        }
+        return;
+      }
+
       if (["token", "session_active", "usuario", "negocio"].includes(event.key) && !hasSession()) {
+        notifyAnalyticsIdentityBoundary({ broadcast: false });
         handleSessionCleared();
       }
     }
@@ -210,7 +255,7 @@ export function SessionProvider({ children }) {
       window.removeEventListener(SESSION_CLEARED_EVENT, handleSessionCleared);
       window.removeEventListener("storage", handleStorage);
     };
-  }, [beginSessionTransition]);
+  }, [beginSessionTransition, refresh]);
 
   const authenticate = useCallback((path, body) => {
     const transitions = transitionsRef.current;
@@ -221,7 +266,15 @@ export function SessionProvider({ children }) {
       try {
         const result = await apiRequest(path, { method: "POST", body });
         if (!transitions.isCurrent(intent)) throw supersededSessionTransition();
+        // Login de conta já existente não herda tentativas anônimas prévias.
+        // A primeira inscrição real mantém a sessão para conciliação com o backend.
+        if (!hasSession() && (path === "/login" || (
+          path === "/auth/google" && result.contaCriada !== true
+        ))) {
+          notifyAnalyticsIdentityBoundary({ broadcast: false });
+        }
         saveSession(result);
+        verifiedIdentityRef.current = result.usuario?.id ?? null;
         const current = await refresh();
         if (!transitions.isCurrent(intent)) throw supersededSessionTransition();
         return { ...current, contaCriada: Boolean(result.contaCriada) };
@@ -314,12 +367,15 @@ export function SessionProvider({ children }) {
     transitions.begin();
     beginSessionTransition();
     clearSession();
+    verifiedIdentityRef.current = null;
     setState(SIGNED_OUT_STATE);
     if (pendingLogoutRef.current) return pendingLogoutRef.current;
 
     const pending = transitions.enqueue(async () => {
       try {
         await apiRequest("/logout", { method: "POST" });
+        // Logout HTTP confirmado; a identidade anterior já não autoriza.
+        notifyAnalyticsViewReady({ broadcastLogout: true });
       } catch {
         // A saída local precisa funcionar mesmo durante uma falha de rede.
       } finally {

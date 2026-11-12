@@ -7,6 +7,29 @@ import {
 const SESSION_ACTIVE_KEY = "session_active";
 const SESSION_KEYS = ["token", SESSION_ACTIVE_KEY, "usuario", "negocio"];
 export const SESSION_CLEARED_EVENT = "agenda-fashion:session-cleared";
+export const ANALYTICS_IDENTITY_BOUNDARY_EVENT = "agenda-fashion:analytics-identity-boundary";
+export const ANALYTICS_VIEW_READY_EVENT = "agenda-fashion:analytics-view-ready";
+export const AUTH_REVISION_STORAGE_KEY = "af_auth_revision_v1";
+export const AUTH_LOGOUT_READY_STORAGE_KEY = "af_auth_logout_ready_v1";
+
+function broadcastAuthChange(key) {
+  // Apenas um marcador opaco e efêmero; nunca propagar identidade ou token.
+  writeBrowserStorage("local", key, `${Date.now()}-${Math.random()}`);
+}
+
+export function notifyAnalyticsIdentityBoundary({ broadcast = true } = {}) {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(ANALYTICS_IDENTITY_BOUNDARY_EVENT));
+  }
+  if (broadcast) broadcastAuthChange(AUTH_REVISION_STORAGE_KEY);
+}
+
+export function notifyAnalyticsViewReady({ broadcastLogout = false } = {}) {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(ANALYTICS_VIEW_READY_EVENT));
+  }
+  if (broadcastLogout) broadcastAuthChange(AUTH_LOGOUT_READY_STORAGE_KEY);
+}
 
 let requestGeneration = 0;
 
@@ -30,6 +53,9 @@ export function completeLegacySessionMigration() {
 }
 
 export function saveSession(result) {
+  // O primeiro cadastro anônimo preserva sua sessão de tentativa.
+  // Reautenticação de uma conta existente inicia uma sessão de analytics nova.
+  const wasAuthenticated = hasSession();
   removeBrowserStorage("local", "token");
   clearStoredSessionMetadata();
 
@@ -39,11 +65,19 @@ export function saveSession(result) {
 
   invalidateSessionRequests();
   writeBrowserStorage("local", SESSION_ACTIVE_KEY, "1");
+
+  // A revisão entre abas só pode ser publicada depois do marcador local.
+  // No cadastro inicial, manter o fluxo analítico anônimo da tentativa;
+  // na reautenticação, separar a identidade antes de medir novos eventos.
+  if (wasAuthenticated) notifyAnalyticsIdentityBoundary();
+  else broadcastAuthChange(AUTH_REVISION_STORAGE_KEY);
 }
 
 export function clearSession({ notify = false } = {}) {
   invalidateSessionRequests();
   SESSION_KEYS.forEach((key) => removeBrowserStorage("local", key));
+  // A ordem importa: outras abas observam a sessão local já invalidada.
+  notifyAnalyticsIdentityBoundary();
 
   if (notify && typeof window !== "undefined") {
     window.dispatchEvent(new Event(SESSION_CLEARED_EVENT));

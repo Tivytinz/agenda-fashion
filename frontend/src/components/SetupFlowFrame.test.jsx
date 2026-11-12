@@ -49,6 +49,16 @@ function LoadingShell() {
   return <>{!focused && <nav aria-label="Navegação geral" />}<main>Carregando cadastro...</main></>;
 }
 
+it("oferece links Voltar e Sair distintos na segunda etapa quando configurados", () => {
+  render(<MemoryRouter initialEntries={["/criar-negocio"]}>
+    <SetupFlowFrame backTo="/conta" exitTo="/" step={2}>
+      <main>Cadastro do negócio</main>
+    </SetupFlowFrame>
+  </MemoryRouter>);
+  expect(screen.getByRole("link", { name: "Voltar" }).getAttribute("href")).toBe("/conta");
+  expect(screen.getByRole("link", { name: "Sair" }).getAttribute("href")).toBe("/");
+});
+
 it.each([
   ["/cadastro?tipo=profissional", false],
   ["/cadastro", true]

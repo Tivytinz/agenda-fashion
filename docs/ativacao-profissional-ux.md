@@ -70,6 +70,29 @@ No dashboard, esses convites também não devem competir com uma etapa canônica
 
 O cadastro de cliente continua podendo oferecer separadamente a preferência de notificações dos próprios agendamentos.
 
+O cadastro profissional apresenta emojis Unicode decorativos nos rótulos de nome,
+e-mail, WhatsApp e senhas, sem incluí-los no nome acessível. Cada campo de senha
+permite mostrar ou ocultar o conteúdo independentemente; 🙈 indica valor oculto
+e 🐵 valor visível. Os botões não submetem o formulário e permanecem acessíveis.
+Criar conta permanece indisponível até nome, e-mail, WhatsApp com DDD, senha
+com oito caracteres ou mais e confirmação coincidente estarem válidos.
+Validações nativas e do backend permanecem obrigatórias. A primeira etapa não
+exibe o slogan de marketing sob o título.
+
+A interface implementa o formulário em `AuthPage.jsx` e reaproveita
+`AuthFieldLabel.jsx` e `PasswordField.jsx`, mantendo a lógica de
+elegibilidade em `auth/registrationValidation.js`. O botão só pode ser
+habilitado quando nome (2 a 120 caracteres), e-mail (até 160 caracteres),
+WhatsApp local com DDD (10 ou 11 dígitos), senha (mínimo de 8 caracteres,
+máximo de 72 bytes UTF-8) e confirmação coincidente estiverem válidos.
+A validação no backend é a autoridade e permanece mais permissiva para
+prefixos telefônicos internacionais que a interface local não solicita.
+Os rótulos acessíveis continuam textuais apesar dos emojis decorativos.
+O login de contas existentes não está sujeito às regras de criação de senha.
+A divergência entre senhas mantém o envio indisponível e aparece como estado
+acessível; a interface não tenta enviar um cadastro sabidamente inválido.
+
+
 ## Criação do negócio
 
 Todo novo negócio deve nascer com as informações estruturais essenciais do perfil preenchidas. A criação exige:

@@ -19,6 +19,7 @@ export function AdminJourneyV2Page() {
         const transitions = Array.isArray(data.transicoes) ? data.transicoes : [];
         const events = Array.isArray(data.eventos) ? data.eventos : [];
         const devices = Array.isArray(data.dispositivos) ? data.dispositivos : [];
+        const signup = data.cadastroProfissional || null;
         const reconciliation = data.reconciliacaoPipelines || {};
         const conversionHealth = data.saudeConversoesMarketing || {};
         const conversionSummary = conversionHealth.resumo || {};
@@ -102,6 +103,49 @@ export function AdminJourneyV2Page() {
 
         return (
           <>
+            {number(signup?.sessoes_visita) > 0 && (
+              <section className="panel admin-journey-signup-panel">
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">Ativação</p>
+                    <h2>Cadastro profissional — interação com o formulário</h2>
+                    <p className="muted">
+                      Coorte de sessões que visualizaram o cadastro profissional no período.
+                      Os eventos precisam pertencer a essa visualização. Não equivalem a contas criadas.
+                    </p>
+                  </div>
+                </div>
+                <section className="admin-command-summary-grid is-period-summary" aria-label="Etapas do cadastro profissional">
+                  <MetricCard label="Sessões com visita" hint="sessões com a página de cadastro profissional" value={formatNumber(signup.sessoes_visita)} />
+                  <MetricCard label="Iniciaram" hint="sessões com primeira interação registrada" value={formatNumber(signup.sessoes_inicio)} />
+                  <MetricCard label="Tentaram cadastrar" hint="sessões com envio de dados válidos ao servidor ou credencial Google" value={formatNumber(signup.sessoes_envio)} />
+                  <MetricCard label="Encontraram erro de campo" hint="sessões com erros de validação observados" value={formatNumber(signup.sessoes_erro)} />
+                  <MetricCard label="Falha de solicitação" hint="sessões com falha HTTP ou resultado do fluxo não confirmado; isso não comprova que a conta não foi criada" value={formatNumber(signup.sessoes_erro_requisicao)} />
+                </section>
+                <section className="admin-command-summary-grid is-period-summary" aria-label="Vínculos confirmados com fatos do cadastro">
+                  <MetricCard label="Contas novas vinculadas" hint="contas profissionais criadas após uma tentativa nessa mesma sessão, identificada posteriormente por login" value={formatNumber(signup.contas_novas_vinculadas)} />
+                  <MetricCard label="Com negócio próprio" hint="contas vinculadas com negócio ativo e vínculo de dona confirmado no backend" value={formatNumber(signup.contas_com_negocio_vinculadas)} />
+                  <MetricCard label="Com agendamento em qualquer negócio próprio" hint="contas com agendamento não cancelado em algum negócio ativo próprio; difere do primeiro negócio considerado pelo funil oficial e não representa receita" value={formatNumber(signup.contas_com_agendamento_vinculadas)} />
+                </section>
+                <p className="muted">
+                  Reconciliação conservadora: exige tentativa observada, conta profissional criada depois da visita
+                  e sessão posteriormente identificada pelo servidor. Sessões sem vínculo autenticado ficam fora
+                  desses indicadores. Não use esses números como taxa global de conversão nem como atribuição de campanha.
+                </p>
+                <p className="muted">
+                  Tentativas por método: e-mail {formatNumber(signup.sessoes_envio_email)} sessão(ões),
+                  {" "}Google {formatNumber(signup.sessoes_envio_google)} sessão(ões).
+                  Uma mesma sessão pode tentar os dois métodos: não somar estes valores.
+                </p>
+                <p className="muted">
+                  {formatNumber(signup.erros_validacao)} ocorrência(s) de validação e
+                  {" "}{formatNumber(signup.erros_requisicao)} problema(s) de solicitação observados no período.
+                  Uma sessão pode conter vários eventos. Falha de solicitação não prova que a conta não foi criada.
+                  Cadastros concluídos, negócios e primeiros agendamentos permanecem no funil operacional,
+                  confirmado pelo backend. Não atribuir abandono apenas por ausência de evento.
+                </p>
+              </section>
+            )}
             <section className="panel admin-journey-screens-panel">
               <div className="panel-heading">
                 <div>

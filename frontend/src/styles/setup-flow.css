@@ -236,3 +236,114 @@
   .setup-flow .stack-form :is(input, textarea, select) { transition: none; }
   .setup-flow button.button:enabled:hover { transform: none; }
 }
+
+/* Rótulos com emojis Unicode decorativos e controles de senha acessíveis. */
+.setup-flow .auth-card-professional-register .setup-title { margin-bottom: 26px; }
+.auth-page .auth-field-label { display: inline-flex; align-items: center; gap: 8px; }
+.auth-page .auth-field-emoji { display: inline-block; width: 21px; font-size: 17px; line-height: 1.3; text-align: center; }
+.auth-page .auth-password-field { display: grid; gap: 7px; }
+.auth-page .auth-password-field > label { color: var(--wine); font-size: 14px; font-weight: 700; }
+.auth-page .auth-password-input-wrap { position: relative; }
+.auth-page .stack-form .auth-password-input-wrap > input[type] { width: 100%; padding-right: 60px; }
+.auth-page .auth-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 3px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 24px;
+}
+.auth-page .auth-password-toggle:hover { background: #fff0f6; }
+.auth-page .auth-password-toggle:focus-visible { outline: 2px solid var(--pink-600); outline-offset: 2px; }
+.auth-page .auth-password-input-wrap input::-ms-reveal { display: none; }
+.auth-page .auth-password-feedback { color: #9c284e; font-size: 13px; line-height: 1.4; }
+.auth-page .auth-required-hint { color: var(--muted); text-align: center; font-size: 13px; line-height: 1.4; }
+.setup-flow .auth-card .button:disabled { border-color: transparent; background: #efd6e1; color: #74445a; box-shadow: none; cursor: not-allowed; transform: none; }
+.auth-page .auth-password-hint {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  margin-top: -8px;
+}
+
+/* Criação do negócio: navegação contextual e especialidades em rosa e branco. */
+.setup-flow-has-back .setup-topbar-actions { display: flex; align-items: center; gap: 10px; }
+.setup-flow-has-back .setup-topbar-actions :is(.setup-back, .setup-exit-button) {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 44px; padding: 9px 15px; border: 1px solid #cc528d;
+  border-radius: 12px; background: #fff; color: #a52a66;
+  font-size: 14px; font-weight: 700; line-height: 1.2; text-decoration: none;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.setup-flow-has-back .setup-topbar-actions :is(.setup-back, .setup-exit-button):hover {
+  border-color: #ac2a6a; background: #fff0f7; color: #92205a; text-decoration: none;
+}
+.setup-flow-has-back .setup-topbar-actions :is(.setup-back, .setup-exit-button):focus-visible {
+  outline: 2px solid var(--pink-600); outline-offset: 3px;
+}
+.setup-flow-has-back .business-field-label { display: inline-flex; align-items: center; gap: 8px; }
+.setup-flow-has-back :is(.business-field-emoji, .business-section-emoji) {
+  display: inline-block; margin-right: 8px; font-size: 1.15em;
+  line-height: 1.2; vertical-align: middle;
+}
+.setup-flow-has-back .business-field-label .business-field-emoji { margin-right: 0; }
+.setup-flow-has-back .business-settings-form .specialty-selector .specialty-option {
+  display: inline-flex !important; align-items: center; gap: 8px;
+  min-height: 44px; padding: 9px 13px; border: 1px solid #d65f97;
+  border-radius: 12px; background: #fff; color: #a93970;
+  font-weight: 700; box-shadow: none;
+}
+.setup-flow-has-back .business-settings-form .specialty-selector .specialty-option:hover {
+  border-color: #b82d70; background: #fff4f9;
+}
+.setup-flow-has-back .business-settings-form .specialty-selector .specialty-option.selected {
+  border-color: #b82d70; background: #fff1f7; color: #9f275f;
+  box-shadow: inset 0 0 0 1px #b82d70;
+}
+.setup-flow-has-back .specialty-option .category-emoji {
+  flex-shrink: 0; font-size: 20px; line-height: 1;
+}
+@media (max-width: 520px) {
+  .setup-flow-has-back .setup-topbar { flex-wrap: wrap; gap: 10px; }
+  .setup-flow-has-back .setup-topbar-actions { justify-content: space-between; flex-basis: 100%; }
+  .setup-flow-has-back .setup-topbar-actions :is(.setup-back, .setup-exit-button) { min-width: 98px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .setup-flow-has-back .setup-topbar-actions :is(.setup-back, .setup-exit-button) { transition: none; }
+}
+
+
+/* Edição inline na etapa 1: os campos usam o mesmo visual de cadastro. */
+.setup-flow .professional-signup-edit .stack-form { margin-top: 20px; }
+.setup-flow .professional-signup-edit .signup-edit-password-toggle {
+  display: inline-flex; align-items: center; justify-content: flex-start;
+  gap: 8px; min-height: 44px; padding: 9px 12px; border: 1px solid #e8afcc;
+  border-radius: 12px; background: #fff; color: #aa316d; font-weight: 700;
+  cursor: pointer;
+}
+.setup-flow .professional-signup-edit .signup-edit-password-toggle:hover { background: #fff1f8; }
+.setup-flow .professional-signup-edit .signup-edit-password-toggle:focus-visible {
+  outline: 2px solid var(--pink-600); outline-offset: 2px;
+}
+.setup-flow .professional-signup-edit .professional-signup-password-fields {
+  display: grid; gap: 12px; padding: 12px;
+  border: 1px solid #efd3e1; border-radius: 12px; background: #fffafd;
+}
+.setup-flow .professional-signup-edit .professional-signup-password-fields label {
+  display: grid; gap: 6px;
+}
+.setup-flow .professional-signup-edit .professional-signup-password-fields small {
+  color: var(--muted);
+}
+.setup-flow .professional-signup-edit .professional-signup-review-note {
+  display: block; margin-top: 12px; line-height: 1.4; color: var(--muted);
+}

@@ -15,7 +15,8 @@ export const PAGE_LABELS = {
   home: "Página inicial",
   professional_landing: "Landing de profissionais",
   login: "Entrar",
-  register: "Cadastro",
+  register: "Cadastro de cliente",
+  professional_register: "Cadastro profissional",
   create_business: "Criar negócio",
   plans: "Planos",
   checkout: "Checkout",
@@ -42,7 +43,11 @@ export const EVENT_LABELS = {
   profile_shared: "Perfil compartilhado",
   booking_started: "Agendamento iniciado",
   booking_completed: "Agendamento concluído",
-  checkout_viewed: "Checkout visualizado"
+  checkout_viewed: "Checkout visualizado",
+  professional_signup_started: "Cadastro profissional iniciado",
+  professional_signup_submitted: "Tentativa de cadastro profissional",
+  professional_signup_validation_error: "Erro de validação do cadastro",
+  professional_signup_request_error: "Erro de requisição do cadastro"
 };
 
 export const PIPELINE_RECONCILIATION_LABELS = {
