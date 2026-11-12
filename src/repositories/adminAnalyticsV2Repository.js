@@ -215,8 +215,8 @@ async function listarDivulgacaoAf(periodo = "30") {
       e.af_source,
       e.af_medium,
       e.af_content,
-      COUNT(*)::INT AS sessoes,
-      COUNT(*) FILTER (WHERE o.canal = 'direct')::INT AS sessoes_classificadas_diretas
+      COUNT(DISTINCT s.id)::INT AS sessoes,
+      COUNT(DISTINCT s.id) FILTER (WHERE o.canal = 'direct')::INT AS sessoes_classificadas_diretas
     FROM marketing_sessao_evidencias e
     INNER JOIN analytics_sessoes s ON s.id = e.sessao_id
     LEFT JOIN analytics_sessao_origens o ON o.sessao_id = s.id
