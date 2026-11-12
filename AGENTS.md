@@ -1,7 +1,6 @@
 # Memória operacional do Agenda Fashion
 
 > Contexto permanente para agentes de desenvolvimento.
-> Atualizada em setembro de 2026.
 
 Este arquivo deve ser lido antes de mudanças relevantes no projeto. Ele registra
 decisões duráveis de produto, arquitetura, segurança e operação. Detalhes de uma
@@ -193,7 +192,12 @@ falha de leitura mantém a proteção e sair cancela a consulta.
 
 ## Integração contínua e merge
 
-Pull requests não draft direcionados à `main` devem habilitar auto-merge por squash automaticamente. Os gates obrigatórios de CI e as regras de proteção da branch continuam sendo a condição de integração: o PR só entra na `main` depois de satisfazê-los. Falha ou cancelamento de check não deve ser contornado por merge forçado.
+Mudanças preparadas por agentes devem permanecer em pull request draft até existir
+autorização explícita do usuário para integrar. Marcar a PR como pronta para revisão
+significa que essa autorização já foi dada e permite que o workflow habilite
+auto-merge por squash. Os gates obrigatórios de CI e as regras de proteção da
+branch continuam sendo condição de integração: autorização não substitui checks,
+e falha ou cancelamento não deve ser contornado por merge forçado.
 
 ## Domínio público canônico
 
@@ -337,6 +341,13 @@ mede primeira reserva válida; não confirma comparecimento nem receita.
 Todo novo negócio deve ser criado com os dados estruturais exigidos pelo backend
 para o fluxo atual. Descrição, fotos e complemento permanecem opcionais quando o
 contrato vigente assim definir.
+
+A entrada pública para profissionais deve permanecer visível e preservar a intenção
+profissional entre descoberta, cadastro e login. Conta autenticada sem negócio
+reutiliza a mesma identidade na criação; vínculos ativos levam ao workspace
+autorizado, priorizando o contexto de dona quando a mesma conta também for
+profissional. Retornos internos protegidos e a exceção RN50 mantêm precedência.
+Detalhes da jornada pertencem a `docs/ativacao-profissional-ux.md`.
 
 A publicação é automática quando o negócio atende aos requisitos estruturais e
 possui ao menos um serviço ativo, desde que a proprietária não tenha
@@ -923,6 +934,15 @@ pagamento não deve criar cobranças concorrentes. A tela de assinatura deve
 separar explicitamente a assinatura/plano atualmente em uso de qualquer upgrade
 pendente.
 
+Renovação, cancelamento, checkout e reconciliação financeira são sagas
+idempotentes. Efeitos mutáveis no Asaas permanecem fora de transações PostgreSQL;
+estado incerto precisa ficar durável e reconciliável; respostas antigas não podem
+alterar uma geração financeira mais nova; e acesso pago deriva de evidência
+financeira confirmada, sem confundir programação de cobrança com pagamento.
+Detalhes de estados, leases, migrations, datas civis e compensações pertencem a
+`docs/asaas-ativacao-recorrencia.md`, `docs/checkout-idempotente.md` e
+`docs/webhook-processing.md`.
+
 Mais detalhes: `docs/planos.md`, `docs/checkout-idempotente.md` e documentos de
 webhook financeiro.
 
@@ -1229,6 +1249,15 @@ pós-produção ou capturados do produto real.
 
 Detalhes: `docs/estrategia-conteudo.md` e `docs/runway-criativos.md`.
 
+## Copilot e IA generativa
+
+O Copilot de divulgação usa decisão e texto determinísticos como caminho padrão.
+LLM é opcional e experimental, nunca é condição para a recomendação funcionar e
+seu valor deve ser medido por impacto incremental no funil compartilhamento →
+visita → agendamento iniciado → agendamento concluído. Regras de provider,
+fallback, contrato e telemetria pertencem a `docs/copilot-v1.md` e
+`docs/arquitetura-copilot.md`.
+
 ## Machine Learning
 
 O primeiro caso de Machine Learning do AF é a previsão de risco de falta em
@@ -1403,16 +1432,11 @@ Páginas públicas de aquisição incluídas no sitemap e tratadas como alvo de 
 
 Mudanças relevantes devem executar validações proporcionais ao risco. O Quality
 Gate atual cobre lint, build, testes frontend, migrations, Jest/PostgreSQL,
-audits e Playwright aplicável. A suíte Playwright principal é distribuída em
-quatro shards paralelos no GitHub Actions para reduzir o caminho crítico sem
-reduzir cobertura; a aceitação full-stack continua executando uma vez dentro
-do primeiro shard.
-
-Os shards E2E usam a imagem oficial do Playwright em Ubuntu Noble, com versão
-alinhada ao lockfile do frontend e navegadores/dependências já instalados.
-Não executar `playwright install --with-deps` em cada shard. O preflight abre
-Chromium e WebKit antes da suíte; no container, PostgreSQL usa o hostname
-do serviço `postgres`, não o loopback do container de testes.
+audits e Playwright aplicável. A suíte E2E deve preservar cobertura relevante de
+Chromium/WebKit e aceitação full-stack e pode ser paralelizada para reduzir o
+caminho crítico sem reduzir cobertura. Quantidade de shards, imagem de runner,
+preflight de browsers e detalhes de rede do CI pertencem a
+`docs/deploy-seguro.md`.
 
 Mudanças em caminhos públicos críticos de performance (home, catálogo, perfil,
 componentes/estilos relacionados e scripts de medição) também disparam o
@@ -1462,151 +1486,25 @@ qual etapa do funil pretende melhorar e como o resultado será observado.
 Atualizar `AGENTS.md` quando uma decisão durável mudar produto, arquitetura,
 integrações, infraestrutura, segurança, analytics, planos ou regras críticas.
 
+Não registrar uma data manual de "última atualização": o histórico do Git é a
+fonte temporal confiável do arquivo e evita cabeçalhos que envelhecem sem relação
+com o conteúdo.
+
 Não usar este arquivo para métricas temporárias, resultado momentâneo de
 campanha, estado de aprovação externo ou detalhes de layout que podem mudar sem
 alterar o contrato do produto.
+
+Quando já existir documento canônico ou runbook para um domínio, o `AGENTS.md`
+deve guardar apenas o invariante necessário para orientar decisões futuras e
+apontar para a fonte especializada. Nomes de arquivos internos, versão de imagem
+de CI, quantidade de shards, leases, migrations específicas e estados de
+implementação ficam no documento canônico quando não forem parte essencial do
+contrato durável.
 
 Documentação especializada deve concentrar detalhes de implementação e
 operação. Ao mudar uma regra permanente, atualizar os documentos afetados no
 mesmo conjunto de mudanças sempre que possível.
 
-
-### Copilot de divulgação: caminho determinístico por padrão
-
-- A oportunidade `COMPARTILHAR_PERFIL` é decidida pela inteligência de crescimento determinística no backend; não depende de ML nem de LLM.
-- O texto básico de divulgação usa geração determinística por padrão e retorna `fonte: "deterministic"`, sem consumo de tokens.
-- OpenAI permanece opcional e experimental, somente quando explicitamente habilitada; a presença da chave sozinha não torna o provider o caminho padrão.
-- Falha, saída inválida ou indisponibilidade do provider retorna à mesma geração determinística; `fallback` não é mais a identidade analítica do caminho normal.
-- O valor da geração por LLM deve ser medido por impacto incremental no funil compartilhamento → visita → agendamento iniciado → agendamento concluído, não por volume de textos gerados.
-
-
-## Reativação idempotente da renovação
-
-Enquanto o período já pago permanecer válido, a dona pode reativar a renovação
-sem cobrança imediata. Cada tentativa usa `assinaturas.reativacao_tentativa` e
-referência externa determinística. Encontrar uma recorrência não basta para
-adotá-la: geração, acesso vigente e data externa precisam ser conferidos. Desde
-a migration 118, a obrigação externa fica em `assinatura_renovacao_operacoes`,
-independente do status financeiro e de `ativo`. Timeout não comprova ausência;
-HTTP com o Asaas permanece fora das transações PostgreSQL.
-
-Restauração e finalização conferem atomicamente a mesma `reativacao_tentativa`
-observada. Resposta de uma geração anterior não cancela nem finaliza a seguinte.
-Sem contexto válido para consultar o Asaas, preservar a operação pendente e o
-estado financeiro atual, sem inferir ausência da recorrência. Datas `DATE` da cobrança aceitam o objeto
-devolvido pelo parser padrão do `pg` e texto válido, preservando o dia civil do
-banco. Não converter um `DATE` para UTC antes de extrair seus campos locais nem
-mudar globalmente o parser do banco para corrigir apenas esse domínio.
-
-No contrato HTTP de assinatura, os campos civis `data_proxima_cobranca`,
-`data_vencimento`, `data_pagamento`, `acesso_pago_ate` e `acesso_ate` são `AAAA-MM-DD` ou `null`,
-inclusive em pagamentos, upgrade pendente e respostas de escrita. A conversão
-ocorre antes da serialização JSON, preservando instantes `TIMESTAMPTZ`. Data
-ausente ou inválida não pode derrubar a tela. Para calcular o período pago no
-cancelamento, usar pagamento confirmado/recebido com data válida ou o fim já
-persistido na assinatura; cobrança não recebida não comprova extensão do acesso.
-Sem evidência temporal válida, recusar antes de remover a recorrência externa.
-
-A continuação local do cancelamento confere atomicamente o identificador Asaas
-removido e a `reativacao_tentativa` observada, incluindo a geração inicial zero.
-Resposta antiga não altera o ciclo seguinte nem registra seu cancelamento.
-Conflito `ASSINATURA_ALTERADA` exige nova leitura antes de outra ação. Conta e
-webhook reconhecem a mesma identidade de `RENOVACAO_CANCELADA`, conservando a
-origem do primeiro fato e sem reescrever o ledger histórico. Desde a migration
-117, novos ciclos usam assinatura + geração + recorrência; ciclos legados mantêm
-a chave anterior até a próxima reativação, com cutover persistido na assinatura.
-
-Após remover a recorrência, o cancelamento bloqueia negócio e assinatura, nessa
-ordem, e relê os recebimentos na mesma transação antes de definir o fim pago.
-O maior período validado ou já persistido não pode ser encurtado por uma resposta
-antiga, ordem de IDs dos pagamentos ou finalização de reativação. Pagamento após
-cancelamento preserva a renovação cancelada; durante reativação, mantém
-`REACTIVATING` e a geração reservada. Reconhecimentos de assinatura da recorrência
-anterior não concluem nem desfazem a tentativa.
-
-`reativacao_inicio_cobranca` congela a data usada na referência externa de cada
-tentativa. Ampliar o período pago durante a espera não muda essa referência.
-Retomada e finalização conferem a mesma geração e preservam o acesso ampliado;
-ausência externa confirmada restaura cancelamento sem apagar o pagamento. Esses
-metadados internos não fazem parte do DTO da conta.
-
-`acesso_pago_ate` é o fim exclusivo do período quitado; programação de cobrança
-não pode reduzi-lo. `data_proxima_cobranca` no banco conserva a programação
-conhecida do provedor. O DTO normaliza ambos como dias civis e mantém o alias
-legado de fim pago em `data_proxima_cobranca` para cancelado/reativando. Expiração,
-capacidade, ledger e projeções de cancelamento usam o fim pago.
-
-Desde a migration 119, `renovacao_cancelada` preserva a intenção de não renovar
-mesmo durante estorno, atraso ou reconhecimento tardio de exclusão. Somente a
-reativação conferida limpa esse marcador. Inativação da recorrência também
-preserva acesso e equipe ainda quitados. Antes de criar a substituta, a ação
-explícita confirma a remoção da recorrência anterior fora da transação, inclusive
-quando ela estava apenas inativa; falha impede outra criação.
-
-Após uma falha financeira, `acesso_pago_reconciliado` exige recalcular o fim
-exclusivamente pelos pagamentos atualmente confirmados/recebidos com data válida.
-O máximo histórico não restaura período estornado. Outro recebimento vigente
-preserva sua cobertura; recebimento de ciclo já vencido fica registrado sem
-conceder benefícios. Novos checkouts usam esse contrato desde a criação. O
-fallback de período legado continua restrito a assinaturas sem reconciliação
-financeira e não pode voltar a partir de `data_proxima_cobranca` após a reversão.
-Esses marcadores internos não são expostos no DTO da conta.
-
-A operação externa usa `PENDING`, `REMOVING`, `COMPLETED` e `CANCELED`, com
-concessão de execução por dois minutos e versão conferida em cada continuação.
-Recebimento que incompatibiliza a recorrência exige remoção confirmada antes de
-outra criação. O pedido pode fazer uma substituição automática; falha de remoção
-fica durável para GET/worker. Estorno ou vencimento não apagam essa obrigação.
-Vencer durante `REACTIVATING` encerra os benefícios e reconcilia a equipe sem
-liberar nova operação financeira ou arquivamento enquanto houver pendência.
-
-Falhas de consulta, remoção ou contexto da renovação ficam registradas por código
-seguro na operação e contam como falha no worker. Ausência de pendência ou disputa
-normal da concessão não é falha. A saúde operacional inclui quantidade, falhas e
-idade das renovações pendentes, sem payloads do provedor ou credenciais.
-
-Desde a migration 120, criação inicial e limpeza de recorrências substituídas
-usam `assinatura_checkout_operacoes`. A obrigação é persistida antes do POST ou
-na transação que substitui o plano e independe do status financeiro. GET/worker
-somente consultam, adotam criação existente com pagamento ainda válido ou
-removem a órfã. Resposta tardia pode reabrir remoção, sem conceder acesso por
-evento de programação. Pendências bloqueiam checkout, reativação e arquivamento.
-A saúde operacional inclui Recorrências de checkout. As continuações conferem
-versão e concessão, com HTTP fora das transações.
-
-O lote de renovação prioriza a última tentativa persistida, sem prioridade fixa
-por ID. Falha de contexto espera 15 minutos na seleção automática; demais falhas
-esperam dois. GET pode conferir antes, respeitando a concessão. Atualização sem
-datas factuais preserva o dia financeiro conhecido: o relógio do processamento
-não altera `data_pagamento` nem amplia o período pago.
-
-A tela de assinatura preserva a resposta canônica de cancelamento/reativação e
-serializa alterações até reconciliar. Leituras antigas e conclusões depois da
-saída são descartadas. Escrita incerta, conflito de geração, conflito de
-reativação e falha de leitura pedem atualização por GET antes de outra alteração.
-`REACTIVATING` permanece visível como processamento, com atualização disponível
-e sem outra ação financeira.
-
-No Copilot, trocar negócio, período ou recomendação e desmontar o componente
-invalida o pedido anterior, incluindo sucesso, erro e telemetria de geração.
-O ranking histórico preserva serviços inativos; destaque de divulgação exige
-confirmação explícita de serviço atualmente ativo, mantendo todos os
-agendamentos do período no denominador da participação.
-
-O destaque de divulgação exige disponibilidade estrutural do próprio serviço,
-além de ativo: profissional ativa habilitada e duração compatível com faixas e
-pausas. A projeção reutiliza o SQL canônico de disponibilidade, sem remover
-histórico. Ao trocar período, recomendações ficam indisponíveis até confirmar
-os dados atuais; erro de atualização preserva métricas antigas, sem liberar
-divulgação baseada nelas.
-
-
-## Entrada profissional na descoberta pública
-
-A entrada para cadastrar o negócio fica visível no cabeçalho da home. A página
-comercial é opcional nesse caminho. Visitantes preservam a intenção profissional
-no cadastro/login; contas autenticadas sem negócio reutilizam a mesma identidade
-na criação. Donas e profissionais com vínculo ativo acessam seus workspaces,
-priorizando o vínculo de dona quando ambos existem. O retorno interno explícito
-de agendamento ou operação protegida tem precedência; RN50 permanece restrita
-às reservas existentes. Os parâmetros de atribuição usam uma whitelist.
+Esta deve ser a seção final do arquivo. Novas regras duráveis precisam ser
+incorporadas ao domínio correspondente, não anexadas depois da política de
+manutenção.
