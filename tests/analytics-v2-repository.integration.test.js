@@ -3,6 +3,7 @@ const {
   upsertVisitante,
   upsertSessao,
   registrarVisualizacao,
+  salvarEvidenciasSessao,
 } = require("../src/repositories/analyticsV2Repository");
 
 const VISITOR_UUID = "7bd13f95-2df5-4c1d-86b2-d30204ba91d1";
@@ -48,6 +49,46 @@ describe("Analytics V2 repository - contrato de sequência", () => {
       );
     }
     await db.end();
+  });
+
+  test("persiste evidência AF e preserva o primeiro toque no UPSERT", async () => {
+    await salvarEvidenciasSessao({
+      sessaoId,
+      evidencias: {
+        afSource: "agenda_fashion",
+        afMedium: "whatsapp",
+        afContent: "negocio",
+        landingPage: "/negocio/salao",
+      },
+      occurredAt: OCCURRED_AT,
+    });
+
+    await salvarEvidenciasSessao({
+      sessaoId,
+      evidencias: {
+        afSource: "outra_origem",
+        afMedium: "social",
+        afContent: "servico",
+        utmSource: "google",
+        landingPage: "/negocio/outro",
+      },
+      occurredAt: OCCURRED_AT,
+    });
+
+    const result = await db.query(
+      `SELECT af_source, af_medium, af_content, utm_source, landing_page
+       FROM marketing_sessao_evidencias WHERE sessao_id = $1`,
+      [sessaoId]
+    );
+
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0]).toEqual({
+      af_source: "agenda_fashion",
+      af_medium: "whatsapp",
+      af_content: "negocio",
+      utm_source: "google",
+      landing_page: "/negocio/salao",
+    });
   });
 
   test("persiste sequence do contrato JavaScript na coluna sequencia", async () => {
