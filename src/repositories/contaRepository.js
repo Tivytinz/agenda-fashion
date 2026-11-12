@@ -90,6 +90,20 @@ async function buscarSenhaUsuario(
   );
 }
 
+// O índice UNIQUE LOWER(email) evita duplicidade entre contas concorrentes.
+async function atualizarEmailUsuario({ usuarioId, email }) {
+  const result = await db.query(
+    `UPDATE usuarios SET email = $2,
+       email_verificado_em = CASE
+         WHEN email IS DISTINCT FROM $2 THEN NULL ELSE email_verificado_em
+       END
+       WHERE id = $1 AND ativo = TRUE
+       RETURNING id, email`,
+    [usuarioId, email]
+  );
+  return result.rows[0] || null;
+}
+
 async function atualizarUsuario({
   usuarioId,
   nome,
@@ -552,6 +566,7 @@ module.exports = {
   buscarUsuarioPorId,
   buscarSenhaUsuario,
   atualizarUsuario,
+  atualizarEmailUsuario,
   atualizarPreferenciaWhatsapp,
   atualizarNotificacoesWhatsapp,
   atualizarSenha,

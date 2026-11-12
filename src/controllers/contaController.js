@@ -62,6 +62,17 @@ async function atualizarMinhaConta(
   }
 }
 
+async function atualizarEmailConta(req, res, next) {
+  try {
+    const result = await contaService.atualizarEmailConta({
+      usuarioId: req.user?.id,
+      email: req.body?.email,
+      senhaAtual: req.body?.senhaAtual
+    });
+    return res.json(result);
+  } catch (erro) { return next(erro); }
+}
+
 async function atualizarPreferenciaWhatsapp(
   req,
   res,
@@ -180,6 +191,7 @@ async function enviarFotoUsuario(
 module.exports = {
   buscarMinhaConta,
   atualizarMinhaConta,
+  atualizarEmailConta,
   atualizarPreferenciaWhatsapp,
   atualizarNotificacoesWhatsapp,
   alterarSenha,
