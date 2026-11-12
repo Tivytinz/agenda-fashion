@@ -102,7 +102,7 @@ describe(
     );
 
     test(
-      "capability histórica assinada com JWT_SECRET continua válida durante migração",
+      "capability histórica exige previous secret explícito durante migração",
       () => {
         const legado =
           crypto
@@ -117,6 +117,17 @@ describe(
             .digest(
               "base64url"
             );
+
+        expect(
+          validarAcessoVisitante(
+            202,
+            legado
+          )
+        ).toBe(false);
+
+        process.env
+          .BOOKING_CAPABILITY_PREVIOUS_SECRET =
+          process.env.JWT_SECRET;
 
         expect(
           validarAcessoVisitante(
