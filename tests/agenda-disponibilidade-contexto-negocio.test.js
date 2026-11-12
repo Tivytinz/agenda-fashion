@@ -75,6 +75,30 @@ describe("disponibilidade contextual por negócio", () => {
       .mockResolvedValue([]);
   });
 
+  test("usa o mesmo executor para todas as leituras transacionais", async () => {
+    const executor = { query: jest.fn() };
+    await agendaDisponibilidadeService.horarioEstaDisponivel({
+      profissionalId: 7,
+      negocioId: 20,
+      duracaoServico: 60,
+      data: "2026-09-21",
+      horario: "08:00",
+      quantidadeDias: 1,
+      fusoHorario: "America/Sao_Paulo",
+      executor,
+    });
+    expect(agendaConfiguracaoRepository.buscarConfiguracao)
+      .toHaveBeenCalledWith(7, 20, executor);
+    expect(agendaConfiguracaoRepository.listarHorarios)
+      .toHaveBeenCalledWith(7, 20, executor);
+    expect(agendaPublicaRepository.listarAgendamentosOcupados)
+      .toHaveBeenCalledWith(
+        7, "2026-09-21", "2026-09-21", null, "America/Sao_Paulo", executor
+      );
+    expect(agendaPublicaRepository.listarBloqueios)
+      .toHaveBeenCalledWith(7, 20, "2026-09-21", "2026-09-21", executor);
+  });
+
   test("CA-NFR-01: nega troca de negócio por id manipulado no frontend", async () => {
     agendaConfiguracaoRepository.buscarVinculoAtivoPorPapel
       .mockResolvedValue({
@@ -137,11 +161,11 @@ describe("disponibilidade contextual por negócio", () => {
 
     expect(
       agendaConfiguracaoRepository.buscarConfiguracao
-    ).toHaveBeenCalledWith(7, 20);
+    ).toHaveBeenCalledWith(7, 20, undefined);
 
     expect(
       agendaConfiguracaoRepository.listarHorarios
-    ).toHaveBeenCalledWith(7, 20);
+    ).toHaveBeenCalledWith(7, 20, undefined);
 
     expect(
       agendaPublicaRepository.listarAgendamentosOcupados
@@ -150,7 +174,8 @@ describe("disponibilidade contextual por negócio", () => {
       "2026-09-21",
       "2026-09-21",
       null,
-      "America/Sao_Paulo"
+      "America/Sao_Paulo",
+      undefined
     );
 
     expect(
@@ -159,7 +184,8 @@ describe("disponibilidade contextual por negócio", () => {
       7,
       20,
       "2026-09-21",
-      "2026-09-21"
+      "2026-09-21",
+      undefined
     );
   });
 });
