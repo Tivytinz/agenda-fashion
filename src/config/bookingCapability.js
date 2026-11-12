@@ -43,53 +43,48 @@ function obterSegredoAtual(env = process.env) {
 function obterSegredosValidacao(
   env = process.env
 ) {
-  const segredos = [];
-
-  function adicionar(valor, nome) {
-    const segredo = texto(valor);
-
-    if (!segredo) {
-      return;
-    }
-
-    const validado = exigirSegredo(
-      segredo,
-      nome
-    );
-
-    if (!segredos.includes(validado)) {
-      segredos.push(validado);
-    }
-  }
-
-  adicionar(
-    env.BOOKING_CAPABILITY_SECRET,
-    "BOOKING_CAPABILITY_SECRET"
-  );
-
-  adicionar(
-    env.BOOKING_CAPABILITY_PREVIOUS_SECRET,
-    "BOOKING_CAPABILITY_PREVIOUS_SECRET"
+  const dedicado = texto(
+    env.BOOKING_CAPABILITY_SECRET
   );
 
   /*
-   * Compatibilidade de rotação:
-   * capabilities históricas foram assinadas com JWT_SECRET.
-   * A validação mantém esse segredo somente como fallback legado,
-   * enquanto novas capabilities usam BOOKING_CAPABILITY_SECRET.
+   * Depois que o segredo dedicado existe, JWT_SECRET deixa de ser
+   * aceito automaticamente. Links históricos só permanecem válidos
+   * quando o segredo anterior é informado explicitamente.
    */
-  adicionar(
-    env.JWT_SECRET,
-    "JWT_SECRET"
-  );
+  if (dedicado) {
+    const segredos = [
+      exigirSegredo(
+        dedicado,
+        "BOOKING_CAPABILITY_SECRET"
+      ),
+    ];
 
-  if (segredos.length === 0) {
-    throw new Error(
-      "Nenhum segredo de capability de booking está configurado."
+    const anterior = texto(
+      env.BOOKING_CAPABILITY_PREVIOUS_SECRET
     );
+
+    if (anterior) {
+      const validado =
+        exigirSegredo(
+          anterior,
+          "BOOKING_CAPABILITY_PREVIOUS_SECRET"
+        );
+
+      if (!segredos.includes(validado)) {
+        segredos.push(validado);
+      }
+    }
+
+    return segredos;
   }
 
-  return segredos;
+  return [
+    exigirSegredo(
+      env.JWT_SECRET,
+      "JWT_SECRET"
+    ),
+  ];
 }
 
 function assinarCapability({
