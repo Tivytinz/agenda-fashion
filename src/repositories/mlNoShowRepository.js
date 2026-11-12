@@ -194,14 +194,8 @@ async function obterProntidao() {
         WHERE amostra.rotulo_falta IS NULL
           AND agendamento.status IN ('agendado', 'confirmado')
           AND (
-            (
-              agendamento.data
-              + agendamento.horario
-              + agendamento.duracao_minutos * INTERVAL '1 minute'
-            ) AT TIME ZONE COALESCE(
-              NULLIF(negocio.fuso_horario, ''),
-              'America/Sao_Paulo'
-            )
+            agendamento.inicio_previsto_em
+            + agendamento.duracao_minutos * INTERVAL '1 minute'
           ) < NOW()
       )::INT AS pendentes_vencidos,
       MIN(rotulado_em) FILTER (
@@ -245,14 +239,8 @@ const MATURIDADE_POR_NEGOCIO_CTE = `
         WHERE amostra.rotulo_falta IS NULL
           AND agendamento.status IN ('agendado', 'confirmado')
           AND (
-            (
-              agendamento.data
-              + agendamento.horario
-              + agendamento.duracao_minutos * INTERVAL '1 minute'
-            ) AT TIME ZONE COALESCE(
-              NULLIF(negocio.fuso_horario, ''),
-              'America/Sao_Paulo'
-            )
+            agendamento.inicio_previsto_em
+            + agendamento.duracao_minutos * INTERVAL '1 minute'
           ) < NOW()
       )::INT AS pendentes_vencidos,
       MIN(amostra.rotulado_em) FILTER (
@@ -335,14 +323,8 @@ async function listarMaturidadeSegmentosCliente() {
         WHERE amostra.rotulo_falta IS NULL
           AND agendamento.status IN ('agendado', 'confirmado')
           AND (
-            (
-              agendamento.data
-              + agendamento.horario
-              + agendamento.duracao_minutos * INTERVAL '1 minute'
-            ) AT TIME ZONE COALESCE(
-              NULLIF(negocio.fuso_horario, ''),
-              'America/Sao_Paulo'
-            )
+            agendamento.inicio_previsto_em
+            + agendamento.duracao_minutos * INTERVAL '1 minute'
           ) < NOW()
       )::INT AS pendentes_vencidos,
       MIN(amostra.rotulado_em) FILTER (
@@ -387,15 +369,9 @@ async function listarMaturidadeMensal({ meses = 12 } = {}) {
           WHERE amostra.rotulo_falta IS NULL
             AND agendamento.status IN ('agendado', 'confirmado')
             AND (
-              (
-                agendamento.data
-                + agendamento.horario
-                + agendamento.duracao_minutos * INTERVAL '1 minute'
-              ) AT TIME ZONE COALESCE(
-                NULLIF(negocio.fuso_horario, ''),
-                'America/Sao_Paulo'
-              )
-            ) < NOW()
+            agendamento.inicio_previsto_em
+            + agendamento.duracao_minutos * INTERVAL '1 minute'
+          ) < NOW()
         )::INT AS pendentes_vencidos,
         MIN(amostra.rotulado_em) FILTER (
           WHERE amostra.rotulo_falta IS NOT NULL
