@@ -210,6 +210,11 @@ function propriedadesSeguras(nome, propriedades) {
     }
   }
   if (nome === "professional_signup_started") {
+    // Compatibilidade com eventos enfileirados por versões anteriores do navegador.
+    // O método já foi validado; não inferir gatilhos de strings livres.
+    if (resultado.trigger === undefined) {
+      resultado.trigger = resultado.method === "google" ? "google_credential" : "form_input";
+    }
     if (!SIGNUP_START_TRIGGERS.has(resultado.trigger) ||
         (resultado.method === "google") !== (resultado.trigger === "google_credential")) {
       throw criarErro("Gatilho de início de cadastro inválido.");

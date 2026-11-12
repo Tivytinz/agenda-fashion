@@ -442,6 +442,19 @@ describe(
         properties: { method: "email", trigger: "form_input", senha: "nao-transmitir" }
       });
       expect(started.properties).toEqual({ method: "email", trigger: "form_input" });
+      // Lotes pendentes de navegadores anteriores não devem ser descartados.
+      const antigoEmail = normalizarItem({
+        ...evento,
+        name: "professional_signup_started",
+        properties: { method: "email" }
+      });
+      const antigoGoogle = normalizarItem({
+        ...evento,
+        name: "professional_signup_started",
+        properties: { method: "google" }
+      });
+      expect(antigoEmail.properties).toEqual({ method: "email", trigger: "form_input" });
+      expect(antigoGoogle.properties).toEqual({ method: "google", trigger: "google_credential" });
       expect(normalizarItem({
         ...evento, name: "professional_signup_submitted",
         properties: { method: "google" }

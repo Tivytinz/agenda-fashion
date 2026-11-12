@@ -331,7 +331,10 @@ campo (`trigger=form_input`) ou quando a credencial Google é entregue ao AF
 **não existe medição confiável do clique** dentro dele. Credencial recebida
 não significa que o clique foi observado nem que a conta foi criada.
 Tentativa ocorre quando a interface envia formulário válido ou credencial
-Google, e **não** significa conta criada. O método da tentativa (e-mail ou
+Google, e **não** significa conta criada.
+Por compatibilidade, o backend aceita eventos `professional_signup_started`
+já enfileirados por clientes antigos sem `trigger`, atribuindo o gatilho
+canônico ao método validado; novos eventos sempre devem enviá-lo. O método da tentativa (e-mail ou
 Google) é a referência para comparar os canais de cadastro, pois a mesma
 pessoa pode iniciar pelo e-mail e concluir pelo Google.
 Erros de campo são capturados ao sair do campo inválido com códigos
