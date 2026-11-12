@@ -364,3 +364,23 @@
     padding-left: 54px;
   }
 }
+
+/* Dicas pontuais no mesmo shell das etapas 3 e 4. */
+.setup-flow .setup-step-benefit {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding-left: 62px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.setup-flow .setup-step-benefit > span:first-child {
+  flex-shrink: 0;
+  font-size: 18px;
+  line-height: 1.25;
+}
+@media (max-width: 680px) {
+  .setup-flow .setup-step-benefit { padding-left: 54px; }
+}

@@ -5,11 +5,19 @@ import { flushSync } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { track } from "../../analytics/track";
 import { apiRequest } from "../../api/client";
+import { safeServiceId, onboardingServicePath } from "../onboarding/navigation";
+import { saveStepDraft, readStepDraft, clearStepDraft } from "../onboarding/stepDraft";
 
 // Coordena estado, operações e recuperação; a página mantém a apresentação.
 export function useScheduleEditor({ contextoAgenda, targetProfessionalId }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const params = new URLSearchParams(location.search);
+  const returnServiceId = safeServiceId(params.get("servico_retorno"));
+  const scheduleDraftKey = returnServiceId ? `onboarding:schedule:${returnServiceId}` : null;
+  const backTo = returnServiceId
+    ? onboardingServicePath(params.get("plano"), returnServiceId)
+    : "/painel/servicos";
   const professionalContext = contextoAgenda === "profissional";
   const ownerTeamSchedule =
     !professionalContext &&
@@ -41,6 +49,15 @@ export function useScheduleEditor({ contextoAgenda, targetProfessionalId }) {
     && serializeSchedule(config, days) !== savedSchedule;
   const showActivationNextStep =
     activationNextStep && shareOnboardingRequested && !hasChanges;
+
+  function preserveScheduleOnBack() {
+    if (!scheduleDraftKey || saving || !config || !savedSchedule) return;
+    saveStepDraft(scheduleDraftKey, {
+      baseline: savedSchedule,
+      config: { ...config },
+      days: days.map((day) => ({ ...day }))
+    });
+  }
 
   function discardPendingOperations() {
     // O descarte antecede a navegação; não depende do unmount sob Suspense.
@@ -103,10 +120,13 @@ export function useScheduleEditor({ contextoAgenda, targetProfessionalId }) {
           origemHorarios: scheduleOrigin
         };
         setupSessionRef.current = !professionalContext && !ownerTeamSchedule && !personalized;
-        setConfig(loadedConfig);
-        setSavedSchedule(serializeSchedule(loadedConfig, normalizedDays));
+        const baseline = serializeSchedule(loadedConfig, normalizedDays);
+        const draft = scheduleDraftKey && readStepDraft(scheduleDraftKey);
+        const sameBaseline = draft?.baseline === baseline;
+        setConfig(sameBaseline ? draft.config : loadedConfig);
+        setSavedSchedule(baseline);
         setAdvancedOpen(personalized);
-        setDays(normalizedDays);
+        setDays(sameBaseline ? draft.days : normalizedDays);
         setExpandedPauses(new Set(
           normalizedDays
             .filter((day) => day.intervaloInicio || day.intervaloFim)
@@ -428,6 +448,7 @@ export function useScheduleEditor({ contextoAgenda, targetProfessionalId }) {
         body
       });
       if (!isCurrent()) return;
+      clearStepDraft(scheduleDraftKey);
       const savedConfig = result.configuracao || {};
       const configuradoEm = savedConfig.configurado_em
         ?? savedConfig.configuradoEm
@@ -583,6 +604,9 @@ export function useScheduleEditor({ contextoAgenda, targetProfessionalId }) {
     availabilityPending,
     availabilityGuidance,
     shareOnboardingRequested,
+    returnServiceId,
+    backTo,
+    preserveScheduleOnBack,
     hasChanges,
     showActivationNextStep,
     discardPendingOperations,

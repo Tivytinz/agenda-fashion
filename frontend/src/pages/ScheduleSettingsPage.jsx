@@ -70,6 +70,9 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
     availabilityPending,
     availabilityGuidance,
     shareOnboardingRequested,
+    returnServiceId,
+    backTo,
+    preserveScheduleOnBack,
     hasChanges,
     showActivationNextStep,
     discardPendingOperations,
@@ -82,7 +85,7 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
   } = useScheduleEditor({ contextoAgenda, targetProfessionalId });
 
   if (!config) return (
-    <SetupFlowFrame enabled={!professionalContext && !ownerTeamSchedule && (shareOnboardingRequested || location.state?.onboarding === true)} exitTo="/painel" step={4} wide>
+    <SetupFlowFrame backTo={backTo} enabled={!professionalContext && !ownerTeamSchedule && (shareOnboardingRequested || returnServiceId || location.state?.onboarding === true)} exitTo="/painel" step={4} wide>
       <main className="workspace-page">
         {error ? <ErrorState message={error} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} /> : <LoadingState>Carregando horários...</LoadingState>}
       </main>
@@ -102,20 +105,22 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
   // O PUT já personaliza a configuração antes de a próxima missão ser lida.
   // Manter a superfície estável durante essa leitura e a correção de disponibilidade.
   const setupFlow = !professionalContext && !ownerTeamSchedule && (
-    firstConfiguration || shareOnboardingRequested || (setupSessionRef.current && (saving || availabilityPending))
+    firstConfiguration || Boolean(returnServiceId) || shareOnboardingRequested || (setupSessionRef.current && (saving || availabilityPending))
   );
   const SettingsContainer = setupFlow ? "section" : "details";
 
   return (
-    <SetupFlowFrame enabled={setupFlow} exitTo="/painel" step={4} complete={showActivationNextStep && Boolean(businessContext)} wide={!showActivationNextStep}>
+    <SetupFlowFrame backDisabled={saving || availabilityPending} backTo={setupFlow ? backTo : undefined} onBack={preserveScheduleOnBack} enabled={setupFlow} exitTo="/painel" step={4} complete={showActivationNextStep && Boolean(businessContext)} wide={!showActivationNextStep}>
     <main className={`workspace-page schedule-settings-page${!showActivationNextStep ? " schedule-editor-page" : ""}`}>
-      <UnsavedChangesGuard when={hasChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
+      <UnsavedChangesGuard when={hasChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} preserveOnNavigateTo={setupFlow && !saving && returnServiceId ? backTo : undefined} />
       <header className="workspace-heading">
         <div>
           <SetupTitle emoji={setupFlow ? showActivationNextStep && businessContext ? "🎉" : "📅" : undefined} id="schedule-page-title">{showActivationNextStep
             ? businessContext ? "Seu link está pronto" : "Horários salvos"
             : "Horários de atendimento"}</SetupTitle>
-          {!showActivationNextStep && <p>{setupFlow ? "Sua agenda, do seu jeito." : "Defina os dias, horários e pausas."}</p>}
+          {!showActivationNextStep && (setupFlow
+            ? <p className="setup-step-benefit"><span aria-hidden="true">💬</span><span>Seus horários organizados ajudam suas clientes a escolher quando agendar.</span></p>
+            : <p>Defina os dias, horários e pausas.</p>)}
           {ownerTeamSchedule && <p className="muted">Configurando a disponibilidade de <strong>{scheduleProfessional?.nome || "uma profissional da equipe"}</strong>.</p>}
         </div>
       </header>
@@ -303,16 +308,16 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
                 className="schedule-advanced-settings"
                 {...(!setupFlow ? { open: advancedOpen, onToggle: (event) => setAdvancedOpen(event.currentTarget.open) } : {})}
               >
-                {setupFlow ? <h2>Regras de agendamento</h2> : <summary>Ajustes avançados</summary>}
+                {setupFlow ? <h2><span aria-hidden="true">⚙️ </span>Regras de agendamento</h2> : <summary>Ajustes avançados</summary>}
                 <section className="settings-grid schedule-general-settings" aria-label="Configurações gerais da agenda">
                   <label>
-                    Duração padrão
+                    {setupFlow && <span aria-hidden="true">⏱️ </span>}Duração padrão
                     <select disabled={saving} onChange={(e) => setConfig({ ...config, duracaoPadrao: Number(e.target.value) })} value={config.duracaoPadrao}>
                       {withCurrentOption(DURATION_OPTIONS, config.duracaoPadrao).map((value) => <option key={value} value={value}>{value} minutos</option>)}
                     </select>
                   </label>
                   <label>
-                    Intervalo entre clientes
+                    {setupFlow && <span aria-hidden="true">☕ </span>}Intervalo entre clientes
                     <select disabled={saving} onChange={(e) => setConfig({ ...config, intervaloMinutos: Number(e.target.value) })} value={config.intervaloMinutos}>
                       {withCurrentOption(INTERVAL_OPTIONS, config.intervaloMinutos).map((value) => (
                         <option key={value} value={value}>{value === 0 ? "Sem intervalo" : `${value} minutos`}</option>
@@ -320,14 +325,14 @@ function ScheduleSettingsEditor({ contextoAgenda, targetProfessionalId }) {
                     </select>
                   </label>
                   <label>
-                    Antecedência para agendar
+                    {setupFlow && <span aria-hidden="true">📆 </span>}Antecedência para agendar
                     <select disabled={saving} onChange={(e) => setConfig({ ...config, antecedenciaAgendamento: Number(e.target.value) })} value={config.antecedenciaAgendamento}>
                       {leadTimeBookingOptions.map((value) => <option key={value} value={value}>{formatLeadTime(value)}</option>)}
                     </select>
                   </label>
                   {!professionalContext && !ownerTeamSchedule && (
                     <label>
-                      Antecedência para cancelar
+                      {setupFlow && <span aria-hidden="true">🕒 </span>}Antecedência para cancelar
                       <input
                         disabled={saving}
                         aria-label="Antecedência para cancelar"
