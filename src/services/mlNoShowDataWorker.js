@@ -108,7 +108,9 @@ function iniciarWorkerMlNoShow() {
   );
 
   timerInicial = setTimeout(() => {
-    void acompanharExecucao(executarColeta());
+    void acompanharExecucao(executarColeta()).catch(() => {
+      // A falha já foi registrada em executarColeta; não rejeitar no timer.
+    });
   }, PRIMEIRA_EXECUCAO_MS);
 
   timerIntervalo = setInterval(() => {
