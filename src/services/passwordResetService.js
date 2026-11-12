@@ -5,6 +5,9 @@ const passwordResetRepository = require("../repositories/passwordResetRepository
 const emailProvider = require("../providers/emailProvider");
 const registrador = require("../utils/registrador");
 const AppError = require("../errors/AppError");
+const {
+  obterBcryptRounds,
+} = require("../config/passwordHash");
 
 const RESPOSTA_NEUTRA =
   "Se o e-mail estiver cadastrado, você receberá um link para criar uma nova senha.";
@@ -27,13 +30,6 @@ function validarSenha(senha) {
   }
 
   return senhaTexto;
-}
-
-function obterBcryptRounds() {
-  const rounds = Number(process.env.BCRYPT_ROUNDS);
-  return Number.isInteger(rounds) && rounds >= 10 && rounds <= 14
-    ? rounds
-    : 10;
 }
 
 function hashToken(token) {

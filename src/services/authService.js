@@ -27,6 +27,11 @@ const registrador = require(
 const AppError = require(
   "../errors/AppError"
 );
+const {
+  obterBcryptRounds,
+} = require(
+  "../config/passwordHash"
+);
 
 function obterJwtSecret() {
   const segredo =
@@ -52,23 +57,6 @@ function obterExpiracaoToken() {
     ).trim();
 
   return expiracao || "7d";
-}
-
-function obterBcryptRounds() {
-  const rounds =
-    Number(
-      process.env.BCRYPT_ROUNDS
-    );
-
-  if (
-    Number.isInteger(rounds) &&
-    rounds >= 10 &&
-    rounds <= 14
-  ) {
-    return rounds;
-  }
-
-  return 10;
 }
 
 function normalizarTexto(
@@ -498,6 +486,16 @@ async function buscarContaGoogle({
       .buscarUsuarioPorEmail(
         email
       );
+
+  /*
+   * Conta inativa nunca é religada a um provedor de identidade.
+   * O caller devolverá 403 sem mutar google_sub.
+   */
+  if (
+    usuario?.ativo === false
+  ) {
+    return usuario;
+  }
 
   if (
     usuario?.google_sub &&

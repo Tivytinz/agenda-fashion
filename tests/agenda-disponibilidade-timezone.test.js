@@ -124,7 +124,8 @@ describe("disponibilidade no fuso do negócio", () => {
       "2026-09-14",
       "2026-10-20",
       null,
-      "America/Sao_Paulo"
+      "America/Sao_Paulo",
+      undefined
     );
   });
 

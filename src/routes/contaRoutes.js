@@ -92,8 +92,8 @@ router.put(
 
 router.post(
   "/conta/foto",
-  limitarUpload,
   auth,
+  limitarUpload,
   upload.single("foto"),
   tratarErroUpload,
   contaController.enviarFotoUsuario

@@ -107,6 +107,20 @@ function validarConfiguracaoRuntime(env = process.env) {
     );
   }
 
+  if (
+    texto(
+      env,
+      "BOOKING_CAPABILITY_PREVIOUS_SECRET"
+    )
+  ) {
+    exigirTamanhoMinimo(
+      env,
+      "BOOKING_CAPABILITY_PREVIOUS_SECRET",
+      32,
+      "Capabilities de booking"
+    );
+  }
+
   validarInteiroOpcional(env, "PORT", {
     minimo: 1,
     maximo: 65535,
@@ -256,6 +270,7 @@ function validarConfiguracaoRuntime(env = process.env) {
         "ASAAS_API_URL",
         "ASAAS_API_KEY",
         "ASAAS_WEBHOOK_TOKEN",
+        "BOOKING_CAPABILITY_SECRET",
       ],
       "Produção"
     );
@@ -271,6 +286,27 @@ function validarConfiguracaoRuntime(env = process.env) {
       32,
       "Produção"
     );
+    exigirTamanhoMinimo(
+      env,
+      "BOOKING_CAPABILITY_SECRET",
+      32,
+      "Produção"
+    );
+
+    if (
+      texto(
+        env,
+        "BOOKING_CAPABILITY_SECRET"
+      ) ===
+      texto(
+        env,
+        "JWT_SECRET"
+      )
+    ) {
+      throw new Error(
+        "Produção: BOOKING_CAPABILITY_SECRET deve ser diferente de JWT_SECRET."
+      );
+    }
   }
 
   if (flagAtiva(env.WHATSAPP_NOTIFICATIONS_ENABLED)) {

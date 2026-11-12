@@ -27,12 +27,6 @@ const {
   dataValida,
   validarIdentificacaoVisitante,
 } = require("./agendamentoPublicoValidacoes");
-const {
-  listarMeusAgendamentos,
-  cancelarMeuAgendamento,
-  avaliarAgendamento,
-} = require("./agendamentoClienteService");
-
 async function buscarDadosBaseAgenda({
   slug,
   servicoId,
@@ -579,6 +573,7 @@ async function criarAgendamento({
                 horarioNormalizado,
 
               fusoHorario,
+              executor: client,
             });
 
         if (!disponivel) {
@@ -821,7 +816,4 @@ module.exports = {
   validarHorarioDisponivel,
   criarAgendamento,
   criarNotificacaoAgendamento,
-  listarMeusAgendamentos,
-  cancelarMeuAgendamento,
-  avaliarAgendamento,
 };

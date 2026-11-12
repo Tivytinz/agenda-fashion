@@ -490,6 +490,43 @@ describe(
     );
 
     test(
+      "não religa Google a conta desativada encontrada pelo e-mail",
+      async () => {
+        authRepository
+          .buscarUsuarioPorGoogleSub
+          .mockResolvedValue(null);
+        authRepository
+          .buscarUsuarioPorEmail
+          .mockResolvedValue(
+            criarUsuario({
+              ativo: false,
+              google_sub: null,
+            })
+          );
+
+        const resposta =
+          await request(app)
+            .post("/auth/google")
+            .send({
+              credential:
+                "id-token-google",
+            });
+
+        expect(
+          resposta.status
+        ).toBe(403);
+        expect(
+          authRepository
+            .vincularUsuarioAoGoogle
+        ).not.toHaveBeenCalled();
+        expect(
+          authRepository
+            .atualizarUltimoLogin
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
       "rejeita e-mail já ligado a outro Google sub",
       async () => {
         authRepository

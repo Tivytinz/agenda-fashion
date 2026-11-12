@@ -56,8 +56,8 @@ router.put(
 
 router.post(
   "/configuracoes/foto",
-  limitarUpload,
   auth,
+  limitarUpload,
   upload.single("foto"),
   tratarErroUpload,
   configuracoesController.enviarFotoNegocio
