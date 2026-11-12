@@ -692,6 +692,7 @@ async function horarioEstaDisponivel({
   fusoHorario,
   agendamentoIgnorarId = null,
   ignorarAntecedencia = false,
+  executor,
 }) {
   if (
     !profissionalId ||
