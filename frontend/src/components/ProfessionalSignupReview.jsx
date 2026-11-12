@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { getPlanIntentPath } from "../auth/session";
+import { onboardingBusinessPath } from "../features/onboarding/navigation";
 import { WHATSAPP_PATTERN, passwordByteLength } from "../auth/registrationValidation";
 import { formatWhatsApp } from "../utils/format";
 import { clearBusinessCreationDraft } from "../features/business/draft";
@@ -21,9 +22,11 @@ function accountForm(user) {
 
 // Etapa 1 já criada: edita a mesma conta sem repetir o cadastro.
 // Nenhuma credencial é copiada para sessionStorage ou para o rascunho do negócio.
-export function ProfessionalSignupReview({ user, planSlug = "", refreshSession, reauthenticate }) {
+export function ProfessionalSignupReview({ user, planSlug = "", businessExists = false, returnServiceId = null, refreshSession, reauthenticate }) {
   const navigate = useNavigate();
-  const nextStep = getPlanIntentPath("/criar-negocio", planSlug);
+  const nextStep = businessExists
+    ? onboardingBusinessPath(planSlug, returnServiceId)
+    : getPlanIntentPath("/criar-negocio", planSlug);
   const [form, setForm] = useState(() => accountForm(user));
   const [password, setPassword] = useState({ atual: "", nova: "", confirmar: "" });
   const [showPasswordEdit, setShowPasswordEdit] = useState(false);

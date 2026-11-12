@@ -1,6 +1,7 @@
 import { useBusinessEditor } from "../features/business/useBusinessEditor";
 import { BRAZILIAN_STATES } from "../features/business/form";
 import { getPlanIntentPath } from "../auth/session";
+import { onboardingAccountPath } from "../features/onboarding/navigation";
 import { Link } from "react-router-dom";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { CategoryEmoji } from "../components/CategoryEmoji";
@@ -21,6 +22,8 @@ export function BusinessPage({ create = false }) {
     mapSuggestion,
     suggestMapLink,
     selectedPlan,
+    onboardingRevision,
+    returnServiceId,
     form,
     savedForm,
     loading,
@@ -60,7 +63,10 @@ export function BusinessPage({ create = false }) {
   if (loading) return <main className="workspace-page"><UnsavedChangesGuard onLeave={discardPendingOperations} /><LoadingState>Carregando negócio...</LoadingState></main>;
   if (error && !form.nome && !create) return <main className="workspace-page"><ErrorState message={error} /></main>;
 
-  const firstStepPath = create ? getPlanIntentPath("/cadastro?tipo=profissional", selectedPlan) : undefined;
+  const isOnboarding = create || onboardingRevision;
+  const firstStepPath = create
+    ? getPlanIntentPath("/cadastro?tipo=profissional", selectedPlan)
+    : onboardingRevision ? onboardingAccountPath(selectedPlan, returnServiceId) : undefined;
 
   const addressFields = (
     <div className="form-grid business-address-grid">
@@ -141,22 +147,22 @@ export function BusinessPage({ create = false }) {
   );
 
   return (
-    <SetupFlowFrame backDisabled={mutationBusy} backTo={firstStepPath} enabled={create} exitTo={selectedPlan ? "/planos" : "/"} step={2}>
-    <main className={create ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
+    <SetupFlowFrame backDisabled={mutationBusy} backTo={firstStepPath} enabled={isOnboarding} exitTo={selectedPlan ? "/planos" : "/"} step={2}>
+    <main className={isOnboarding ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
       <UnsavedChangesGuard when={unsavedChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} preserveOnNavigateTo={create && !mutationBusy ? firstStepPath : undefined} />
       <header className="workspace-heading">
         <div>
-          {!create && <p className="eyebrow">Presença pública</p>}
-          <SetupTitle emoji={create ? "🏪" : undefined}>{create ? "Seu negócio" : "Meu negócio"}</SetupTitle>
+          {!isOnboarding && <p className="eyebrow">Presença pública</p>}
+          <SetupTitle emoji={isOnboarding ? "🏪" : undefined}>{isOnboarding ? "Seu negócio" : "Meu negócio"}</SetupTitle>
           <p>
-            {create
+            {isOnboarding
               ? "Vamos apresentar seu negócio às clientes."
               : "Esses dados ajudam clientes a encontrar, confiar e agendar com você."}
           </p>
         </div>
       </header>
 
-      {!create && publication && (
+      {!isOnboarding && publication && (
         <section className={`panel publication-panel ${publication.publicado ? "publication-panel-live" : ""}`}>
           <div>
             <p className="eyebrow">Descoberta no Agenda Fashion</p>
@@ -199,7 +205,7 @@ export function BusinessPage({ create = false }) {
       )}
 
       <form aria-busy={mutationBusy} className="panel stack-form business-settings-form" onSubmit={submit} ref={formRef}>
-        {!create && (
+        {!isOnboarding && (
           <section className="business-form-section business-photo-section">
             <div className="business-form-heading">
               <p className="eyebrow">Foto</p>
@@ -234,16 +240,16 @@ export function BusinessPage({ create = false }) {
         )}
 
         <section className="business-form-section">
-          {!create && <div className="business-form-heading">
+          {!isOnboarding && <div className="business-form-heading">
             <p className="eyebrow">Identidade</p>
             <h2>Como clientes encontram você</h2>
           </div>}
           <div className="form-grid">
             <label className="field-wide">
-              {create ? <span className="business-field-label"><span aria-hidden="true" className="business-field-emoji">🏷️</span>Nome do negócio</span> : "Nome do negócio"}
-              <input aria-label={create ? "Nome do negócio" : undefined} disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} minLength="2" maxLength="120" name="nome" onChange={(event) => update("nome", event.target.value)} required value={form.nome} />
+              {isOnboarding ? <span className="business-field-label"><span aria-hidden="true" className="business-field-emoji">🏷️</span>Nome do negócio</span> : "Nome do negócio"}
+              <input aria-label={isOnboarding ? "Nome do negócio" : undefined} disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} minLength="2" maxLength="120" name="nome" onChange={(event) => update("nome", event.target.value)} required value={form.nome} />
             </label>
-            {!create && form.slug && (
+            {!isOnboarding && form.slug && (
               <div className="field-wide public-address-card" data-testid="public-address-hint">
                 <div className="public-address-copy">
                   <span>Seu link público</span>
@@ -256,32 +262,32 @@ export function BusinessPage({ create = false }) {
               </div>
             )}
             <label className="field-wide">
-              {create ? <span className="business-field-label"><span aria-hidden="true" className="business-field-emoji">📝</span>Descrição (opcional)</span> : "Descrição (opcional)"}
+              {isOnboarding ? <span className="business-field-label"><span aria-hidden="true" className="business-field-emoji">📝</span>Descrição (opcional)</span> : "Descrição (opcional)"}
               <textarea
-                aria-label={create ? "Descrição (opcional)" : undefined}
+                aria-label={isOnboarding ? "Descrição (opcional)" : undefined}
                 disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}
                 maxLength="1000"
                 onChange={(event) => update("descricao", event.target.value)}
                 rows="4"
                 value={form.descricao}
               />
-              {!create && <small>Ajuda clientes a conhecerem seu trabalho, mas não impede a criação nem a publicação.</small>}
+              {!isOnboarding && <small>Ajuda clientes a conhecerem seu trabalho, mas não impede a criação nem a publicação.</small>}
             </label>
             <fieldset aria-label="Especialidades" className="specialty-field field-wide" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}>
               <div className="specialty-heading-row">
-                <p>{create ? <><span aria-hidden="true" className="business-field-emoji">💖</span>Especialidades</> : "Selecione tudo o que o negócio oferece."}</p>
+                <p>{isOnboarding ? <><span aria-hidden="true" className="business-field-emoji">💖</span>Especialidades</> : "Selecione tudo o que o negócio oferece."}</p>
               </div>
               <div className="specialty-selector">
                 {BUSINESS_SPECIALTIES.map(([value, label]) => (
                   <label className={form.areas.includes(value) ? "specialty-option selected" : "specialty-option"} key={value}>
                     <input
-                      aria-label={create ? label : undefined}
+                      aria-label={isOnboarding ? label : undefined}
                       checked={form.areas.includes(value)}
                       name="areas"
                       onChange={() => toggleSpecialty(value)}
                       type="checkbox"
                     />
-                    {create && <CategoryEmoji emoji={serviceCategoryEmoji(value)} />}
+                    {isOnboarding && <CategoryEmoji emoji={serviceCategoryEmoji(value)} />}
                     <span>{label}</span>
                   </label>
                 ))}
@@ -292,8 +298,8 @@ export function BusinessPage({ create = false }) {
 
         <section className="business-form-section">
           <div className="business-form-heading">
-            {!create && <p className="eyebrow">Contato</p>}
-            <h2>{create ? <><span aria-hidden="true" className="business-section-emoji">💬</span>Contato</> : "Como falar com o negócio"}</h2>
+            {!isOnboarding && <p className="eyebrow">Contato</p>}
+            <h2>{isOnboarding ? <><span aria-hidden="true" className="business-section-emoji">💬</span>Contato</> : "Como falar com o negócio"}</h2>
           </div>
           <div className="form-grid">
             <label>
@@ -321,9 +327,9 @@ export function BusinessPage({ create = false }) {
 
         <section className="business-form-section business-address-section">
           <div className="business-form-heading">
-            {!create && <p className="eyebrow">Endereço</p>}
-            <h2>{create ? <><span aria-hidden="true" className="business-section-emoji">📍</span>Endereço</> : "Onde acontece o atendimento"}</h2>
-            {!create && <p>Comece pelo CEP e complete os detalhes do local.</p>}
+            {!isOnboarding && <p className="eyebrow">Endereço</p>}
+            <h2>{isOnboarding ? <><span aria-hidden="true" className="business-section-emoji">📍</span>Endereço</> : "Onde acontece o atendimento"}</h2>
+            {!isOnboarding && <p>Comece pelo CEP e complete os detalhes do local.</p>}
           </div>
           {addressFields}
           <div className="form-grid">
@@ -366,23 +372,23 @@ export function BusinessPage({ create = false }) {
         {error && <p className="form-error business-form-feedback" role="alert">{error}</p>}
         {contextInvalid && <button className="button button-secondary" onClick={() => setLoadAttempt((attempt) => attempt + 1)} type="button">Atualizar Meu negócio</button>}
         {creationEnded && <Link className="button button-secondary" to="/">Voltar ao início</Link>}
-        {!create && message && (
+        {!isOnboarding && message && (
           <div className="business-save-toast" role="status">
             <ConfirmationIcon className="business-save-icon" />
             <span>{message}</span>
           </div>
         )}
         {create && message && <p className="form-success" role="status">{message}</p>}
-        {(create || hasChanges || saving) && (
-          <div className={create ? "form-actions business-save-actions" : "business-floating-save"}>
+        {(isOnboarding || hasChanges || saving) && (
+          <div className={isOnboarding ? "form-actions business-save-actions" : "business-floating-save"}>
             <button className="button" disabled={saving || photoUploading || publishing || closingBusiness || closureUncertain || contextInvalid || creationEnded || cepLookup.status === "loading"} formNoValidate={creationUncertain} type="submit">
-              {saving ? "Salvando..." : creationUncertain ? "Verificar negócio" : create ? "Criar negócio" : "Salvar alterações"}
+              {saving ? "Salvando..." : creationUncertain ? "Verificar negócio" : create ? "Criar negócio" : onboardingRevision ? hasChanges ? "Salvar e continuar" : "Continuar para o serviço" : "Salvar alterações"}
             </button>
           </div>
         )}
       </form>
 
-      {!create && (
+      {!isOnboarding && (
         <section className="panel stack-form business-danger-zone">
           <div>
             <p className="eyebrow">Encerramento</p>

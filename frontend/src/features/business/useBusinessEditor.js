@@ -14,6 +14,7 @@ import {
 import { formatWhatsApp } from "../../utils/format";
 import { businessCreationReferenceHash, readBusinessCreationReference } from "../../utils/businessCreationReference";
 import { buildPublicLink, copyPublicLink } from "../../utils/publicLinks";
+import { onboardingServicePath, safeServiceId } from "../onboarding/navigation";
 
 const SERVICE_PUBLICATION_PENDING =
   "pelo menos um serviço ativo";
@@ -28,6 +29,8 @@ export function useBusinessEditor({ create = false }) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
+  const onboardingRevision = !create && searchParams.get("onboarding") === "revisao-negocio";
+  const returnServiceId = safeServiceId(searchParams.get("servico_retorno"));
   const [form, setForm] = useState(() => create
     ? normalizeBusinessForm(readBusinessCreationDraft(usuarioId) || EMPTY)
     : EMPTY);
@@ -358,6 +361,10 @@ export function useBusinessEditor({ create = false }) {
   async function submit(event) {
     event.preventDefault();
     if (operationRef.current || cepLookup.status === "loading") return;
+    if (onboardingRevision && !unsavedChanges) {
+      navigate(onboardingServicePath(selectedPlan, returnServiceId));
+      return;
+    }
     setError("");
     setMessage("");
 
@@ -467,6 +474,11 @@ export function useBusinessEditor({ create = false }) {
         && location.state?.onboardingStep === "perfil";
 
       session.refresh({ silent: true }).catch(() => {});
+
+      if (onboardingRevision) {
+        navigate(onboardingServicePath(selectedPlan, returnServiceId), { replace: true });
+        return;
+      }
 
       if (profileOnboarding) {
         const pending = Array.isArray(result.publicacao?.pendencias)
@@ -687,6 +699,8 @@ export function useBusinessEditor({ create = false }) {
     mapSuggestion,
     suggestMapLink,
     selectedPlan,
+    onboardingRevision,
+    returnServiceId,
     form,
     savedForm,
     loading,

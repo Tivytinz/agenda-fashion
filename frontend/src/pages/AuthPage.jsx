@@ -15,6 +15,7 @@ import { useSession } from "../auth/SessionContext";
 import { buildProfessionalSignupPath } from "../utils/professionalEntry";
 import { SetupFlowFrame, SetupTitle } from "../components/SetupFlowFrame";
 import { ProfessionalSignupReview } from "../components/ProfessionalSignupReview";
+import { safeServiceId } from "../features/onboarding/navigation";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { AuthFieldLabel } from "../components/AuthFieldLabel";
@@ -59,6 +60,8 @@ export function AuthPage({ mode = "login" }) {
 
     return {
       planSlug,
+      returnServiceId: safeServiceId(params.get("servico_retorno")),
+      accountReview: params.get("onboarding") === "revisao-conta",
       professional: params.get("tipo") === "profissional" || Boolean(planSlug)
     };
   }, [location.search]);
@@ -207,9 +210,9 @@ export function AuthPage({ mode = "login" }) {
   if (session.authenticated) {
     // A etapa 1 já foi concluída: mostrar revisão da conta, nunca outro POST
     // de cadastro nem um redirecionamento automático para a etapa 2.
-    if (isRegister && professionalIntent && !session.temNegocio &&
+    if (isRegister && professionalIntent && (!session.temNegocio || (authIntent.accountReview && session.negocio?.papel === "dono")) &&
         !session.temReservasProfissionaisRestritas && session.usuario) {
-      return <ProfessionalSignupReview user={session.usuario} planSlug={authIntent.planSlug} refreshSession={session.refresh} reauthenticate={session.login} />;
+      return <ProfessionalSignupReview user={session.usuario} planSlug={authIntent.planSlug} businessExists={session.temNegocio} returnServiceId={authIntent.returnServiceId} refreshSession={session.refresh} reauthenticate={session.login} />;
     }
     return <Navigate replace to={destination} />;
   }
