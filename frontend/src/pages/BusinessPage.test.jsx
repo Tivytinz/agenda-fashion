@@ -90,6 +90,8 @@ describe("publicação do negócio", () => {
       </Routes>
     </MemoryRouter>);
     expect(await screen.findByRole("heading", { name: "Seu negócio" })).not.toBeNull();
+    const benefit = screen.getByText(/Vamos apresentar seu negócio às clientes/);
+    expect(benefit.querySelector('span[aria-hidden="true"]')?.textContent).toBe("💬");
     expect(screen.getByRole("link", { name: "Voltar" }).getAttribute("href"))
       .toBe("/cadastro?tipo=profissional&onboarding=revisao-conta&plano=autonoma");
     fireEvent.click(screen.getByRole("button", { name: "Continuar para o serviço" }));

@@ -80,6 +80,7 @@ export function useServiceEditor() {
   const [creationUncertain, setCreationUncertain] = useState(false);
   const [galleryUncertain, setGalleryUncertain] = useState(false);
   const [mediaUncertain, setMediaUncertain] = useState(false);
+  const [mediaUploadFailed, setMediaUploadFailed] = useState(false);
   const [removingPhotoId, setRemovingPhotoId] = useState(null);
   const [definingCoverId, setDefiningCoverId] = useState(null);
   const [mediaMessage, setMediaMessage] = useState("");
@@ -92,6 +93,11 @@ export function useServiceEditor() {
     || Boolean(cover)
     || galleryFiles.length > 0
   );
+  const serviceDetailsChanged = JSON.stringify({ ...form, foto_url: "", foto_public_id: "" })
+    !== JSON.stringify({ ...savedForm, foto_url: "", foto_public_id: "" });
+  const skipFailedPhotosAvailable = firstServiceOnboarding && Boolean(persistedId)
+    && mediaUploadFailed && (Boolean(cover) || galleryFiles.length > 0);
+  const skipFailedPhotosDisabled = mediaBusy || loading || Boolean(loadError) || serviceDetailsChanged;
   const galleryItems = useMemo(() => {
     if (!form.foto_url || gallery.some((photo) => samePhoto(photo, form.foto_url, form.foto_public_id))) {
       return gallery;
@@ -122,6 +128,7 @@ export function useServiceEditor() {
     setCreationUncertain(false);
     setGalleryUncertain(false);
     setMediaUncertain(false);
+    setMediaUploadFailed(false);
     setSaving(false);
     setRemovingPhotoId(null);
     setDefiningCoverId(null);
@@ -594,9 +601,14 @@ export function useServiceEditor() {
         }
       } catch (requestError) {
         if (isCurrentOperation(operation)) {
+          setMediaUploadFailed(true);
+          const reference = String(requestError?.data?.request_id || "").trim();
+          const supportHint = /^[A-Za-z0-9._:-]{8,100}$/.test(reference)
+            ? ` Referência da falha: ${reference}.`
+            : "";
           setError(mediaRecoveryRef.current?.type === "upload"
-            ? `O serviço foi salvo, mas não foi possível confirmar o envio da capa. ${requestError.message} Verifique as fotos antes de continuar.`
-            : `O serviço foi salvo, mas algumas fotos não foram enviadas. ${requestError.message} Tente novamente para enviar apenas as fotos pendentes.`);
+            ? `O serviço foi salvo, mas não foi possível confirmar o envio da capa. ${requestError.message} Verifique as fotos antes de continuar.${supportHint}`
+            : `O serviço foi salvo, mas algumas fotos não foram enviadas. ${requestError.message} Tente novamente para enviar apenas as fotos pendentes.${supportHint}`);
         }
         return;
       }
@@ -604,6 +616,7 @@ export function useServiceEditor() {
       flushSync(() => {
         setCover(null);
         setGalleryFiles([]);
+        setMediaUploadFailed(false);
       });
       if (!isCurrentOperation(operation)) return;
       if (firstServiceOnboarding) {
@@ -627,6 +640,40 @@ export function useServiceEditor() {
             : "Serviço criado."
         }
       });
+    } finally {
+      if (isCurrentOperation(operation)) {
+        finishOperation(operation);
+        setSaving(false);
+      }
+    }
+  }
+
+  async function continueWithoutPendingPhotos() {
+    if (!skipFailedPhotosAvailable || skipFailedPhotosDisabled) return;
+    const operation = beginOperation();
+    if (!operation) return;
+    setSaving(true);
+    setError("");
+    try {
+      // O núcleo do serviço já foi persistido; consultar publicação sem
+      // reenviar dados, fotos ou repetir o POST de criação.
+      const result = await apiRequest("/configuracoes", {
+        headers: { "X-AF-Negocio": String(negocioId) }
+      });
+      if (!isCurrentOperation(operation)) return;
+      if (!result?.publicacao || typeof result.publicacao.publicado !== "boolean") {
+        throw new Error("A publicação não pôde ser conferida. Tente novamente.");
+      }
+      flushSync(() => {
+        setCover(null);
+        setGalleryFiles([]);
+        setMediaUploadFailed(false);
+      });
+      if (isCurrentOperation(operation)) continueFirstServiceOnboarding(result, persistedId);
+    } catch (failure) {
+      if (isCurrentOperation(operation)) {
+        setError(`O serviço permanece salvo, mas não foi possível conferir a publicação. ${failure.message}`);
+      }
     } finally {
       if (isCurrentOperation(operation)) {
         finishOperation(operation);
@@ -732,6 +779,9 @@ export function useServiceEditor() {
     creationUncertain,
     galleryUncertain,
     mediaUncertain,
+    skipFailedPhotosAvailable,
+    skipFailedPhotosDisabled,
+    continueWithoutPendingPhotos,
     removingPhotoId,
     definingCoverId,
     mediaMessage,

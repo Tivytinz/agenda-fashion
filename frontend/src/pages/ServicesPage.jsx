@@ -35,6 +35,9 @@ export function ServiceEditorPage() {
     creationUncertain,
     galleryUncertain,
     mediaUncertain,
+    skipFailedPhotosAvailable,
+    skipFailedPhotosDisabled,
+    continueWithoutPendingPhotos,
     removingPhotoId,
     definingCoverId,
     mediaMessage,
@@ -235,6 +238,18 @@ export function ServiceEditorPage() {
             </div>
           )}
         </section>
+        {skipFailedPhotosAvailable && (
+          <div aria-label="Fotos opcionais pendentes" className="service-editor-message" role="group">
+            <p className="muted">
+              {mediaUncertain || galleryUncertain
+                ? "Verifique os envios antes de continuar sem fotos pendentes."
+                : "Os arquivos pendentes não serão reenviados agora. Fotos já salvas permanecem no serviço."}
+            </p>
+            <button className="button button-secondary" disabled={skipFailedPhotosDisabled} onClick={continueWithoutPendingPhotos} type="button">
+              Continuar sem fotos pendentes
+            </button>
+          </div>
+        )}
         {recoveryMessage && <p className="service-editor-message" role="status">{recoveryMessage}</p>}
         {error && <p className="form-error service-editor-message" role="alert">{error}</p>}
         <div className="form-actions service-editor-actions">

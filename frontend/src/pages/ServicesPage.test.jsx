@@ -272,6 +272,88 @@ describe("editor de serviços", () => {
     expect(uploads).toBe(2);
   });
 
+
+  it("permite seguir sem fotos opcionais depois de conferir um upload incerto, sem duplicar serviço", async () => {
+    const cover = new File(["cover"], "capa.jpg", { type: "image/jpeg" });
+    const reference = "req-test-12345678";
+    apiRequest.mockImplementation(async (path, options = {}) => {
+      if (path === "/servicos" && options.method === "POST") {
+        return { servico: { id: 70, ativo: true }, publicacao: { publicado: true } };
+      }
+      if (path === "/servicos/70/foto" && options.method === "POST") {
+        throw Object.assign(new Error("Erro interno do servidor."), {
+          status: 500,
+          data: { request_id: reference }
+        });
+      }
+      if (path === "/servicos" && !options.method) return { servicos: [{ id: 70, ativo: true }] };
+      if (path === "/servicos/70/fotos" && !options.method) return { fotos: [] };
+      if (path === "/configuracoes" && !options.method) return { publicacao: { publicado: true } };
+      throw new Error(`Request inesperada: ${path}`);
+    });
+
+    renderEditor("/painel/servicos/novo?onboarding=servico");
+    fillService();
+    fireEvent.change(screen.getByLabelText("Escolher capa"), { target: { files: [cover] } });
+    submit();
+
+    expect((await screen.findByRole("alert")).textContent).toContain(reference);
+    const skip = screen.getByRole("button", { name: "Continuar sem fotos pendentes" });
+    expect(skip.disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Verificar fotos" }));
+    await screen.findByText(/Capa atual conferida/);
+    expect(skip.disabled).toBe(false);
+    fireEvent.click(skip);
+
+    expect((await screen.findByTestId("onboarding-destination")).textContent)
+      .toBe("/painel/horarios?servico_retorno=70");
+    expect(apiRequest.mock.calls.filter(([path, options]) => path === "/servicos" && options?.method === "POST")).toHaveLength(1);
+    expect(apiRequest.mock.calls.filter(([path, options]) => path === "/servicos/70/foto" && options?.method === "POST")).toHaveLength(1);
+    expect(apiRequest.mock.calls.filter(([, options]) => options?.method === "PUT" || options?.method === "DELETE")).toHaveLength(0);
+    expect(apiRequest).toHaveBeenCalledWith("/configuracoes", { headers: { "X-AF-Negocio": "11" } });
+  });
+
+  it("não deixa pular fotos se a verificação falhar ou se dados do serviço forem alterados", async () => {
+    const cover = new File(["cover"], "capa.jpg", { type: "image/jpeg" });
+    let readFailure = true;
+    apiRequest.mockImplementation(async (path, options = {}) => {
+      if (path === "/servicos" && options.method === "POST") {
+        return { servico: { id: 71, ativo: true }, publicacao: { publicado: true } };
+      }
+      if (path === "/servicos/71/foto" && options.method === "POST") {
+        throw Object.assign(new Error("Erro interno do servidor."), { status: 500 });
+      }
+      if (path === "/servicos" && !options.method) {
+        if (readFailure) throw new Error("Consulta indisponível");
+        return { servicos: [{ id: 71, ativo: true }] };
+      }
+      if (path === "/servicos/71/fotos" && !options.method) return { fotos: [] };
+      throw new Error(`Request inesperada: ${path}`);
+    });
+
+    renderEditor("/painel/servicos/novo?onboarding=servico");
+    fillService();
+    fireEvent.change(screen.getByLabelText("Escolher capa"), { target: { files: [cover] } });
+    submit();
+    await screen.findByRole("alert");
+    const skip = screen.getByRole("button", { name: "Continuar sem fotos pendentes" });
+    expect(skip.disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Verificar fotos" }));
+    await screen.findByText(/Não foi possível consultar o envio das fotos/);
+    expect(skip.disabled).toBe(true);
+
+    readFailure = false;
+    fireEvent.click(screen.getByRole("button", { name: "Verificar fotos" }));
+    await screen.findByText(/Capa atual conferida/);
+    expect(skip.disabled).toBe(false);
+    fireEvent.change(screen.getByRole("textbox", { name: "Nome do serviço" }), {
+      target: { value: "Manicure com decoração" }
+    });
+    expect(skip.disabled).toBe(true);
+    expect(screen.queryByTestId("onboarding-destination")).toBeNull();
+    expect(apiRequest.mock.calls.filter(([path, options]) => path === "/servicos" && options?.method === "POST")).toHaveLength(1);
+  });
+
   it("não reenvia fotos da galeria que já foram concluídas", async () => {
     const first = new File(["one"], "primeira.jpg", { type: "image/jpeg" });
     const second = new File(["two"], "segunda.jpg", { type: "image/jpeg" });

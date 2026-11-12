@@ -157,7 +157,7 @@ export function BusinessPage({ create = false }) {
           <SetupTitle emoji={isOnboarding ? "🏪" : undefined}>{isOnboarding ? "Seu negócio" : "Meu negócio"}</SetupTitle>
           <p>
             {isOnboarding
-              ? "Vamos apresentar seu negócio às clientes."
+              ? <><span aria-hidden="true">💬</span>{" "}Vamos apresentar seu negócio às clientes.</>
               : "Esses dados ajudam clientes a encontrar, confiar e agendar com você."}
           </p>
         </div>
