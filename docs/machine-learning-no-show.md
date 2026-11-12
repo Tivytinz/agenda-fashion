@@ -62,7 +62,7 @@ A base só é classificada como pronta quando possuir, no mínimo:
 - 200 agendamentos rotulados;
 - 20 faltas;
 - 20 atendimentos realizados;
-- cobertura de captura mínima de 80% dos agendamentos estruturalmente elegíveis (medida independentemente da rotulagem);
+- cobertura de captura mínima de 80% dos agendamentos elegíveis à extração v1 (medida independentemente da rotulagem). Agendamentos reagendados sem snapshot temporal original ficam fora do denominador enquanto a extração v1 não os admite;
 - cobertura mínima de 80% entre desfechos explícitos e compromissos já vencidos
   que ainda permanecem ativos.
 
