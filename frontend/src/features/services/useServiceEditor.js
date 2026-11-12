@@ -8,6 +8,8 @@ import { getBusinessContext, getPlanIntentPath, normalizePlanSlug } from "../../
 import { useSession } from "../../auth/SessionContext";
 import { readServiceCreationReference, serviceCreationReferenceHash } from "../../utils/serviceCreationReference";
 import { extractServices, uncertainWrite } from "../../utils/serviceCatalog";
+import { onboardingBusinessPath, onboardingSchedulePath } from "../onboarding/navigation";
+import { saveStepDraft, readStepDraft, clearStepDraft } from "../onboarding/stepDraft";
 
 function operationKey(prefix) {
   const unique = globalThis.crypto?.randomUUID?.()
@@ -41,16 +43,24 @@ export function useServiceEditor() {
   const uploadRecoveryRef = useRef(null);
   const mediaRecoveryRef = useRef(null);
   const editing = Boolean(id);
+  const editingOnboarding = editing && searchParams.get("onboarding") === "revisao-servico";
   const firstServiceOnboarding =
-    !editing
-    && (
-      searchParams.get("onboarding") === "servico"
-      || (
-        location.state?.onboarding === true
-        && location.state?.onboardingStep === "servico"
+    editingOnboarding || (
+      !editing && (
+        searchParams.get("onboarding") === "servico"
+        || (
+          location.state?.onboarding === true
+          && location.state?.onboardingStep === "servico"
+        )
       )
     );
-  const [form, setForm] = useState(EMPTY_FORM);
+  const backTo = firstServiceOnboarding
+    ? onboardingBusinessPath(selectedPlan, editing ? id : null)
+    : undefined;
+  const draftKey = firstServiceOnboarding && usuarioId && negocioId
+    ? `onboarding:service:${usuarioId}:${negocioId}:${id || "new"}`
+    : null;
+  const [form, setForm] = useState(() => readStepDraft(draftKey)?.form || EMPTY_FORM);
   const [savedForm, setSavedForm] = useState(EMPTY_FORM);
   const [cover, setCover] = useState(null);
   const [galleryFiles, setGalleryFiles] = useState([]);
@@ -178,11 +188,12 @@ export function useServiceEditor() {
       setLoadError("");
       setRecoveryRemoved(false);
       setRecoveryMessage("");
-      setForm(EMPTY_FORM);
+      const draft = readStepDraft(draftKey);
+      setForm(draft?.form || EMPTY_FORM);
       setSavedForm(EMPTY_FORM);
       setPersistedId("");
-      setCover(null);
-      setGalleryFiles([]);
+      setCover(draft?.cover || null);
+      setGalleryFiles(draft?.galleryFiles || []);
       setError("");
       const attempt = creationAttemptRef.current;
       if (!attempt) {
@@ -240,11 +251,13 @@ export function useServiceEditor() {
         const service = extractServices(servicesResult).find((item) => Number(item.id) === Number(id));
         if (!service) throw new Error("Serviço não encontrado.");
         const loadedForm = serviceForm(service);
-        setForm(loadedForm);
+        const draft = readStepDraft(draftKey);
+        const sameBaseline = draft?.baseline === JSON.stringify(loadedForm);
+        setForm(sameBaseline ? draft.form : loadedForm);
         setSavedForm(loadedForm);
         setPersistedId(id);
-        setCover(null);
-        setGalleryFiles([]);
+        setCover(sameBaseline ? draft.cover || null : null);
+        setGalleryFiles(sameBaseline ? draft.galleryFiles || [] : []);
         setError("");
       })
       .catch((requestError) => {
@@ -300,6 +313,16 @@ export function useServiceEditor() {
     };
   }, [editing, id, galleryLoadAttempt]);
 
+  function preserveDraftOnBack() {
+    if (!draftKey || mediaBusy || loading) return;
+    saveStepDraft(draftKey, {
+      form: { ...form },
+      baseline: editing ? JSON.stringify(savedForm) : null,
+      cover,
+      galleryFiles: [...galleryFiles]
+    });
+  }
+
   function isGalleryCover(photo) {
     return samePhoto(photo, form.foto_url, form.foto_public_id);
   }
@@ -353,7 +376,8 @@ export function useServiceEditor() {
     event.target.value = "";
   }
 
-  function continueFirstServiceOnboarding(saveResult) {
+  function continueFirstServiceOnboarding(saveResult, savedId = persistedId) {
+    clearStepDraft(draftKey);
     if ((saveResult.servico?.ativo ?? form.ativo) === false) {
       navigate(getPlanIntentPath("/painel/servicos", selectedPlan), {
         replace: true,
@@ -372,7 +396,7 @@ export function useServiceEditor() {
 
     const destination = !published
       ? getPlanIntentPath("/painel/negocio", selectedPlan)
-      : getPlanIntentPath("/painel/horarios", selectedPlan);
+      : onboardingSchedulePath(selectedPlan, savedId);
 
     navigate(destination, {
       replace: true,
@@ -589,7 +613,7 @@ export function useServiceEditor() {
           const result = saveResult || await apiRequest("/configuracoes", {
             headers: { "X-AF-Negocio": String(negocioId) }
           });
-          if (isCurrentOperation(operation)) continueFirstServiceOnboarding(result);
+          if (isCurrentOperation(operation)) continueFirstServiceOnboarding(result, savedId);
         } catch (failure) {
           if (isCurrentOperation(operation)) setError(`Serviço salvo. Não foi possível confirmar a publicação. ${failure.message} Tente novamente.`);
         }
@@ -690,6 +714,8 @@ export function useServiceEditor() {
     galleryRef,
     editing,
     firstServiceOnboarding,
+    backTo,
+    preserveDraftOnBack,
     form,
     setForm,
     cover,

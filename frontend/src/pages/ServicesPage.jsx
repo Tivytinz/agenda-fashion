@@ -17,6 +17,8 @@ export function ServiceEditorPage() {
     galleryRef,
     editing,
     firstServiceOnboarding,
+    backTo,
+    preserveDraftOnBack,
     form,
     setForm,
     cover,
@@ -55,17 +57,17 @@ export function ServiceEditorPage() {
   if (loadError) return <main className="workspace-page"><UnsavedChangesGuard onLeave={discardPendingOperations} /><BackLink to="/painel/servicos">Voltar aos serviços</BackLink><ErrorState message={loadError} onRetry={recoveryRemoved ? undefined : () => setLoadAttempt((attempt) => attempt + 1)} /></main>;
 
   return (
-    <SetupFlowFrame enabled={firstServiceOnboarding} exitTo="/painel" step={3}>
+    <SetupFlowFrame backTo={backTo} backDisabled={mediaBusy || loading} onBack={preserveDraftOnBack} enabled={firstServiceOnboarding} exitTo="/painel" step={3}>
     <main className="workspace-page service-editor-page">
-      <UnsavedChangesGuard when={hasChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
+      <UnsavedChangesGuard when={hasChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} preserveOnNavigateTo={!mediaBusy ? backTo : undefined} />
       <div>
         {!firstServiceOnboarding && <BackLink to="/painel/servicos">Voltar aos serviços</BackLink>}
         <header className="workspace-heading">
           <div>
             <SetupTitle emoji={firstServiceOnboarding ? "💅" : undefined}>{editing ? "Editar serviço" : "Novo serviço"}</SetupTitle>
-            <p>
-              Qual cuidado você vai oferecer?
-            </p>
+            {firstServiceOnboarding
+              ? <p className="setup-step-benefit"><span aria-hidden="true">💬</span><span>Mostre seus serviços com clareza para suas clientes escolherem e agendarem.</span></p>
+              : <p>Qual cuidado você vai oferecer?</p>}
           </div>
         </header>
       </div>
@@ -73,11 +75,11 @@ export function ServiceEditorPage() {
       <form aria-busy={saving} aria-label="Dados do serviço" className="service-editor-grid" onSubmit={submit}>
         <section className="panel stack-form">
           <label>
-            Nome do serviço
+            {firstServiceOnboarding && <span aria-hidden="true">💅 </span>}Nome do serviço
             <input disabled={fieldsDisabled} minLength="2" onChange={(event) => setForm({ ...form, nome: event.target.value })} required value={form.nome} />
           </label>
           <label>
-            Categoria
+            {firstServiceOnboarding && <span aria-hidden="true">🏷️ </span>}Categoria
             <select
               disabled={fieldsDisabled}
               onChange={(event) => setForm({ ...form, categoria: event.target.value })}
@@ -91,7 +93,7 @@ export function ServiceEditorPage() {
             </select>
           </label>
           <label>
-            Descrição (opcional)
+            {firstServiceOnboarding && <span aria-hidden="true">📝 </span>}Descrição (opcional)
             <textarea
               disabled={fieldsDisabled}
               maxLength="1200"
@@ -104,11 +106,11 @@ export function ServiceEditorPage() {
           </label>
           <div className="form-grid">
             <label>
-              Valor (R$)
+              {firstServiceOnboarding && <span aria-hidden="true">💰 </span>}Valor (R$)
               <input disabled={fieldsDisabled} inputMode="decimal" min="0" onChange={(event) => setForm({ ...form, valor: event.target.value })} required step="0.01" type="number" value={form.valor} />
             </label>
             <label>
-              Duração em minutos
+              {firstServiceOnboarding && <span aria-hidden="true">⏰ </span>}Duração em minutos
               <input disabled={fieldsDisabled} inputMode="numeric" min="5" onChange={(event) => setForm({ ...form, duracao_minutos: event.target.value })} required step="5" type="number" value={form.duracao_minutos} />
             </label>
           </div>
@@ -120,7 +122,7 @@ export function ServiceEditorPage() {
 
         <section className="panel stack-form service-media-panel">
           <div>
-            <h2>Fotos do serviço</h2>
+            <h2>{firstServiceOnboarding && <span aria-hidden="true">📷 </span>}Fotos do serviço</h2>
             <p className="muted service-media-help">Mostre seu talento. Fotos são opcionais.</p>
           </div>
 
