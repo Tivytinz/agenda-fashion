@@ -223,7 +223,7 @@ async function listarDivulgacaoAf(periodo = "30") {
     WHERE (e.af_source IS NOT NULL OR e.af_medium IS NOT NULL OR e.af_content IS NOT NULL)
       ${filtro}
     GROUP BY e.af_source, e.af_medium, e.af_content
-    ORDER BY COUNT(*) DESC, e.af_source ASC NULLS LAST
+    ORDER BY COUNT(DISTINCT s.id) DESC, e.af_source ASC NULLS LAST
     LIMIT 100
     `
   );
