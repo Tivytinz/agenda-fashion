@@ -47,6 +47,16 @@ describe("copilotOutputService", () => {
     ).toBeNull();
   });
 
+  test.each([
+    ["serviço com promoção", { negocio: { nome: "Studio Rosa" }, servico_destaque: { nome: "Promoção R$ 99" } }],
+    ["negócio com URL", { negocio: { nome: "https://example.com" } }],
+    ["nome com telefone", { negocio: { nome: "Studio 62999999999" } }],
+  ])("não reproduz alegações proibidas: %s", (_cenario, contexto) => {
+    const saida = buildDeterministicShareOutput(contexto);
+    expect(sanitizeCopilotShareOutput(saida)).toEqual(saida);
+    expect(saida.texto).not.toMatch(/example\\.com|62999999999|R\\$ 99/i);
+  });
+
   test("saída determinística permanece sem alegações proibidas", () => {
     const resultado = buildDeterministicShareOutput({
       negocio: {
