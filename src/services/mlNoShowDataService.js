@@ -241,11 +241,11 @@ async function obterDiagnosticoMaturidade() {
 }
 
 async function coletar({ limite }) {
-  const [amostrasCapturadas, amostrasRotuladas] =
-    await Promise.all([
-      repository.capturarAmostrasPendentes({ limite }),
-      repository.rotularAmostrasPendentes(),
-    ]);
+  // A rotulagem deve observar também as amostras deste ciclo.
+  const amostrasCapturadas =
+    await repository.capturarAmostrasPendentes({ limite });
+  const amostrasRotuladas =
+    await repository.rotularAmostrasPendentes();
 
   const [dados, coberturaCaptura] = await Promise.all([
     repository.obterProntidao(),
