@@ -487,6 +487,16 @@ async function buscarContaGoogle({
         email
       );
 
+  /*
+   * Conta inativa nunca é religada a um provedor de identidade.
+   * O caller devolverá 403 sem mutar google_sub.
+   */
+  if (
+    usuario?.ativo === false
+  ) {
+    return usuario;
+  }
+
   if (
     usuario?.google_sub &&
     usuario.google_sub !==
