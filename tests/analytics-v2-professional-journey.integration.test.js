@@ -15,17 +15,20 @@ const { buscarJornada } = require("../src/repositories/adminAnalyticsV2Repositor
 const usuarios = [];
 const negocios = [];
 const visitantes = [];
+const agendamentos = [];
+const clientes = [];
 
 function numerosWhatsapp() {
   return "629" + String(Date.now()).slice(-8);
 }
 
-async function registrarVisita(agent, metodo) {
+async function registrarVisita(agent, metodo, { deslocamentoMs = 0 } = {}) {
   const visitorUuid = randomUUID();
   const sessionUuid = randomUUID();
   const viewUuid = randomUUID();
   visitantes.push(visitorUuid);
-  const occurredAt = new Date().toISOString();
+  // Deslocamento simula relógio de celular incorreto, não altera o PostgreSQL.
+  const occurredAt = new Date(Date.now() + deslocamentoMs).toISOString();
   const inicio = metodo === "google"
     ? { method: "google", trigger: "google_credential" }
     : { method: "email", trigger: "form_input" };
@@ -101,6 +104,38 @@ async function criarNegocioReal(agent, suffix, usuarioId) {
   return negocioId;
 }
 
+
+async function criarAgendamentoPersistido(negocioId, usuarioId, suffix) {
+  const servico = await db.query(
+    `
+    INSERT INTO servicos_negocio (negocio_id, nome, descricao, valor, duracao_minutos)
+    VALUES ($1, $2, 'Serviço isolado de teste da jornada.', 50, 60)
+    RETURNING id
+    `,
+    [negocioId, "Serviço Jornada " + suffix]
+  );
+  const servicoId = Number(servico.rows[0].id);
+  // Agendamento real persistido no banco. Não testa a disponibilidade da API pública.
+  const dia = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+  const agendamento = await db.query(
+    `
+    INSERT INTO agendamentos (
+      data, horario, profissional_id, cliente_nome, cliente_whatsapp,
+      servico_id, valor_servico, negocio_id, status, confirmado_em
+    ) VALUES ($1, '10:00', $2, $3, $4, $5, 50, $6, 'confirmado', NOW())
+    RETURNING id, client_id
+    `,
+    [
+      dia, usuarioId, "Cliente Jornada " + suffix,
+      "629" + String(Date.now()).slice(-8), servicoId, negocioId
+    ]
+  );
+  const bookingId = Number(agendamento.rows[0].id);
+  agendamentos.push(bookingId);
+  if (agendamento.rows[0].client_id) clientes.push(Number(agendamento.rows[0].client_id));
+  return bookingId;
+}
+
 describe("Cadastro real vinculado ao analytics e ao primeiro negócio", () => {
   afterEach(() => jest.clearAllMocks());
 
@@ -119,6 +154,12 @@ describe("Cadastro real vinculado ao analytics e ao primeiro negócio", () => {
           [visitantes]
         );
       }
+      if (agendamentos.length) {
+        await db.query("DELETE FROM agendamentos WHERE id = ANY($1::BIGINT[])", [agendamentos]);
+      }
+      if (clientes.length) {
+        await db.query("DELETE FROM clientes WHERE id = ANY($1::BIGINT[])", [clientes]);
+      }
       if (negocios.length) {
         await db.query("DELETE FROM negocios WHERE id = ANY($1::BIGINT[])", [negocios]);
       }
@@ -130,10 +171,10 @@ describe("Cadastro real vinculado ao analytics e ao primeiro negócio", () => {
     }
   });
 
-  test("email: visita → tentativa → conta persistida → sessão autenticada → negócio", async () => {
+  test("email: relógio 2 min adiantado → conta → negócio → agendamento confirmado/cancelado", async () => {
     const baseline = await buscarJornada("today");
     const agent = request.agent(app);
-    const tracking = await registrarVisita(agent, "email");
+    const tracking = await registrarVisita(agent, "email", { deslocamentoMs: 2 * 60 * 1000 });
     const suffix = randomUUID().slice(0, 12);
     const email = "af-reconciliacao-email-" + suffix + "@teste.local";
 
@@ -158,20 +199,28 @@ describe("Cadastro real vinculado ao analytics e ao primeiro negócio", () => {
     expect(Number(contaPersistida.rows[0].id)).toBe(id);
 
     await identificarSessao(agent, tracking, id);
-    await criarNegocioReal(agent, suffix, id);
+    const negocioId = await criarNegocioReal(agent, suffix, id);
+    const bookingId = await criarAgendamentoPersistido(negocioId, id, suffix);
 
     const atual = await buscarJornada("today");
-    for (const key of ["contas_novas_vinculadas", "contas_com_negocio_vinculadas"]) {
+    for (const key of [
+      "contas_novas_vinculadas", "contas_com_negocio_vinculadas",
+      "contas_com_agendamento_vinculadas"
+    ]) {
       expect(Number(atual.cadastroProfissional[key]) - Number(baseline.cadastroProfissional[key])).toBe(1);
     }
-    expect(Number(atual.cadastroProfissional.contas_com_agendamento_vinculadas) -
+
+    // Cancelamento não é primeiro agendamento válido no funil oficial.
+    await db.query("UPDATE agendamentos SET status = 'cancelado', cancelado_em = NOW() WHERE id = $1", [bookingId]);
+    const cancelado = await buscarJornada("today");
+    expect(Number(cancelado.cadastroProfissional.contas_com_agendamento_vinculadas) -
       Number(baseline.cadastroProfissional.contas_com_agendamento_vinculadas)).toBe(0);
   });
 
-  test("Google: credencial simulada, conta e negócio reais; login repetido não cria outra conta", async () => {
+  test("Google: relógio 2 min atrasado, conta real; login repetido não cria outra", async () => {
     const baseline = await buscarJornada("today");
     const agent = request.agent(app);
-    const tracking = await registrarVisita(agent, "google");
+    const tracking = await registrarVisita(agent, "google", { deslocamentoMs: -2 * 60 * 1000 });
     const suffix = randomUUID().slice(0, 12);
     const email = "af-reconciliacao-google-" + suffix + "@teste.local";
     const googleSub = "simulado-" + randomUUID();
@@ -206,6 +255,64 @@ describe("Cadastro real vinculado ao analytics e ao primeiro negócio", () => {
     for (const key of ["contas_novas_vinculadas", "contas_com_negocio_vinculadas"]) {
       expect(Number(atual.cadastroProfissional[key]) - Number(baseline.cadastroProfissional[key])).toBe(1);
     }
+  });
+
+
+  test("rejeita correspondência quando a conta já existia antes da visita", async () => {
+    const agent = request.agent(app);
+    const suffix = randomUUID().slice(0, 12);
+    const email = "af-reconciliacao-existente-" + suffix + "@teste.local";
+    const conta = await agent.post("/cadastro").send({
+      nome: "Profissional Existente", email,
+      whatsapp: numerosWhatsapp(), senha: "senha-mais-de-oito-123",
+      perfil_profissional: true
+    });
+    if (conta.body?.usuario?.id) usuarios.push(Number(conta.body.usuario.id));
+    expect(conta.status).toBe(201);
+    // Mesmo autenticada, uma conta anterior não é novo cadastro da visita posterior.
+    const baseline = await buscarJornada("today");
+    await registrarVisita(agent, "email");
+    const atual = await buscarJornada("today");
+    expect(Number(atual.cadastroProfissional.contas_novas_vinculadas) -
+      Number(baseline.cadastroProfissional.contas_novas_vinculadas)).toBe(0);
+  });
+
+  test("relógio 15 minutos atrasado permanece fora da reconciliação conservadora", async () => {
+    const agent = request.agent(app);
+    const baseline = await buscarJornada("today");
+    const tracking = await registrarVisita(agent, "email", {
+      deslocamentoMs: -15 * 60 * 1000
+    });
+    const suffix = randomUUID().slice(0, 12);
+    const email = "af-reconciliacao-atrasado-" + suffix + "@teste.local";
+    const cadastro = await agent.post("/cadastro").send({
+      nome: "Profissional Atrasada", email,
+      whatsapp: numerosWhatsapp(), senha: "senha-mais-de-oito-123",
+      perfil_profissional: true
+    });
+    if (cadastro.body?.usuario?.id) usuarios.push(Number(cadastro.body.usuario.id));
+    expect(cadastro.status).toBe(201);
+    await identificarSessao(agent, tracking, Number(cadastro.body.usuario.id));
+    const atual = await buscarJornada("today");
+    expect(Number(atual.cadastroProfissional.contas_novas_vinculadas) -
+      Number(baseline.cadastroProfissional.contas_novas_vinculadas)).toBe(0);
+  });
+
+
+  test("consulta de jornada possui plano SQL executável no banco de teste", async () => {
+    // Smoke de EXPLAIN ANALYZE sobre dados sintéticos; não é benchmark de produção.
+    const spy = jest.spyOn(db, "query");
+    let query;
+    try {
+      await buscarJornada("30");
+      query = spy.mock.calls.find(([sql]) => typeof sql === "string" &&
+        sql.includes("WITH visitas AS"))?.[0];
+    } finally {
+      spy.mockRestore();
+    }
+    expect(query).toBeTruthy();
+    const plan = await db.query("EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) " + query);
+    expect(plan.rows[0]["QUERY PLAN"][0].Plan["Node Type"]).toBeTruthy();
   });
 
   test("sessão anônima sem conta não vira conversão atribuída", async () => {

@@ -284,7 +284,7 @@ async function buscarJornada(periodo = "30") {
     db.query(
       `
       WITH visitas AS (
-        SELECT v.id, v.sessao_id, v.entrou_em
+        SELECT v.id, v.sessao_id, v.entrou_em, v.created_at
         FROM analytics_visualizacoes_tela v
         WHERE v.page_key = 'professional_register'
           ${filtroVisualizacao}
@@ -313,9 +313,10 @@ async function buscarJornada(periodo = "30") {
           ${filtroEvento}
         GROUP BY v.id, v.sessao_id
       ),
-      -- Vínculo conservador: submissão observada e conta realmente criada
-      -- depois da visita, na mesma sessão posteriormente autenticada.
-      -- Isto não é atribuição causal nem substitui o funil transacional.
+      -- Vínculo observacional: visita recebida pelo servidor antes da
+      -- criação, evento de envio próximo à criação (tolerância de relógio
+      -- de até 5 min) e sessão identificada pelo backend após a criação.
+      -- Não atribui causalidade nem substitui fatos transacionais.
       contas_vinculadas AS (
         SELECT DISTINCT u.id AS usuario_id, u.created_at AS criado_em
         FROM visitas v
@@ -328,9 +329,16 @@ async function buscarJornada(periodo = "30") {
           AND e.nome = 'professional_signup_submitted'
           ${filtroEvento}
         WHERE u.perfil_profissional_ativado_em IS NOT NULL
-          AND u.created_at >= v.entrou_em
-          AND u.created_at >= e.occurred_at
-          AND u.created_at <= s.ultima_atividade_em
+          -- Ambos os lados vêm do PostgreSQL: uma conta pré-existente
+          -- não vira cadastro novo só por autenticar a sessão.
+          AND u.created_at >= v.created_at
+          -- O navegador pode estar adiantado ou atrasado. Janela curta
+          -- evita uma correspondência ilimitada com eventos antigos.
+          AND u.created_at BETWEEN
+            e.occurred_at - INTERVAL '5 minutes'
+            AND e.occurred_at + INTERVAL '5 minutes'
+          -- A última atualização da sessão vem do relógio do servidor.
+          AND u.created_at <= s.updated_at
       ),
       negocios_vinculados AS (
         SELECT DISTINCT c.usuario_id, n.id AS negocio_id

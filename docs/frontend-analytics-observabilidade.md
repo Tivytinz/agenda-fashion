@@ -360,10 +360,17 @@ por e-mail e Google separadamente. Uma sessão pode ter tentativas dos
 dois métodos; não se deve somar os subtotais como pessoas únicas.
 A reconciliação da Jornada usa exclusivamente a sessão identificada
 pelo backend (`analytics_sessoes.usuario_id`), com evento de tentativa
-vinculado à visualização profissional e criação posterior da conta
-(`usuarios.created_at`). Contas anteriormente existentes não viram
-novos cadastros por fazer login, e sessões sem autenticação comprovada
-não são vinculadas artificialmente. A etapa de negócio exige vínculo
+vinculado à visualização profissional. Para preservar a sequência,
+a visita deve ter sido recebida pelo PostgreSQL antes de a conta ser
+criada (`analytics_visualizacoes_tela.created_at <= usuarios.created_at`),
+e a sessão deve ter sido atualizada no servidor após a criação
+(`analytics_sessoes.updated_at >= usuarios.created_at`).
+O horário do envio (`analytics_eventos.occurred_at`) pode divergir em
+até cinco minutos do horário de criação da conta. Essa tolerância
+é limitada e **não** converte eventos arbitrariamente antigos ou uma
+conta preexistente em novo cadastro. Eventos entregues tardiamente
+podem ficar fora do subconjunto: a conciliação é conservadora.
+Sessões sem autenticação comprovada não são vinculadas artificialmente. A etapa de negócio exige vínculo
 ativo de dona com negócio próprio; agendamento exige linha real não
 cancelada desse negócio. Uma conta é contada uma vez por indicador,
 mesmo após múltiplas visitas ou tentativas.

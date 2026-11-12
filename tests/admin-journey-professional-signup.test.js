@@ -41,8 +41,12 @@ describe("resumo first-party do cadastro profissional", () => {
     expect(sql).toContain("contas_vinculadas AS");
     expect(sql).toContain("e.nome = 'professional_signup_submitted'");
     expect(sql).toContain("u.id = s.usuario_id");
-    expect(sql).toContain("u.created_at >= e.occurred_at");
-    expect(sql).toContain("u.created_at <= s.ultima_atividade_em");
+    expect(sql).toContain("u.created_at >= v.created_at");
+    expect(sql).toContain("e.occurred_at - INTERVAL '5 minutes'");
+    expect(sql).toContain("e.occurred_at + INTERVAL '5 minutes'");
+    expect(sql).toContain("u.created_at <= s.updated_at");
+    expect(sql).not.toContain("u.created_at >= e.occurred_at");
+    expect(sql).not.toContain("u.created_at <= s.ultima_atividade_em");
     expect(sql).toContain("un.papel = 'dono'");
     expect(sql).toContain("ag.negocio_id = b.negocio_id");
     expect(sql).toContain("e.origem = 'frontend'");
