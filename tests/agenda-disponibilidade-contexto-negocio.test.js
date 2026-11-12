@@ -161,7 +161,7 @@ describe("disponibilidade contextual por negócio", () => {
 
     expect(
       agendaConfiguracaoRepository.buscarConfiguracao
-    ).toHaveBeenCalledWith(7, 20);
+    ).toHaveBeenCalledWith(7, 20, undefined);
 
     expect(
       agendaConfiguracaoRepository.listarHorarios
@@ -174,7 +174,8 @@ describe("disponibilidade contextual por negócio", () => {
       "2026-09-21",
       "2026-09-21",
       null,
-      "America/Sao_Paulo"
+      "America/Sao_Paulo",
+      undefined
     );
 
     expect(
@@ -183,7 +184,8 @@ describe("disponibilidade contextual por negócio", () => {
       7,
       20,
       "2026-09-21",
-      "2026-09-21"
+      "2026-09-21",
+      undefined
     );
   });
 });
