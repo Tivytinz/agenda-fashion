@@ -223,6 +223,59 @@ describe(
     );
 
     test.each([
+      "PAYMENT_REFUNDED",
+      "PAYMENT_CHARGEBACK_REQUESTED",
+      "PAYMENT_RECEIVED_IN_CASH_UNDONE"
+    ])(
+      "não reativa assinatura após evento financeiro reverso %s",
+      async (tipoEvento) => {
+        webhookEventoRepository
+          .reservarPorId
+          .mockResolvedValue({
+            id: 13,
+            evento_id: `evt_${tipoEvento}`,
+            evento_criado_em:
+              "2026-09-13 20:08:00",
+            tipo_evento: tipoEvento,
+            recurso_id: "pay_revertido",
+            tentativas: 1,
+            lease_tentativa: 1,
+            payload: {
+              payment: {
+                id: "pay_revertido",
+                status: "RECEIVED"
+              }
+            }
+          });
+
+        suspenderAssinaturaPorPagamento
+          .mockResolvedValue({
+            id: 22,
+            negocio_id: 8,
+            status: "INACTIVE"
+          });
+
+        const resultado =
+          await processarEventoWebhook(13);
+
+        expect(
+          suspenderAssinaturaPorPagamento
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: "pay_revertido",
+            webhookEventoCriadoEm:
+              "2026-09-13 20:08:00"
+          })
+        );
+        expect(
+          ativarAssinaturaPorPagamento
+        ).not.toHaveBeenCalled();
+        expect(resultado.status)
+          .toBe("PROCESSED");
+      }
+    );
+
+    test.each([
       "PAYMENT_CHARGEBACK_DISPUTE",
       "PAYMENT_AWAITING_CHARGEBACK_REVERSAL"
     ])(
