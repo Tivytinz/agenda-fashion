@@ -24,6 +24,7 @@ import {
   WHATSAPP_PATTERN
 } from "../auth/registrationValidation";
 import { trackFirstPartyEvent } from "../analytics/firstPartyAnalytics";
+import { classifyProfessionalSignupRequestError } from "../analytics/professionalSignupRequestError";
 
 export { WHATSAPP_PATTERN } from "../auth/registrationValidation";
 
@@ -49,7 +50,7 @@ export function AuthPage({ mode = "login" }) {
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const signupStartedRef = useRef(false);
-  const signupIssuesRef = useRef(new Set());
+  const signupIssuesRef = useRef(new Map());
 
   const authIntent = useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -72,23 +73,33 @@ export function AuthPage({ mode = "login" }) {
 
   function trackProfessionalIssue(field) {
     if (!isRegister || !professionalIntent) return;
-    const reason = field === "form" ? "server_rejected" : registrationFieldError(form, field);
-    if (!reason) return;
+    const reason = registrationFieldError(form, field);
+    if (!reason) {
+      signupIssuesRef.current.delete(field);
+      return;
+    }
     const safeFields = {
       nome: "name",
       email: "email",
       whatsapp: "whatsapp",
       senha: "password",
-      confirmarSenha: "password_confirmation",
-      form: "form"
+      confirmarSenha: "password_confirmation"
     };
-    const key = `${field}:${reason}`;
-    if (!safeFields[field] || signupIssuesRef.current.has(key)) return;
-    signupIssuesRef.current.add(key);
+    if (!safeFields[field] || signupIssuesRef.current.get(field) === reason) return;
+    signupIssuesRef.current.set(field, reason);
     trackFirstPartyEvent("professional_signup_validation_error", {
       properties: { field: safeFields[field], reason }
     });
   }
+
+  const trackProfessionalRequestError = useCallback((method, requestError) => {
+    if (!isRegister || !professionalIntent) return;
+    const reason = classifyProfessionalSignupRequestError(requestError);
+    if (!reason) return;
+    trackFirstPartyEvent("professional_signup_request_error", {
+      properties: { method, reason }
+    });
+  }, [isRegister, professionalIntent]);
 
   const authRequestedPath = safeReturnPath(location.state?.from);
 
@@ -176,12 +187,15 @@ export function AuthPage({ mode = "login" }) {
 
       finish(current);
     } catch (requestError) {
-      if (requestError.name !== "AbortError") setError(requestError.message);
+      if (requestError.name !== "AbortError") {
+        setError(requestError.message);
+        trackProfessionalRequestError("google", requestError);
+      }
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [finish, form.aceitaNotificacoesWhatsapp, isRegister, professionalIntent, session, trackProfessionalStart]);
+  }, [finish, form.aceitaNotificacoesWhatsapp, isRegister, professionalIntent, session, trackProfessionalStart, trackProfessionalRequestError]);
 
   if (session.loading) {
     return <main className="auth-page"><LoadingState>Carregando sua conta...</LoadingState></main>;
@@ -194,7 +208,11 @@ export function AuthPage({ mode = "login" }) {
   }
 
   function update(field, value) {
-    if (field !== "aceitaNotificacoesWhatsapp") trackProfessionalStart("email");
+    if (field !== "aceitaNotificacoesWhatsapp") {
+      trackProfessionalStart("email");
+      // Uma nova edição abre outra oportunidade de validação. Blur sem edição não duplica.
+      signupIssuesRef.current.delete(field);
+    }
     setForm((current) => ({ ...current, [field]: value }));
   }
 
@@ -271,7 +289,7 @@ export function AuthPage({ mode = "login" }) {
     } catch (requestError) {
       if (requestError.name !== "AbortError") {
         setError(requestError.message);
-        if (isRegister && professionalIntent) trackProfessionalIssue("form");
+        trackProfessionalRequestError("email", requestError);
       }
     } finally {
       submittingRef.current = false;

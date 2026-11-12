@@ -22,6 +22,7 @@ import {
 } from "vitest";
 import { safeReturnPath, WHATSAPP_PATTERN } from "./AuthPage";
 import { trackFirstPartyEvent } from "../analytics/firstPartyAnalytics";
+import { ApiError } from "../api/errors";
 
 vi.mock("../analytics/firstPartyAnalytics", async (importOriginal) => ({
   ...(await importOriginal()),
@@ -152,6 +153,68 @@ describe("destino por intenção da autenticação", () => {
 });
 
 describe("cadastro profissional enxuto", () => {
+  it("mede novamente após edição, mas não duplica erros ao apenas refocar o campo", async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+      <AuthPage mode="register" />
+    </MemoryRouter>);
+    const email = screen.getByLabelText("E-mail");
+    const errors = () => trackFirstPartyEvent.mock.calls.filter(([event, payload]) =>
+      event === "professional_signup_validation_error" && payload.properties.field === "email"
+    );
+    await user.type(email, "invalido");
+    await user.tab();
+    await user.click(email);
+    await user.tab();
+    expect(errors()).toHaveLength(1);
+    await user.click(email);
+    await user.type(email, "x");
+    await user.tab();
+    expect(errors()).toHaveLength(2);
+    expect(JSON.stringify(trackFirstPartyEvent.mock.calls)).not.toContain("invalidox");
+  });
+
+  it("classifica falha HTTP do e-mail sem misturar com erro de campo", async () => {
+    register.mockRejectedValueOnce(new ApiError("Mensagem privada do servidor", 503));
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+      <AuthPage mode="register" />
+    </MemoryRouter>);
+    await user.type(screen.getByLabelText("Nome completo"), "Ana Profissional");
+    await user.type(screen.getByLabelText("E-mail"), "ana@exemplo.com");
+    await user.type(screen.getByLabelText("WhatsApp com DDD"), "62999998888");
+    await user.type(screen.getByLabelText("Senha"), "senha1234");
+    await user.type(screen.getByLabelText("Confirme a senha"), "senha1234");
+    await user.click(screen.getByRole("button", { name: "Criar conta" }));
+    await waitFor(() => expect(trackFirstPartyEvent).toHaveBeenCalledWith(
+      "professional_signup_request_error",
+      { properties: { method: "email", reason: "server_error" } }
+    ));
+    expect(trackFirstPartyEvent.mock.calls.filter(([event]) =>
+      event === "professional_signup_validation_error"
+    )).toHaveLength(0);
+    expect(JSON.stringify(trackFirstPartyEvent.mock.calls)).not.toContain("Mensagem privada do servidor");
+  });
+
+  it("classifica falha de autenticação Google sem vazar a credencial", async () => {
+    loginWithGoogle.mockRejectedValueOnce(new ApiError("Credencial privada", 401));
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+      <AuthPage mode="register" />
+    </MemoryRouter>);
+    await user.click(screen.getByRole("button", { name: "Entrar com Google" }));
+    await waitFor(() => expect(trackFirstPartyEvent).toHaveBeenCalledWith(
+      "professional_signup_request_error",
+      { properties: { method: "google", reason: "auth_rejected" } }
+    ));
+    expect(trackFirstPartyEvent).toHaveBeenCalledWith(
+      "professional_signup_submitted", { properties: { method: "google" } }
+    );
+    expect(JSON.stringify(trackFirstPartyEvent.mock.calls)).not.toContain("Credencial privada");
+    expect(JSON.stringify(trackFirstPartyEvent.mock.calls)).not.toContain("google-credential");
+  });
+
+
   it("instrumenta início, erro e tentativa profissionais uma vez e sem enviar valores dos campos", async () => {
     const user = userEvent.setup();
     render(

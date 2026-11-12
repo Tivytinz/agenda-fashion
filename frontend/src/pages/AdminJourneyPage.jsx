@@ -103,7 +103,7 @@ export function AdminJourneyV2Page() {
 
         return (
           <>
-            {signup && (
+            {number(signup?.sessoes_visita) > 0 && (
               <section className="panel admin-journey-signup-panel">
                 <div className="panel-heading">
                   <div>
@@ -119,12 +119,15 @@ export function AdminJourneyV2Page() {
                   <MetricCard label="Sessões com visita" hint="sessões com a página de cadastro profissional" value={formatNumber(signup.sessoes_visita)} />
                   <MetricCard label="Iniciaram" hint="sessões com primeira interação registrada" value={formatNumber(signup.sessoes_inicio)} />
                   <MetricCard label="Tentaram cadastrar" hint="sessões com envio de dados válidos ao servidor ou credencial Google" value={formatNumber(signup.sessoes_envio)} />
-                  <MetricCard label="Encontraram erro" hint="sessões com erros de validação observados" value={formatNumber(signup.sessoes_erro)} />
+                  <MetricCard label="Encontraram erro de campo" hint="sessões com erros de validação observados" value={formatNumber(signup.sessoes_erro)} />
+                  <MetricCard label="Falha de solicitação" hint="sessões com falha HTTP ou resultado do fluxo não confirmado; isso não comprova que a conta não foi criada" value={formatNumber(signup.sessoes_erro_requisicao)} />
                 </section>
                 <p className="muted">
-                  {formatNumber(signup.erros_validacao)} ocorrência(s) de validação no período.
-                  Uma sessão pode conter vários erros. Cadastros concluídos, negócios e primeiros agendamentos
-                  permanecem no funil operacional, confirmado pelo backend. Não atribuir abandono apenas por ausência de evento.
+                  {formatNumber(signup.erros_validacao)} ocorrência(s) de validação e
+                  {" "}{formatNumber(signup.erros_requisicao)} problema(s) de solicitação observados no período.
+                  Uma sessão pode conter vários eventos. Falha de solicitação não prova que a conta não foi criada.
+                  Cadastros concluídos, negócios e primeiros agendamentos permanecem no funil operacional,
+                  confirmado pelo backend. Não atribuir abandono apenas por ausência de evento.
                 </p>
               </section>
             )}

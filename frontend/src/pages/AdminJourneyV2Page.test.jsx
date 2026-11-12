@@ -46,7 +46,9 @@ beforeEach(() => {
       sessoes_inicio: 4,
       sessoes_envio: 3,
       sessoes_erro: 2,
-      erros_validacao: 5
+      sessoes_erro_requisicao: 1,
+      erros_validacao: 5,
+      erros_requisicao: 2
     },
     eventos: [],
     dispositivos: [],
@@ -135,6 +137,36 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("jornada administrativa v2", () => {
+  it("não exibe cadastro profissional sem visitas, mesmo com tráfego em outras telas", async () => {
+    apiRequest.mockResolvedValueOnce({
+      periodo: "30",
+      telas: [{
+        page_key: "business_profile", route_template: "/negocio/:slug",
+        visualizacoes: 1, sessoes: 1, tempo_medio_segundos: 8
+      }],
+      transicoes: [],
+      eventos: [],
+      dispositivos: [],
+      cadastroProfissional: {
+        sessoes_visita: 0,
+        sessoes_inicio: 0,
+        sessoes_envio: 0,
+        sessoes_erro: 0,
+        sessoes_erro_requisicao: 0,
+        erros_validacao: 0,
+        erros_requisicao: 0
+      }
+    });
+    render(<MemoryRouter initialEntries={["/admin/jornada?periodo=30"]}>
+      <AdminJourneyV2Page />
+    </MemoryRouter>);
+    await screen.findByRole("heading", { name: "Onde as pessoas passam tempo" });
+    expect(screen.queryByRole("heading", {
+      name: "Cadastro profissional — interação com o formulário"
+    })).toBeNull();
+  });
+
+
   it("expõe divergência entre legado e V2 sem somar pipelines", async () => {
     render(
       <MemoryRouter
@@ -164,7 +196,8 @@ describe("jornada administrativa v2", () => {
     const signup = screen.getByRole("region", { name: "Etapas do cadastro profissional" });
     expect(within(signup).getByText("Sessões com visita")).not.toBeNull();
     expect(within(signup).getByText("Tentaram cadastrar")).not.toBeNull();
-    expect(within(signup).getByText("Encontraram erro")).not.toBeNull();
+    expect(within(signup).getByText("Encontraram erro de campo")).not.toBeNull();
+    expect(within(signup).getByText("Falha de solicitação")).not.toBeNull();
     expect(screen.getByText(/Uma sessão pode conter vários erros/)).not.toBeNull();
 
     expect(

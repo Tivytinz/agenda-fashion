@@ -16,7 +16,9 @@ describe("resumo first-party do cadastro profissional", () => {
           sessoes_inicio: 4,
           sessoes_envio: 3,
           sessoes_erro: 2,
+          sessoes_erro_requisicao: 1,
           erros_validacao: 5,
+          erros_requisicao: 2,
         }]
         : []
     }));
@@ -32,12 +34,16 @@ describe("resumo first-party do cadastro profissional", () => {
     expect(sql).toContain("COUNT(DISTINCT sessao_id)");
     expect(sql).toContain("e.origem = 'frontend'");
     expect(sql).toContain("e.occurred_at >=");
+    expect(sql).toContain("professional_signup_request_error");
+    expect(sql).toContain("COUNT(DISTINCT sessao_id) FILTER (WHERE erros_requisicao > 0)");
     expect(result.cadastroProfissional).toMatchObject({
       sessoes_visita: 6,
       sessoes_inicio: 4,
       sessoes_envio: 3,
       sessoes_erro: 2,
-      erros_validacao: 5
+      sessoes_erro_requisicao: 1,
+      erros_validacao: 5,
+      erros_requisicao: 2
     });
   });
 

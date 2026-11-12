@@ -474,6 +474,36 @@ describe(
       })).toThrow("Método de cadastro inválido.");
     });
 
+    test("separa erros de requisição de erros de campo e descarta PII adicional", () => {
+      const base = {
+        type: "event", eventUuid: EVENT_UUID, viewUuid: VIEW_UUID,
+        schemaVersion: 1, occurredAt: AGORA
+      };
+      expect(normalizarItem({
+        ...base, name: "professional_signup_request_error",
+        properties: {
+          method: "google", reason: "network_error",
+          email: "pessoa@exemplo.com", senha: "nunca-enviar"
+        }
+      }).properties).toEqual({ method: "google", reason: "network_error" });
+      expect(normalizarItem({
+        ...base, name: "professional_signup_request_error",
+        properties: { method: "email", reason: "conflict" }
+      }).properties).toEqual({ method: "email", reason: "conflict" });
+      expect(() => normalizarItem({
+        ...base, name: "professional_signup_request_error",
+        properties: { method: "email", reason: "email@exemplo.com" }
+      })).toThrow("Propriedades do erro de requisição inválidas.");
+      expect(() => normalizarItem({
+        ...base, name: "professional_signup_request_error",
+        properties: { method: "senha123", reason: "server_error" }
+      })).toThrow("Propriedades do erro de requisição inválidas.");
+      expect(() => normalizarItem({
+        ...base, name: "professional_signup_validation_error",
+        properties: { field: "form", reason: "server_rejected" }
+      })).toThrow("Propriedades do erro de cadastro inválidas.");
+    });
+
     test(
       "rejeita evento frontend desconhecido",
       () => {

@@ -668,14 +668,22 @@ export function trackFirstPartyEvent(name, {
     } else if ([
       "professional_signup_started",
       "professional_signup_submitted",
-      "professional_signup_validation_error"
+      "professional_signup_validation_error",
+      "professional_signup_request_error"
     ].includes(name)) {
       if (currentView.pageKey !== "professional_register") return;
       if (name === "professional_signup_validation_error") {
         const fields = ["name", "email", "whatsapp", "password", "password_confirmation", "form"];
-        const reasons = ["required", "too_short", "too_long", "invalid_format", "invalid_length", "mismatch", "server_rejected"];
+        const reasons = ["required", "too_short", "too_long", "invalid_format", "invalid_length", "mismatch"];
         if (!fields.includes(properties.field) || !reasons.includes(properties.reason)) return;
         canonicalProperties = { field: properties.field, reason: properties.reason };
+      } else if (name === "professional_signup_request_error") {
+        const reasons = [
+          "conflict", "invalid_request", "auth_rejected", "rate_limited",
+          "timeout", "network_error", "server_error", "unknown"
+        ];
+        if (!["email", "google"].includes(properties.method) || !reasons.includes(properties.reason)) return;
+        canonicalProperties = { method: properties.method, reason: properties.reason };
       } else {
         canonicalProperties = { method: properties.method === "google" ? "google" : "email" };
       }

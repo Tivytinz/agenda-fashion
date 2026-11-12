@@ -46,7 +46,8 @@ export const EVENT_LABELS = {
   checkout_viewed: "Checkout visualizado",
   professional_signup_started: "Cadastro profissional iniciado",
   professional_signup_submitted: "Tentativa de cadastro profissional",
-  professional_signup_validation_error: "Erro de validação do cadastro"
+  professional_signup_validation_error: "Erro de validação do cadastro",
+  professional_signup_request_error: "Erro de requisição do cadastro"
 };
 
 export const PIPELINE_RECONCILIATION_LABELS = {

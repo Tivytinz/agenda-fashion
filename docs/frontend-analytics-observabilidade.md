@@ -317,6 +317,7 @@ checkout_viewed
 professional_signup_started
 professional_signup_submitted
 professional_signup_validation_error
+professional_signup_request_error
 ```
 
 No cadastro profissional, a rota `/cadastro?tipo=profissional` (ou plano
@@ -327,13 +328,25 @@ sem transportar query strings ou conteúdo digitado ao coletor.
 O início acontece uma vez por montagem da tela, na primeira alteração de
 um campo ou credencial Google. Tentativa ocorre quando a interface envia
 formulário válido ou credencial Google, e **não** significa conta criada.
-Os erros são capturados ao sair de um campo inválido e, em rejeição de
-cadastro por API, com códigos estáticos `field`/`reason`.
-Não armazenar valores digitados, PII, corpo de erro nem senha.
+Erros de campo são capturados ao sair do campo inválido com códigos
+estáticos `field`/`reason`. O mesmo erro não se repete por novo foco sem
+edição; uma nova edição permite registrar outra validação. Falhas de rede,
+timeout, conflito HTTP, rejeição de dados, autenticação, limitação de
+requisições e problemas do servidor são registradas separadamente como
+`professional_signup_request_error`, em ambos os métodos (e-mail e Google).
+O evento contém exclusivamente `method` e `reason` enumerados. Não
+armazenar valores digitados, PII, URL, mensagem/corpo de erro nem senha.
 
-A página de Jornada do Admin compara sessões que efetivamente
-visualizaram o cadastro profissional com os eventos vinculados à mesma
-visualização, preservando a distinção entre eventos, sessões e fatos reais.
+Falhas HTTP ou da sincronização da sessão não comprovam que a transação
+de criação da conta foi revertida; por isso o relatório apresenta problemas
+**observados pelo cliente**, sem contabilizá-los como cadastros não criados.
+A ausência de qualquer evento também não prova abandono.
+
+A página de Jornada do Admin só mostra o resumo quando houver visitas
+profissionais na janela; compara sessões que efetivamente visualizaram
+a página com os eventos vinculados à mesma visualização, separando erros
+de campo de problemas de solicitação e preservando a distinção entre
+eventos, sessões e fatos reais.
 Esses marcos são observabilidade de UX, não novos estágios transacionais do
 funil de aquisição. Uma sessão sem evento de envio não comprova abandono.
 

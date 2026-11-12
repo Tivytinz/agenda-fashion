@@ -19,6 +19,7 @@ const EVENTOS_FRONTEND = new Set([
   "professional_signup_started",
   "professional_signup_submitted",
   "professional_signup_validation_error",
+  "professional_signup_request_error",
 ]);
 
 const MOTIVOS_SAIDA = new Set([
@@ -30,8 +31,12 @@ const MOTIVOS_SAIDA = new Set([
 ]);
 
 const SIGNUP_FIELDS = new Set(["name", "email", "whatsapp", "password", "password_confirmation", "form"]);
-const SIGNUP_REASONS = new Set(["required", "too_short", "too_long", "invalid_format", "invalid_length", "mismatch", "server_rejected"]);
+const SIGNUP_REASONS = new Set(["required", "too_short", "too_long", "invalid_format", "invalid_length", "mismatch"]);
 const SIGNUP_METHODS = new Set(["email", "google"]);
+const SIGNUP_REQUEST_REASONS = new Set([
+  "conflict", "invalid_request", "auth_rejected", "rate_limited",
+  "timeout", "network_error", "server_error", "unknown"
+]);
 
 const BOOKING_INTENTS = new Set([
   "new_booking",
@@ -58,6 +63,7 @@ const PROPRIEDADES_PERMITIDAS = Object.freeze({
   professional_signup_started: new Set(["method"]),
   professional_signup_submitted: new Set(["method"]),
   professional_signup_validation_error: new Set(["field", "reason"]),
+  professional_signup_request_error: new Set(["method", "reason"]),
 });
 
 const SEARCH_HOSTS = new Set([
@@ -200,6 +206,11 @@ function propriedadesSeguras(nome, propriedades) {
   if (nome === "professional_signup_started" || nome === "professional_signup_submitted") {
     if (!SIGNUP_METHODS.has(resultado.method)) {
       throw criarErro("Método de cadastro inválido.");
+    }
+  }
+  if (nome === "professional_signup_request_error") {
+    if (!SIGNUP_METHODS.has(resultado.method) || !SIGNUP_REQUEST_REASONS.has(resultado.reason)) {
+      throw criarErro("Propriedades do erro de requisição inválidas.");
     }
   }
 
