@@ -25,6 +25,9 @@ function mount(entry = "/criar-negocio?plano=studio") {
   return render(<RouterProvider router={router} />);
 }
 beforeEach(() => {
+  // Cada teste começa com uma guia limpa; o rascunho persistente é avaliado
+  // separadamente nos testes dedicados de recuperação.
+  sessionStorage.clear();
   apiRequest.mockReset(); session.usuario = { id: 4 }; session.refresh.mockReset().mockResolvedValue({});
   session.adoptCreatedBusiness.mockReset().mockReturnValue(true);
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
