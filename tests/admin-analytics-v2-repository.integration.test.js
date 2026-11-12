@@ -3,6 +3,7 @@ const db = require("../src/db/db");
 const {
   buscarReceita,
   buscarVisaoGeral,
+  listarDivulgacaoAf,
 } = require("../src/repositories/adminAnalyticsV2Repository");
 
 describe("Admin Analytics V2 repository - regressão de CTE", () => {
@@ -69,6 +70,44 @@ describe("Admin Analytics V2 repository - regressão de CTE", () => {
       if (usuarioId) {
         await db.query("DELETE FROM usuarios WHERE id = $1", [usuarioId]);
       }
+    }
+  });
+
+  test("relatório de divulgação AF conta sessões distintas e preserva classificação de canal", async () => {
+    const visitante = await db.query(
+      `INSERT INTO analytics_visitantes (visitor_uuid, primeiro_visto_em, ultimo_visto_em)
+       VALUES ($1::UUID, NOW(), NOW()) RETURNING id`,
+      [randomUUID()]
+    );
+    const visitanteId = visitante.rows[0].id;
+    const source = `auditoria_${randomUUID().replace(/-/g, "")}`;
+    try {
+      const sessao = await db.query(
+        `INSERT INTO analytics_sessoes
+           (session_uuid, visitante_id, iniciada_em, ultima_atividade_em)
+         VALUES ($1::UUID, $2, NOW(), NOW()) RETURNING id`,
+        [randomUUID(), visitanteId]
+      );
+      const sessaoId = sessao.rows[0].id;
+      await db.query(
+        `INSERT INTO marketing_sessao_evidencias
+           (sessao_id, af_source, af_medium, af_content, capturado_em)
+         VALUES ($1, $2, 'whatsapp', 'negocio', NOW())`,
+        [sessaoId, source]
+      );
+
+      const resultado = await listarDivulgacaoAf("today");
+      const linha = resultado.divulgacoes.find(
+        (item) => item.af_source === source
+      );
+      expect(linha).toEqual(expect.objectContaining({
+        af_medium: "whatsapp",
+        af_content: "negocio",
+        sessoes: 1,
+        sessoes_classificadas_diretas: 0,
+      }));
+    } finally {
+      await db.query("DELETE FROM analytics_visitantes WHERE id = $1", [visitanteId]);
     }
   });
 
