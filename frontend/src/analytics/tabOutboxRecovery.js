@@ -5,8 +5,8 @@ import {
 } from "../utils/browserStorage";
 
 // Documentos diferentes não devem compartilhar sessionUuid nem a fila de uma
-// guia clonada. A fila ativa continua em sessionStorage; apenas snapshots
-// de fechamento vão para armazenamento durável, particionados por guia.
+// guia clonada. A fila ativa continua em sessionStorage e possui um diário
+// durável particionado por guia, atualizado na inclusão e remoção de lotes.
 const TAB_KEY = "af_analytics_tab_v1";
 const TAB_OWNER_PREFIX = "af_analytics_tab_owner_v1_";
 const PARKED_PREFIX = "af_analytics_parked_v1_";
@@ -75,12 +75,11 @@ export function ensureAnalyticsTabIsolation() {
     openedFromOtherTab = typeof window !== "undefined" && Boolean(window.opener);
   } catch { /* Proteção conservadora abaixo. */ }
 
-  // Se não há tabId mas há sessão V2, veio de versão anterior: reinicia uma vez.
-  // Se a mesma tabId pertence a outro documento vivo, trata como guia clonada,
-  // inclusive nas duplicações nativas que não apresentam window.opener.
+  // Sessões anteriores à implantação do identificador de guia são legítimas:
+  // não apagar aquisição ou tentativa de cadastro só por falta dessa chave.
+  // Para guias com posse registrada, a clonagem é detectada sem opener.
   const copied = openedFromOtherTab ||
-    (hasTabId && Boolean(owner?.documentId) && owner.documentId !== documentId) ||
-    (!hasTabId && Boolean(readBrowserStorage("session", SESSION_KEY)));
+    (hasTabId && Boolean(owner?.documentId) && owner.documentId !== documentId);
 
   if (copied) dropInheritedData();
   tabId = copied || !hasTabId ? makeUuid() : storedId;

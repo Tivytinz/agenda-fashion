@@ -2154,7 +2154,10 @@ coorte. Essas medidas não devem ser comparadas como equivalentes.
   pertencer a outro documento, a sessão, os fluxos e a fila copiados são
   descartados antes da medição. Sem acesso a storage compartilhado, o
   coletor prefere sessão nova, sem prometer isolamento completo em modos
-  restritivos do navegador.
+  restritivos do navegador. Sessões V2 já existentes na implantação
+  que ainda não possuem identificador de guia são preservadas; nessa janela
+  de migração, a duplicação sem `opener` não pode ser inferida de forma
+  segura até o primeiro marcador de posse ser criado.
 - A fila ativa permanece em `sessionStorage`, mas cada alteração é espelhada
   num diário durável `af_analytics_parked_v1_<tabUuid>` por guia, limitado a
   40 lotes por guia e retenção de 24 horas. Em um novo acesso online, o

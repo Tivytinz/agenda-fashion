@@ -30,6 +30,20 @@ afterEach(() => {
 });
 
 describe("isolamento por guia e recuperação offline", () => {
+  it("preserva a sessão V2 existente na implantação do marcador de guia", () => {
+    const previousSession = JSON.stringify({
+      id: SESSION_ID,
+      lastActivityAt: Date.now(),
+      sequence: 5,
+      acquisition: { landingPage: "/para-profissionais" }
+    });
+    sessionStorage.setItem("af_analytics_session_v2", previousSession);
+    expect(sessionStorage.getItem("af_analytics_tab_v1")).toBeNull();
+    const tab = ensureAnalyticsTabIsolation();
+    expect(tab).toMatch(/^[0-9a-f-]{36}$/);
+    expect(sessionStorage.getItem("af_analytics_session_v2")).toBe(previousSession);
+  });
+
   it("duplica guia sem opener e descarta sessão e lote herdados", () => {
     const original = ensureAnalyticsTabIsolation();
     sessionStorage.setItem("af_analytics_session_v2",
