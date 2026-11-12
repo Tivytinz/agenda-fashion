@@ -25,9 +25,15 @@ agendamento. Um worker opcional:
 4. rotula `falta` como positivo e `realizado` como negativo;
 5. mantém agendamentos ativos e cancelados sem rótulo.
 
-Quando houve reagendamento, o backfill reconstrói a data e o horário originais
-com o primeiro registro do histórico, evitando usar como feature uma mudança
-que só aconteceu depois da criação do booking.
+A antecedência de criação e a verificação de compromissos vencidos usam o
+instante canônico persistido em `agendamentos.inicio_previsto_em`, sem
+reinterpretar datas pelo fuso atual do negócio. Agendamentos reagendados ficam
+temporariamente fora da captura v1 porque o histórico não preserva o snapshot
+original do instante/fuso. Amostras legadas desses agendamentos são contabilizadas
+separadamente e **bloqueiam a prontidão de treinamento**, mesmo que os demais
+limites estejam satisfeitos. Não há exclusão automática de amostras históricas.
+Para incluí-las futuramente, é necessário um snapshot temporal auditável e
+versionamento de features.
 
 O worker é ativado explicitamente com `ML_NO_SHOW_DATA_ENABLED=true`. Valores
 opcionais:
@@ -63,7 +69,7 @@ A base só é classificada como pronta quando possuir, no mínimo:
 - 20 faltas;
 - 20 atendimentos realizados;
 - cobertura de captura mínima de 80% dos agendamentos elegíveis à extração v1 (medida independentemente da rotulagem). Agendamentos reagendados sem snapshot temporal original ficam fora do denominador enquanto a extração v1 não os admite;
-- cobertura mínima de 80% entre desfechos explícitos e compromissos já vencidos
+- ausência de amostras legadas de agendamentos reagendados sem snapshot temporal original;\n- cobertura mínima de 80% entre desfechos explícitos e compromissos já vencidos
   que ainda permanecem ativos.
 
 Esses valores são uma barreira operacional inicial, não prova de qualidade. O
