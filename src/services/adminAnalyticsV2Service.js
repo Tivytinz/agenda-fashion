@@ -180,10 +180,12 @@ async function buscarAcquisition(periodo) {
   const periodoSeguro = repository.periodoSeguro(periodo);
   const [
     firstParty,
+    divulgacaoAf,
     funil,
     retornoAquisicao,
   ] = await Promise.all([
     repository.listarAquisicao(periodoSeguro),
+    repository.listarDivulgacaoAf(periodoSeguro),
     professionalFunnelService.buscarFunil({ periodo: periodoSeguro }),
     adminAcquisitionFinancialService.buscar(),
   ]);
@@ -191,6 +193,7 @@ async function buscarAcquisition(periodo) {
   return {
     periodo: periodoSeguro,
     sessoesPorOrigem: firstParty.origens,
+    divulgacaoAf: divulgacaoAf.divulgacoes,
     funilPorCampanha: mapearCampanhasFunil(funil),
     qualidadeMensuracao: funil.qualidadeMensuracao || null,
     diagnosticoAtribuicao: funil.diagnosticoAtribuicao || null,
@@ -198,6 +201,8 @@ async function buscarAcquisition(periodo) {
     metodologia: {
       sessoes:
         "Canal, source e medium são resolvidos no backend a partir de UTM, click IDs consentidos e referrer. Campanhas oficiais exigem correspondência com marketing_campanhas.",
+      divulgacaoAf:
+        "Parâmetros af_* são evidência declarada por links próprios e não comprovam causalidade. Sessões não equivalem a agendamentos ou receita; não alteram canal, CAC ou ROAS.",
       conversao:
         "Cadastros e marcos comerciais continuam vindo da coorte profissional canônica do backend; sessões first-party não são tratadas como cadastro, ativação ou receita.",
       retornoFinanceiro:
