@@ -28,10 +28,12 @@ Execuções obsoletas da mesma PR ou ref podem ser canceladas para que apenas a 
 
 Mudanças preparadas por agentes permanecem em pull request draft até autorização
 explícita do usuário para integração. A transição para `Ready for review`
-representa essa autorização operacional; a partir daí, o workflow
-`.github/workflows/auto-merge.yml` pode habilitar squash auto-merge, sempre
-condicionado aos checks e proteções da `main`. Autorizar integração não autoriza
-bypass de CI, force merge nem deploy manual fora do fluxo protegido.
+representa essa autorização operacional. O workflow
+`.github/workflows/auto-merge.yml` escuta somente esse evento para habilitar
+squash auto-merge, sempre condicionado aos checks e proteções da `main`.
+Abrir ou reabrir uma PR não habilita auto-merge automaticamente. Autorizar
+integração não autoriza bypass de CI, force merge nem deploy manual fora do
+fluxo protegido.
 
 Os quatro shards E2E executam na imagem oficial
 `mcr.microsoft.com/playwright:v1.62.1-noble`, alinhada à versão de
