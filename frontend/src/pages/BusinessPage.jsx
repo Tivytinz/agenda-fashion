@@ -1,5 +1,6 @@
 import { useBusinessEditor } from "../features/business/useBusinessEditor";
 import { BRAZILIAN_STATES } from "../features/business/form";
+import { getPlanIntentPath } from "../auth/session";
 import { Link } from "react-router-dom";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { CategoryEmoji } from "../components/CategoryEmoji";
@@ -58,6 +59,8 @@ export function BusinessPage({ create = false }) {
 
   if (loading) return <main className="workspace-page"><UnsavedChangesGuard onLeave={discardPendingOperations} /><LoadingState>Carregando negócio...</LoadingState></main>;
   if (error && !form.nome && !create) return <main className="workspace-page"><ErrorState message={error} /></main>;
+
+  const firstStepPath = create ? getPlanIntentPath("/cadastro?tipo=profissional", selectedPlan) : undefined;
 
   const addressFields = (
     <div className="form-grid business-address-grid">
@@ -138,9 +141,9 @@ export function BusinessPage({ create = false }) {
   );
 
   return (
-    <SetupFlowFrame backTo={create ? "/conta" : undefined} enabled={create} exitTo={selectedPlan ? "/planos" : "/"} step={2}>
+    <SetupFlowFrame backTo={firstStepPath} enabled={create} exitTo={selectedPlan ? "/planos" : "/"} step={2}>
     <main className={create ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
-      <UnsavedChangesGuard when={unsavedChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
+      <UnsavedChangesGuard when={unsavedChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} preserveOnNavigateTo={create && !mutationBusy ? firstStepPath : undefined} />
       <header className="workspace-heading">
         <div>
           {!create && <p className="eyebrow">Presença pública</p>}

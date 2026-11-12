@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { Link, MemoryRouter, createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { BusinessPage } from "./BusinessPage";
@@ -43,7 +43,8 @@ describe("criação do negócio", () => {
   it("usa ícones oficiais sem alterar os rótulos, a seleção ou o contrato do cadastro", () => {
     render(<MemoryRouter initialEntries={["/criar-negocio"]}><BusinessPage create /></MemoryRouter>);
     expect(screen.getByRole("heading", { name: "Seu negócio" })).not.toBeNull();
-    expect(screen.getByRole("link", { name: "Voltar" }).getAttribute("href")).toBe("/conta");
+    expect(screen.getByRole("link", { name: "Voltar" }).getAttribute("href"))
+      .toBe("/cadastro?tipo=profissional");
     expect(screen.getByLabelText("Nome do negócio")).not.toBeNull();
     expect(screen.getByLabelText("Descrição (opcional)")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Endereço" })).not.toBeNull();
@@ -54,6 +55,35 @@ describe("criação do negócio", () => {
     fireEvent.click(nails);
     expect(nails.checked).toBe(true);
     expect(screen.queryByText(/É uma busca, não um ponto verificado/)).toBeNull();
+  });
+
+  it("volta para a etapa 1 e permite retornar sem descartar o rascunho", async () => {
+    const router = createMemoryRouter([
+      { path: "/criar-negocio", element: <BusinessPage create /> },
+      { path: "/cadastro", element: <>
+        <h1>Etapa 1 do cadastro</h1>
+        <Link to="/criar-negocio">Continuar para o negócio</Link>
+      </> }
+    ], { initialEntries: ["/criar-negocio"] });
+    render(<RouterProvider router={router} />);
+    fireEvent.change(screen.getByLabelText("Nome do negócio"), {
+      target: { value: "Studio preservado" }
+    });
+    await waitFor(() => expect(sessionStorage.getItem("af_business_creation_draft_v1"))
+      .toContain("Studio preservado"));
+    fireEvent.click(screen.getByRole("link", { name: "Voltar" }));
+    expect(await screen.findByRole("heading", { name: "Etapa 1 do cadastro" })).not.toBeNull();
+    expect(sessionStorage.getItem("af_business_creation_draft_v1")).toContain("Studio preservado");
+    fireEvent.click(screen.getByRole("link", { name: "Continuar para o negócio" }));
+    expect(await screen.findByDisplayValue("Studio preservado")).not.toBeNull();
+  });
+
+  it("preserva a intenção do plano no retorno à primeira etapa", () => {
+    render(<MemoryRouter initialEntries={["/criar-negocio?plano=autonoma"]}>
+      <BusinessPage create />
+    </MemoryRouter>);
+    expect(screen.getByRole("link", { name: "Voltar" }).getAttribute("href"))
+      .toBe("/cadastro?tipo=profissional&plano=autonoma");
   });
 
   it("recupera rascunho da mesma conta após remount, sem localStorage", async () => {

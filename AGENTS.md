@@ -365,6 +365,13 @@ essa exceção de compatibilidade com um endereço geocodificado/verificado.
 Links de busca gerados no AF tornam-se pendentes de regeneração se o endereço
 for alterado. Não reescrever links personalizados sem ação explícita da dona.
 
+Na etapa 2, o botão Voltar retorna a `/cadastro?tipo=profissional`
+(etapa 1), preservando a intenção de plano e o rascunho da criação do
+negócio. Como a conta profissional já foi criada, a etapa 1 exibe revisão
+da sessão autenticada, sem repetir o POST de cadastro; a edição de dados
+segue para `/conta` e pode retornar à etapa 1. A saída real do onboarding
+continua protegida contra perda de alterações pendentes.
+
 Rascunhos ainda não enviados podem sobreviver a uma recarga por até 30 minutos
 em `sessionStorage`, vinculados à conta e somente à guia. Nunca usar `localStorage`
 para dados pessoais do formulário, nem guardar senha ou token. Limpar o rascunho

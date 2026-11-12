@@ -1,11 +1,15 @@
 import { useContext, useEffect, useRef } from "react";
 import { UNSAFE_DataRouterContext, useBlocker } from "react-router-dom";
 
-function InternalNavigationGuard({ when, onDiscard, onLeave }) {
+function InternalNavigationGuard({ when, onDiscard, onLeave, preserveOnNavigateTo }) {
   const { router } = useContext(UNSAFE_DataRouterContext);
   const dialogRef = useRef(null);
+  // Navegar entre etapas do mesmo onboarding preserva o rascunho da guia.
+  // Outras saídas continuam sujeitas à confirmação e ao descarte explícito.
+  const isPreservedStep = (location) => Boolean(preserveOnNavigateTo) &&
+    `${location.pathname}${location.search}` === preserveOnNavigateTo;
   const blocker = useBlocker(({ currentLocation, nextLocation }) => (
-    when && (
+    when && !isPreservedStep(nextLocation) && (
       currentLocation.pathname !== nextLocation.pathname
       || currentLocation.search !== nextLocation.search
     )
@@ -20,9 +24,9 @@ function InternalNavigationGuard({ when, onDiscard, onLeave }) {
       const changed = previousLocation.pathname !== location.pathname
         || previousLocation.search !== location.search;
       previousLocation = location;
-      if (changed) onLeave();
+      if (changed && !isPreservedStep(location)) onLeave();
     });
-  }, [onLeave, router]);
+  }, [onLeave, router, preserveOnNavigateTo]);
 
   useEffect(() => {
     if (blocker.state === "blocked") {
@@ -62,7 +66,7 @@ function InternalNavigationGuard({ when, onDiscard, onLeave }) {
   );
 }
 
-export function UnsavedChangesGuard({ when, onDiscard, onLeave }) {
+export function UnsavedChangesGuard({ when, onDiscard, onLeave, preserveOnNavigateTo }) {
   const dataRouter = useContext(UNSAFE_DataRouterContext);
 
   useEffect(() => {
@@ -75,5 +79,5 @@ export function UnsavedChangesGuard({ when, onDiscard, onLeave }) {
     return () => window.removeEventListener("beforeunload", preventExit);
   }, [when]);
 
-  return dataRouter ? <InternalNavigationGuard when={when} onDiscard={onDiscard} onLeave={onLeave} /> : null;
+  return dataRouter ? <InternalNavigationGuard when={when} onDiscard={onDiscard} onLeave={onLeave} preserveOnNavigateTo={preserveOnNavigateTo} /> : null;
 }

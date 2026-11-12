@@ -14,6 +14,7 @@ import {
 import { useSession } from "../auth/SessionContext";
 import { buildProfessionalSignupPath } from "../utils/professionalEntry";
 import { SetupFlowFrame, SetupTitle } from "../components/SetupFlowFrame";
+import { ProfessionalSignupReview } from "../components/ProfessionalSignupReview";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { AuthFieldLabel } from "../components/AuthFieldLabel";
@@ -204,6 +205,12 @@ export function AuthPage({ mode = "login" }) {
     return <main className="auth-page"><ErrorState message={session.syncError} onRetry={() => session.refresh().catch(() => {})} /></main>;
   }
   if (session.authenticated) {
+    // A etapa 1 já foi concluída: mostrar revisão da conta, nunca outro POST
+    // de cadastro nem um redirecionamento automático para a etapa 2.
+    if (isRegister && professionalIntent && !session.temNegocio &&
+        !session.temReservasProfissionaisRestritas && session.usuario) {
+      return <ProfessionalSignupReview user={session.usuario} planSlug={authIntent.planSlug} />;
+    }
     return <Navigate replace to={destination} />;
   }
 

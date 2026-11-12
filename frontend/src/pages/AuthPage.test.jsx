@@ -33,9 +33,10 @@ const login = vi.fn();
 const register = vi.fn();
 const loginWithGoogle = vi.fn();
 let sessionLoading = false;
+let authenticatedSession = null;
 
 vi.mock("../auth/SessionContext", () => ({
-  useSession: () => ({
+  useSession: () => authenticatedSession || ({
     authenticated: false,
     loading: sessionLoading,
     temNegocio: false,
@@ -54,6 +55,7 @@ const { AuthPage } = await import("./AuthPage");
 
 beforeEach(() => {
   sessionLoading = false;
+  authenticatedSession = null;
   login.mockReset();
   register.mockReset();
   loginWithGoogle.mockReset();
@@ -102,6 +104,45 @@ describe("retorno após autenticação", () => {
     expect(safeReturnPath("//site-malicioso.test")).toBe("");
     expect(safeReturnPath("https://site-malicioso.test")).toBe("");
     expect(safeReturnPath(null)).toBe("");
+  });
+});
+
+describe("retorno à etapa 1 após conta criada", () => {
+  it("exibe a conta existente em vez de registrar novamente e continua com o plano", async () => {
+    authenticatedSession = {
+      authenticated: true, loading: false, temNegocio: false,
+      usuario: { id: 7, nome: "Ana", email: "ana@example.test", whatsapp: "62999999999" }
+    };
+    render(<MemoryRouter initialEntries={["/cadastro?tipo=profissional&plano=autonoma"]}>
+      <Routes>
+        <Route path="/cadastro" element={<AuthPage mode="register" />} />
+        <Route path="/criar-negocio" element={<h1>Etapa 2 do cadastro</h1>} />
+      </Routes>
+    </MemoryRouter>);
+    expect(screen.getByLabelText("Etapa 1 de 4: Conta")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Sua conta" })).not.toBeNull();
+    expect(screen.getByText("ana@example.test")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Criar conta" })).toBeNull();
+    expect(register).not.toHaveBeenCalled();
+    expect(screen.getByRole("link", { name: "Editar meus dados" }).getAttribute("href")).toBe("/conta");
+    await userEvent.setup().click(screen.getByRole("link", { name: "Continuar para o negócio" }));
+    expect(screen.getByRole("heading", { name: "Etapa 2 do cadastro" })).not.toBeNull();
+    expect(register).not.toHaveBeenCalled();
+  });
+
+  it("não reabre cadastro quando a conta já tem negócio", async () => {
+    authenticatedSession = {
+      authenticated: true, loading: false, temNegocio: true,
+      usuario: { id: 7, nome: "Ana" }, negocio: { papel: "dono" }
+    };
+    render(<MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+      <Routes>
+        <Route path="/cadastro" element={<AuthPage mode="register" />} />
+        <Route path="/painel" element={<h1>Painel</h1>} />
+      </Routes>
+    </MemoryRouter>);
+    expect(await screen.findByRole("heading", { name: "Painel" })).not.toBeNull();
+    expect(screen.queryByRole("heading", { name: "Sua conta" })).toBeNull();
   });
 });
 
