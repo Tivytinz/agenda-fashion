@@ -198,7 +198,7 @@ describe("jornada administrativa v2", () => {
     expect(within(signup).getByText("Tentaram cadastrar")).not.toBeNull();
     expect(within(signup).getByText("Encontraram erro de campo")).not.toBeNull();
     expect(within(signup).getByText("Falha de solicitação")).not.toBeNull();
-    expect(screen.getByText(/Uma sessão pode conter vários erros/)).not.toBeNull();
+    expect(screen.getByText(/Uma sessão pode conter vários eventos/)).not.toBeNull();
 
     expect(
       screen.getByRole(
