@@ -10,6 +10,34 @@ describe(
   "diagnóstico integrado de maturidade ML no-show",
   () => {
     test(
+      "bloqueia treinamento com amostra legada mesmo quando demais gates passam",
+      () => {
+        const dados = {
+          total_amostras: 500,
+          amostras_rotuladas: 450,
+          faltas: 100,
+          realizados: 350,
+          pendentes_vencidos: 0,
+        };
+        const cobertura = {
+          total_elegiveis: 500,
+          total_capturados: 500,
+          amostras_reagendadas_legadas: 1,
+        };
+        const bloqueada = avaliarProntidao(dados, cobertura);
+        expect(bloqueada.pronta_para_treinamento).toBe(false);
+        expect(bloqueada.motivos).toEqual([
+          "amostras_reagendadas_legadas",
+        ]);
+        const semLegado = avaliarProntidao(dados, {
+          ...cobertura,
+          amostras_reagendadas_legadas: 0,
+        });
+        expect(semLegado.pronta_para_treinamento).toBe(true);
+      }
+    );
+
+    test(
       "executa agregações somente leitura sobre o schema real",
       async () => {
         const captura = await repository.obterCoberturaCaptura();
