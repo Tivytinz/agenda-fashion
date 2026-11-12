@@ -76,6 +76,33 @@ describe("worker de dados de ML para no-show", () => {
     ).toHaveBeenCalledWith("ml_no_show_dados", erro);
   });
 
+  test("falha no intervalo agendado é registrada sem rejeição não tratada", async () => {
+    const erro = new Error("banco indisponível no intervalo");
+    mockColetar.mockRejectedValue(erro);
+
+    let executarIntervalo;
+    const timeoutSpy = jest.spyOn(global, "setTimeout")
+      .mockImplementation(() => ({ unref: jest.fn() }));
+    const intervalSpy = jest.spyOn(global, "setInterval")
+      .mockImplementation((callback) => {
+        executarIntervalo = callback;
+        return { unref: jest.fn() };
+      });
+
+    try {
+      expect(worker.iniciarWorkerMlNoShow()).toBe(true);
+      expect(executarIntervalo).toEqual(expect.any(Function));
+      executarIntervalo();
+      await new Promise((resolve) => process.nextTick(resolve));
+      expect(mockColetar).toHaveBeenCalledTimes(1);
+      expect(mockMetricas.registrarExecucaoFalha)
+        .toHaveBeenCalledWith("ml_no_show_dados", erro);
+    } finally {
+      timeoutSpy.mockRestore();
+      intervalSpy.mockRestore();
+    }
+  });
+
   test("permanece desligado sem a flag explícita", async () => {
     process.env.ML_NO_SHOW_DATA_ENABLED = "false";
 

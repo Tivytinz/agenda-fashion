@@ -391,6 +391,126 @@ test(
 );
 
 test(
+  "pagamento confirmado ausente mantém retry sem enviar conversão",
+  async () => {
+    deliveryRepository
+      .reservarProximo
+      .mockResolvedValueOnce({
+        id: 31,
+        provedor: "meta",
+        payload,
+        lease_tentativa: 4
+      });
+
+    marketingConversaoRepository
+      .buscarPagamentoConfirmado
+      .mockResolvedValueOnce(null);
+
+    await service.processarFilaConversoes(1);
+
+    expect(
+      deliveryRepository.marcarFalha
+    ).toHaveBeenCalledWith(
+      31,
+      4,
+      "Pagamento confirmado não encontrado para entregar a conversão."
+    );
+    expect(
+      deliveryRepository.marcarIgnorado
+    ).not.toHaveBeenCalled();
+    expect(
+      deliveryRepository.marcarEnviado
+    ).not.toHaveBeenCalled();
+    expect(
+      metaAdsService.enviarEvento
+    ).not.toHaveBeenCalled();
+  }
+);
+
+test(
+  "Google não envia purchase sem pagamento confirmado e mantém retry",
+  async () => {
+    deliveryRepository
+      .reservarProximo
+      .mockResolvedValueOnce({
+        id: 32,
+        provedor: "google",
+        payload,
+        lease_tentativa: 5
+      });
+
+    marketingConversaoRepository
+      .buscarPagamentoConfirmado
+      .mockResolvedValueOnce(null);
+
+    await service.processarFilaConversoes(1);
+
+    expect(
+      deliveryRepository.marcarFalha
+    ).toHaveBeenCalledWith(
+      32,
+      5,
+      "Pagamento confirmado não encontrado para entregar a conversão."
+    );
+    expect(
+      deliveryRepository.marcarIgnorado
+    ).not.toHaveBeenCalled();
+    expect(
+      deliveryRepository.marcarEnviado
+    ).not.toHaveBeenCalled();
+    expect(
+      googleMeasurementService.enviarEventoMeasurementProtocol
+    ).not.toHaveBeenCalled();
+  }
+);
+
+test(
+  "lease perdido ao confirmar entrega não é sobrescrito por falha de retry",
+  async () => {
+    deliveryRepository
+      .reservarProximo
+      .mockResolvedValueOnce({
+        id: 33,
+        provedor: "google",
+        payload,
+        lease_tentativa: 6
+      });
+    googleMeasurementRepository
+      .buscarPerfilPorUsuario
+      .mockResolvedValue({
+        usuario_id: 3,
+        google_consentimento_status: true,
+        google_consentido_em:
+          new Date().toISOString(),
+        google_revogado_em: null,
+        google_client_id: "123.456"
+      });
+    googleMeasurementService
+      .enviarEventoMeasurementProtocol
+      .mockResolvedValue({ enviado: true });
+    deliveryRepository
+      .marcarEnviado
+      .mockResolvedValueOnce(null);
+
+    await service.processarFilaConversoes(1);
+
+    expect(deliveryRepository.marcarEnviado)
+      .toHaveBeenCalledWith(33, 6);
+    expect(deliveryRepository.marcarFalha)
+      .not.toHaveBeenCalled();
+    expect(deliveryRepository.marcarIgnorado)
+      .not.toHaveBeenCalled();
+    expect(registrador.aviso).toHaveBeenCalledWith(
+      expect.stringContaining("lease perdido"),
+      expect.objectContaining({
+        entrega_id: 33,
+        tentativa: 6
+      })
+    );
+  }
+);
+
+test(
   "identificador inválido vira falha terminal em vez de conversão ignorada",
   async () => {
     deliveryRepository

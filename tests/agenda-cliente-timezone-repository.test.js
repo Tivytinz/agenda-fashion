@@ -1,43 +1,118 @@
-jest.mock("../src/db/db", () => ({
-  query: jest.fn(),
-}));
-
-const agendaPublicaRepository = require(
-  "../src/repositories/agendaPublicaRepository"
+jest.mock(
+  "../src/db/db",
+  () => ({
+    query: jest.fn(),
+  })
 );
 
-describe("agenda do cliente com timezone", () => {
-  test("bloqueia somente a linha de agendamento ao buscar com negócio em LEFT JOIN", async () => {
-    const executor = {
-      query: jest.fn().mockResolvedValue({ rows: [] }),
-    };
+const db =
+  require("../src/db/db");
+const agendamentoLifecycleRepository =
+  require(
+    "../src/repositories/agendamentoLifecycleRepository"
+  );
+const agendamentoCancelamentoRepository =
+  require(
+    "../src/repositories/agendamentoCancelamentoRepository"
+  );
 
-    await agendaPublicaRepository.buscarAgendamentoCliente(
-      15,
-      9,
-      executor,
-      { bloquear: true }
+describe(
+  "agenda do cliente e lifecycle persistido",
+  () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    test(
+      "bloqueia somente a linha do booking no cancelamento do cliente",
+      async () => {
+        const executor = {
+          query:
+            jest.fn()
+              .mockResolvedValue({
+                rows: [],
+              }),
+        };
+
+        await agendamentoCancelamentoRepository
+          .buscarAgendamentoClienteParaCancelar({
+            agendamentoId: 15,
+            clienteId: 9,
+            executor,
+          });
+
+        const [
+          sql,
+          parametros,
+        ] =
+          executor.query
+            .mock.calls[0];
+
+        expect(
+          sql
+        ).toContain(
+          "INNER JOIN negocios n"
+        );
+        expect(
+          sql
+        ).toContain(
+          "FOR UPDATE OF a"
+        );
+        expect(
+          sql
+        ).not.toMatch(
+          /FOR UPDATE\s*(?:$|;)/m
+        );
+        expect(
+          parametros
+        ).toEqual([
+          15,
+          9,
+        ]);
+      }
     );
 
-    const [sql, parametros] = executor.query.mock.calls[0];
+    test(
+      "listagem usa o status persistido e não inventa realizado pelo relógio",
+      async () => {
+        db.query
+          .mockResolvedValue({
+            rows: [],
+          });
 
-    expect(sql).toContain("LEFT JOIN negocios n");
-    expect(sql).toContain("FOR UPDATE OF a");
-    expect(sql).not.toMatch(/FOR UPDATE\s*(?:$|;)/m);
-    expect(parametros).toEqual([15, 9]);
-  });
+        await agendamentoLifecycleRepository
+          .listarAgendamentosCliente(
+            9
+          );
 
-  test("status de meus agendamentos usa o fuso do negócio com fallback histórico", async () => {
-    const db = require("../src/db/db");
-    db.query.mockResolvedValue({ rows: [] });
+        const [
+          sql,
+          parametros,
+        ] =
+          db.query
+            .mock.calls[0];
 
-    await agendaPublicaRepository.listarMeusAgendamentos(9);
-
-    const [sql, parametros] = db.query.mock.calls[0];
-
-    expect(sql).toContain("n.fuso_horario");
-    expect(sql).toContain("America/Sao_Paulo");
-    expect(sql).toContain("NOW() AT TIME ZONE");
-    expect(parametros).toEqual([9]);
-  });
-});
+        expect(
+          sql
+        ).toContain(
+          "a.status"
+        );
+        expect(
+          sql
+        ).not.toContain(
+          "NOW() AT TIME ZONE"
+        );
+        expect(
+          sql
+        ).not.toMatch(
+          /THEN\s+'realizado'/i
+        );
+        expect(
+          parametros
+        ).toEqual([
+          9,
+        ]);
+      }
+    );
+  }
+);

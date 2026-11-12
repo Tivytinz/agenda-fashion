@@ -16,6 +16,19 @@ Sem essa autorização:
 
 Ao negar ou revogar, a atribuição opcional controlada pelo AF no navegador é limpa tanto do pipeline legado quanto do Analytics V2, inclusive de lotes ainda pendentes de envio. Dados transacionais já persistidos não são reescritos para fabricar atribuição.
 
+## Evidência de links próprios do AF
+
+Links públicos podem carregar `af_source`, `af_medium` e `af_content`.
+O Analytics V2 preserva esses valores como evidência declarada pelo próprio
+link, separada de UTM e click IDs de publicidade. A captura não depende do
+consentimento opcional para campanhas publicitárias, mas continua sujeita às
+regras gerais de privacidade e retenção de telemetria técnica first-party.
+O backend limita os tamanhos e não transforma esses campos em campanha oficial.\nEsses parâmetros são valores declarados na URL e não são prova de origem\nautenticada: podem ser alterados por qualquer visitante. Não devem carregar\nnomes, telefones, e-mails, identificadores pessoais ou dados sensíveis.
+
+Essa evidência não comprova que o compartilhamento causou a visita, o
+agendamento ou receita. Agendamento válido e monetização são confirmados
+pelos registros transacionais, nunca pela presença de `af_*`.\n\nA classificação canônica de canal continua baseada em UTMs, click IDs e\nreferrer. Uma sessão com somente `af_*` pode aparecer como `direct` na\nclassificação legada; relatórios futuros devem exibir a evidência AF em\ndimensão separada, sem alterar retroativamente canal, CAC ou ROAS.\nA ausência dessa dimensão nos painéis atuais não autoriza inferir que a\nvisita não veio de um link compartilhado.
+
 ## Regra de integridade da evidência
 
 A evidência bruta de aquisição capturada pelo Agenda Fashion deve ser preservada para auditoria. Rotinas de canonicalização, sincronização de custos e vínculo de campanhas podem resolver identidades e criar metadados auxiliares, mas não podem apagar ou reescrever UTMs, click IDs, landing pages ou eventos já capturados somente para fazer o dado caber na identidade oficial de uma campanha.

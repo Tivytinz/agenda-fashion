@@ -637,7 +637,11 @@ describe("Wave 8 - privacidade e encerramento P0", () => {
 
     const estado = await db.query(
       `
-        SELECT ativo, encerrado_definitivo_em
+        SELECT
+          ativo,
+          senha,
+          google_sub,
+          encerrado_definitivo_em
         FROM usuarios
         WHERE id = $1
       `,
@@ -645,6 +649,8 @@ describe("Wave 8 - privacidade e encerramento P0", () => {
     );
 
     expect(estado.rows[0].ativo).toBe(false);
+    expect(estado.rows[0].senha).toBeNull();
+    expect(estado.rows[0].google_sub).toBeNull();
     expect(
       estado.rows[0].encerrado_definitivo_em
     ).toBeTruthy();

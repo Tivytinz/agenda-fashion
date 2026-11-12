@@ -1,7 +1,7 @@
 # Backend — arquitetura e mapa operacional
 
 > Documento especializado da arquitetura do backend do Agenda Fashion.
-> Atualizado em setembro de 2026 a partir do código executável, migrations e testes da `main`.
+> Documento mantido a partir do código executável, migrations e testes da `main`; inventários numéricos temporários não são fonte de verdade.
 >
 > A visão arquitetural geral permanece em [arquitetura.md](./arquitetura.md). Regras de produto duráveis permanecem em [AGENTS.md](../AGENTS.md).
 
@@ -325,7 +325,7 @@ O inventário de rotas acima indica superfície e autorização. Os contratos ab
 
 **Catálogo e SEO.** Catálogo local JSON usa categoria/localidade, página e limite. A versão HTML redireciona para o caminho canônico quando necessário, injeta metadados no shell React e retorna 404 HTML com `noindex,follow` quando não há oferta publicada. Sitemap usa cache público de uma hora e robots de um dia.
 
-**CEP e encerramento.** Consulta de CEP delega normalização/consulta ao service. Encerramento de negócio, desativação e exclusão de conta derivam a identidade exclusivamente da sessão. Reservas de cliente desativado continuam acessíveis/canceláveis somente por capability específica, recebida por header/query na consulta e body/query no cancelamento.
+**CEP e encerramento.** Consulta de CEP delega normalização/consulta ao service. Encerramento de negócio, desativação e exclusão de conta derivam a identidade exclusivamente da sessão. Reservas de cliente desativado continuam acessíveis/canceláveis somente por capability específica, recebida por header na consulta e body no cancelamento; query string nunca é transporte autorizado para a credencial.
 
 **Webhooks.** Asaas exige `id` e `event`; payload válido é enfileirado e a resposta informa `recebido`, `duplicado` e `enfileirado`. Processamento pesado ocorre fora do request. A verificação GET do WhatsApp compara o token de verificação em tempo constante e devolve o challenge somente para `subscribe` válido; o POST processa o payload autenticado e responde `recebido: true` junto ao resultado seguro.
 
@@ -453,9 +453,9 @@ Os oito workers são coordenados por `src/workers/backgroundWorkers.js`. O proce
 
 ### 11.2 Regras de execução
 
-Workers periódicos mantêm proteção local contra sobreposição da própria execução. Métricas operacionais registram worker iniciado/parado e início/sucesso/falha das execuções. Os workers financeiros processam candidatos individualmente quando aplicável, permitindo contabilizar falhas sem transformar uma falha isolada em rollback lógico de todo o lote.
+Workers periódicos mantêm proteção local contra sobreposição da própria execução. Essa proteção local não coordena dois processos web diferentes. Métricas operacionais registram worker iniciado/parado e início/sucesso/falha das execuções. Os workers financeiros processam candidatos individualmente quando aplicável, permitindo contabilizar falhas sem transformar uma falha isolada em rollback lógico de todo o lote.
 
-A idempotência não é delegada ao timer: ela é sustentada pelos repositories, constraints, chaves externas, leases, snapshots e operações transacionais de cada domínio. Por isso, aumentar frequência ou paralelismo exige revisar essas garantias antes de alterar a agenda.
+A idempotência não é delegada ao timer: ela é sustentada pelos repositories, constraints, chaves externas, leases, snapshots e operações transacionais de cada domínio. Por isso, aumentar frequência, paralelismo ou réplicas web exige revisar essas garantias antes de alterar a topologia. Enquanto workers residirem no web, scale-out não é transparente.
 
 ## 12. Integrações externas
 
@@ -538,7 +538,7 @@ Mudança de backend deve receber teste proporcional ao risco. Documentação iso
 
 ### 14.1 Auditoria de cobertura da documentação
 
-Na revisão de fechamento desta versão, o repositório contém **25 arquivos de rotas, 46 controllers, 118 services, 81 repositories, 103 migrations SQL e 308 arquivos de teste Jest**. Esses números são inventário do snapshot revisado, não metas arquiteturais.
+Contagens de arquivos, migrations e testes mudam com frequência e não são mantidas como contrato arquitetural. Para inventário atual, consulte a árvore da `main`, migrations e suítes executáveis.
 
 A documentação é intencionalmente organizada por contrato e domínio, e não como cópia arquivo a arquivo. O inventário HTTP cobre os módulos montados por `src/routes/index.js`; as seções de contratos registram as fronteiras observáveis dos controllers e os casos de maior risco; persistência descreve ownership lógico e invariantes em vez de repetir cada query; workers e integrações possuem catálogo operacional próprio.
 

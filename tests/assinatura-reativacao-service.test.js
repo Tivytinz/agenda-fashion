@@ -80,6 +80,46 @@ test("ausência confirmada restaura cancelamento e encerra a obrigação", async
   expect(repository.registrarReativacao).not.toHaveBeenCalled();
 });
 
+test("recorrência incompatível é removida sem ativar assinatura", async () => {
+  pendente();
+  asaas.buscarAssinaturaPorReferencia.mockResolvedValue({
+    id: "sub_incompativel",
+    status: "ACTIVE",
+    nextDueDate: "2099-12-02"
+  });
+  operacoes.marcarRemocao.mockResolvedValue({
+    ...operacao(),
+    estado: "REMOVING",
+    asaas_subscription_id: "sub_incompativel"
+  });
+
+  await reconciliarReativacaoAbandonada(7);
+
+  expect(repository.registrarReativacao).not.toHaveBeenCalled();
+  expect(asaas.removerAssinaturaAsaas).toHaveBeenCalledWith("sub_incompativel");
+  expect(asaas.criarAssinaturaAsaas).not.toHaveBeenCalled();
+});
+
+test("lease de execução obsoleto não confirma recorrência recuperada", async () => {
+  pendente();
+  operacoes.bloquearContexto.mockResolvedValue({
+    assinatura: { ...reservada(), periodo_pago_valido: true },
+    operacao: { ...operacao(), execucao_versao: 2 }
+  });
+
+  await expect(
+    reconciliarReativacaoAbandonada(7)
+  ).resolves.toBeNull();
+
+  expect(operacoes.registrarRecorrencia).toHaveBeenCalledWith(
+    20, 1, "sub_nova"
+  );
+  expect(repository.registrarReativacao).not.toHaveBeenCalled();
+  expect(operacoes.concluir).not.toHaveBeenCalled();
+  expect(asaas.removerAssinaturaAsaas).not.toHaveBeenCalled();
+  expect(asaas.criarAssinaturaAsaas).not.toHaveBeenCalled();
+});
+
 test("erro ambíguo de consulta mantém a operação recuperável", async () => {
   pendente(); asaas.buscarAssinaturaPorReferencia.mockRejectedValue(new Error("timeout"));
   await expect(reconciliarReativacaoAbandonada(7)).resolves.toBeNull();
@@ -111,6 +151,36 @@ test("operação recente impede outra criação mesmo sem acesso ativo", async (
   operacoes.possuiPendente.mockResolvedValue(true);
   repository.buscarAssinaturaAtivaPorNegocio.mockResolvedValue(null);
   await expect(reativarMinhaAssinatura({ usuarioId: 10 })).rejects.toMatchObject({ statusCode: 409, codigo: "RENOVACAO_PENDENTE" });
+  expect(asaas.criarAssinaturaAsaas).not.toHaveBeenCalled();
+});
+
+test("reserva concorrente perdida não remove nem cria assinatura no Asaas", async () => {
+  repository.reservarReativacao.mockResolvedValue(null);
+
+  await expect(
+    reativarMinhaAssinatura({ usuarioId: 10 })
+  ).rejects.toMatchObject({
+    statusCode: 409,
+    codigo: "RENOVACAO_PENDENTE"
+  });
+
+  expect(asaas.removerAssinaturaAsaas).not.toHaveBeenCalled();
+  expect(asaas.criarAssinaturaAsaas).not.toHaveBeenCalled();
+  expect(operacoes.registrarRecorrencia).not.toHaveBeenCalled();
+});
+
+test("reativação já ativa não cria outra cobrança ou recorrência", async () => {
+  repository.buscarAssinaturaAtivaPorNegocio.mockResolvedValue({
+    ...cancelada(),
+    status: "ACTIVE",
+    renovacao_cancelada: false
+  });
+
+  const resultado = await reativarMinhaAssinatura({ usuarioId: 10 });
+
+  expect(resultado.assinatura.status).toBe("ACTIVE");
+  expect(repository.reservarReativacao).not.toHaveBeenCalled();
+  expect(asaas.removerAssinaturaAsaas).not.toHaveBeenCalled();
   expect(asaas.criarAssinaturaAsaas).not.toHaveBeenCalled();
 });
 

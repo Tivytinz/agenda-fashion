@@ -134,6 +134,7 @@ function formatWhatsapp(value) {
 function SummaryCard({ active, filter, hint, label, onSelect, value }) {
   return (
     <button
+      aria-label={`${label} ${value ?? 0} ${hint}`}
       aria-pressed={active}
       className={`metric-card saas-health-metric-card${active ? " active" : ""}`}
       onClick={() => onSelect(filter)}

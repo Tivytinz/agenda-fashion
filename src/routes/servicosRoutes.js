@@ -151,8 +151,8 @@ router.patch("/:id/ativo", auth, alterarAtivoServico);
 router.delete("/:id", auth, removerServico);
 router.post(
   "/:id/foto",
-  limitarUpload,
   auth,
+  limitarUpload,
   upload.single("foto"),
   enviarFotoServico
 );
@@ -187,8 +187,8 @@ router.get("/:id/fotos/tentativa", auth, consultarTentativaFoto);
 
 router.post(
   "/:id/fotos",
-  limitarUpload,
   auth,
+  limitarUpload,
   upload.single("foto"),
   adicionarFotoGaleriaServico
 );

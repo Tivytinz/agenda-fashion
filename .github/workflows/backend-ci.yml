@@ -17,6 +17,7 @@ env:
   NODE_ENV: test
   DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/agenda_fashion_test
   JWT_SECRET: ci-jwt-secret-with-at-least-32-characters
+  BOOKING_CAPABILITY_SECRET: ci-booking-capability-secret-with-at-least-32-characters
   ASAAS_API_URL: https://api-sandbox.asaas.com/v3
   ASAAS_API_KEY: ci-asaas-key
   ASAAS_WEBHOOK_TOKEN: ci-webhook-token-with-at-least-32-characters
@@ -121,7 +122,7 @@ jobs:
     runs-on: ubuntu-24.04
     container:
       # Manter a versão alinhada ao frontend/package-lock.json.
-      image: mcr.microsoft.com/playwright:v1.62.1-noble
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
       options: --init --ipc=host
     env:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/agenda_fashion_test

@@ -206,6 +206,30 @@ async function listarAquisicao(periodo = "30") {
   };
 }
 
+async function listarDivulgacaoAf(periodo = "30") {
+  const seguro = periodoSeguro(periodo);
+  const filtro = filtroTimestamp(seguro, "s.iniciada_em");
+  const resultado = await db.query(
+    `
+    SELECT
+      e.af_source,
+      e.af_medium,
+      e.af_content,
+      COUNT(DISTINCT s.id)::INT AS sessoes,
+      COUNT(DISTINCT s.id) FILTER (WHERE o.canal = 'direct')::INT AS sessoes_classificadas_diretas
+    FROM marketing_sessao_evidencias e
+    INNER JOIN analytics_sessoes s ON s.id = e.sessao_id
+    LEFT JOIN analytics_sessao_origens o ON o.sessao_id = s.id
+    WHERE (e.af_source IS NOT NULL OR e.af_medium IS NOT NULL OR e.af_content IS NOT NULL)
+      ${filtro}
+    GROUP BY e.af_source, e.af_medium, e.af_content
+    ORDER BY COUNT(DISTINCT s.id) DESC, e.af_source ASC NULLS LAST
+    LIMIT 100
+    `
+  );
+  return { periodo: seguro, divulgacoes: resultado.rows };
+}
+
 async function buscarJornada(periodo = "30") {
   const seguro = periodoSeguro(periodo);
   const filtroVisualizacao = filtroTimestamp(seguro, "v.entrou_em");
@@ -1787,6 +1811,7 @@ module.exports = {
   periodoSeguro,
   buscarVisaoGeral,
   listarAquisicao,
+  listarDivulgacaoAf,
   buscarJornada,
   buscarReconciliacaoPipelines,
   buscarReceita,

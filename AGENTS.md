@@ -584,9 +584,10 @@ checkout ou operação financeira pendente; convites ainda pendentes tornam-se
 não aceitáveis, sem apagar histórico.
 
 Encerramento definitivo de conta é lógico quando referências históricas precisam
-ser preservadas. Profissional com booking operacional atribuído não pode encerrar
-definitivamente a conta. Proprietária só encerra a identidade depois que o
-negócio puder ser arquivado com segurança.
+ser preservadas, mas credenciais reutilizáveis de autenticação devem ser
+inutilizadas no estado terminal. Profissional com booking operacional atribuído
+não pode encerrar definitivamente a conta. Proprietária só encerra a identidade
+depois que o negócio puder ser arquivado com segurança.
 
 Conta de cliente pode ser desativada sem cancelar automaticamente reservas.
 Enquanto houver booking operacional, o `Client` e os dados mínimos permanecem,
@@ -619,7 +620,10 @@ Mutações por cookie mantêm proteção CSRF compatível com a topologia same-o
 atual. Alterar origem, `SameSite`, embedding cross-site ou modo de autenticação
 exige reabrir o threat model antes do deploy.
 
-Capabilities de booking são credenciais de escopo mínimo: não trafegam em query
+Capabilities de booking são credenciais de escopo mínimo: usam segredo dedicado
+separado da sessão em produção, e qualquer fallback de rotação/links legados deve ser
+explícito e temporário, sem aceitar automaticamente a chave de sessão quando o
+segredo dedicado já existe; não trafegam em query
 de API, não viram sessão geral e respostas sensíveis usam política de cache
 compatível com dados privados.
 
@@ -646,11 +650,15 @@ SQL novo pertence a repositories; routes/controllers não acessam banco
 diretamente. Operações críticas que exigem atomicidade usam transação e efeitos
 externos não devem permanecer dentro de locks de banco sem necessidade.
 
-Toda mudança de banco exige migration nova. Migration aplicada não é reescrita
+Toda mudança de banco exige migration nova. Migration aplicada não é reescrita.
+Mudança incompatível com a versão anterior deve seguir expand/contract em
+deploys separados; migrations de rollout não podem quebrar o runtime ainda em
+drain
 para corrigir o passado.
 
 Configuração obrigatória é validada no startup. Integração habilitada não pode
-iniciar com credenciais parciais, e workers só podem ser separados do processo
+iniciar com credenciais parciais, e scale-out do web exige revisar stores
+compartilhados e coordenação distribuída; workers só podem ser separados do processo
 web depois que o processo dedicado estiver implantado e saudável.
 
 Diagnósticos administrativos expõem apenas métricas operacionais seguras, nunca
@@ -658,6 +666,10 @@ credenciais ou payloads sensíveis.
 
 O PostgreSQL crítico mantém meta de RPO ≤ 1 hora e RTO ≤ 4 horas, mas essas metas
 só podem ser declaradas comprovadas após backup/PITR e restore controlado medidos.
+Encerramento definitivo não equivale a apagar PII imediatamente: retenção ou
+anonimização exige finalidade e prazo aprovados por categoria, sem job com prazo
+arbitrário.
+
 Alterações em backup, retenção, PITR ou infraestrutura de produção exigem
 autorização explícita.
 

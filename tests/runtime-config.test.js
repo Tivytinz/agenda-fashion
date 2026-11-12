@@ -46,7 +46,10 @@ describe("configuração central do runtime", () => {
       PUBLIC_APP_URL: "http://agendafashion.com.br",
       ASAAS_API_URL: "https://api.asaas.com/v3",
       ASAAS_API_KEY: "$aact_prod_teste",
-      ASAAS_WEBHOOK_TOKEN: "token-webhook",
+      ASAAS_WEBHOOK_TOKEN:
+        "token-webhook-com-pelo-menos-trinta-e-dois-caracteres",
+      BOOKING_CAPABILITY_SECRET:
+        "booking-secret-diferente-com-pelo-menos-trinta-e-dois-caracteres",
     })).toThrow("PUBLIC_APP_URL precisa usar HTTPS");
   });
 
@@ -58,9 +61,52 @@ describe("configuração central do runtime", () => {
       ASAAS_API_URL: "https://api.asaas.com/v3",
       ASAAS_API_KEY: "$aact_prod_teste",
       ASAAS_WEBHOOK_TOKEN: "token-curto",
+      BOOKING_CAPABILITY_SECRET:
+        "booking-secret-diferente-com-pelo-menos-trinta-e-dois-caracteres",
     })).toThrow(
       "Produção: ASAAS_WEBHOOK_TOKEN precisa ter pelo menos 32 caracteres."
     );
+  });
+
+
+  test("exige segredo dedicado de capability em produção", () => {
+    const baseProducao = {
+      ...ambienteBase(),
+      NODE_ENV: "production",
+      PUBLIC_APP_URL: "https://agendafashion.com.br",
+      ASAAS_API_URL: "https://api.asaas.com/v3",
+      ASAAS_API_KEY: "$aact_prod_teste",
+      ASAAS_WEBHOOK_TOKEN:
+        "token-webhook-com-pelo-menos-trinta-e-dois-caracteres",
+    };
+
+    expect(() =>
+      validarConfiguracaoRuntime(
+        baseProducao
+      )
+    ).toThrow(
+      "BOOKING_CAPABILITY_SECRET"
+    );
+
+    expect(() =>
+      validarConfiguracaoRuntime({
+        ...baseProducao,
+        BOOKING_CAPABILITY_SECRET:
+          baseProducao.JWT_SECRET,
+      })
+    ).toThrow(
+      "BOOKING_CAPABILITY_SECRET deve ser diferente de JWT_SECRET"
+    );
+
+    expect(
+      validarConfiguracaoRuntime({
+        ...baseProducao,
+        BOOKING_CAPABILITY_SECRET:
+          "booking-secret-diferente-com-pelo-menos-trinta-e-dois-caracteres",
+      })
+    ).toMatchObject({
+      producao: true,
+    });
   });
 
   test("exige credenciais completas quando o WhatsApp está ativo", () => {

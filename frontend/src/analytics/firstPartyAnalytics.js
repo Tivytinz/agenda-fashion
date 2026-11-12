@@ -140,6 +140,9 @@ function captureAcquisition() {
           ttclid: value("ttclid", 200)
         }
       : {}),
+    afSource: value("af_source", 80),
+    afMedium: value("af_medium", 80),
+    afContent: value("af_content", 140),
     landingPage: window.location.pathname.slice(0, 500),
     referrerHost: externalReferrerHost() || undefined
   };

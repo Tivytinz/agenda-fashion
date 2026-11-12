@@ -116,6 +116,36 @@ describe(
       }
     );
     test(
+      "não trata pagamento estornado como conversão confirmada nas consultas",
+      async () => {
+        db.query.mockResolvedValue({ rows: [] });
+
+        const pagamento = await repository
+          .buscarPagamentoConfirmado({
+            assinaturaId: 11,
+            pagamentoId: "pay_estornado"
+          });
+        const conversao = await repository
+          .buscarConversaoInicialConfirmada({
+            assinaturaId: 11,
+            pagamentoId: "pay_estornado"
+          });
+
+        expect(pagamento).toBeNull();
+        expect(conversao).toBeNull();
+
+        for (const [sql, parametros] of db.query.mock.calls) {
+          expect(sql).toMatch(/UPPER\(p\.status\) IN/);
+          expect(sql).toContain("'CONFIRMED'");
+          expect(sql).toContain("'RECEIVED'");
+          expect(sql).not.toContain("'REFUNDED'");
+          expect(sql).toContain("p.data_pagamento IS NOT NULL");
+          expect(parametros).toEqual([11, "pay_estornado"]);
+        }
+      }
+    );
+
+    test(
       "resolve apenas CONVERSAO_INICIAL ligada ao pagamento confirmado",
       async () => {
         db.query.mockResolvedValueOnce({

@@ -37,7 +37,7 @@ pronta a partir de outro ator não habilita auto-merge. Checks e proteções da
 merge nem deploy manual fora do fluxo protegido.
 
 Os quatro shards E2E executam na imagem oficial
-`mcr.microsoft.com/playwright:v1.62.1-noble`, alinhada à versão de
+`mcr.microsoft.com/playwright:v1.65.0-noble`, alinhada à versão de
 `@playwright/test` no `frontend/package-lock.json`. Ao atualizar Playwright,
 atualizar a imagem no mesmo patch. Navegadores e bibliotecas do sistema vêm
 pré-instalados; não reinstalar pacotes Ubuntu a cada execução. O preflight abre
@@ -154,7 +154,34 @@ e [datas no sitemap](https://developers.google.com/search/docs/crawling-indexing
 
 O comando de produção continua responsável por aplicar migrations antes de iniciar o servidor. Migrations aplicadas nunca devem ser reescritas.
 
+Como a versão anterior pode continuar atendendo enquanto a nova aplica migration
+e passa no readiness, mudanças incompatíveis devem seguir `expand → deploy
+compatível → backfill/migração → contract posterior`. Uma migration do mesmo
+deploy não pode remover/renomear coluna, tabela ou contrato que a versão ainda em
+drain possa acessar. O passo de contract deve ocorrer somente em deploy posterior
+depois de provar que nenhum runtime suportado depende da estrutura antiga.
+
 Falha de migration deve impedir a nova versão de subir. O healthcheck `/health/ready` deve validar a prontidão da aplicação antes de o deployment ser considerado saudável.
+
+Mudança que ativa `BOOKING_CAPABILITY_SECRET` em produção exige configurar um
+segredo dedicado, diferente de `JWT_SECRET`, antes do merge que torna a
+validação obrigatória. Para preservar links emitidos anteriormente, configurar
+também `BOOKING_CAPABILITY_PREVIOUS_SECRET` com o segredo que os assinou
+(atualmente o valor anterior de `JWT_SECRET`). Esse fallback é explícito e
+temporário; novas capabilities nunca devem ser assinadas com a chave de sessão.
+
+## Escala horizontal
+
+A quantidade de réplicas web não deve ser aumentada apenas por capacidade.
+Enquanto `BACKGROUND_WORKERS_ENABLED` permanecer ativo no processo web,
+cada réplica inicia sua própria agenda de workers, e alguns controles de
+sobreposição são locais ao processo. Rate limits também devem ser revistos para
+store compartilhado antes de considerar o scale-out equivalente ao runtime de
+uma única réplica.
+
+O caminho seguro é separar/proteger workers com coordenação distribuída,
+desabilitá-los no serviço web quando houver worker dedicado e somente então
+aumentar réplicas após testes de concorrência e falha.
 
 ## Pós-deploy
 
