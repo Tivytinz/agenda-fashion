@@ -37,7 +37,7 @@ pronta a partir de outro ator não habilita auto-merge. Checks e proteções da
 merge nem deploy manual fora do fluxo protegido.
 
 Os quatro shards E2E executam na imagem oficial
-`mcr.microsoft.com/playwright:v1.62.1-noble`, alinhada à versão de
+`mcr.microsoft.com/playwright:v1.65.0-noble`, alinhada à versão de
 `@playwright/test` no `frontend/package-lock.json`. Ao atualizar Playwright,
 atualizar a imagem no mesmo patch. Navegadores e bibliotecas do sistema vêm
 pré-instalados; não reinstalar pacotes Ubuntu a cada execução. O preflight abre
