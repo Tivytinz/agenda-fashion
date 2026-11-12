@@ -11,7 +11,13 @@ jest.mock(
 );
 
 jest.mock(
-  "../src/repositories/agendaConfiguracaoRepository"
+  "../src/repositories/agendamentoCancelamentoRepository",
+  () => ({
+    buscarAgendamentoClienteParaCancelar:
+      jest.fn(),
+    cancelarAgendamentoCliente:
+      jest.fn(),
+  })
 );
 
 jest.mock(
@@ -22,6 +28,14 @@ jest.mock(
 jest.mock(
   "../src/services/planoService",
   () => ({})
+);
+
+jest.mock(
+  "../src/services/bookingAnalyticsService",
+  () => ({
+    registrarBookingCancelled:
+      jest.fn(),
+  })
 );
 
 jest.mock(
@@ -42,55 +56,30 @@ const agendaPublicaRepository = require(
   "../src/repositories/agendaPublicaRepository"
 );
 
-const agendaConfiguracaoRepository = require(
-  "../src/repositories/agendaConfiguracaoRepository"
-);
-
-const whatsappMensagemService = require(
-  "../src/services/whatsappMensagemService"
-);
-
-const agendamentoPublicoService = require(
-  "../src/services/agendamentoPublicoService"
-);
-
-function obterDataAmanhaBrasil() {
-  const data =
-    new Date(
-      Date.now() +
-      36 * 60 * 60 * 1000
-    );
-
-  const partes =
-    new Intl.DateTimeFormat(
-      "en-CA",
-      {
-        timeZone:
-          "America/Sao_Paulo",
-        year:
-          "numeric",
-        month:
-          "2-digit",
-        day:
-          "2-digit",
-      }
-    ).formatToParts(
-      data
-    );
-
-  const parte =
-    (tipo) =>
-      partes.find(
-        (item) =>
-          item.type === tipo
-      )?.value;
-
-  return (
-    `${parte("year")}-` +
-    `${parte("month")}-` +
-    parte("day")
+const agendamentoCancelamentoRepository =
+  require(
+    "../src/repositories/agendamentoCancelamentoRepository"
   );
-}
+
+const bookingAnalyticsService =
+  require(
+    "../src/services/bookingAnalyticsService"
+  );
+
+const whatsappMensagemService =
+  require(
+    "../src/services/whatsappMensagemService"
+  );
+
+const agendamentoPublicoService =
+  require(
+    "../src/services/agendamentoPublicoService"
+  );
+
+const agendamentoCancelamentoService =
+  require(
+    "../src/services/agendamentoCancelamentoService"
+  );
 
 describe(
   "Consentimento das mensagens da cliente",
@@ -108,9 +97,12 @@ describe(
               clienteId: null,
               clienteWhatsapp:
                 "62999998888",
-              consentimentoVisitante: true,
+              consentimentoVisitante:
+                true,
             })
-        ).resolves.toBe(true);
+        ).resolves.toBe(
+          true
+        );
 
         expect(
           agendaPublicaRepository
@@ -127,7 +119,8 @@ describe(
           .mockResolvedValue({
             whatsapp:
               "62999998888",
-            aceita_notificacoes_whatsapp: false,
+            aceita_notificacoes_whatsapp:
+              false,
           });
 
         await expect(
@@ -136,14 +129,19 @@ describe(
               clienteId: 8,
               clienteWhatsapp:
                 "62999998888",
-              consentimentoVisitante: true,
+              consentimentoVisitante:
+                true,
             })
-        ).resolves.toBe(false);
+        ).resolves.toBe(
+          false
+        );
 
         expect(
           agendaPublicaRepository
             .buscarPreferenciaNotificacoesWhatsapp
-        ).toHaveBeenCalledWith(8);
+        ).toHaveBeenCalledWith(
+          8
+        );
       }
     );
 
@@ -155,7 +153,8 @@ describe(
           .mockResolvedValue({
             whatsapp:
               "62999998888",
-            aceita_notificacoes_whatsapp: true,
+            aceita_notificacoes_whatsapp:
+              true,
           });
 
         await expect(
@@ -164,9 +163,12 @@ describe(
               clienteId: 8,
               clienteWhatsapp:
                 "+55 (62) 99999-8888",
-              consentimentoVisitante: false,
+              consentimentoVisitante:
+                false,
             })
-        ).resolves.toBe(true);
+        ).resolves.toBe(
+          true
+        );
 
         await expect(
           agendamentoPublicoService
@@ -174,9 +176,12 @@ describe(
               clienteId: 8,
               clienteWhatsapp:
                 "62911112222",
-              consentimentoVisitante: true,
+              consentimentoVisitante:
+                true,
             })
-        ).resolves.toBe(false);
+        ).resolves.toBe(
+          false
+        );
       }
     );
   }
@@ -190,10 +195,11 @@ describe(
     });
 
     test(
-      "cancela e enfileira avisos na mesma transação",
+      "cancela e enfileira avisos na mesma transação pelo fluxo canônico",
       async () => {
         const client = {
-          query: jest.fn(),
+          query:
+            jest.fn(),
         };
 
         const agendamento = {
@@ -201,34 +207,39 @@ describe(
           profissional_id: 7,
           negocio_id: 11,
           cliente_id: 8,
-          data:
-            obterDataAmanhaBrasil(),
-          horario:
-            "23:00",
+          inicio_previsto_em:
+            new Date(
+              Date.now() +
+                36 *
+                  60 *
+                  60 *
+                  1000
+            ).toISOString(),
+          antecedencia_cancelamento_horas:
+            0,
           status:
             "agendado",
         };
 
-        agendaPublicaRepository
-          .buscarAgendamentoCliente
+        agendamentoCancelamentoRepository
+          .buscarAgendamentoClienteParaCancelar
           .mockResolvedValue(
             agendamento
           );
 
-        agendaConfiguracaoRepository
-          .buscarConfiguracao
-          .mockResolvedValue({
-            antecedencia_cancelamento:
-              0,
-          });
-
-        agendaPublicaRepository
-          .cancelarAgendamento
+        agendamentoCancelamentoRepository
+          .cancelarAgendamentoCliente
           .mockResolvedValue({
             id: 50,
             status:
               "cancelado",
           });
+
+        bookingAnalyticsService
+          .registrarBookingCancelled
+          .mockResolvedValue(
+            undefined
+          );
 
         db.executarTransacao
           .mockImplementation(
@@ -241,28 +252,31 @@ describe(
           );
 
         const resultado =
-          await agendamentoPublicoService
-            .cancelarMeuAgendamento({
+          await agendamentoCancelamentoService
+            .cancelarAgendamentoCliente({
               clienteId: 8,
               agendamentoId: 50,
             });
 
         expect(
-          agendaConfiguracaoRepository
-            .buscarConfiguracao
-        ).toHaveBeenCalledWith(
-          7,
-          11
-        );
+          agendamentoCancelamentoRepository
+            .buscarAgendamentoClienteParaCancelar
+        ).toHaveBeenCalledWith({
+          agendamentoId: 50,
+          clienteId: 8,
+          executor:
+            client,
+        });
 
         expect(
-          agendaPublicaRepository
-            .cancelarAgendamento
-        ).toHaveBeenCalledWith(
-          50,
-          8,
-          client
-        );
+          agendamentoCancelamentoRepository
+            .cancelarAgendamentoCliente
+        ).toHaveBeenCalledWith({
+          agendamentoId: 50,
+          clienteId: 8,
+          executor:
+            client,
+        });
 
         expect(
           whatsappMensagemService
@@ -274,9 +288,12 @@ describe(
             50,
         });
 
-        expect(resultado).toEqual({
-          mensagem:
-            "Agendamento cancelado com sucesso.",
+        expect(
+          resultado
+        ).toEqual({
+          id: 50,
+          status:
+            "cancelado",
         });
       }
     );
