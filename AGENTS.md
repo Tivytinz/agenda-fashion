@@ -620,8 +620,9 @@ atual. Alterar origem, `SameSite`, embedding cross-site ou modo de autenticaçã
 exige reabrir o threat model antes do deploy.
 
 Capabilities de booking são credenciais de escopo mínimo: usam segredo dedicado
-da sessão em produção, preservam fallback controlado apenas para rotação/links
-legados, não trafegam em query
+da sessão em produção, e qualquer fallback de rotação/links legados deve ser
+explícito e temporário, sem aceitar automaticamente a chave de sessão quando o
+segredo dedicado já existe; não trafegam em query
 de API, não viram sessão geral e respostas sensíveis usam política de cache
 compatível com dados privados.
 
