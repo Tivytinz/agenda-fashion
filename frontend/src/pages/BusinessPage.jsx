@@ -276,7 +276,7 @@ export function BusinessPage({ create = false }) {
                       onChange={() => toggleSpecialty(value)}
                       type="checkbox"
                     />
-                    <CategoryEmoji emoji={serviceCategoryEmoji(value)} />
+                    {create && <CategoryEmoji emoji={serviceCategoryEmoji(value)} />}
                     <span>{label}</span>
                   </label>
                 ))}
