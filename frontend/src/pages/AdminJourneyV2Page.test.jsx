@@ -47,6 +47,9 @@ beforeEach(() => {
       sessoes_envio: 3,
       sessoes_envio_email: 2,
       sessoes_envio_google: 2,
+      contas_novas_vinculadas: 1,
+      contas_com_negocio_vinculadas: 1,
+      contas_com_agendamento_vinculadas: 0,
       sessoes_erro: 2,
       sessoes_erro_requisicao: 1,
       erros_validacao: 5,
@@ -200,6 +203,10 @@ describe("jornada administrativa v2", () => {
     expect(within(signup).getByText("Tentaram cadastrar")).not.toBeNull();
     expect(within(signup).getByText("Encontraram erro de campo")).not.toBeNull();
     expect(within(signup).getByText("Falha de solicitação")).not.toBeNull();
+    const linked = screen.getByRole("region", { name: "Vínculos confirmados com fatos do cadastro" });
+    expect(within(linked).getByText("Contas novas vinculadas")).not.toBeNull();
+    expect(within(linked).getByText("Com negócio próprio")).not.toBeNull();
+    expect(within(linked).getByText("Com agendamento válido")).not.toBeNull();
     expect(screen.getByText(/Uma sessão pode conter vários eventos/)).not.toBeNull();
     expect(screen.getByText(/Uma mesma sessão pode tentar os dois métodos/)).not.toBeNull();
 

@@ -358,8 +358,21 @@ de campo de problemas de solicitação e preservando a distinção entre
 eventos, sessões e fatos reais. A seção informa sessões com tentativas
 por e-mail e Google separadamente. Uma sessão pode ter tentativas dos
 dois métodos; não se deve somar os subtotais como pessoas únicas.
-Esses marcos são observabilidade de UX, não novos estágios transacionais do
-funil de aquisição. Uma sessão sem evento de envio não comprova abandono.
+A reconciliação da Jornada usa exclusivamente a sessão identificada
+pelo backend (`analytics_sessoes.usuario_id`), com evento de tentativa
+vinculado à visualização profissional e criação posterior da conta
+(`usuarios.created_at`). Contas anteriormente existentes não viram
+novos cadastros por fazer login, e sessões sem autenticação comprovada
+não são vinculadas artificialmente. A etapa de negócio exige vínculo
+ativo de dona com negócio próprio; agendamento exige linha real não
+cancelada desse negócio. Uma conta é contada uma vez por indicador,
+mesmo após múltiplas visitas ou tentativas.
+
+Esses números são subconjuntos **observados e vinculáveis** e podem
+subestimar o funil pela perda de telemetria, navegação ou bloqueio de
+rastreamento. Não são taxas de conversão globais nem substituem o funil
+transacional canônico, que usa fatos de domínio e atribuição consentida.
+Uma sessão sem evento de envio não comprova abandono.
 
 
 Propriedades também são whitelistadas por evento.

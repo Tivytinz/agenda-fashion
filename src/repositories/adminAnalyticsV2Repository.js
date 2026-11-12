@@ -284,7 +284,7 @@ async function buscarJornada(periodo = "30") {
     db.query(
       `
       WITH visitas AS (
-        SELECT v.id, v.sessao_id
+        SELECT v.id, v.sessao_id, v.entrou_em
         FROM analytics_visualizacoes_tela v
         WHERE v.page_key = 'professional_register'
           ${filtroVisualizacao}
@@ -302,6 +302,7 @@ async function buscarJornada(periodo = "30") {
         FROM visitas v
         LEFT JOIN analytics_eventos e
           ON e.visualizacao_id = v.id
+          AND e.sessao_id = v.sessao_id
           AND e.origem = 'frontend'
           AND e.nome IN (
             'professional_signup_started',
@@ -311,6 +312,37 @@ async function buscarJornada(periodo = "30") {
           )
           ${filtroEvento}
         GROUP BY v.id, v.sessao_id
+      ),
+      -- Vínculo conservador: submissão observada e conta realmente criada
+      -- depois da visita, na mesma sessão posteriormente autenticada.
+      -- Isto não é atribuição causal nem substitui o funil transacional.
+      contas_vinculadas AS (
+        SELECT DISTINCT u.id AS usuario_id, u.created_at AS criado_em
+        FROM visitas v
+        JOIN analytics_sessoes s ON s.id = v.sessao_id
+        JOIN usuarios u ON u.id = s.usuario_id
+        JOIN analytics_eventos e
+          ON e.visualizacao_id = v.id
+          AND e.sessao_id = s.id
+          AND e.origem = 'frontend'
+          AND e.nome = 'professional_signup_submitted'
+          ${filtroEvento}
+        WHERE u.perfil_profissional_ativado_em IS NOT NULL
+          AND u.created_at >= v.entrou_em
+          AND u.created_at >= e.occurred_at
+          AND u.created_at <= s.ultima_atividade_em
+      ),
+      negocios_vinculados AS (
+        SELECT DISTINCT c.usuario_id, n.id AS negocio_id
+        FROM contas_vinculadas c
+        JOIN usuarios_negocios un
+          ON un.usuario_id = c.usuario_id
+          AND un.papel = 'dono'
+          AND un.ativo = TRUE
+        JOIN negocios n
+          ON n.id = un.negocio_id
+          AND n.ativo = TRUE
+          AND n.created_at >= c.criado_em
       )
       SELECT
         COUNT(*)::INT AS visualizacoes,
@@ -322,7 +354,18 @@ async function buscarJornada(periodo = "30") {
         COUNT(DISTINCT sessao_id) FILTER (WHERE erros > 0)::INT AS sessoes_erro,
         COUNT(DISTINCT sessao_id) FILTER (WHERE erros_requisicao > 0)::INT AS sessoes_erro_requisicao,
         COALESCE(SUM(erros), 0)::INT AS erros_validacao,
-        COALESCE(SUM(erros_requisicao), 0)::INT AS erros_requisicao
+        COALESCE(SUM(erros_requisicao), 0)::INT AS erros_requisicao,
+        (SELECT COUNT(*)::INT FROM contas_vinculadas) AS contas_novas_vinculadas,
+        (SELECT COUNT(DISTINCT usuario_id)::INT FROM negocios_vinculados)
+          AS contas_com_negocio_vinculadas,
+        (
+          SELECT COUNT(DISTINCT b.usuario_id)::INT
+          FROM negocios_vinculados b
+          JOIN agendamentos ag ON ag.negocio_id = b.negocio_id
+          WHERE COALESCE(ag.status, 'agendado') NOT IN (
+            'cancelado', 'cancelamento_solicitado'
+          )
+        ) AS contas_com_agendamento_vinculadas
       FROM etapas
       `
     ),

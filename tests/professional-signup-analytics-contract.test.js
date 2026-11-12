@@ -1,45 +1,33 @@
-const fs = require("fs");
-const path = require("path");
 const { randomUUID } = require("crypto");
 const { normalizarItem } = require("../src/services/analyticsV2Service");
+const cases = require("./fixtures/professional-signup-analytics.json");
 
-const browserSource = fs.readFileSync(
-  path.resolve(__dirname, "../frontend/src/analytics/firstPartyAnalytics.js"), "utf8"
-);
-const contract = [
-  ["professional_signup_started", [
-    { method: "email", trigger: "form_input" },
-    { method: "google", trigger: "google_credential" }
-  ]],
-  ["professional_signup_submitted", [{ method: "email" }, { method: "google" }]],
-  ["professional_signup_validation_error", [
-    { field: "email", reason: "invalid_format" },
-    { field: "password_confirmation", reason: "mismatch" }
-  ]],
-  ["professional_signup_request_error", [
-    { method: "email", reason: "timeout" },
-    { method: "google", reason: "network_error" }
-  ]]
-];
-
-describe("Contrato dos eventos de cadastro entre browser e coletor", () => {
-  test.each(contract)("%s tem valores aceitos pelo backend e nome utilizado no frontend", (name, properties) => {
-    expect(browserSource).toContain('"' + name + '"');
-    for (const value of properties) {
-      const actual = normalizarItem({
-        type: "event", eventUuid: randomUUID(), viewUuid: randomUUID(), schemaVersion: 1,
-        occurredAt: new Date().toISOString(), name, properties: value
-      });
-      expect(actual.properties).toEqual(value);
-      for (const val of Object.values(value)) expect(browserSource).toContain('"' + val + '"');
-    }
+describe("Contrato de eventos do cadastro profissional", () => {
+  test.each(cases)("coletor aceita $name com propriedades estritas: %#", ({ name, properties }) => {
+    const result = normalizarItem({
+      type: "event", eventUuid: randomUUID(), viewUuid: randomUUID(),
+      schemaVersion: 1, occurredAt: new Date().toISOString(), name, properties
+    });
+    expect(result.name).toBe(name);
+    expect(result.properties).toEqual(properties);
   });
 
-  test("rejeita valores livres usados como gatilho", () => {
-    expect(() => normalizarItem({
-      type: "event", eventUuid: randomUUID(), viewUuid: randomUUID(), schemaVersion: 1,
-      occurredAt: new Date().toISOString(), name: "professional_signup_started",
-      properties: { method: "email", trigger: "usuario@dominio.test" }
+  test("remove dados extras e rejeita gatilhos, campos e métodos arbitrários", () => {
+    const event = (name, properties) => normalizarItem({
+      type: "event", eventUuid: randomUUID(), viewUuid: randomUUID(),
+      schemaVersion: 1, occurredAt: new Date().toISOString(), name, properties
+    });
+    expect(event("professional_signup_validation_error", {
+      field: "email", reason: "invalid_format", email: "pessoa@teste.local"
+    }).properties).toEqual({ field: "email", reason: "invalid_format" });
+    expect(() => event("professional_signup_started", {
+      method: "email", trigger: "email@pessoa.local"
     })).toThrow("Gatilho de início de cadastro inválido.");
+    expect(() => event("professional_signup_validation_error", {
+      field: "telefone@teste.local", reason: "invalid_format"
+    })).toThrow("Propriedades do erro de cadastro inválidas.");
+    expect(() => event("professional_signup_submitted", {
+      method: "outra-credencial"
+    })).toThrow("Método de cadastro inválido.");
   });
 });

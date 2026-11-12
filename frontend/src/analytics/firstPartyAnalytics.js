@@ -690,7 +690,8 @@ export function trackFirstPartyEvent(name, {
         if ((properties.method === "google") !== (properties.trigger === "google_credential")) return;
         canonicalProperties = { method: properties.method, trigger: properties.trigger };
       } else {
-        canonicalProperties = { method: properties.method === "google" ? "google" : "email" };
+        if (!["email", "google"].includes(properties.method)) return;
+        canonicalProperties = { method: properties.method };
       }
       flowUuidValue = flowUuid(ONBOARDING_FLOW_KEY);
     } else if (!["business_creation_started", "first_service_creation_started", "profile_viewed", "profile_shared", "booking_started", "booking_completed", "checkout_viewed"].includes(name)) {

@@ -17,6 +17,9 @@ describe("resumo first-party do cadastro profissional", () => {
           sessoes_envio: 3,
           sessoes_envio_email: 2,
           sessoes_envio_google: 2,
+          contas_novas_vinculadas: 1,
+          contas_com_negocio_vinculadas: 1,
+          contas_com_agendamento_vinculadas: 0,
           sessoes_erro: 2,
           sessoes_erro_requisicao: 1,
           erros_validacao: 5,
@@ -33,7 +36,15 @@ describe("resumo first-party do cadastro profissional", () => {
     const sql = db.query.mock.calls[4][0];
     expect(sql).toContain("v.page_key = 'professional_register'");
     expect(sql).toContain("e.visualizacao_id = v.id");
+    expect(sql).toContain("e.sessao_id = v.sessao_id");
     expect(sql).toContain("COUNT(DISTINCT sessao_id)");
+    expect(sql).toContain("contas_vinculadas AS");
+    expect(sql).toContain("e.nome = 'professional_signup_submitted'");
+    expect(sql).toContain("u.id = s.usuario_id");
+    expect(sql).toContain("u.created_at >= e.occurred_at");
+    expect(sql).toContain("u.created_at <= s.ultima_atividade_em");
+    expect(sql).toContain("un.papel = 'dono'");
+    expect(sql).toContain("ag.negocio_id = b.negocio_id");
     expect(sql).toContain("e.origem = 'frontend'");
     expect(sql).toContain("e.occurred_at >=");
     expect(sql).toContain("professional_signup_request_error");
@@ -46,6 +57,9 @@ describe("resumo first-party do cadastro profissional", () => {
       sessoes_envio: 3,
       sessoes_envio_email: 2,
       sessoes_envio_google: 2,
+      contas_novas_vinculadas: 1,
+      contas_com_negocio_vinculadas: 1,
+      contas_com_agendamento_vinculadas: 0,
       sessoes_erro: 2,
       sessoes_erro_requisicao: 1,
       erros_validacao: 5,

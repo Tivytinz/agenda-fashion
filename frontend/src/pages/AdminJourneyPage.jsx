@@ -122,6 +122,16 @@ export function AdminJourneyV2Page() {
                   <MetricCard label="Encontraram erro de campo" hint="sessões com erros de validação observados" value={formatNumber(signup.sessoes_erro)} />
                   <MetricCard label="Falha de solicitação" hint="sessões com falha HTTP ou resultado do fluxo não confirmado; isso não comprova que a conta não foi criada" value={formatNumber(signup.sessoes_erro_requisicao)} />
                 </section>
+                <section className="admin-command-summary-grid is-period-summary" aria-label="Vínculos confirmados com fatos do cadastro">
+                  <MetricCard label="Contas novas vinculadas" hint="contas profissionais criadas após uma tentativa nessa mesma sessão, identificada posteriormente por login" value={formatNumber(signup.contas_novas_vinculadas)} />
+                  <MetricCard label="Com negócio próprio" hint="contas vinculadas com negócio ativo e vínculo de dona confirmado no backend" value={formatNumber(signup.contas_com_negocio_vinculadas)} />
+                  <MetricCard label="Com agendamento válido" hint="contas vinculadas com agendamento não cancelado no negócio; não representa faturamento" value={formatNumber(signup.contas_com_agendamento_vinculadas)} />
+                </section>
+                <p className="muted">
+                  Reconciliação conservadora: exige tentativa observada, conta profissional criada depois da visita
+                  e sessão posteriormente identificada pelo servidor. Sessões sem vínculo autenticado ficam fora
+                  desses indicadores. Não use esses números como taxa global de conversão nem como atribuição de campanha.
+                </p>
                 <p className="muted">
                   Tentativas por método: e-mail {formatNumber(signup.sessoes_envio_email)} sessão(ões),
                   {" "}Google {formatNumber(signup.sessoes_envio_google)} sessão(ões).
