@@ -559,9 +559,19 @@ A allowlist atual inclui:
 - `Content-Type`;
 - `Authorization`;
 - `Idempotency-Key`;
+- `X-AF-Negocio`;
+- `X-AF-Contexto` (seleção de contexto dona/profissional em `/agenda-configuracao`);
+- `X-Agenda-Access`;
 - `X-Request-ID`.
 
 `X-Request-ID` também é exposto na resposta.
+
+O editor de horários envia `X-AF-Contexto: dono|profissional` nas
+requisições de agenda. Origens explicitamente autorizadas pelo CORS precisam
+concluir o preflight `OPTIONS /agenda-configuracao` para `GET` e `PUT`.
+O cabeçalho seleciona o contexto a ser validado no backend, **não**
+substitui cookie de sessão, autenticação, RBAC ou isolamento entre negócios.
+O contrato é coberto por `tests/cors-capability.test.js`.
 
 ## 31. X-Agenda-Access e CORS
 

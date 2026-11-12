@@ -74,6 +74,7 @@ const corsOptions = {
     "Authorization",
     "Idempotency-Key",
     "X-AF-Negocio",
+    "X-AF-Contexto",
     "X-Agenda-Access",
     "X-Request-ID",
   ],
