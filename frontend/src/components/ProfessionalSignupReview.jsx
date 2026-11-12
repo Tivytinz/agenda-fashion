@@ -132,7 +132,10 @@ export function ProfessionalSignupReview({ user, planSlug = "", refreshSession, 
         <section aria-labelledby="professional-review-title"
           className="auth-card auth-card-professional-register professional-signup-edit">
           <SetupTitle emoji="💖" id="professional-review-title">Sua conta</SetupTitle>
-          <p className="muted">Etapa 1 de 4. Revise ou edite seus dados e continue.</p>
+          <p className="professional-signup-benefit">
+            <span aria-hidden="true" className="professional-signup-benefit-emoji">💬</span>
+            <span>Suas clientes podem agendar online, enquanto você foca nos atendimentos.</span>
+          </p>
           <form className="stack-form" onSubmit={submit}>
             <label>
               <AuthFieldLabel emoji="👤">Nome completo</AuthFieldLabel>
@@ -197,9 +200,6 @@ export function ProfessionalSignupReview({ user, planSlug = "", refreshSession, 
               {saving ? "Salvando..." : changed ? "Salvar e continuar" : "Continuar para o negócio"}
             </button>
           </form>
-          <small className="professional-signup-review-note">
-            Seus dados continuam vinculados à mesma conta. Você pode voltar às etapas anteriores sem cadastrar tudo novamente.
-          </small>
         </section>
       </main>
     </SetupFlowFrame>

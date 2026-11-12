@@ -129,6 +129,10 @@ describe("retorno à etapa 1 após conta criada", () => {
     </MemoryRouter>);
     expect(screen.getByLabelText("Etapa 1 de 4: Conta")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Sua conta" })).not.toBeNull();
+    expect(screen.getByText("Suas clientes podem agendar online, enquanto você foca nos atendimentos.")).not.toBeNull();
+    expect(screen.getByText("💬").getAttribute("aria-hidden")).toBe("true");
+    expect(screen.queryByText(/Etapa 1 de 4\. Revise ou edite seus dados/)).toBeNull();
+    expect(screen.queryByText(/Seus dados continuam vinculados à mesma conta/)).toBeNull();
     expect(screen.getByLabelText("E-mail").value).toBe("ana@example.test");
     expect(screen.getByLabelText("E-mail").readOnly).toBe(false);
     expect(screen.getByLabelText("Nome completo").value).toBe("Ana");

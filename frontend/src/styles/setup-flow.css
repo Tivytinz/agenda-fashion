@@ -344,6 +344,23 @@
 .setup-flow .professional-signup-edit .professional-signup-password-fields small {
   color: var(--muted);
 }
-.setup-flow .professional-signup-edit .professional-signup-review-note {
-  display: block; margin-top: 12px; line-height: 1.4; color: var(--muted);
+.setup-flow .professional-signup-edit .professional-signup-benefit {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding-left: 62px;
+  margin: 0 0 22px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.setup-flow .professional-signup-benefit-emoji {
+  flex-shrink: 0;
+  font-size: 18px;
+  line-height: 1.25;
+}
+@media (max-width: 680px) {
+  .setup-flow .professional-signup-edit .professional-signup-benefit {
+    padding-left: 54px;
+  }
 }
