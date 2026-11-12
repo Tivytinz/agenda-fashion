@@ -25,9 +25,7 @@ agendamento. Um worker opcional:
 4. rotula `falta` como positivo e `realizado` como negativo;
 5. mantém agendamentos ativos e cancelados sem rótulo.
 
-Quando houve reagendamento, o backfill reconstrói a data e o horário originais
-com o primeiro registro do histórico, evitando usar como feature uma mudança
-que só aconteceu depois da criação do booking.
+A antecedência e a verificação de compromissos vencidos nos diagnósticos de maturidade usam o instante canônico persistido em `agendamentos.inicio_previsto_em`, sem reinterpretar o agendamento com o fuso atual do negócio. Agendamentos com histórico de reagendamento ficam temporariamente fora da captura v1: o histórico atual não preserva o snapshot de fuso original, e reconstruir o instante de criação a partir de dados atuais introduziria risco temporal. Para incluí-los futuramente, será necessário persistir um snapshot auditável do instante original e versionar as features. Essa exclusão deve ser considerada na análise de representatividade e na cobertura de captura.
 
 O worker é ativado explicitamente com `ML_NO_SHOW_DATA_ENABLED=true`. Valores
 opcionais:
