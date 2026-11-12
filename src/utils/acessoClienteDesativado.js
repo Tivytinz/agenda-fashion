@@ -1,24 +1,12 @@
-const crypto = require("crypto");
+const {
+  assinarCapability,
+  assinaturaCorresponde,
+} = require(
+  "../config/bookingCapability"
+);
 
 const CONTEXTO_ACESSO =
   "agenda-fashion:inactive-client-appointment:v1";
-
-function obterSegredo() {
-  const segredo = String(
-    process.env.JWT_SECRET || ""
-  ).trim();
-
-  if (!segredo) {
-    const erro = new Error(
-      "JWT_SECRET não configurado."
-    );
-    erro.status = 500;
-    erro.statusCode = 500;
-    throw erro;
-  }
-
-  return segredo;
-}
 
 function normalizarId(valor) {
   const id = Number(valor);
@@ -40,27 +28,54 @@ function normalizarInstante(valor) {
   return data.toISOString();
 }
 
+function payloadAcesso({
+  agendamentoId,
+  usuarioId,
+  desativadoEm,
+}) {
+  const agendamento =
+    normalizarId(
+      agendamentoId
+    );
+  const usuario =
+    normalizarId(
+      usuarioId
+    );
+  const instante =
+    normalizarInstante(
+      desativadoEm
+    );
+
+  if (!agendamento || !usuario || !instante) {
+    return null;
+  }
+
+  return `${agendamento}:${usuario}:${instante}`;
+}
+
 function gerarAcessoClienteDesativado({
   agendamentoId,
   usuarioId,
   desativadoEm,
 }) {
-  const agendamento = normalizarId(agendamentoId);
-  const usuario = normalizarId(usuarioId);
-  const instante = normalizarInstante(desativadoEm);
+  const payload =
+    payloadAcesso({
+      agendamentoId,
+      usuarioId,
+      desativadoEm,
+    });
 
-  if (!agendamento || !usuario || !instante) {
+  if (!payload) {
     throw new Error(
       "Dados inválidos para acesso de cliente desativado."
     );
   }
 
-  return crypto
-    .createHmac("sha256", obterSegredo())
-    .update(
-      `${CONTEXTO_ACESSO}:${agendamento}:${usuario}:${instante}`
-    )
-    .digest("base64url");
+  return assinarCapability({
+    contexto:
+      CONTEXTO_ACESSO,
+    payload,
+  });
 }
 
 function validarAcessoClienteDesativado({
@@ -69,32 +84,24 @@ function validarAcessoClienteDesativado({
   desativadoEm,
   acesso,
 }) {
-  if (
-    typeof acesso !== "string" ||
-    !/^[A-Za-z0-9_-]{43}$/.test(acesso)
-  ) {
-    return false;
-  }
-
-  let esperado;
-
-  try {
-    esperado = gerarAcessoClienteDesativado({
+  const payload =
+    payloadAcesso({
       agendamentoId,
       usuarioId,
       desativadoEm,
     });
-  } catch {
+
+  if (!payload) {
     return false;
   }
 
-  const recebido = Buffer.from(acesso, "utf8");
-  const esperadoBuffer = Buffer.from(esperado, "utf8");
-
-  return (
-    recebido.length === esperadoBuffer.length &&
-    crypto.timingSafeEqual(recebido, esperadoBuffer)
-  );
+  return assinaturaCorresponde({
+    contexto:
+      CONTEXTO_ACESSO,
+    payload,
+    assinatura:
+      acesso,
+  });
 }
 
 module.exports = {

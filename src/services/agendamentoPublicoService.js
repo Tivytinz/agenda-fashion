@@ -27,12 +27,6 @@ const {
   dataValida,
   validarIdentificacaoVisitante,
 } = require("./agendamentoPublicoValidacoes");
-const {
-  listarMeusAgendamentos,
-  cancelarMeuAgendamento,
-  avaliarAgendamento,
-} = require("./agendamentoClienteService");
-
 async function buscarDadosBaseAgenda({
   slug,
   servicoId,
@@ -821,7 +815,4 @@ module.exports = {
   validarHorarioDisponivel,
   criarAgendamento,
   criarNotificacaoAgendamento,
-  listarMeusAgendamentos,
-  cancelarMeuAgendamento,
-  avaliarAgendamento,
 };

@@ -1,31 +1,17 @@
 jest.mock(
-  "../src/services/agendamentoPublicoService",
+  "../src/services/agendamentoLifecycleService",
   () => ({
     avaliarAgendamento: jest.fn(),
   })
 );
 
-jest.mock(
-  "../src/services/planoService",
-  () => ({
-    buscarUsoPlano: jest.fn(),
-  })
-);
-
-jest.mock(
-  "../src/utils/registrador",
-  () => ({
-    erro: jest.fn(),
-  })
-);
-
-const agendaPublicaService = require(
-  "../src/services/agendamentoPublicoService"
+const agendamentoLifecycleService = require(
+  "../src/services/agendamentoLifecycleService"
 );
 const {
   avaliarAgendamento,
 } = require(
-  "../src/controllers/agendamentoPublicoController"
+  "../src/controllers/agendamentoLifecycleController"
 );
 
 function criarResposta() {
@@ -36,31 +22,36 @@ function criarResposta() {
 }
 
 describe(
-  "agendamentoPublicoController.avaliarAgendamento",
+  "agendamentoLifecycleController.avaliarAgendamento",
   () => {
     beforeEach(() => {
       jest.clearAllMocks();
     });
 
     test(
-      "preserva o contrato de avaliação com o service",
+      "preserva o contrato de avaliação com o lifecycle canônico",
       async () => {
         const resultado = {
-          mensagem: "Avaliação salva com sucesso.",
+          mensagem:
+            "Avaliação salva com sucesso.",
           avaliacao: 5,
         };
 
-        agendaPublicaService
+        agendamentoLifecycleService
           .avaliarAgendamento
-          .mockResolvedValue(resultado);
+          .mockResolvedValue(
+            resultado
+          );
 
         const req = {
           user: { id: 17 },
           params: { id: "42" },
           body: { avaliacao: 5 },
         };
-        const res = criarResposta();
-        const next = jest.fn();
+        const res =
+          criarResposta();
+        const next =
+          jest.fn();
 
         await avaliarAgendamento(
           req,
@@ -69,41 +60,50 @@ describe(
         );
 
         expect(
-          agendaPublicaService
+          agendamentoLifecycleService
             .avaliarAgendamento
         ).toHaveBeenCalledWith({
           clienteId: 17,
           agendamentoId: "42",
           avaliacao: 5,
         });
-        expect(res.json)
-          .toHaveBeenCalledWith(resultado);
-        expect(next)
-          .not.toHaveBeenCalled();
+        expect(
+          res.json
+        ).toHaveBeenCalledWith(
+          resultado
+        );
+        expect(
+          next
+        ).not.toHaveBeenCalled();
       }
     );
 
     test(
       "encaminha erro operacional ao middleware global",
       async () => {
-        const erro = Object.assign(
-          new Error(
-            "Só é possível avaliar serviços já realizados."
-          ),
-          { status: 400 }
-        );
+        const erro =
+          Object.assign(
+            new Error(
+              "Só é possível avaliar um atendimento marcado como realizado."
+            ),
+            { status: 400 }
+          );
 
-        agendaPublicaService
+        agendamentoLifecycleService
           .avaliarAgendamento
-          .mockRejectedValue(erro);
+          .mockRejectedValue(
+            erro
+          );
 
         const req = {
           user: { id: 17 },
           params: { id: "42" },
           body: { avaliacao: 5 },
         };
-        const res = criarResposta();
-        const next = jest.fn();
+        const res =
+          criarResposta();
+        const next =
+          jest.fn();
 
         await avaliarAgendamento(
           req,
@@ -111,14 +111,22 @@ describe(
           next
         );
 
-        expect(next)
-          .toHaveBeenCalledTimes(1);
-        expect(next)
-          .toHaveBeenCalledWith(erro);
-        expect(res.status)
-          .not.toHaveBeenCalled();
-        expect(res.json)
-          .not.toHaveBeenCalled();
+        expect(
+          next
+        ).toHaveBeenCalledTimes(
+          1
+        );
+        expect(
+          next
+        ).toHaveBeenCalledWith(
+          erro
+        );
+        expect(
+          res.status
+        ).not.toHaveBeenCalled();
+        expect(
+          res.json
+        ).not.toHaveBeenCalled();
       }
     );
   }
