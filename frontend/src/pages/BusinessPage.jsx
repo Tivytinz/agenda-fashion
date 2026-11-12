@@ -241,7 +241,7 @@ export function BusinessPage({ create = false }) {
           <div className="form-grid">
             <label className="field-wide">
               {create ? <span className="business-field-label"><span aria-hidden="true" className="business-field-emoji">🏷️</span>Nome do negócio</span> : "Nome do negócio"}
-              <input disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} minLength="2" maxLength="120" name="nome" onChange={(event) => update("nome", event.target.value)} required value={form.nome} />
+              <input aria-label={create ? "Nome do negócio" : undefined} disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} minLength="2" maxLength="120" name="nome" onChange={(event) => update("nome", event.target.value)} required value={form.nome} />
             </label>
             {!create && form.slug && (
               <div className="field-wide public-address-card" data-testid="public-address-hint">
@@ -258,6 +258,7 @@ export function BusinessPage({ create = false }) {
             <label className="field-wide">
               {create ? <span className="business-field-label"><span aria-hidden="true" className="business-field-emoji">📝</span>Descrição (opcional)</span> : "Descrição (opcional)"}
               <textarea
+                aria-label={create ? "Descrição (opcional)" : undefined}
                 disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}
                 maxLength="1000"
                 onChange={(event) => update("descricao", event.target.value)}
@@ -274,6 +275,7 @@ export function BusinessPage({ create = false }) {
                 {BUSINESS_SPECIALTIES.map(([value, label]) => (
                   <label className={form.areas.includes(value) ? "specialty-option selected" : "specialty-option"} key={value}>
                     <input
+                      aria-label={create ? label : undefined}
                       checked={form.areas.includes(value)}
                       name="areas"
                       onChange={() => toggleSpecialty(value)}
