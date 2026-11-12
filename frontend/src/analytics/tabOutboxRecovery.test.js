@@ -4,6 +4,7 @@ import {
   ensureAnalyticsTabIsolation,
   parkAnalyticsOutbox,
   recoverParkedOutbox,
+  pruneExpiredParkedOutboxes,
   releaseAnalyticsTab,
   scrubParkedAttribution,
   tabOutboxRecoveryInternals
@@ -115,6 +116,40 @@ describe("isolamento por guia e recuperação offline", () => {
       persist: entries => { received = entries; return true; }
     })).toBe(1);
     expect(received).toEqual([ENTRY]);
+  });
+
+  it("mantém excedentes de outra guia até haver capacidade real", () => {
+    const full = Array.from({ length: 40 }, (_, index) => ({
+      ...ENTRY, id: `1075488c-a6a1-4c13-b418-${String(index).padStart(12, "0")}`
+    }));
+    const old = Array.from({ length: 3 }, (_, index) => ({
+      ...ENTRY, id: `1075488c-a6a1-4c13-b419-${String(index).padStart(12, "0")}`
+    }));
+    parkAnalyticsOutbox({ entries: old, revision: "r", visitorId: VISITOR_ID });
+    releaseAnalyticsTab();
+    tabOutboxRecoveryInternals.simulateNewDocument();
+    ensureAnalyticsTabIsolation();
+    let received = [];
+    const attempt = entries => { received = entries; return true; };
+    const state = () => ({ revision: "r", visitorId: VISITOR_ID, persist: attempt });
+    expect(recoverParkedOutbox({ ...state(), entries: full })).toBe(0);
+    expect(tabOutboxRecoveryInternals.parkedKeys()).toHaveLength(1);
+    expect(recoverParkedOutbox({ ...state(), entries: full.slice(1) })).toBe(1);
+    expect(received).toHaveLength(40);
+    expect(JSON.parse(localStorage.getItem(tabOutboxRecoveryInternals.parkedKeys()[0])).entries).toHaveLength(2);
+    expect(recoverParkedOutbox({ ...state(), entries: received.slice(2) })).toBe(2);
+    expect(tabOutboxRecoveryInternals.parkedKeys()).toHaveLength(0);
+  });
+
+  it("limpa snapshots expirados ao reabrir a aplicação", () => {
+    parkAnalyticsOutbox({ entries: [ENTRY], revision: "r", visitorId: VISITOR_ID });
+    const key = tabOutboxRecoveryInternals.parkedKeys()[0];
+    const record = JSON.parse(localStorage.getItem(key));
+    localStorage.setItem(key, JSON.stringify({
+      ...record, savedAt: Date.now() - 25 * 60 * 60 * 1000
+    }));
+    pruneExpiredParkedOutboxes();
+    expect(tabOutboxRecoveryInternals.parkedKeys()).toHaveLength(0);
   });
 
   it("preserva snapshot quando a fila de destino falha ao gravar", () => {

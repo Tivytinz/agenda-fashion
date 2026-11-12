@@ -72,6 +72,7 @@ function criarNegocio(alteracoes = {}) {
     publicado: false,
     cidade: "Goiânia",
     estado: "GO",
+    fuso_horario: "America/Sao_Paulo",
     bairro: "Centro",
     endereco: "Rua das Flores",
     numero: "10",
@@ -238,6 +239,7 @@ describe("Rotas de configurações", () => {
       complemento: "Sala 4",
       cep: "01001000",
       localizacao_url: "https://maps.google.com/?q=studio",
+      fuso_horario: "America/Sao_Paulo",
       whatsapp_negocio: "62988887777",
       areas: ["Unhas", "Cabelos"],
     }, 7);
@@ -252,6 +254,62 @@ describe("Rotas de configurações", () => {
         papel: "dono",
       },
     });
+  });
+
+  test("ao mudar o endereço para outra UF atualiza o fuso canônico", async () => {
+    configuracoesRepository.buscarNegocioDoUsuario.mockResolvedValue(criarVinculo());
+    configuracoesRepository.buscarNegocioPorId.mockResolvedValue(criarNegocio());
+    configuracoesRepository.atualizarNegocio.mockImplementation(async (_id, dados) => ({
+      ...criarNegocio(), ...dados
+    }));
+    const response = await request(app).put("/configuracoes")
+      .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
+      .send({ estado: "AC", cidade: "Rio Branco" });
+    expect(response.status).toBe(200);
+    expect(configuracoesRepository.atualizarNegocio).toHaveBeenCalledWith(
+      11, expect.objectContaining({ estado: "AC", fuso_horario: "America/Rio_Branco" }), 7
+    );
+    expect(response.body.negocio.fuso_horario).toBe("America/Rio_Branco");
+  });
+
+  test("fuso ambíguo e fuso incompatível são rejeitados no backend", async () => {
+    configuracoesRepository.buscarNegocioDoUsuario.mockResolvedValue(criarVinculo());
+    configuracoesRepository.buscarNegocioPorId.mockResolvedValue(criarNegocio());
+    for (const body of [
+      { estado: "AM", cidade: "Manaus" },
+      { estado: "GO", fuso_horario: "America/Manaus" }
+    ]) {
+      const response = await request(app).put("/configuracoes")
+        .set("Authorization", `Bearer ${gerarToken()}`)
+        .set("X-AF-Negocio", "11").send(body);
+      expect(response.status).toBe(400);
+    }
+    expect(configuracoesRepository.atualizarNegocio).not.toHaveBeenCalled();
+  });
+
+  test("rejeita nova URL externa e preserva URL legada inalterada", async () => {
+    configuracoesRepository.buscarNegocioDoUsuario.mockResolvedValue(criarVinculo());
+    configuracoesRepository.buscarNegocioPorId.mockResolvedValue(
+      criarNegocio({ localizacao_url: "https://example.com/local" })
+    );
+    const deny = await request(app).put("/configuracoes")
+      .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
+      .send({ localizacao_url: "https://example.org/outro" });
+    expect(deny.status).toBe(400);
+    expect(configuracoesRepository.atualizarNegocio).not.toHaveBeenCalled();
+    configuracoesRepository.atualizarNegocio.mockImplementation(async (_id, dados) => ({
+      ...criarNegocio(), ...dados
+    }));
+    const keep = await request(app).put("/configuracoes")
+      .set("Authorization", `Bearer ${gerarToken()}`)
+      .set("X-AF-Negocio", "11")
+      .send({ nome: "Studio legado atualizado" });
+    expect(keep.status).toBe(200);
+    expect(configuracoesRepository.atualizarNegocio).toHaveBeenCalledWith(
+      11, expect.objectContaining({ localizacao_url: "https://example.com/local" }), 7
+    );
   });
 
   test("atualiza o endereço público pelo nome e rejeita endereço ocupado", async () => {

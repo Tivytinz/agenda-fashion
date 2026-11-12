@@ -150,6 +150,17 @@ export function parkAnalyticsOutbox({ entries, revision, visitorId }) {
 // Recuperação somente após identidade compatível. A remoção do snapshot
 // ocorre depois que a fila da guia atual foi gravada, para não perder dados
 // se a gravação no navegador falhar.
+export function pruneExpiredParkedOutboxes() {
+  const cutoff = Date.now() - RETENTION_MS;
+  for (const key of parkedKeys()) {
+    const record = parseRecord(readBrowserStorage("local", key));
+    if (!record || !Number.isFinite(Number(record.savedAt)) ||
+      Number(record.savedAt) < cutoff) {
+      removeBrowserStorage("local", key);
+    }
+  }
+}
+
 export function recoverParkedOutbox({ revision, visitorId, entries, persist }) {
   const cutoff = Date.now() - RETENTION_MS;
   const current = Array.isArray(entries) ? entries : [];
@@ -181,12 +192,48 @@ export function recoverParkedOutbox({ revision, visitorId, entries, persist }) {
     const unique = items.filter(entry =>
       !restored.some(existing => existing.id === entry.id)
     );
-    const next = [...unique, ...restored].slice(-MAX_ENTRIES);
-    if (persist(next) !== true) break;
+    if (!unique.length) {
+      if (key !== PARKED_PREFIX + tabId) removeBrowserStorage("local", key);
+      continue;
+    }
+    // Não descartar registros antigos quando a guia atual já está cheia.
+    // Conservar a ordem de envio e somente reconhecer itens realmente copiados.
+    const capacity = Math.max(0, MAX_ENTRIES - restored.length);
+    const sameTab = key === PARKED_PREFIX + tabId;
+    if (!capacity && !sameTab) continue;
+    const accepted = unique.slice(0, capacity);
+    const remaining = unique.slice(accepted.length);
+
+    // Se o journal é o da própria guia, uma nova gravação da fila ativa
+    // sobrescreveria o excedente. Estacioná-lo ANTES da mutação.
+    let overflowKey = "";
+    if (sameTab && remaining.length) {
+      overflowKey = PARKED_PREFIX + makeUuid();
+      if (!writeBrowserStorage("local", overflowKey,
+        JSON.stringify({ ...record, entries: remaining }))) break;
+    }
+    if (!capacity) {
+      if (overflowKey) removeBrowserStorage("local", key);
+      continue;
+    }
+    const next = [...accepted, ...restored];
+    if (persist(next) !== true) {
+      if (overflowKey) removeBrowserStorage("local", overflowKey);
+      break;
+    }
     restored.splice(0, restored.length, ...next);
-    added += unique.length;
-    // Persistir na própria guia reescreve seu snapshot: não apagá-lo.
-    if (key !== PARKED_PREFIX + tabId) removeBrowserStorage("local", key);
+    added += accepted.length;
+    if (sameTab) {
+      // Persist() já escreveu a fila ativa no seu próprio journal.
+      continue;
+    }
+    if (remaining.length) {
+      // Se não for possível reduzir o journal de origem, mantê-lo inteiro
+      // para replay idempotente: nunca eliminar os registros excedentes.
+      writeBrowserStorage("local", key, JSON.stringify({ ...record, entries: remaining }));
+    } else {
+      removeBrowserStorage("local", key);
+    }
   }
   return added;
 }

@@ -2,6 +2,7 @@ const negocioRepository = require(
   "../repositories/negocioRepository"
 );
 const { createHash } = require("crypto");
+const { urlMapaReconhecido } = require("../domain/urlPublicacao");
 
 function normalizarChaveCriacao(valor, obrigatoria = false) {
   if (valor == null && !obrigatoria) return null;
@@ -185,12 +186,7 @@ function normalizarUrl(valor) {
     const url =
       new URL(texto);
 
-    const host = url.hostname.toLowerCase();
-    const mapa = ["maps.google.com", "maps.google.com.br", "maps.app.goo.gl", "maps.apple.com"]
-      .includes(host) ||
-      (["www.google.com", "www.google.com.br", "google.com", "google.com.br"]
-        .includes(host) && /^\/maps(?:\/|$)/.test(url.pathname));
-    if (url.protocol !== "https:" || !mapa) throw new Error();
+    if (!urlMapaReconhecido(url)) throw new Error();
 
     return url.toString();
   } catch {

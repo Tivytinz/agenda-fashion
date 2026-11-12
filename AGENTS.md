@@ -347,10 +347,34 @@ do endereço, mas essa busca não equivale à verificação de coordenadas; a do
 confere o local. Links de localização enviados na criação precisam ser HTTPS
 e de provedores de mapas reconhecidos.
 
+Após a criação, alterar o estado do negócio também exige revisar o fuso
+IANA. Em UF de fuso único, a escolha pode ser derivada; em UF ambígua, deve
+ser explicitamente confirmada pela proprietária. A API valida essa escolha
+e só altera o fuso quando não existirem agendamentos futuros ativos
+(`agendado` ou `confirmado`), preservando o snapshot dos agendamentos já
+confirmados. A proprietária precisa resolver/reagendar os próximos horários
+antes de alterar o fuso. Nunca atualizar silenciosamente o fuso somente
+porque o endereço foi editado sem validação no backend.
+
+A localização de novas criações e de links **alterados** no perfil exige
+HTTPS de um provedor de mapas reconhecido. Links legados anteriormente
+persistidos continuam aceitos quando permanecem inalterados; a regra de
+publicação anterior também os tolera temporariamente para evitar
+despublicação retroativa sem inventário/migração controlada. Não confundir
+essa exceção de compatibilidade com um endereço geocodificado/verificado.
+Links de busca gerados no AF tornam-se pendentes de regeneração se o endereço
+for alterado. Não reescrever links personalizados sem ação explícita da dona.
+
 Rascunhos ainda não enviados podem sobreviver a uma recarga por até 30 minutos
 em `sessionStorage`, vinculados à conta e somente à guia. Nunca usar `localStorage`
 para dados pessoais do formulário, nem guardar senha ou token. Limpar o rascunho
 após criação confirmada, saída descartada, expiração ou troca de identidade.
+A recuperação de rascunhos exige posse confirmada da guia por um
+identificador opaco, compartilhado apenas para verificar clones de
+`sessionStorage`. Sem confirmação (inclusive storage bloqueado), descartar
+o rascunho copiado em vez de associá-lo a outra guia. Nenhum dado pessoal
+do rascunho deve entrar no armazenamento compartilhado.
+
 A chave de idempotência continua independente do rascunho: uma resposta de
 criação incerta exige consulta canônica, não reenvio automático de POST.
 

@@ -4,8 +4,14 @@ import {
   clearBusinessCreationDraft, readBusinessCreationDraft,
   saveBusinessCreationDraft
 } from "./draft";
+import { tabOutboxRecoveryInternals } from "../../analytics/tabOutboxRecovery";
 
-beforeEach(() => { sessionStorage.clear(); vi.useRealTimers(); });
+beforeEach(() => {
+  sessionStorage.clear();
+  localStorage.clear();
+  tabOutboxRecoveryInternals.simulateNewDocument();
+  vi.useRealTimers();
+});
 
 describe("rascunho temporário de criação", () => {
   it("restaura os campos na mesma conta e somente na guia", () => {
@@ -13,6 +19,15 @@ describe("rascunho temporário de criação", () => {
     expect(readBusinessCreationDraft(7)).toMatchObject({ nome: "Studio A", areas: ["Unhas"] });
     expect(localStorage.getItem("af_business_creation_draft_v1")).toBeNull();
   });
+  it("não restaura rascunho copiado por duplicação nativa sem window.opener", () => {
+    saveBusinessCreationDraft(7, { nome: "Studio privado", whatsapp: "62999999999" });
+    expect(readBusinessCreationDraft(7)?.nome).toBe("Studio privado");
+    // Simula novo documento com cópia do sessionStorage e posse local original.
+    tabOutboxRecoveryInternals.simulateNewDocument();
+    expect(readBusinessCreationDraft(7)).toBeNull();
+    expect(sessionStorage.getItem("af_business_creation_draft_v1")).toBeNull();
+  });
+
   it("descarta rascunho de outra conta", () => {
     saveBusinessCreationDraft(7, { nome: "Studio A" });
     expect(readBusinessCreationDraft(8)).toBeNull();

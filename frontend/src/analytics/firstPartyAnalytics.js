@@ -10,6 +10,7 @@ import {
   ensureAnalyticsTabIsolation,
   parkAnalyticsOutbox,
   recoverParkedOutbox,
+  pruneExpiredParkedOutboxes,
   releaseAnalyticsTab,
   scrubParkedAttribution
 } from "./tabOutboxRecovery";
@@ -469,6 +470,9 @@ async function flushOutbox({ keepalive = false } = {}) {
         // Um POST antigo pode terminar depois do logout: não drenar a fila nova.
         if (generation !== identityGeneration) break;
         removeOutboxEntry(entry.id);
+        // O espaço recém-liberado permite recuperar parte da fila de outra
+        // guia sem descartar o excedente ainda estacionado.
+        restorePendingOutbox();
       } catch (error) {
         if (generation !== identityGeneration) break;
         if (error?.retryable === false) {
@@ -610,6 +614,18 @@ function bindLifecycle() {
     restorePendingOutbox();
     void flushOutbox();
   });
+  window.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") restorePendingOutbox();
+  });
+  pruneExpiredParkedOutboxes();
+  // Encerramentos abruptos nem sempre emitem pagehide. Reavaliar a posse
+  // expirada também quando a guia permanece aberta sem outro evento.
+  window.setInterval(() => {
+    pruneExpiredParkedOutboxes();
+    if (document.visibilityState !== "hidden" && navigator.onLine !== false) {
+      restorePendingOutbox();
+    }
+  }, 60_000);
   window.addEventListener(ANALYTICS_VIEW_READY_EVENT, () => {
     // O bridge pode retirar a suspensão na mesma emissão do evento.
     // Recuperar após seus listeners evita adiar a fila para o próximo online.

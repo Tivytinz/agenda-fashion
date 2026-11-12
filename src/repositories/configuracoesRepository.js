@@ -101,6 +101,7 @@ async function buscarNegocioPorId(
           n.complemento,
           n.cep,
           n.localizacao_url,
+          n.fuso_horario,
 
           n.whatsapp,
           n.whatsapp
@@ -175,7 +176,7 @@ async function atualizarNegocio(
       const atual =
         await client.query(
           `
-            SELECT slug
+            SELECT slug, fuso_horario
             FROM negocios
             WHERE id = $1
             FOR UPDATE
@@ -185,6 +186,24 @@ async function atualizarNegocio(
 
       if (!atual.rows[0]) {
         return null;
+      }
+
+      if (atual.rows[0].fuso_horario !== dados.fuso_horario) {
+        // A reserva contém snapshot do fuso, mas sua mudança durante uma
+        // agenda futura ativa pode criar slots incoerentes no mesmo calendário.
+        const reservas = await client.query(
+          `SELECT 1 FROM agendamentos
+           WHERE negocio_id = $1
+             AND status IN ('agendado', 'confirmado')
+             AND inicio_previsto_em >= NOW()
+           LIMIT 1`,
+          [negocioId]
+        );
+        if (reservas.rows[0]) {
+          const error = new Error("Agendamentos futuros impedem alterar o fuso horário.");
+          error.code = "NEGOCIO_FUSO_RESERVAS_ATIVAS";
+          throw error;
+        }
       }
 
       const conflito =
@@ -267,6 +286,7 @@ async function atualizarNegocio(
     $14::TEXT[],
     ARRAY[]::TEXT[]
   ),
+  fuso_horario = $16::TEXT,
           updated_at = NOW()
 
         WHERE id = $15
@@ -298,6 +318,7 @@ async function atualizarNegocio(
           complemento,
           cep,
           localizacao_url,
+          fuso_horario,
 
           whatsapp,
           whatsapp
@@ -351,6 +372,7 @@ async function atualizarNegocio(
         dados.whatsapp_negocio,
         dados.areas,
         negocioId,
+        dados.fuso_horario,
       ]
     );
 

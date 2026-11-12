@@ -8,6 +8,7 @@ const {
 const ForbiddenError = require("../errors/ForbiddenError");
 const ValidationError = require("../errors/ValidationError");
 const AppError = require("../errors/AppError");
+const { resolverFusoNegocio } = require("../domain/fusoNegocio");
 const {
   normalizarEspecialidades,
 } = require("../domain/especialidadesNegocio");
@@ -312,12 +313,16 @@ async function salvarConfiguracoes({
 
     localizacao_url:
       normalizarUrl(
-        possuiCampo(
-          entrada,
-          "localizacao_url"
-        )
+        possuiCampo(entrada, "localizacao_url")
           ? entrada.localizacao_url
-          : negocioAtual.localizacao_url
+          : negocioAtual.localizacao_url,
+        {
+          // Um link legado já persistido não pode despublicar o negócio
+          // automaticamente durante uma edição que não altera a URL.
+          legado: !possuiCampo(entrada, "localizacao_url") ||
+            String(entrada.localizacao_url ?? "").trim() ===
+            String(negocioAtual.localizacao_url ?? "").trim()
+        }
       ),
 
     whatsapp_negocio:
@@ -328,6 +333,13 @@ async function salvarConfiguracoes({
     areas:
       especialidades,
   };
+
+  dadosAtualizados.fuso_horario = resolverFusoNegocio({
+    estado: dadosAtualizados.estado,
+    valor: possuiCampo(entrada, "fuso_horario") ? entrada.fuso_horario : null,
+    atual: negocioAtual.fuso_horario,
+    estadoAnterior: negocioAtual.estado
+  });
 
   let negocioAtualizado;
 
@@ -340,6 +352,14 @@ async function salvarConfiguracoes({
           usuarioId
         );
   } catch (erro) {
+    if (erro?.code === "NEGOCIO_FUSO_RESERVAS_ATIVAS") {
+      const conflito = new AppError(
+        "Existem agendamentos futuros ativos. Resolva ou reagende essas reservas antes de alterar o fuso horário.",
+        409
+      );
+      conflito.codigo = "NEGOCIO_FUSO_RESERVAS_ATIVAS";
+      throw conflito;
+    }
     if (
       erro?.code ===
       "SLUG_INDISPONIVEL"

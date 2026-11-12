@@ -75,6 +75,10 @@ export function normalizeBusinessForm(business = {}) {
       business.whatsapp || business.whatsapp_negocio
     ),
     cep: formatCep(business.cep),
+    fuso_horario: business.fuso_horario ||
+      (timeZonesForState(business.estado).length === 1
+        ? timeZonesForState(business.estado)[0].value
+        : ""),
     areas: normalizeBusinessSpecialties(business)
   };
 }
@@ -109,6 +113,17 @@ export function isBusinessMapUrl(value) {
   } catch {
     return false;
   }
+}
+
+// Links gerados a partir de uma busca precisam ser regenerados quando
+// a profissional muda o endereço. Não alteramos links manuais silenciosamente.
+export function isStaleGeneratedMapSearch(form) {
+  try {
+    const url = new URL(form?.localizacao_url || "");
+    const generated = url.hostname === "www.google.com" &&
+      url.pathname === "/maps/search/" && url.searchParams.get("api") === "1";
+    return generated && url.toString() !== buildBusinessMapSearchUrl(form);
+  } catch { return false; }
 }
 
 export function validateWhatsApp(value) {

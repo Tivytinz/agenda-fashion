@@ -40,6 +40,7 @@ export function BusinessPage({ create = false }) {
     hasChanges,
     publicUrl,
     locationValid,
+    staleMapSearch,
     whatsappError,
     discardPendingOperations,
     update,
@@ -111,7 +112,7 @@ export function BusinessPage({ create = false }) {
           ))}
         </select>
       </label>
-      {create && form.estado && timeZoneOptions.length > 0 && (
+      {form.estado && timeZoneOptions.length > 0 && (
         <div className="field-wide">
           {timeZoneOptions.length > 1 ? (
             <label>
@@ -124,7 +125,7 @@ export function BusinessPage({ create = false }) {
                   <option value={option.value} key={option.value}>{option.label}</option>
                 ))}
               </select>
-              <small>O horário escolhido será usado na agenda e nos agendamentos.</small>
+              <small>O horário escolhido será usado na agenda. Alterações com reservas futuras ativas precisam ser resolvidas antes de salvar.</small>
             </label>
           ) : (
             <small>Horário local: {timeZoneOptions[0].label}.</small>
@@ -333,7 +334,9 @@ export function BusinessPage({ create = false }) {
               <span className="maps-field-helper">
                 <small className={!locationValid ? "field-helper is-error" : "field-helper"}>
                   {!locationValid
-                    ? create ? "Use um link HTTPS do Google Maps ou Apple Mapas." : "Use um link HTTP ou HTTPS válido."
+                    ? staleMapSearch
+                      ? "O endereço mudou. Gere novamente o link de busca ou cole outro link válido."
+                      : "Use um link HTTPS do Google Maps ou Apple Mapas."
                     : create ? "Confira se o endereço indicado no mapa está correto." : "Cole um link do Google Maps ou Apple Mapas."}
                 </small>
                 {locationValid && form.localizacao_url && (
@@ -341,7 +344,7 @@ export function BusinessPage({ create = false }) {
                 )}
               </span>
             </label>
-            {create && (
+            {(create || staleMapSearch) && (
               <div className="field-wide">
                 <button type="button" className="button button-secondary button-small"
                   disabled={!mapSuggestion || mutationBusy} onClick={suggestMapLink}>

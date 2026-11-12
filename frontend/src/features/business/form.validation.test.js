@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildBusinessMapSearchUrl, isBusinessMapUrl, timeZonesForState,
-  firstMissingBusinessField, validateCreationCompleteness
+  firstMissingBusinessField, validateCreationCompleteness, isStaleGeneratedMapSearch
 } from "./form";
 
 describe("cadastro de negócio", () => {
@@ -20,6 +20,15 @@ describe("cadastro de negócio", () => {
     expect(isBusinessMapUrl("http://maps.google.com/")).toBe(false);
     expect(isBusinessMapUrl("https://maps.apple.com/?q=Studio")).toBe(true);
   });
+  it("detecta link de busca antigo após alteração de endereço", () => {
+    const base = { endereco: "Rua Um", numero: "10", bairro: "Centro", cidade: "Goiânia", estado: "GO" };
+    const localizacao_url = buildBusinessMapSearchUrl(base);
+    const altered = { ...base, numero: "12", localizacao_url };
+    expect(isStaleGeneratedMapSearch(altered)).toBe(true);
+    expect(isStaleGeneratedMapSearch({ ...altered, localizacao_url: buildBusinessMapSearchUrl(altered) })).toBe(false);
+    expect(isStaleGeneratedMapSearch({ ...altered, localizacao_url: "https://maps.apple.com/?q=Rua+Um" })).toBe(false);
+  });
+
   it("solicita fuso em estados ambíguos", () => {
     const form = { areas: ["Unhas"], nome: "Studio", whatsapp: "62999999999",
       cidade: "Manaus", estado: "AM", bairro: "Centro", endereco: "Rua", numero: "1",

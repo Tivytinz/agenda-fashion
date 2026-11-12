@@ -1,5 +1,5 @@
 import { useBusinessAddress } from "./useBusinessAddress";
-import { EMPTY, validateImage, normalizeBusinessForm, serializeBusinessForm, isValidLocationUrl, isBusinessMapUrl, timeZonesForState, firstMissingBusinessField, validateWhatsApp, validateCreationCompleteness, buildBusinessMapSearchUrl } from "./form";
+import { EMPTY, validateImage, normalizeBusinessForm, serializeBusinessForm, isValidLocationUrl, isBusinessMapUrl, timeZonesForState, firstMissingBusinessField, validateWhatsApp, validateCreationCompleteness, buildBusinessMapSearchUrl, isStaleGeneratedMapSearch } from "./form";
 import { clearBusinessCreationDraft, readBusinessCreationDraft, saveBusinessCreationDraft } from "./draft";
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -63,8 +63,13 @@ export function useBusinessEditor({ create = false }) {
   const publicUrl = buildPublicLink({
     businessSlug: form.slug
   });
-  const locationValid = isValidLocationUrl(form.localizacao_url)
-    && (!create || !String(form.localizacao_url || "").trim() || isBusinessMapUrl(form.localizacao_url));
+  const staleMapSearch = isStaleGeneratedMapSearch(form);
+  const unchangedLegacyLocation = !create &&
+    String(form.localizacao_url || "").trim() ===
+    String(savedForm.localizacao_url || "").trim();
+  const locationValid = !staleMapSearch && isValidLocationUrl(form.localizacao_url)
+    && (unchangedLegacyLocation || !String(form.localizacao_url || "").trim() ||
+      isBusinessMapUrl(form.localizacao_url));
   const whatsappError = validateWhatsApp(form.whatsapp);
   const timeZoneOptions = timeZonesForState(form.estado);
   const mapSuggestion = buildBusinessMapSearchUrl(form);
@@ -111,9 +116,10 @@ export function useBusinessEditor({ create = false }) {
     return () => window.removeEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, discardPrivateDraft);
   }, [create]);
 
-  // O ViaCEP pode preencher a UF depois que o formulário já foi renderizado.
+  // O ViaCEP ou a edição do endereço pode trocar a UF depois da renderização.
+  // Um fuso incompatível nunca acompanha automaticamente um novo estado.
   useEffect(() => {
-    if (!create) return;
+    if (!create && !form.id) return;
     const choices = timeZonesForState(form.estado);
     setForm((current) => {
       const valid = choices.some(option => option.value === current.fuso_horario);
@@ -121,7 +127,7 @@ export function useBusinessEditor({ create = false }) {
         : choices.length === 1 ? choices[0].value : "";
       return current.fuso_horario === next ? current : { ...current, fuso_horario: next };
     });
-  }, [create, form.estado]);
+  }, [create, form.estado, form.id]);
 
   useEffect(() => {
     const context = { create, usuarioId, generation: 0 };
@@ -392,10 +398,16 @@ export function useBusinessEditor({ create = false }) {
       return;
     }
 
+    if (timeZoneOptions.length > 1 && !form.fuso_horario) {
+      setError("Escolha o fuso horário da cidade do negócio.");
+      focusFormField("fuso_horario");
+      return;
+    }
+
     if (!locationValid) {
-      setError(create
-        ? "Informe um link HTTPS do Google Maps ou Apple Mapas."
-        : "Informe um link HTTP ou HTTPS válido para a localização.");
+      setError(staleMapSearch
+        ? "O link de busca aponta para o endereço anterior. Gere outro link ou informe o local atualizado."
+        : "Informe um link HTTPS do Google Maps ou Apple Mapas.");
       focusFormField("localizacao_url");
       return;
     }
@@ -697,6 +709,7 @@ export function useBusinessEditor({ create = false }) {
     hasChanges,
     publicUrl,
     locationValid,
+    staleMapSearch,
     whatsappError,
     discardPendingOperations,
     update,

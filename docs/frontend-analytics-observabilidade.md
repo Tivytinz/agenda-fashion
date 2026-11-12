@@ -2188,3 +2188,19 @@ coorte. Essas medidas não devem ser comparadas como equivalentes.
 A criação de índice em `analytics_eventos.visualizacao_id` deve depender de
 `EXPLAIN (ANALYZE, BUFFERS)` com volume representativo; não criar migration
 por hipótese de desempenho.
+
+### Recuperação incremental com a fila cheia
+
+O diário offline não deve ser removido quando a fila ativa já contém 40 lotes.
+A recuperação transfere somente o número de lotes que cabe, preserva os
+excedentes no snapshot original e retenta conforme a fila é drenada.
+Quando o snapshot pertencer à mesma guia, o excedente é estacionado em outra
+chave antes de sobrescrever o diário ativo. Os UUIDs continuam sendo usados
+na deduplicação do coletor.
+
+A aplicação reavalia a recuperação quando recebe conexão, volta ao primeiro
+plano e após envios confirmados, além de repetir a verificação a cada minuto
+enquanto aberta. Snapshots com mais de 24 horas são removidos nas próximas
+verificações; não existe garantia de exclusão offline sem nova execução do app,
+nem de envio se a pessoa nunca retornar. As guias sem armazenamento
+compartilhado funcional não podem ter recuperação durável garantida.
