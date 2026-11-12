@@ -2129,6 +2129,33 @@ cancelado em **qualquer negócio ativo próprio** da conta vinculada. No funil
 canônico, primeiro agendamento usa o primeiro negócio selecionado para a
 coorte. Essas medidas não devem ser comparadas como equivalentes.
 
+### Isolamento entre abas, retomada e outbox (12/11/2026)
+
+- A fila first-party passou de `localStorage` compartilhado para
+  `sessionStorage` por aba. A fila global legada é descartada, não migrada:
+  payload antigo não pode reaparecer sob outra conta. Isso pode reduzir
+  telemetria pendente, sem alterar agendamentos ou conversões transacionais.
+- `af_auth_revision_v1` propaga somente um aviso opaco de mudança de
+  autenticação entre abas. A aba receptora oculta a identidade anterior,
+  descarta sua fila e revalida `/minha-sessao` antes de retomar a coleta.
+  Eventos de `storage` não concedem autenticação nem autorizam recursos.
+- A fronteira local suspende analytics; a retomada ocorre somente após
+  `/minha-sessao` autenticado, rejeição canônica 401/403 ou confirmação
+  HTTP do logout. Falha de rede mantém a coleta suspensa, mas login posterior
+  validado pode recuperá-la sem navegação. Sinais repetidos não duplicam a
+  visualização ainda ativa.
+- O mutex de entrega da fila é liberado por geração de identidade. Um POST
+  antigo que nunca terminar não impede entregas novas; se terminar atrasado,
+  não pode limpar a fila da identidade atual. POST já recebido pelo backend
+  continua sujeito à proteção de conflito HTTP 409.
+- Uma janela aberta com `window.opener` descarta as possíveis cópias de
+  `sessionStorage` no primeiro uso. A função nativa de duplicar guia em
+  navegadores que copiam storage sem `opener` ainda exige validação real;
+  não declarar isolamento universal apenas por testes em jsdom.
+- Revogação de consentimento entre abas remove UTMs e click IDs dos lotes
+  locais pendentes. A fila `sessionStorage` não sobrevive ao fechamento da
+  aba; a possibilidade de subcontagem deve constar das análises de marketing.
+
 A criação de índice em `analytics_eventos.visualizacao_id` deve depender de
 `EXPLAIN (ANALYZE, BUFFERS)` com volume representativo; não criar migration
 por hipótese de desempenho.

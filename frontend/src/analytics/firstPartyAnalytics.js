@@ -7,7 +7,8 @@ import {
 } from "../utils/browserStorage";
 import {
   getMarketingConsent,
-  MARKETING_CONSENT
+  MARKETING_CONSENT,
+  MARKETING_CONSENT_EVENT
 } from "./marketingConsent";
 
 const VISITOR_KEY = "af_analytics_visitor_v2";
@@ -37,6 +38,9 @@ let currentView = null;
 let lifecycleBound = false;
 let outboxFlushPromise = null;
 let identityGeneration = 0;
+let analyticsSuspended = false;
+let legacyOutboxDiscarded = false;
+let inheritedTabStorageChecked = false;
 
 function uuid() {
   try {
@@ -148,7 +152,21 @@ function captureAcquisition() {
   };
 }
 
+// Abertura de uma nova janela pode copiar sessionStorage da aba de origem.
+// Não herdar identidade ou lote de analytics de window.opener.
+function isolateInheritedTabStorage() {
+  if (inheritedTabStorageChecked) return;
+  inheritedTabStorageChecked = true;
+  try {
+    if (typeof window === "undefined" || !window.opener) return;
+  } catch { return; }
+  for (const key of [SESSION_KEY, ONBOARDING_FLOW_KEY, BOOKING_FLOW_KEY, OUTBOX_KEY]) {
+    removeBrowserStorage("session", key);
+  }
+}
+
 function readSession() {
+  isolateInheritedTabStorage();
   return parseJson(readBrowserStorage("session", SESSION_KEY));
 }
 
@@ -276,10 +294,19 @@ function flowUuid(key, { renew = false } = {}) {
   return created;
 }
 
+function discardLegacyOutbox() {
+  if (legacyOutboxDiscarded) return;
+  // A fila antiga global não tem isolamento entre contas e abas.
+  removeBrowserStorage("local", OUTBOX_KEY);
+  legacyOutboxDiscarded = true;
+}
+
 function readOutbox() {
+  isolateInheritedTabStorage();
+  discardLegacyOutbox();
   try {
     const parsed = JSON.parse(
-      readBrowserStorage("local", OUTBOX_KEY) || "[]"
+      readBrowserStorage("session", OUTBOX_KEY) || "[]"
     );
     if (!Array.isArray(parsed)) return [];
 
@@ -300,8 +327,9 @@ function readOutbox() {
 }
 
 function writeOutbox(entries) {
+  discardLegacyOutbox();
   writeBrowserStorage(
-    "local",
+    "session",
     OUTBOX_KEY,
     JSON.stringify(
       (Array.isArray(entries) ? entries : [])
@@ -380,6 +408,7 @@ async function postPayload(payload, { keepalive = false } = {}) {
 }
 
 async function flushOutbox({ keepalive = false } = {}) {
+  if (analyticsSuspended) return;
   if (outboxFlushPromise) return outboxFlushPromise;
 
   const generation = identityGeneration;
@@ -420,9 +449,14 @@ async function flushOutbox({ keepalive = false } = {}) {
 
 // A fronteira invalida lotes pendentes, fluxos e sessão sem apagar a identidade
 // pseudônima do navegador; previne atribuição cruzada entre contas.
-export function resetFirstPartyAnalyticsSession() {
+export function resetFirstPartyAnalyticsSession({ suspend = false } = {}) {
   identityGeneration += 1;
   currentView = null;
+  analyticsSuspended = suspend;
+  // POST antigo não deve bloquear a fila nova se nunca responder.
+  // Sua finalização ainda respeita identityGeneration e não altera o lote novo.
+  outboxFlushPromise = null;
+  inheritedTabStorageChecked = false;
   removeBrowserStorage("session", SESSION_KEY);
   removeBrowserStorage("session", ONBOARDING_FLOW_KEY);
   removeBrowserStorage("session", BOOKING_FLOW_KEY);
@@ -431,7 +465,7 @@ export function resetFirstPartyAnalyticsSession() {
 
 async function send(items, { keepalive = false } = {}) {
   try {
-    if (!Array.isArray(items) || items.length === 0) return;
+    if (analyticsSuspended || !Array.isArray(items) || items.length === 0) return;
     const session = touchSession(ensureSession());
     const acquisition = mergeDefined(
       session.acquisition || {},
@@ -526,10 +560,19 @@ function bindLifecycle() {
     void flushOutbox();
   });
 
-  window.addEventListener(
-    ANALYTICS_IDENTITY_BOUNDARY_EVENT,
-    resetFirstPartyAnalyticsSession
-  );
+  const enforceConsent = () => {
+    if (getMarketingConsent() !== MARKETING_CONSENT.GRANTED) {
+      clearFirstPartyMarketingAttribution();
+    }
+  };
+  window.addEventListener(MARKETING_CONSENT_EVENT, enforceConsent);
+  window.addEventListener("storage", (event) => {
+    if (event.key === "af_marketing_consent_v2") enforceConsent();
+  });
+
+  window.addEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, () => {
+    resetFirstPartyAnalyticsSession({ suspend: true });
+  });
 }
 
 function autoJourneyEvent(pageKey, search, state) {
@@ -576,10 +619,15 @@ function autoJourneyEvent(pageKey, search, state) {
 export function startFirstPartyPageView({
   pathname,
   search = "",
-  state = null
+  state = null,
+  resumeAfterBoundary = false
 }) {
   try {
     bindLifecycle();
+    if (analyticsSuspended && !resumeAfterBoundary) return;
+    // Readiness repetido ou refresh silencioso não duplica a view ativa.
+    if (resumeAfterBoundary && !analyticsSuspended && currentView) return;
+    if (resumeAfterBoundary) analyticsSuspended = false;
     const [pageKey, routeTemplate] = route(pathname, search);
 
     // Não mede o uso do próprio painel administrativo para não inflar usuários ativos.

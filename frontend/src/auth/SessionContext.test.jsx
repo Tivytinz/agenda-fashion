@@ -8,7 +8,12 @@ import {
   migrateLegacySession
 } from "../api/client";
 import { SessionProvider, useSession } from "./SessionContext";
-import { clearSession, ANALYTICS_IDENTITY_BOUNDARY_EVENT } from "./session";
+import {
+  clearSession,
+  ANALYTICS_IDENTITY_BOUNDARY_EVENT,
+  ANALYTICS_VIEW_READY_EVENT,
+  AUTH_REVISION_STORAGE_KEY
+} from "./session";
 
 vi.mock("../api/client", () => ({
   apiRequest: vi.fn(),
@@ -105,6 +110,108 @@ describe("sincronização da sessão", () => {
       expect(boundaries).toHaveBeenCalledTimes(1);
     } finally {
       window.removeEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, boundaries);
+    }
+  });
+
+  it("logout confirma readiness somente depois da resposta HTTP", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    let finishLogout;
+    const ready = vi.fn();
+    window.addEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    try {
+      apiRequest.mockImplementation((path) => path === "/logout"
+        ? new Promise((resolve) => { finishLogout = resolve; })
+        : Promise.resolve({}));
+      fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+      await waitFor(() => expect(finishLogout).toBeTypeOf("function"));
+      expect(ready).not.toHaveBeenCalled();
+      await act(async () => finishLogout({}));
+      expect(ready).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    }
+  });
+
+  it("logout com erro de rede permanece suspenso até login validado", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    let current = { usuario: { id: 1, nome: "Ana" }, negocio: null, vinculos: [] };
+    apiRequest.mockImplementation((path) => {
+      if (path === "/logout") return Promise.reject(new Error("Rede indisponível"));
+      if (path === "/login") {
+        current = { usuario: { id: 2, nome: "Bruna" }, negocio: null, vinculos: [] };
+      }
+      return Promise.resolve(current);
+    });
+    const ready = vi.fn();
+    window.addEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+      await waitFor(() => expect(apiRequest.mock.calls.some(([path]) => path === "/logout")).toBe(true));
+      await act(async () => {});
+      expect(ready).toHaveBeenCalledTimes(0);
+      fireEvent.click(screen.getByRole("button", { name: "Entrar como Bruna" }));
+      await screen.findByText("Bruna");
+      expect(ready).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    }
+  });
+
+  it("troca de conta em outra aba oculta a anterior até /minha-sessao confirmar", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    let finishRefresh;
+    apiRequest.mockImplementation((path) => path === "/minha-sessao"
+      ? new Promise((resolve) => { finishRefresh = resolve; })
+      : Promise.resolve({}));
+    const ready = vi.fn();
+    window.addEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    try {
+      fireEvent(window, new StorageEvent("storage", {
+        key: AUTH_REVISION_STORAGE_KEY, newValue: "outra-aba"
+      }));
+      expect(screen.queryByText("Ana")).toBeNull();
+      expect(ready).not.toHaveBeenCalled();
+      await waitFor(() => expect(finishRefresh).toBeTypeOf("function"));
+      await act(async () => finishRefresh({
+        usuario: { id: 2, nome: "Bruna" }, negocio: null, vinculos: []
+      }));
+      await screen.findByText("Bruna");
+      expect(ready).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    }
+  });
+
+  it("falha na revalidação entre abas não reexibe identidade anterior", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    apiRequest.mockRejectedValueOnce(new Error("Falha transitória"));
+    fireEvent(window, new StorageEvent("storage", {
+      key: AUTH_REVISION_STORAGE_KEY, newValue: "outra-aba"
+    }));
+    await waitFor(() => expect(screen.getByTestId("session-loading").textContent).toBe("Pronta"));
+    expect(screen.queryByText("Ana")).toBeNull();
+    expect(screen.getByText("Desconectada")).not.toBeNull();
+  });
+
+  it("login existente vindo da visita anônima abre nova fronteira de analytics", async () => {
+    localStorage.removeItem("session_active");
+    renderSession();
+    await screen.findByText("Desconectada");
+    apiRequest.mockResolvedValue({
+      usuario: { id: 2, nome: "Bruna" }, negocio: null, vinculos: []
+    });
+    const boundary = vi.fn();
+    window.addEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, boundary);
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Entrar como Bruna" }));
+      await screen.findByText("Bruna");
+      expect(boundary).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, boundary);
     }
   });
 
