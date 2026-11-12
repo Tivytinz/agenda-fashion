@@ -73,6 +73,30 @@ afterEach(() => {
 });
 
 describe("publicação do negócio", () => {
+  it("revê o mesmo negócio no onboarding sem fazer outro POST ou PUT desnecessário", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/configuracoes" && !options.method) {
+        return Promise.resolve({
+          negocio: { ...BUSINESS, localizacao_url: "https://maps.google.com/?q=goiania" },
+          publicacao: { publicado: false, pode_publicar: false, pendencias: ["pelo menos um serviço ativo"] }
+        });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+    render(<MemoryRouter initialEntries={["/painel/negocio?onboarding=revisao-negocio&plano=autonoma"]}>
+      <Routes>
+        <Route path="/painel/negocio" element={<BusinessPage />} />
+        <Route path="*" element={<ActivationDestination />} />
+      </Routes>
+    </MemoryRouter>);
+    expect(await screen.findByRole("heading", { name: "Seu negócio" })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Voltar" }).getAttribute("href"))
+      .toBe("/cadastro?tipo=profissional&onboarding=revisao-conta&plano=autonoma");
+    fireEvent.click(screen.getByRole("button", { name: "Continuar para o serviço" }));
+    expect((await screen.findByTestId("activation-destination")).textContent)
+      .toBe("/painel/servicos/novo?onboarding=servico&plano=autonoma|");
+    expect(apiRequest.mock.calls.filter(([, options]) => options?.method === "PUT" || options?.method === "POST")).toHaveLength(0);
+  });
   it("retoma os horários depois de corrigir o perfil e publicar mesmo se a sessão falhar", async () => {
     refreshSession.mockRejectedValueOnce(new Error("Rede indisponível"));
     const business = { ...BUSINESS, localizacao_url: "https://maps.google.com/?q=goiania" };
