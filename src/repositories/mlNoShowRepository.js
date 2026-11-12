@@ -200,6 +200,13 @@ async function obterCoberturaCaptura() {
       AND agendamento.data IS NOT NULL
       AND agendamento.horario IS NOT NULL
       AND agendamento.duracao_minutos > 0
+      AND agendamento.inicio_previsto_em IS NOT NULL
+      -- A captura v1 exclui reagendamentos até haver snapshot original.
+      AND NOT EXISTS (
+        SELECT 1
+        FROM agendamento_reagendamentos reagendamento
+        WHERE reagendamento.agendamento_id = agendamento.id
+      )
   `);
   return resultado.rows[0] || {
     total_elegiveis: 0,
