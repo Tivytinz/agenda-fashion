@@ -21,15 +21,13 @@ async function capturarAmostrasPendentes({ limite }) {
           a.status,
           a.status_atendimento_em,
           a.created_at,
-          COALESCE(
-            NULLIF(n.fuso_horario, ''),
-            'America/Sao_Paulo'
-          ) AS fuso_horario
+          a.inicio_previsto_em,
+          a.fuso_horario_snapshot,
+          primeiro_reagendamento.agendamento_id IS NOT NULL AS foi_reagendado
         FROM agendamentos a
-        INNER JOIN negocios n
-          ON n.id = a.negocio_id
         LEFT JOIN LATERAL (
           SELECT
+            historico.agendamento_id,
             historico.previous_data,
             historico.previous_horario
           FROM agendamento_reagendamentos historico
@@ -44,6 +42,10 @@ async function capturarAmostrasPendentes({ limite }) {
           FROM ml_agendamento_no_show_amostras amostra
           WHERE amostra.agendamento_id = a.id
         )
+          -- O histórico de reagendamento não armazena o fuso original.
+          -- Até existir snapshot temporal auditável, não inferir instante
+          -- de criação usando o fuso atual do negócio.
+          AND primeiro_reagendamento.agendamento_id IS NULL
         ORDER BY
           a.created_at ASC,
           a.id ASC
@@ -121,11 +123,7 @@ async function capturarAmostrasPendentes({ limite }) {
             0,
             EXTRACT(
               EPOCH FROM (
-                (
-                  (
-                    atributo.data + atributo.horario
-                  ) AT TIME ZONE atributo.fuso_horario
-                )
+                atributo.inicio_previsto_em
                 - atributo.created_at
               )
             ) / 3600
