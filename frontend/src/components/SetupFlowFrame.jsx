@@ -27,8 +27,8 @@ export function SetupFlowFrame({ children, enabled = true, step, complete = fals
           {backTo && (backDisabled
             ? <span aria-disabled="true" className="setup-back is-disabled"><span aria-hidden="true">←</span>Voltar</span>
             : <Link className="setup-back" to={backTo}><span aria-hidden="true">←</span>Voltar</Link>)}
-          <Link className={backTo ? "setup-exit setup-exit-button" : "setup-exit"} onClick={onExit} to={exitTo}>
-            {backTo && <span aria-hidden="true">↗</span>}Sair
+          <Link className="setup-exit setup-exit-button" onClick={onExit} to={exitTo}>
+            <span aria-hidden="true">↗</span>Sair
           </Link>
         </div>
       </header>

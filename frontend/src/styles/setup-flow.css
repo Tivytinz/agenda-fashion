@@ -275,19 +275,19 @@
   margin-top: -8px;
 }
 
-/* Criação do negócio: navegação contextual e especialidades em rosa e branco. */
-.setup-flow-has-back .setup-topbar-actions { display: flex; align-items: center; gap: 10px; }
-.setup-flow-has-back .setup-topbar-actions :is(.setup-back, .setup-exit-button) {
+/* Cabeçalho consistente em todas as etapas; especialidades apenas na criação do negócio. */
+.setup-flow .setup-topbar-actions { display: flex; align-items: center; gap: 10px; }
+.setup-flow .setup-topbar-actions :is(.setup-back, .setup-exit-button) {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   min-height: 44px; padding: 9px 15px; border: 1px solid #cc528d;
   border-radius: 12px; background: #fff; color: #a52a66;
   font-size: 14px; font-weight: 700; line-height: 1.2; text-decoration: none;
   transition: border-color 150ms ease, background-color 150ms ease;
 }
-.setup-flow-has-back .setup-topbar-actions :is(.setup-back, .setup-exit-button):hover {
+.setup-flow .setup-topbar-actions :is(.setup-back, .setup-exit-button):hover {
   border-color: #ac2a6a; background: #fff0f7; color: #92205a; text-decoration: none;
 }
-.setup-flow-has-back .setup-topbar-actions :is(.setup-back, .setup-exit-button):focus-visible {
+.setup-flow .setup-topbar-actions :is(.setup-back, .setup-exit-button):focus-visible {
   outline: 2px solid var(--pink-600); outline-offset: 3px;
 }
 .setup-flow-has-back .business-field-label { display: inline-flex; align-items: center; gap: 8px; }
@@ -314,11 +314,11 @@
 }
 @media (max-width: 520px) {
   .setup-flow-has-back .setup-topbar { flex-wrap: wrap; gap: 10px; }
-  .setup-flow-has-back .setup-topbar-actions { justify-content: space-between; flex-basis: 100%; }
-  .setup-flow-has-back .setup-topbar-actions :is(.setup-back, .setup-exit-button) { min-width: 98px; }
+  .setup-flow .setup-topbar-actions { justify-content: space-between; flex-basis: 100%; }
+  .setup-flow .setup-topbar-actions :is(.setup-back, .setup-exit-button) { min-width: 98px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .setup-flow-has-back .setup-topbar-actions :is(.setup-back, .setup-exit-button) { transition: none; }
+  .setup-flow .setup-topbar-actions :is(.setup-back, .setup-exit-button) { transition: none; }
 }
 
 

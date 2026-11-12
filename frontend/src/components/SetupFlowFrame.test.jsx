@@ -49,6 +49,21 @@ function LoadingShell() {
   return <>{!focused && <nav aria-label="Navegação geral" />}<main>Carregando cadastro...</main></>;
 }
 
+it("usa o mesmo botão Sair nas quatro etapas, com ou sem Voltar", () => {
+  for (const step of [1, 2, 3, 4]) {
+    const view = render(<MemoryRouter initialEntries={["/cadastro"]}>
+      <SetupFlowFrame step={step} exitTo="/">
+        <main>Conteúdo do cadastro</main>
+      </SetupFlowFrame>
+    </MemoryRouter>);
+    const exit = screen.getByRole("link", { name: "Sair" });
+    expect(exit.classList.contains("setup-exit-button")).toBe(true);
+    expect(exit.getAttribute("href")).toBe("/");
+    expect(screen.queryByRole("link", { name: "Voltar" })).toBeNull();
+    view.unmount();
+  }
+});
+
 it("oferece links Voltar e Sair distintos na segunda etapa quando configurados", () => {
   render(<MemoryRouter initialEntries={["/criar-negocio"]}>
     <SetupFlowFrame backTo="/conta" exitTo="/" step={2}>
@@ -56,7 +71,9 @@ it("oferece links Voltar e Sair distintos na segunda etapa quando configurados",
     </SetupFlowFrame>
   </MemoryRouter>);
   expect(screen.getByRole("link", { name: "Voltar" }).getAttribute("href")).toBe("/conta");
-  expect(screen.getByRole("link", { name: "Sair" }).getAttribute("href")).toBe("/");
+  const exit = screen.getByRole("link", { name: "Sair" });
+  expect(exit.getAttribute("href")).toBe("/");
+  expect(exit.classList.contains("setup-exit-button")).toBe(true);
 });
 
 it.each([
