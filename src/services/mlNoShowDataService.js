@@ -14,7 +14,7 @@ function inteiro(valor) {
     : 0;
 }
 
-function avaliarProntidao(dados) {
+function avaliarProntidao(dados, captura = null) {
   const amostrasRotuladas = inteiro(
     dados?.amostras_rotuladas
   );
@@ -30,6 +30,14 @@ function avaliarProntidao(dados) {
     : 0;
 
   const motivos = [];
+  const totalElegiveis = inteiro(captura?.total_elegiveis);
+  const totalCapturados = inteiro(captura?.total_capturados);
+  const coberturaCaptura = totalElegiveis > 0
+    ? Math.min(1, totalCapturados / totalElegiveis)
+    : 0;
+  if (!captura || totalElegiveis === 0 || coberturaCaptura < 0.8) {
+    motivos.push("cobertura_captura_insuficiente");
+  }
 
   if (amostrasRotuladas < MINIMO_AMOSTRAS_ROTULADAS) {
     motivos.push("amostras_rotuladas_insuficientes");
@@ -60,6 +68,9 @@ function avaliarProntidao(dados) {
     },
     dados: {
       total_amostras: inteiro(dados?.total_amostras),
+      total_agendamentos_elegiveis: totalElegiveis,
+      total_agendamentos_capturados: totalCapturados,
+      cobertura_captura: Number(coberturaCaptura.toFixed(4)),
       amostras_rotuladas: amostrasRotuladas,
       faltas,
       realizados,
@@ -121,12 +132,14 @@ function mapearMaturidadeGrupo(dados) {
 async function obterDiagnosticoMaturidade() {
   const [
     global,
+    coberturaCaptura,
     resumoNegocios,
     negocios,
     segmentosCliente,
     mensal,
   ] = await Promise.all([
     repository.obterProntidao(),
+    repository.obterCoberturaCaptura(),
     repository.obterResumoMaturidadeNegocios(),
     repository.listarMaturidadeNegocios({
       limite: 20,
@@ -138,7 +151,7 @@ async function obterDiagnosticoMaturidade() {
   ]);
 
   const prontidao =
-    avaliarProntidao(global);
+    avaliarProntidao(global, coberturaCaptura);
   const totalRotuladasNegocios =
     inteiro(
       resumoNegocios?.amostras_rotuladas
@@ -234,13 +247,16 @@ async function coletar({ limite }) {
       repository.rotularAmostrasPendentes(),
     ]);
 
-  const dados = await repository.obterProntidao();
+  const [dados, coberturaCaptura] = await Promise.all([
+    repository.obterProntidao(),
+    repository.obterCoberturaCaptura(),
+  ]);
 
   return {
     amostras_capturadas: amostrasCapturadas,
     amostras_rotuladas_nesta_execucao:
       amostrasRotuladas,
-    prontidao: avaliarProntidao(dados),
+    prontidao: avaliarProntidao(dados, coberturaCaptura),
   };
 }
 
