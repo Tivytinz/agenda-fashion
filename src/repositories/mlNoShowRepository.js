@@ -21,9 +21,7 @@ async function capturarAmostrasPendentes({ limite }) {
           a.status,
           a.status_atendimento_em,
           a.created_at,
-          a.inicio_previsto_em,
-          a.fuso_horario_snapshot,
-          primeiro_reagendamento.agendamento_id IS NOT NULL AS foi_reagendado
+          a.inicio_previsto_em
         FROM agendamentos a
         LEFT JOIN LATERAL (
           SELECT
