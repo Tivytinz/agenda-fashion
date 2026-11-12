@@ -56,6 +56,8 @@ describe("repository de amostras de no-show", () => {
     expect(sql).toContain("NOT EXISTS");
     expect(sql).toContain("agendamento_reagendamentos");
     expect(sql).toContain("agendamento.inicio_previsto_em IS NOT NULL");
+    expect(sql).toContain("amostras_reagendadas_legadas");
+    expect(sql).toContain("historica.agendamento_id");
     expect(sql).toContain("amostra.agendamento_id = agendamento.id");
   });
 
