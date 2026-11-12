@@ -10,8 +10,11 @@ const uploadToCloudinary = require(
 const registrador = require(
   "../utils/registrador"
 );
-
-const BCRYPT_ROUNDS = 10;
+const {
+  obterBcryptRounds,
+} = require(
+  "../config/passwordHash"
+);
 
 const TAMANHO_MAXIMO_FOTO =
   5 * 1024 * 1024;
@@ -560,7 +563,7 @@ async function alterarSenha({
   const senhaHash =
     await bcrypt.hash(
       novaSenhaValidada,
-      BCRYPT_ROUNDS
+      obterBcryptRounds()
     );
 
   const atualizacao =
