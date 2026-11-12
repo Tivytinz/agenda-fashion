@@ -72,6 +72,23 @@ describe("repository de amostras de no-show", () => {
     );
   });
 
+  test("maturidade usa instante UTC persistido e não fuso atual", async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ total_amostras: 0 }] })
+      .mockResolvedValueOnce({ rows: [{ negocios_com_amostras: 0 }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] });
+    await repository.obterProntidao();
+    await repository.obterResumoMaturidadeNegocios();
+    await repository.listarMaturidadeNegocios({ limite: 10 });
+    await repository.listarMaturidadeSegmentosCliente();
+    await repository.listarMaturidadeMensal({ meses: 12 });
+    const sql = mockQuery.mock.calls.map(([consulta]) => consulta).join("\\n");
+    expect(sql).toContain("agendamento.inicio_previsto_em");
+    expect(sql).not.toContain("AT TIME ZONE COALESCE");
+  });
+
   test("agrega maturidade por negócio sem consultar PII", async () => {
     mockQuery
       .mockResolvedValueOnce({
