@@ -228,11 +228,10 @@ async function obterDiagnosticoMaturidade() {
 }
 
 async function coletar({ limite }) {
-  const [amostrasCapturadas, amostrasRotuladas] =
-    await Promise.all([
-      repository.capturarAmostrasPendentes({ limite }),
-      repository.rotularAmostrasPendentes(),
-    ]);
+  const amostrasCapturadas =
+    await repository.capturarAmostrasPendentes({ limite });
+  const amostrasRotuladas =
+    await repository.rotularAmostrasPendentes();
 
   const dados = await repository.obterProntidao();
 
