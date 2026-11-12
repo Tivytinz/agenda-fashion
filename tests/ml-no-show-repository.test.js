@@ -32,9 +32,9 @@ describe("repository de amostras de no-show", () => {
     expect(sql).toContain(
       "historico.status_atendimento_em < candidato.created_at"
     );
-    expect(sql).toContain(
-      "primeiro_reagendamento.previous_data"
-    );
+    expect(sql).toContain("primeiro_reagendamento.agendamento_id IS NULL");
+    expect(sql).toContain("atributo.inicio_previsto_em");
+    expect(sql).toContain("a.duracao_minutos > 0");
     expect(sql).toContain(
       "historico.created_at ASC"
     );
@@ -47,6 +47,23 @@ describe("repository de amostras de no-show", () => {
     expect(sql).not.toMatch(
       /cliente_nome|cliente_whatsapp|observacoes|email/i
     );
+  });
+
+  test("maturidade usa instante UTC persistido, sem fuso atual", async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ total_amostras: 0 }] })
+      .mockResolvedValueOnce({ rows: [{ negocios_com_amostras: 0 }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] });
+    await repository.obterProntidao();
+    await repository.obterResumoMaturidadeNegocios();
+    await repository.listarMaturidadeNegocios({ limite: 10 });
+    await repository.listarMaturidadeSegmentosCliente();
+    await repository.listarMaturidadeMensal({ meses: 12 });
+    const sql = mockQuery.mock.calls.map(([consulta]) => consulta).join("\\n");
+    expect(sql).toContain("agendamento.inicio_previsto_em");
+    expect(sql).not.toContain("AT TIME ZONE COALESCE");
   });
 
   test("cobertura exclui reagendamentos sem snapshot original", async () => {
