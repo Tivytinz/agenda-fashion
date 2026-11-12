@@ -114,6 +114,36 @@ test("operação recente impede outra criação mesmo sem acesso ativo", async (
   expect(asaas.criarAssinaturaAsaas).not.toHaveBeenCalled();
 });
 
+test("reserva concorrente perdida não remove nem cria assinatura no Asaas", async () => {
+  repository.reservarReativacao.mockResolvedValue(null);
+
+  await expect(
+    reativarMinhaAssinatura({ usuarioId: 10 })
+  ).rejects.toMatchObject({
+    statusCode: 409,
+    codigo: "RENOVACAO_PENDENTE"
+  });
+
+  expect(asaas.removerAssinaturaAsaas).not.toHaveBeenCalled();
+  expect(asaas.criarAssinaturaAsaas).not.toHaveBeenCalled();
+  expect(operacoes.registrarRecorrencia).not.toHaveBeenCalled();
+});
+
+test("reativação já ativa não cria outra cobrança ou recorrência", async () => {
+  repository.buscarAssinaturaAtivaPorNegocio.mockResolvedValue({
+    ...cancelada(),
+    status: "ACTIVE",
+    renovacao_cancelada: false
+  });
+
+  const resultado = await reativarMinhaAssinatura({ usuarioId: 10 });
+
+  expect(resultado.assinatura.status).toBe("ACTIVE");
+  expect(repository.reservarReativacao).not.toHaveBeenCalled();
+  expect(asaas.removerAssinaturaAsaas).not.toHaveBeenCalled();
+  expect(asaas.criarAssinaturaAsaas).not.toHaveBeenCalled();
+});
+
 test("erro de criação não descarta a operação reservada", async () => {
   asaas.criarAssinaturaAsaas.mockRejectedValue(new Error("Resposta incerta"));
   await expect(reativarMinhaAssinatura({ usuarioId: 10 })).rejects.toThrow("incerta");
