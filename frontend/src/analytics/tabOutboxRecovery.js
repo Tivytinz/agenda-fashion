@@ -94,6 +94,14 @@ export function ensureAnalyticsTabIsolation() {
   return tabId;
 }
 
+// Apenas documentos que provaram posse da guia podem usar rascunhos
+// pessoais. O armazenamento compartilhado guarda somente IDs opacos.
+export function verifiedAnalyticsTabId() {
+  const id = ensureAnalyticsTabIsolation();
+  const owner = parseRecord(readBrowserStorage("local", TAB_OWNER_PREFIX + id));
+  return owner?.documentId === documentId ? id : "";
+}
+
 export function releaseAnalyticsTab() {
   if (!tabId) return;
   const key = TAB_OWNER_PREFIX + tabId;
