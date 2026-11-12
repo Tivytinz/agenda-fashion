@@ -4,6 +4,7 @@ jest.mock(
     periodoSeguro: jest.fn((periodo) => periodo || "30"),
     buscarVisaoGeral: jest.fn(),
     listarAquisicao: jest.fn(),
+    listarDivulgacaoAf: jest.fn(),
     buscarJornada: jest.fn(),
     buscarReconciliacaoPipelines: jest.fn(),
     buscarReceita: jest.fn(),
@@ -69,10 +70,33 @@ const {
 describe("adminAnalyticsV2Service", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    repository.listarDivulgacaoAf.mockResolvedValue({ periodo: '30', divulgacoes: [] });
     marketingConversionDeliveryRepository.buscarSaudeEntregas
       .mockResolvedValue({ periodo: "30", linhas: [] });
     marketingConversionDeliveryRepository.buscarReconciliacaoConversoes
       .mockResolvedValue({ periodo: "30", provedores: [] });
+  });
+
+  test("expõe divulgação AF separada de campanhas e receita", async () => {
+    repository.listarAquisicao.mockResolvedValue({ origens: [] });
+    repository.listarDivulgacaoAf.mockResolvedValue({
+      divulgacoes: [{
+        af_source: "agenda_fashion",
+        af_medium: "whatsapp",
+        af_content: "negocio",
+        sessoes: 3,
+        sessoes_classificadas_diretas: 2,
+      }],
+    });
+    professionalFunnelService.buscarFunil.mockResolvedValue({
+      campanhas: [], qualidadeMensuracao: null, diagnosticoAtribuicao: null,
+    });
+    adminAcquisitionFinancialService.buscar.mockResolvedValue({});
+    const result = await buscarAcquisition("30");
+    expect(result.divulgacaoAf).toHaveLength(1);
+    expect(result.divulgacaoAf[0].sessoes_classificadas_diretas).toBe(2);
+    expect(result.funilPorCampanha).toEqual([]);
+    expect(result.metodologia.divulgacaoAf).toContain("não comprovam causalidade");
   });
 
   test("usa a coorte profissional nas taxas e preserva receita como fato do período", async () => {
