@@ -481,7 +481,8 @@ As quatro etapas usam a mesma identidade, um progresso compacto e uma ação de
 salvamento principal. `SetupFlowFrame` apresenta sempre o mesmo botão rosa de
 Sair (independentemente de existir Voltar). A navegação Conta ↔ Negócio não
 passa pela página Minha conta: edita-se a mesma conta e o rascunho do negócio
-é recuperado na mesma guia, sem repetir criação no backend. Menus de descoberta e de gestão ficam fora dessa experiência;
+é recuperado na mesma guia, sem repetir criação no backend. Menus de descoberta
+e de gestão ficam fora dessa experiência;
 a navegação operacional reaparece ao abrir o painel. Esse foco é apenas de
 interface e não substitui autenticação, autorização ou os contratos de persistência.
 Descrição, fotos e campos opcionais continuam visíveis junto do formulário, sem

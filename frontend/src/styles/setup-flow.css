@@ -314,7 +314,7 @@
 }
 @media (max-width: 520px) {
   .setup-flow-has-back .setup-topbar { flex-wrap: wrap; gap: 10px; }
-  .setup-flow .setup-topbar-actions { justify-content: space-between; flex-basis: 100%; }
+  .setup-flow-has-back .setup-topbar-actions { justify-content: space-between; flex-basis: 100%; }
   .setup-flow .setup-topbar-actions :is(.setup-back, .setup-exit-button) { min-width: 98px; }
 }
 @media (prefers-reduced-motion: reduce) {
