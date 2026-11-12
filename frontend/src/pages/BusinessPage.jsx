@@ -2,13 +2,15 @@ import { useBusinessEditor } from "../features/business/useBusinessEditor";
 import { BRAZILIAN_STATES } from "../features/business/form";
 import { Link } from "react-router-dom";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
+import { CategoryEmoji } from "../components/CategoryEmoji";
 import { SetupFlowFrame, SetupTitle } from "../components/SetupFlowFrame";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatWhatsApp } from "../utils/format";
 import {
-  BUSINESS_SPECIALTIES
+  BUSINESS_SPECIALTIES,
+  serviceCategoryEmoji
 } from "../utils/specialties";
 
 export function BusinessPage({ create = false }) {
@@ -136,13 +138,13 @@ export function BusinessPage({ create = false }) {
   );
 
   return (
-    <SetupFlowFrame enabled={create} exitTo={selectedPlan ? "/planos" : "/"} step={2}>
+    <SetupFlowFrame backTo={create ? "/conta" : undefined} enabled={create} exitTo={selectedPlan ? "/planos" : "/"} step={2}>
     <main className={create ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
       <UnsavedChangesGuard when={unsavedChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} />
       <header className="workspace-heading">
         <div>
           {!create && <p className="eyebrow">Presença pública</p>}
-          <SetupTitle emoji={create ? "✨" : undefined}>{create ? "Seu negócio" : "Meu negócio"}</SetupTitle>
+          <SetupTitle emoji={create ? "🏪" : undefined}>{create ? "Seu negócio" : "Meu negócio"}</SetupTitle>
           <p>
             {create
               ? "Vamos apresentar seu negócio às clientes."
@@ -235,7 +237,7 @@ export function BusinessPage({ create = false }) {
           </div>}
           <div className="form-grid">
             <label className="field-wide">
-              Nome do negócio
+              {create ? <span className="business-field-label"><span aria-hidden="true" className="business-field-emoji">🏷️</span>Nome do negócio</span> : "Nome do negócio"}
               <input disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded} minLength="2" maxLength="120" name="nome" onChange={(event) => update("nome", event.target.value)} required value={form.nome} />
             </label>
             {!create && form.slug && (
@@ -251,7 +253,7 @@ export function BusinessPage({ create = false }) {
               </div>
             )}
             <label className="field-wide">
-              Descrição (opcional)
+              {create ? <span className="business-field-label"><span aria-hidden="true" className="business-field-emoji">📝</span>Descrição (opcional)</span> : "Descrição (opcional)"}
               <textarea
                 disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}
                 maxLength="1000"
@@ -263,7 +265,7 @@ export function BusinessPage({ create = false }) {
             </label>
             <fieldset aria-label="Especialidades" className="specialty-field field-wide" disabled={saving || closingBusiness || closureUncertain || contextInvalid || creationUncertain || creationEnded}>
               <div className="specialty-heading-row">
-                <p>{create ? "Especialidades" : "Selecione tudo o que o negócio oferece."}</p>
+                <p>{create ? <><span aria-hidden="true" className="business-field-emoji">💖</span>Especialidades</> : "Selecione tudo o que o negócio oferece."}</p>
               </div>
               <div className="specialty-selector">
                 {BUSINESS_SPECIALTIES.map(([value, label]) => (
@@ -274,6 +276,7 @@ export function BusinessPage({ create = false }) {
                       onChange={() => toggleSpecialty(value)}
                       type="checkbox"
                     />
+                    <CategoryEmoji emoji={serviceCategoryEmoji(value)} />
                     <span>{label}</span>
                   </label>
                 ))}
@@ -285,7 +288,7 @@ export function BusinessPage({ create = false }) {
         <section className="business-form-section">
           <div className="business-form-heading">
             {!create && <p className="eyebrow">Contato</p>}
-            <h2>{create ? "Contato" : "Como falar com o negócio"}</h2>
+            <h2>{create ? <><span aria-hidden="true" className="business-section-emoji">💬</span>Contato</> : "Como falar com o negócio"}</h2>
           </div>
           <div className="form-grid">
             <label>
@@ -314,7 +317,7 @@ export function BusinessPage({ create = false }) {
         <section className="business-form-section business-address-section">
           <div className="business-form-heading">
             {!create && <p className="eyebrow">Endereço</p>}
-            <h2>{create ? "Endereço" : "Onde acontece o atendimento"}</h2>
+            <h2>{create ? <><span aria-hidden="true" className="business-section-emoji">📍</span>Endereço</> : "Onde acontece o atendimento"}</h2>
             {!create && <p>Comece pelo CEP e complete os detalhes do local.</p>}
           </div>
           {addressFields}
@@ -350,7 +353,6 @@ export function BusinessPage({ create = false }) {
                   disabled={!mapSuggestion || mutationBusy} onClick={suggestMapLink}>
                   Gerar link de busca a partir do endereço
                 </button>
-                <small>É uma busca, não um ponto verificado. Confira no mapa antes de criar o negócio.</small>
               </div>
             )}
           </div>

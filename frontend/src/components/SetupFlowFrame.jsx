@@ -15,15 +15,20 @@ export function SetupTitle({ children, emoji, id }) {
   );
 }
 
-export function SetupFlowFrame({ children, enabled = true, step, complete = false, wide = false, exitTo = "/" }) {
+export function SetupFlowFrame({ children, enabled = true, step, complete = false, wide = false, exitTo = "/", backTo }) {
   useSetupFrame(enabled);
   if (!enabled) return children;
 
   return (
-    <div className={`setup-flow${wide ? " setup-flow-wide" : ""}`}>
+    <div className={`setup-flow${wide ? " setup-flow-wide" : ""}${backTo ? " setup-flow-has-back" : ""}`}>
       <header className="setup-topbar">
         <span className="setup-brand"><img alt="" height="36" src={logo} width="36" />Agenda Fashion</span>
-        <Link className="setup-exit" to={exitTo}>Sair</Link>
+        <div className="setup-topbar-actions">
+          {backTo && <Link className="setup-back" to={backTo}><span aria-hidden="true">←</span>Voltar</Link>}
+          <Link className={backTo ? "setup-exit setup-exit-button" : "setup-exit"} to={exitTo}>
+            {backTo && <span aria-hidden="true">↗</span>}Sair
+          </Link>
+        </div>
       </header>
       <div className="setup-body">
         {!complete && (

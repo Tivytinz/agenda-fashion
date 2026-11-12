@@ -40,6 +40,22 @@ describe("criação do negócio", () => {
     expect(screen.getByRole("link", { name: "Sair", exact: true }).getAttribute("href")).toBe(exitTo);
   });
 
+  it("usa ícones oficiais sem alterar os rótulos, a seleção ou o contrato do cadastro", () => {
+    render(<MemoryRouter initialEntries={["/criar-negocio"]}><BusinessPage create /></MemoryRouter>);
+    expect(screen.getByRole("heading", { name: "Seu negócio" })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Voltar" }).getAttribute("href")).toBe("/conta");
+    expect(screen.getByLabelText("Nome do negócio")).not.toBeNull();
+    expect(screen.getByLabelText("Descrição (opcional)")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Endereço" })).not.toBeNull();
+    const nails = screen.getByLabelText("Unhas");
+    expect(nails.closest("label").querySelector(".category-emoji").textContent).toBe("💅");
+    expect(screen.getByLabelText("Cílios").closest("label")
+      .querySelector(".category-emoji.is-custom-beauty")).not.toBeNull();
+    fireEvent.click(nails);
+    expect(nails.checked).toBe(true);
+    expect(screen.queryByText(/É uma busca, não um ponto verificado/)).toBeNull();
+  });
+
   it("recupera rascunho da mesma conta após remount, sem localStorage", async () => {
     const { unmount } = render(
       <MemoryRouter initialEntries={["/criar-negocio"]}><BusinessPage create /></MemoryRouter>
