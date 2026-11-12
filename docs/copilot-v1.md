@@ -65,7 +65,7 @@ Nomes vindos do banco são tratados como dados, não como instruções.
 
 ## Geração padrão sem tokens
 
-A oportunidade `COMPARTILHAR_PERFIL` e o texto básico de divulgação não dependem de LLM nem de ML. O motor determinístico de inteligência de crescimento decide a oportunidade no backend e `buildDeterministicShareOutput` produz uma sugestão utilizável sem chamada externa. Esse é o caminho padrão do produto e não consome tokens.
+A oportunidade `COMPARTILHAR_PERFIL` e o texto básico de divulgação não dependem de LLM nem de ML. O motor determinístico de inteligência de crescimento decide a oportunidade no backend e `buildDeterministicShareOutput` produz uma sugestão utilizável sem chamada externa. A saída determinística também passa pelo mesmo sanitizador de alegações comerciais; se nomes cadastrados violarem o contrato, o texto degrada para uma mensagem genérica segura. Esse é o caminho padrão do produto e não consome tokens.
 
 ML só deve ser considerado futuramente para hipóteses que realmente exijam aprendizado estatístico, como estimar qual próxima ação tende a produzir melhor resultado com amostra suficiente. Ele não substitui as regras atuais para detectar a oportunidade de compartilhamento.
 

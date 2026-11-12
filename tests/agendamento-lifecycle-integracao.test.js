@@ -266,6 +266,13 @@ describe("ciclo persistido do atendimento", () => {
       .send({ status: "realizado" });
 
     expect(realizadoIdempotente.statusCode).toBe(200);
+    const estadoAposIdempotencia = await db.query(
+      `SELECT status, status_atendimento_em FROM agendamentos WHERE id = $1`,
+      [agendamentoRealizadoId]
+    );
+    expect(estadoAposIdempotencia.rows[0].status).toBe("realizado");
+    expect(new Date(estadoAposIdempotencia.rows[0].status_atendimento_em).toISOString())
+      .toBe(new Date(realizado.body.agendamento.status_atendimento_em).toISOString());
 
     const trocarTerminal = await request(app)
       .patch(`/agendamentos/${agendamentoRealizadoId}/atendimento`)
@@ -273,6 +280,13 @@ describe("ciclo persistido do atendimento", () => {
       .send({ status: "falta" });
 
     expect(trocarTerminal.statusCode).toBe(409);
+    const estadoAposConflito = await db.query(
+      `SELECT status, status_atendimento_em FROM agendamentos WHERE id = $1`,
+      [agendamentoRealizadoId]
+    );
+    expect(estadoAposConflito.rows[0].status).toBe("realizado");
+    expect(new Date(estadoAposConflito.rows[0].status_atendimento_em).toISOString())
+      .toBe(new Date(realizado.body.agendamento.status_atendimento_em).toISOString());
 
     const avaliacaoValida = await request(app)
       .patch(`/agendamentos/${agendamentoRealizadoId}/avaliar`)
