@@ -88,6 +88,21 @@ describe("fundação de dados de ML para no-show", () => {
     });
   });
 
+  test("rotula somente após a captura terminar", async () => {
+    let liberarCaptura;
+    mockRepository.capturarAmostrasPendentes.mockReturnValue(
+      new Promise((resolve) => { liberarCaptura = resolve; })
+    );
+    mockRepository.rotularAmostrasPendentes.mockResolvedValue(0);
+    mockRepository.obterProntidao.mockResolvedValue({});
+
+    const execucao = service.coletar({ limite: 10 });
+    expect(mockRepository.rotularAmostrasPendentes).not.toHaveBeenCalled();
+    liberarCaptura(1);
+    await execucao;
+    expect(mockRepository.rotularAmostrasPendentes).toHaveBeenCalledTimes(1);
+  });
+
   test("coleta, rotula e devolve prontidão agregada sem PII", async () => {
     mockRepository.capturarAmostrasPendentes.mockResolvedValue(40);
     mockRepository.rotularAmostrasPendentes.mockResolvedValue(8);
