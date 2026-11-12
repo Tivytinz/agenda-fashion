@@ -1,24 +1,12 @@
-const crypto = require("crypto");
+const {
+  assinarCapability,
+  assinaturaCorresponde,
+} = require(
+  "../config/bookingCapability"
+);
 
 const CONTEXTO_ACESSO =
   "agenda-fashion:guest-appointment-cancel:v1";
-
-function obterSegredo() {
-  const segredo = String(
-    process.env.JWT_SECRET || ""
-  ).trim();
-
-  if (!segredo) {
-    const erro = new Error(
-      "JWT_SECRET não configurado."
-    );
-    erro.status = 500;
-    erro.statusCode = 500;
-    throw erro;
-  }
-
-  return segredo;
-}
 
 function normalizarAgendamentoId(valor) {
   const id = Number(valor);
@@ -28,7 +16,9 @@ function normalizarAgendamentoId(valor) {
     : null;
 }
 
-function gerarAcessoVisitante(agendamentoId) {
+function gerarAcessoVisitante(
+  agendamentoId
+) {
   const id = normalizarAgendamentoId(
     agendamentoId
   );
@@ -39,53 +29,35 @@ function gerarAcessoVisitante(agendamentoId) {
     );
   }
 
-  return crypto
-    .createHmac(
-      "sha256",
-      obterSegredo()
-    )
-    .update(`${CONTEXTO_ACESSO}:${id}`)
-    .digest("base64url");
+  return assinarCapability({
+    contexto:
+      CONTEXTO_ACESSO,
+    payload:
+      String(id),
+  });
 }
 
 function validarAcessoVisitante(
   agendamentoId,
   acesso
 ) {
-  if (
-    typeof acesso !== "string" ||
-    !/^[A-Za-z0-9_-]{43}$/.test(acesso)
-  ) {
-    return false;
-  }
-
-  let esperado;
-
-  try {
-    esperado = gerarAcessoVisitante(
+  const id =
+    normalizarAgendamentoId(
       agendamentoId
     );
-  } catch {
+
+  if (!id) {
     return false;
   }
 
-  const recebidoBuffer = Buffer.from(
-    acesso,
-    "utf8"
-  );
-  const esperadoBuffer = Buffer.from(
-    esperado,
-    "utf8"
-  );
-
-  return (
-    recebidoBuffer.length ===
-      esperadoBuffer.length &&
-    crypto.timingSafeEqual(
-      recebidoBuffer,
-      esperadoBuffer
-    )
-  );
+  return assinaturaCorresponde({
+    contexto:
+      CONTEXTO_ACESSO,
+    payload:
+      String(id),
+    assinatura:
+      acesso,
+  });
 }
 
 module.exports = {
