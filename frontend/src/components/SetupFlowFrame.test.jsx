@@ -76,6 +76,29 @@ it("oferece links Voltar e Sair distintos na segunda etapa quando configurados",
   expect(exit.classList.contains("setup-exit-button")).toBe(true);
 });
 
+it("preserva o rascunho somente ao usar Voltar habilitado", () => {
+  const preserveDraft = vi.fn();
+  const view = render(<MemoryRouter initialEntries={["/painel/servicos/novo"]}>
+    <SetupFlowFrame backTo="/painel/negocio" onBack={preserveDraft} step={3}>
+      <main>Cadastro do serviço</main>
+    </SetupFlowFrame>
+  </MemoryRouter>);
+
+  fireEvent.click(screen.getByRole("link", { name: "Voltar" }));
+  expect(preserveDraft).toHaveBeenCalledTimes(1);
+  view.unmount();
+
+  render(<MemoryRouter initialEntries={["/painel/servicos/novo"]}>
+    <SetupFlowFrame backDisabled backTo="/painel/negocio" onBack={preserveDraft} step={3}>
+      <main>Cadastro do serviço</main>
+    </SetupFlowFrame>
+  </MemoryRouter>);
+
+  expect(screen.queryByRole("link", { name: "Voltar" })).toBeNull();
+  expect(screen.getByText("Voltar").closest('[aria-disabled="true"]')).not.toBeNull();
+  expect(preserveDraft).toHaveBeenCalledTimes(1);
+});
+
 it.each([
   ["/cadastro?tipo=profissional", false],
   ["/cadastro", true]

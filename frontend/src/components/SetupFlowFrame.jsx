@@ -15,7 +15,7 @@ export function SetupTitle({ children, emoji, id }) {
   );
 }
 
-export function SetupFlowFrame({ children, enabled = true, step, complete = false, wide = false, exitTo = "/", backTo, backDisabled = false, onExit }) {
+export function SetupFlowFrame({ children, enabled = true, step, complete = false, wide = false, exitTo = "/", backTo, backDisabled = false, onBack, onExit }) {
   useSetupFrame(enabled);
   if (!enabled) return children;
 
@@ -26,7 +26,7 @@ export function SetupFlowFrame({ children, enabled = true, step, complete = fals
         <div className="setup-topbar-actions">
           {backTo && (backDisabled
             ? <span aria-disabled="true" className="setup-back is-disabled"><span aria-hidden="true">←</span>Voltar</span>
-            : <Link className="setup-back" to={backTo}><span aria-hidden="true">←</span>Voltar</Link>)}
+            : <Link className="setup-back" onClick={onBack} to={backTo}><span aria-hidden="true">←</span>Voltar</Link>)}
           <Link className="setup-exit setup-exit-button" onClick={onExit} to={exitTo}>
             <span aria-hidden="true">↗</span>Sair
           </Link>
