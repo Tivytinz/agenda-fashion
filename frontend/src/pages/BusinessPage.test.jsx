@@ -527,7 +527,7 @@ describe("publicação do negócio", () => {
 
     fireEvent.change(whatsapp, { target: { value: "11 98765-4321" } });
     fireEvent.change(maps, { target: { value: "javascript:alert(1)" } });
-    expect(screen.getByText("Use um link HTTP ou HTTPS válido.")).not.toBeNull();
+    expect(screen.getByText("Use um link HTTPS do Google Maps ou Apple Mapas.")).not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
     expect(await screen.findByRole("alert")).not.toBeNull();
