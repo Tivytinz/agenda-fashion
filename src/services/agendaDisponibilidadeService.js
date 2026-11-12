@@ -460,6 +460,7 @@ async function buscarDisponibilidade({
   fusoHorario,
   agendamentoIgnorarId = null,
   ignorarAntecedencia = false,
+  executor,
 }) {
   if (!profissionalId) {
     throw new Error(
@@ -480,7 +481,8 @@ async function buscarDisponibilidade({
     await agendaConfiguracaoRepository
       .buscarConfiguracao(
         profissionalId,
-        negocioId
+        negocioId,
+        executor
       );
 
   const antecedenciaHoras =
@@ -541,7 +543,8 @@ async function buscarDisponibilidade({
   ] = await Promise.all([
     agendaConfiguracaoRepository.listarHorarios(
       profissionalId,
-      negocioId
+      negocioId,
+      executor
     ),
 
     /*
@@ -553,14 +556,16 @@ async function buscarDisponibilidade({
       dias[0],
       dias[dias.length - 1],
       agendamentoIgnorarId,
-      fusoResolvido
+      fusoResolvido,
+      executor
     ),
 
     agendaPublicaRepository.listarBloqueios(
       profissionalId,
       negocioId,
       dias[0],
-      dias[dias.length - 1]
+      dias[dias.length - 1],
+      executor
     ),
   ]);
 
@@ -687,6 +692,7 @@ async function horarioEstaDisponivel({
   fusoHorario,
   agendamentoIgnorarId = null,
   ignorarAntecedencia = false,
+  executor,
 }) {
   if (
     !profissionalId ||
@@ -706,6 +712,7 @@ async function horarioEstaDisponivel({
       fusoHorario,
       agendamentoIgnorarId,
       ignorarAntecedencia,
+      executor,
     });
 
   const diaEncontrado =
