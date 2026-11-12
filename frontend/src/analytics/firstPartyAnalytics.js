@@ -1,5 +1,18 @@
 import { postTelemetry } from "./transport";
-import { ANALYTICS_IDENTITY_BOUNDARY_EVENT, normalizePlanSlug } from "../auth/session";
+import {
+  ANALYTICS_IDENTITY_BOUNDARY_EVENT,
+  ANALYTICS_VIEW_READY_EVENT,
+  AUTH_REVISION_STORAGE_KEY,
+  hasSession,
+  normalizePlanSlug
+} from "../auth/session";
+import {
+  ensureAnalyticsTabIsolation,
+  parkAnalyticsOutbox,
+  recoverParkedOutbox,
+  releaseAnalyticsTab,
+  scrubParkedAttribution
+} from "./tabOutboxRecovery";
 import {
   readBrowserStorage,
   removeBrowserStorage,
@@ -40,7 +53,7 @@ let outboxFlushPromise = null;
 let identityGeneration = 0;
 let analyticsSuspended = false;
 let legacyOutboxDiscarded = false;
-let inheritedTabStorageChecked = false;
+let identityConfirmedForRecovery = false;
 
 function uuid() {
   try {
@@ -152,17 +165,9 @@ function captureAcquisition() {
   };
 }
 
-// Abertura de uma nova janela pode copiar sessionStorage da aba de origem.
-// Não herdar identidade ou lote de analytics de window.opener.
+// A posse por documento também cobre "Duplicar guia" sem window.opener.
 function isolateInheritedTabStorage() {
-  if (inheritedTabStorageChecked) return;
-  inheritedTabStorageChecked = true;
-  try {
-    if (typeof window === "undefined" || !window.opener) return;
-  } catch { return; }
-  for (const key of [SESSION_KEY, ONBOARDING_FLOW_KEY, BOOKING_FLOW_KEY, OUTBOX_KEY]) {
-    removeBrowserStorage("session", key);
-  }
+  ensureAnalyticsTabIsolation();
 }
 
 function readSession() {
@@ -328,14 +333,50 @@ function readOutbox() {
 
 function writeOutbox(entries) {
   discardLegacyOutbox();
-  writeBrowserStorage(
-    "session",
-    OUTBOX_KEY,
-    JSON.stringify(
-      (Array.isArray(entries) ? entries : [])
-        .slice(-OUTBOX_MAX_ITEMS)
+  const pending = (Array.isArray(entries) ? entries : []).slice(-OUTBOX_MAX_ITEMS);
+  const saved = writeBrowserStorage("session", OUTBOX_KEY, JSON.stringify(pending));
+  // Diário durável por guia. A gravação acontece na inclusão, não somente no
+  // fechamento; cobre encerramentos abruptos que não emitem pagehide.
+  parkAnalyticsOutbox({
+    entries: pending.map(entry => ({
+      ...entry,
+      payload: getMarketingConsent() === MARKETING_CONSENT.GRANTED
+        ? entry.payload
+        : {
+            ...entry.payload,
+            acquisition: stripMarketingAcquisition(entry.payload?.acquisition || {})
+          }
+    })),
+    revision: authRevision(),
+    visitorId: visitorUuid()
+  });
+  return saved;
+}
+
+function authRevision() {
+  return readBrowserStorage("local", AUTH_REVISION_STORAGE_KEY) || "";
+}
+
+function restorePendingOutbox({ confirmed = false } = {}) {
+  if (confirmed) identityConfirmedForRecovery = true;
+  if (analyticsSuspended || (hasSession() && !identityConfirmedForRecovery)) return;
+  const added = recoverParkedOutbox({
+    revision: authRevision(),
+    visitorId: visitorUuid(),
+    entries: readOutbox(),
+    persist: entries => writeOutbox(
+      getMarketingConsent() === MARKETING_CONSENT.GRANTED
+        ? entries
+        : entries.map(entry => ({
+            ...entry,
+            payload: {
+              ...entry.payload,
+              acquisition: stripMarketingAcquisition(entry.payload?.acquisition || {})
+            }
+          }))
     )
-  );
+  });
+  if (added > 0 || readOutbox().length > 0) void flushOutbox();
 }
 
 function enqueuePayload(payload) {
@@ -385,13 +426,19 @@ export function clearFirstPartyMarketingAttribution() {
         }
       }))
     );
+    scrubParkedAttribution(stripMarketingAcquisition);
   } catch {
     // Privacidade deve falhar de forma conservadora sem bloquear a aplicação.
   }
 }
 
 async function postPayload(payload, { keepalive = false } = {}) {
-  const response = await postTelemetry("/analytics/collect", payload, { keepalive });
+  // Uma revogação pode acontecer depois da gravação do lote: aplicar também
+  // no último ponto antes da transmissão para evitar atribuição sem consentimento.
+  const sanitized = getMarketingConsent() === MARKETING_CONSENT.GRANTED
+    ? payload
+    : { ...payload, acquisition: stripMarketingAcquisition(payload.acquisition || {}) };
+  const response = await postTelemetry("/analytics/collect", sanitized, { keepalive });
 
   if (!response?.ok) {
     const error = new Error("Falha ao entregar analytics first-party.");
@@ -456,7 +503,7 @@ export function resetFirstPartyAnalyticsSession({ suspend = false } = {}) {
   // POST antigo não deve bloquear a fila nova se nunca responder.
   // Sua finalização ainda respeita identityGeneration e não altera o lote novo.
   outboxFlushPromise = null;
-  inheritedTabStorageChecked = false;
+  identityConfirmedForRecovery = false;
   removeBrowserStorage("session", SESSION_KEY);
   removeBrowserStorage("session", ONBOARDING_FLOW_KEY);
   removeBrowserStorage("session", BOOKING_FLOW_KEY);
@@ -552,12 +599,21 @@ function bindLifecycle() {
     }
   });
 
-  window.addEventListener("pagehide", () => {
+  window.addEventListener("pagehide", event => {
+    // O engagement final entra no diário no momento do enqueue.
     flushCurrentView("pagehide", true);
+    // Em bfcache, o documento continua vivo; preservar sua posse.
+    if (!event.persisted) releaseAnalyticsTab();
   });
 
   window.addEventListener("online", () => {
+    restorePendingOutbox();
     void flushOutbox();
+  });
+  window.addEventListener(ANALYTICS_VIEW_READY_EVENT, () => {
+    // O bridge pode retirar a suspensão na mesma emissão do evento.
+    // Recuperar após seus listeners evita adiar a fila para o próximo online.
+    queueMicrotask(() => restorePendingOutbox({ confirmed: true }));
   });
 
   const enforceConsent = () => {
@@ -573,6 +629,7 @@ function bindLifecycle() {
   window.addEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, () => {
     resetFirstPartyAnalyticsSession({ suspend: true });
   });
+  restorePendingOutbox();
 }
 
 function autoJourneyEvent(pageKey, search, state) {

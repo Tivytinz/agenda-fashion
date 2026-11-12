@@ -2148,13 +2148,29 @@ coorte. Essas medidas não devem ser comparadas como equivalentes.
   antigo que nunca terminar não impede entregas novas; se terminar atrasado,
   não pode limpar a fila da identidade atual. POST já recebido pelo backend
   continua sujeito à proteção de conflito HTTP 409.
-- Uma janela aberta com `window.opener` descarta as possíveis cópias de
-  `sessionStorage` no primeiro uso. A função nativa de duplicar guia em
-  navegadores que copiam storage sem `opener` ainda exige validação real;
-  não declarar isolamento universal apenas por testes em jsdom.
-- Revogação de consentimento entre abas remove UTMs e click IDs dos lotes
-  locais pendentes. A fila `sessionStorage` não sobrevive ao fechamento da
-  aba; a possibilidade de subcontagem deve constar das análises de marketing.
+- Cada guia possui um identificador aleatório próprio em `sessionStorage`
+  e uma reivindicação de posse por documento em `localStorage`. Se a guia
+  for clonada (com ou sem `window.opener`) e a identidade de guia copiada
+  pertencer a outro documento, a sessão, os fluxos e a fila copiados são
+  descartados antes da medição. Sem acesso a storage compartilhado, o
+  coletor prefere sessão nova, sem prometer isolamento completo em modos
+  restritivos do navegador.
+- A fila ativa permanece em `sessionStorage`, mas cada alteração é espelhada
+  num diário durável `af_analytics_parked_v1_<tabUuid>` por guia, limitado a
+  40 lotes por guia e retenção de 24 horas. Em um novo acesso online, o
+  diário só é recuperado para o mesmo visitante pseudônimo e a mesma
+  revisão opaca de autenticação; quando há sessão ativa, a recuperação
+  aguarda a confirmação de `/minha-sessao`. Diários de outras identidades
+  são descartados. Guias vivas não têm a fila tomada por outras guias,
+  salvo após inatividade prolongada; UUIDs de page views e eventos permitem
+  deduplicação no backend se houver reenvio após entrega incerta.
+- A gravação durável ocorre em cada inclusão/remoção, não depende de
+  `pagehide`. Em `pagehide` sem BFCache o documento libera sua posse.
+  Isso reduz perdas causadas por encerramento abrupto ou falta de rede,
+  mas não garante entrega se o navegador bloquear ou apagar `localStorage`,
+  nem quando a pessoa nunca voltar. A fila não é receita nem conversão
+  canônica. O tratamento de consentimento retira UTM/click IDs do diário
+  e volta a sanitizar antes do envio.
 - Encerramento canônico por 401/403 em `/minha-sessao` e migração de
   credencial legada definitivamente inválida publicam também o aviso de
   logout confirmado (`af_auth_logout_ready_v1`), além da fronteira de

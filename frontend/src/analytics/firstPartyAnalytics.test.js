@@ -6,6 +6,7 @@ import {
   startFirstPartyPageView
 } from "./firstPartyAnalytics";
 import { clearSession, saveSession } from "../auth/session";
+import { tabOutboxRecoveryInternals } from "./tabOutboxRecovery";
 import {
   MARKETING_CONSENT,
   setMarketingConsent
@@ -28,6 +29,7 @@ afterEach(() => {
   window.sessionStorage.clear();
   window.history.replaceState({}, "", "/");
   vi.unstubAllGlobals();
+  tabOutboxRecoveryInternals.simulateNewDocument();
 });
 
 describe("firstPartyAnalytics", () => {
@@ -101,6 +103,7 @@ describe("firstPartyAnalytics", () => {
     expect(readOutbox()).toHaveLength(1);
     expect(sessionStorage.getItem("af_analytics_outbox_v2")).not.toBeNull();
     expect(localStorage.getItem("af_analytics_outbox_v2")).toBeNull();
+    expect(tabOutboxRecoveryInternals.parkedKeys()).toHaveLength(1);
   });
 
   it("abandona identidade e outbox herdados de janela com opener", async () => {
