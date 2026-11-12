@@ -17,6 +17,7 @@ export function AdminAcquisitionV2Page() {
     >
       {(data) => {
         const origins = Array.isArray(data.sessoesPorOrigem) ? data.sessoesPorOrigem : [];
+        const afShares = Array.isArray(data.divulgacaoAf) ? data.divulgacaoAf : [];
         const campaigns = Array.isArray(data.funilPorCampanha) ? data.funilPorCampanha : [];
         const acquisitionReturn = data.retornoAquisicao || {};
         const financialCampaigns = Array.isArray(acquisitionReturn.campanhas)
@@ -118,6 +119,38 @@ export function AdminAcquisitionV2Page() {
                             </div>
                           </td>
                           <td>{number(row.sessoes) > 0 ? formatSeconds(number(row.tempo_engajado_ms) / number(row.sessoes) / 1000) : "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            <section className="panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Links próprios do AF</p>
+                  <h2>Evidências de divulgação</h2>
+                  <p className="muted">Parâmetros declarados nos links, não origem autenticada. Estas sessões podem estar classificadas como tráfego direto; não representam agendamentos ou receita e não alteram CAC ou ROAS.</p>
+                </div>
+              </div>
+              {afShares.length === 0 ? (
+                <EmptyState title="Nenhum link AF identificado neste período">
+                  Ainda não há sessões com parâmetros de divulgação próprios no recorte selecionado.
+                </EmptyState>
+              ) : (
+                <div className="table-wrapper">
+                  <table className="data-table">
+                    <thead><tr><th>Origem AF</th><th>Meio</th><th>Conteúdo</th><th>Sessões</th><th>Classificadas como diretas</th></tr></thead>
+                    <tbody>
+                      {afShares.map((item, index) => (
+                        <tr key={`${item.af_source}-${item.af_medium}-${item.af_content}-${index}`}>
+                          <td>{item.af_source || "—"}</td>
+                          <td>{item.af_medium || "—"}</td>
+                          <td>{item.af_content || "—"}</td>
+                          <td>{formatNumber(item.sessoes)}</td>
+                          <td>{formatNumber(item.sessoes_classificadas_diretas)}</td>
                         </tr>
                       ))}
                     </tbody>
