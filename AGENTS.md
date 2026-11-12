@@ -98,105 +98,76 @@ A origem pública oficial do Agenda Fashion é:
 https://agendafashion.com.br
 ```
 
-Site público, descoberta, autenticação e áreas operacionais continuam na mesma
-aplicação React e no mesmo domínio; os contextos são separados por rota, sessão
-e autorização, não por subdomínio.
+Site público, autenticação e áreas operacionais permanecem na mesma aplicação e
+origem; rota, sessão e autorização separam os contextos.
 
-`app.agendafashion.com.br` é apenas host legado de compatibilidade. Navegações
-HTML GET/HEAD recebidas nele devem redirecionar permanentemente para a mesma rota
-e query no domínio canônico quando `PUBLIC_APP_URL` estiver apontando para a
-origem oficial. APIs, webhooks e chamadas não HTML não devem ser forçados por
-esse redirect para não quebrar integrações durante a transição.
+`app.agendafashion.com.br` é host legado de compatibilidade e
+`www.agendafashion.com.br` é alias de entrada. Navegações HTML devem convergir
+para o domínio raiz sem forçar APIs, webhooks ou integrações a redirects que
+possam quebrar contratos. DNS, certificados e aliases precisam continuar
+funcionais até a requisição alcançar a aplicação.
 
-`www.agendafashion.com.br` é alias de entrada e segue o mesmo redirecionamento
-HTML para o domínio raiz. DNS, certificado e vínculo dos aliases com o serviço
-de produção precisam permanecer funcionais: um redirect no Express não resolve
-um host que retorna erro antes de alcançar a aplicação. Mudanças nesses vínculos
-seguem o runbook de domínios em `docs/deploy-seguro.md`.
+URLs de infraestrutura, como hosts `.railway.app`, não são URLs de produto.
+Backend, frontend, CORS e OAuth de produção devem permanecer alinhados à origem
+canônica, salvo compatibilidade temporária explicitamente documentada.
 
-`agenda-fashion-production.up.railway.app` é endereço de infraestrutura e não
-deve ser divulgado como URL de produto.
-
-Backend e frontend devem manter `PUBLIC_APP_URL` e `VITE_PUBLIC_APP_URL`
-alinhados em `https://agendafashion.com.br`. A allowlist de CORS e callbacks
-OAuth de produção também devem usar a origem canônica, salvo compatibilidade
-temporária explicitamente justificada.
-
-A sessão de produção usa cookie `__Host-` host-only. Por isso, a migração do
-host legado para o domínio raiz pode exigir uma autenticação única novamente;
-não ampliar o `Domain` do cookie apenas para compartilhar sessão entre hosts.
+A sessão de produção usa cookie host-only; não ampliar o domínio do cookie apenas
+para compartilhar sessão entre hosts. Regras operacionais de redirects, DNS,
+certificados e transição de host ficam em `docs/deploy-seguro.md` e
+`docs/frontend-entrega-runtime.md`.
 
 ## SEO e descoberta pública
 
-A home e as páginas públicas deliberadamente indexáveis devem entregar no HTML
-server-side título, descrição, canonical e metadados sociais apontando para a
-origem pública canônica. A home também publica dados estruturados factuais de
-`Organization` e `WebSite`; não adicionar avaliações, preços ou outros dados
-estruturados que não existam como fatos confiáveis do produto.
+Páginas deliberadamente indexáveis precisam entregar no HTML inicial title,
+description, canonical e metadata social coerentes com o domínio canônico.
+Dados estruturados só podem representar fatos confiáveis do produto; não inventar
+avaliações, preços ou oferta.
 
-Favicons e ícones de instalação usados por navegadores e crawlers devem possuir
-URLs públicas estáveis, sem depender de caminhos internos de `src/`. O sitemap
-continua refletindo somente oferta pública real, e páginas sem oferta válida não
-devem ser criadas apenas para capturar palavras-chave.
+Sitemap deve refletir oferta pública real. `lastmod` só existe quando há data
+factual válida; ausência de data não vira época Unix, horário do request ou
+deploy.
 
-`lastmod` do sitemap só deve ser emitido quando houver uma data válida e factual
-de atualização. Ausência de data não vira época Unix nem data do request/deploy;
-a URL continua no sitemap, sem esse campo. Entradas repetidas preservam a data
-válida mais recente.
+`robots.txt` controla rastreamento, não substitui `noindex`. Segurança e
+autorização nunca dependem de SEO.
 
-`robots.txt` controla rastreamento, não deve ser usado como substituto de
-`noindex`. Rotas HTML que precisam ficar fora do índice e são acessíveis sem
-autenticação devem permanecer rastreáveis o suficiente para o crawler observar
-a diretiva `noindex`. Áreas operacionais e URLs sensíveis sem valor para busca
-podem continuar bloqueadas de rastreamento, mantendo autorização real no
-backend como controle de segurança.
+Bootstrap server-side de página pública pode reduzir o caminho crítico, mas usa
+DTO/whitelist explícita e escape seguro. Ele não se torna autoridade de
+disponibilidade, plano, permissão ou criação de booking; o backend continua
+validando essas regras.
 
-O perfil público pode embutir no HTML um bootstrap inicial para reduzir o caminho crítico de renderização, mas esse payload deve ser montado por DTO/whitelist explícita de campos públicos e serializado com escape seguro para contexto HTML. O bootstrap deve incluir os dados necessários para renderizar negócio, serviços e profissionais sem estado parcial; a revalidação posterior não pode apagar conteúdo válido já exibido por falha transitória. Validações autoritativas de disponibilidade, plano, autorização e criação de agendamento permanecem no backend e nunca podem depender desse bootstrap.
+Detalhes de cache, favicon, sitemap, metadata, noindex e entrega HTML pertencem a
+`docs/frontend-entrega-runtime.md`.
 
 ## Entidades e contextos
 
 Não tratar como equivalentes:
 
-- **profissional**: pessoa que presta serviços; no modelo atual, uma conta pode
-  possuir no máximo um vínculo ativo com papel `profissional`, sem impedir que a
-  mesma conta também seja dona do próprio negócio;
-- **negócio**: unidade operacional que possui serviços, equipe, agenda, plano e
-  perfil público;
-- **cliente final**: pessoa que descobre e agenda serviços, com conta ou como
-  visitante conforme o fluxo permitido.
+- **profissional**: pessoa que presta serviços;
+- **negócio**: unidade operacional com serviços, equipe, agenda, plano e perfil;
+- **cliente final**: pessoa que descobre e agenda, com conta ou como visitante.
 
-A identidade principal fica em `usuarios`. Papéis de negócio pertencem a
-`usuarios_negocios.papel`, atualmente `dono` e `profissional`. Administração
-global usa `usuarios_administradores`, com papel único `admin`. Papéis legados
-não devem ser reintroduzidos nem usados para conceder permissões.
-A matriz por ação fica em `docs/admin-permissoes-matriz.md`.
+A identidade principal fica em `usuarios`. Papéis do negócio pertencem a
+`usuarios_negocios.papel` (`dono` e `profissional`); administração global
+usa `usuarios_administradores` com papel `admin`. Papéis legados não devem
+voltar a conceder permissão.
 
-Uma mesma conta pode atuar em mais de um contexto. O frontend muda navegação e
-apresentação conforme rota, sessão e vínculos, mas essas escolhas não substituem
-a autorização do backend.
+Uma mesma conta pode atuar em mais de um contexto. No modelo atual, pode ser dona
+do próprio negócio e profissional em outro, mantendo no máximo um vínculo ativo
+com papel `profissional`. Alterar esse limite exige decisão explícita de
+produto e revisão de agenda, autorização e UX.
 
-O contexto cliente pode ser expresso por `/cliente/conta` mesmo quando a mesma
-identidade também é dona, profissional ou administradora. Essa rota preserva a
-experiência pública/cliente e não deve trocar silenciosamente para um workspace
-operacional. `/conta` permanece rota dinâmica de compatibilidade para os demais
-contextos.
+Rotas explícitas de dona, profissional, cliente e admin selecionam a intenção de
+contexto, mas o backend sempre valida o vínculo persistido correspondente.
+Contexto principal da sessão existe por compatibilidade e não autoriza trocar
+silenciosamente de papel.
 
-O perfil profissional pertence à identidade única da conta e é marcado por
-`usuarios.perfil_profissional_ativado_em`. Cadastro com intenção profissional,
-criação do próprio negócio e aceite válido de convite ativam esse perfil sem criar
-uma segunda conta. A ativação por criação de negócio ou convite participa da
-mesma transação lógica do vínculo correspondente. Um `Client` já existente e
-seu histórico permanecem ligados ao mesmo `usuarios.id`; inativar ou remover um
-vínculo profissional não desfaz o fato de que a conta possui perfil profissional.
+Ativar perfil profissional reutiliza a mesma identidade; criar negócio ou aceitar
+convite não cria segunda conta nem apaga histórico de cliente. Inativar/remover
+um vínculo também não apaga a identidade profissional já adquirida.
 
-O contexto de negócio deve ser explícito quando a rota já expressa a intenção:
-`/painel/*` representa o vínculo de dona e `/profissional/*` representa o vínculo
-`profissional`. O backend precisa validar o vínculo persistido correspondente;
-não deve resolver uma rota profissional escolhendo silenciosamente um negócio de
-dona apenas porque esse vínculo possui prioridade no contexto principal da
-sessão. `GET /minha-sessao` mantém `negocio` como contexto principal para
-compatibilidade e também expõe `vinculos` para clientes capazes de selecionar o
-contexto correto.
+Detalhes de seleção, permissões, matriz e multi-contexto ficam em
+`docs/contexto-negocio.md`, `docs/admin-permissoes-matriz.md`,
+`docs/public-shell.md` e `docs/ux-contextos-visuais.md`.
 
 ## Funil principal do AF
 
@@ -286,71 +257,46 @@ Detalhes canônicos: `docs/ativacao-profissional-ux.md`,
 
 ## Ciclo operacional do agendamento
 
-Agendamentos ativos usam `agendado`/ `confirmado` por compatibilidade de
-runtime; o fluxo de produto trata a reserva confirmada como o estado operacional
-normal antes de um terminal.
+O horário ter passado não prova atendimento. Estados persistidos distinguem
+reserva ativa, cancelamento, realizado e falta; `realizado` e `falta` são
+terminais no fluxo operacional atual.
 
 Regras duráveis:
 
-- ausência do cliente só pode virar falta/não comparecimento após 15 minutos do
-  início previsto;
-- cancelamento operacional do negócio continua possível em booking ativo quando
-  o atendimento não puder ocorrer ou precisar ser interrompido, com motivo
-  auditável;
-- reagendamento é uma operação transacional: o novo slot é validado antes da
-  atualização da reserva e o booking atual é ignorado apenas na checagem do
-  próprio conflito;
-- a detecção de reagendamento sem alteração compara responsável e instante
-  canônico, preservando o comportamento quando o fuso do negócio é corrigido;
-- serviço, preço, duração e antecedência de cancelamento permanecem snapshots do
-  booking durante o reagendamento;
-- após o horário previsto, o booking ainda pode ser reagendado se o atendimento
-  não tiver começado e o novo início for futuro;
-- RN45: qualquer reserva `agendado`/`confirmado` no negócio impede remover o
-  vínculo profissional, inclusive reserva passada e vínculo inativo. A passagem
-  do relógio não resolve a pendência; é necessário um desfecho válido do lifecycle;
-- `atendimento_iniciado_em`/`atendimento_iniciado_por` registram o início real
-  do serviço; depois desse marco o booking não pode mais ser reagendado;
-- o histórico de reagendamento preserva ator, profissional anterior/novo e
-  horários anterior/novo;
-- a elegibilidade profissional↔serviço é explícita em `profissional_servicos`;
-- perfil público, criação de booking e troca de responsável no reagendamento
-  devem usar essa mesma relação como fonte de verdade;
-- a proprietária administra os serviços habilitados de cada integrante da equipe;
-- novos serviços são habilitados automaticamente apenas para a proprietária que os
-  criou; novas profissionais entram sem serviços até configuração explícita;
-- vínculos legados preservam o comportamento anterior por compatibilidade
-  explícita, sem dispensar a matriz canônica nas novas operações;
-- criação e reagendamento serializam a validação de elegibilidade com a edição da
-  matriz para impedir corrida entre desabilitação e confirmação da reserva.
-- dias, faixas e novos bloqueios manuais pertencem ao vínculo
-  profissional–negócio; conflitos de bookings continuam globais por profissional;
-- o início previsto de cada booking possui instante canônico em
-  `agendamentos.inicio_previsto_em` (`TIMESTAMPTZ`) e snapshot do IANA usado
-  em `fuso_horario_snapshot`; comparações temporais e conflitos globais entre
-  negócios usam o instante absoluto, e a derivação de slots converte reservas
-  ocupadas para o IANA do negócio consultado sem reinterpretar o instante
-  histórico;
-- bloqueios legados sem `negocio_id` são tratados como indisponibilidade global
-  somente para compatibilidade e não podem ser removidos silenciosamente por um
-  negócio específico;
-- booking visitante recebe capability HMAC e um link seguro com a capability no
-  fragmento `#token=`; o link autoriza somente consulta/cancelamento daquele
-  booking e nunca substitui o cutoff;
-- confirmação e cancelamento direto registram comunicação transacional e
-  notificação interna para a equipe; falha de entrega pós-commit não pode reverter
-  o estado principal do booking;
-- `CANCELAMENTO_SOLICITADO` é estado legado proibido para novos fluxos. Migração
-  automática só decide quando a evidência persistida é suficiente; casos passados
-  ambíguos ficam em revisão auditável até resolução terminal.
+- falta só pode ser registrada depois da tolerância temporal definida; atendimento
+  iniciado impede registrar falta;
+- realizado só pode ser confirmado pela responsável autorizada e depois do
+  momento permitido pelo lifecycle;
+- cancelamento e reagendamento são fluxos próprios e auditáveis, não atalhos de
+  status;
+- reagendamento é transacional, revalida slot, responsável e elegibilidade, e
+  preserva snapshots comerciais e de cancelamento da reserva;
+- serviço/profissional elegível precisa vir da matriz persistida; o frontend não
+  pode inventar capacidade;
+- conflitos de horário são globais por profissional, mesmo quando disponibilidade
+  recorrente pertence ao contexto profissional + negócio;
+- comparações temporais usam o instante canônico da reserva e o fuso do negócio
+  apenas para apresentação/derivação local;
+- vínculo profissional com booking operacional não pode ser removido apenas
+  porque o relógio passou; é necessário desfecho válido;
+- comunicação pós-commit não reverte estado principal do booking quando falha;
+- visitante acessa somente a própria reserva por capability específica, que não
+  vira login nem autoriza outros bookings;
+- nome ou WhatsApp não reivindicam automaticamente uma reserva visitante para uma
+  conta criada depois;
+- estados legados ambíguos não devem ser promovidos automaticamente a fato de
+  atendimento sem evidência suficiente.
 
-O `client_id` interno de `agendamentos` aponta para `clientes`; o
-`cliente_id` legado continua sendo apenas o vínculo opcional com uma conta
-autenticada em `usuarios`. Visitantes também possuem Client interno sem ganhar
-credencial de login. Um booking visitante não é automaticamente reivindicado
-por uma conta criada depois apenas por coincidência de nome ou WhatsApp; a posse
-continua vinculada à capability específica da reserva. Qualquer reconciliação
-futura exige mecanismo explícito e seguro de verificação de posse.
+RN50 preserva para vínculo profissional inativo apenas consulta das próprias
+reservas existentes e registro terminal permitido; não reabre agenda, serviços,
+equipe ou novas reservas. Cancelamento e reagendamento permanecem com a dona
+enquanto o vínculo estiver inativo.
+
+Detalhes canônicos: `docs/ciclo-atendimento.md`,
+`docs/agendamento-integridade.md`,
+`docs/snapshots-historicos-agendamento.md`,
+`docs/cancelamento-agendamento-visitante.md` e
+`docs/confiabilidade-compromissos-agenda.md`.
 
 ## Planos e monetização
 
@@ -410,10 +356,10 @@ e maturidade estiverem documentados; ausência de custo, reversão ou fonte não
 pode virar zero por conveniência. Billing continua autoridade de entitlement e
 leituras econômicas não o reescrevem.
 
-Fontes e detalhes canônicos: `docs/planos.md`,
-`docs/checkout-idempotente.md`, `docs/asaas-ativacao-recorrencia.md`,
-`docs/webhook-processing.md`, `docs/prontidao-financeira-recorrencia.md` e
-os documentos históricos de Waves 19–32 indexados em `docs/README.md`.
+Fontes canônicas: `docs/planos.md`, `docs/checkout-idempotente.md`,
+`docs/asaas-ativacao-recorrencia.md`, `docs/webhook-processing.md` e
+`docs/prontidao-financeira-recorrencia.md`. As Waves 19–32 indexadas em
+`docs/README.md` permanecem evidência histórica, não fonte concorrente de regra.
 
 ## Arquitetura atual
 
@@ -650,99 +596,74 @@ Detalhes: `docs/encerramento-privacidade.md`.
 
 ## Segurança e privacidade
 
-Estas regras são obrigatórias:
+Regras transversais obrigatórias:
 
-1. autenticação e autorização são validadas no backend;
-2. isolamento entre negócios não depende de IDs enviados pelo navegador;
-3. preços, limites e regras financeiras não são confiados ao frontend;
-4. segredos nunca aparecem no Git, frontend ou logs;
-5. webhooks e operações financeiras são autenticados e idempotentes;
-6. dados pessoais só são expostos quando necessários para a finalidade da
-   operação;
-7. redirecionamento ou botão oculto no React não substitui controle de acesso.
+1. autenticação, autorização e isolamento entre negócios são validados no
+   backend;
+2. IDs, papéis, preços, limites e regras financeiras enviados pelo navegador não
+   são autoridade;
+3. segredos nunca aparecem no Git, frontend, analytics ou logs;
+4. webhooks e operações financeiras precisam de autenticação, idempotência e
+   replay seguro;
+5. dados pessoais são minimizados conforme finalidade e autorização;
+6. esconder botão ou redirecionar no React não substitui controle de acesso;
+7. respostas antigas não podem apagar sessão ou contexto autenticado mais novo.
 
-Na topologia web atual, mutações autenticadas por cookie usam defesa CSRF em camadas: cookie `SameSite=Lax`, CORS restrito e validação de metadados de origem do navegador (`Sec-Fetch-Site`, `Origin` e `Referer`) quando presentes. Requests unsafe com cookie de sessão e evidência cross-site devem ser rejeitados. Não há token CSRF dedicado enquanto a arquitetura permanecer same-origin/JSON com esse contrato; qualquer mudança para `SameSite=None`, frontend/API em origens distintas, mutação via formulário tradicional ou embedding cross-site exige reabrir o threat model antes do deploy.
+A sessão web principal usa cookie HttpOnly. Compatibilidade Bearer existe somente
+para migração/clientes legados e não deve voltar ao caminho normal do frontend.
+Sua retirada exige evidência operacional sem registrar credenciais.
 
-O browser não deve persistir perfil de usuário ou negócio em `localStorage` para acelerar bootstrap. A persistência local da sessão web fica restrita ao marcador técnico `session_active` e à compatibilidade legada ainda existente; nome, e-mail, WhatsApp, foto e contexto de negócio permanecem em memória e são reidratados por `GET /minha-sessao`. Chaves antigas `usuario` e `negocio` devem ser removidas no bootstrap.
+Mutações por cookie mantêm proteção CSRF compatível com a topologia same-origin
+atual. Alterar origem, `SameSite`, embedding cross-site ou modo de autenticação
+exige reabrir o threat model antes do deploy.
 
-O header `X-Agenda-Access` faz parte do contrato de capability de booking e deve permanecer permitido pelo CORS para que a mesma capability continue funcionando caso frontend e API usem origens permitidas distintas. Isso não amplia o escopo da capability nem substitui validação backend.
+Capabilities de booking são credenciais de escopo mínimo: não trafegam em query
+de API, não viram sessão geral e respostas sensíveis usam política de cache
+compatível com dados privados.
 
-APIs de acesso por capability de reserva (visitante ou cliente desativado) não
-aceitam credencial por query string. Consulta usa `X-Agenda-Access` e cancelamento
-usa o corpo JSON previsto no contrato. Sucesso e erro desses caminhos enviam
-`Cache-Control: no-store` para impedir armazenamento de dados da reserva em cache.
+Desativação e arquivamento preservam histórico obrigatório sem conceder acesso
+operacional indevido. Exclusão física indiscriminada não substitui política de
+retenção e encerramento.
 
-A retirada de transporte Bearer legado exige evidência operacional sem registrar credenciais. A observabilidade pode contar apenas a classe de transporte (`cookie` ou `bearer`) e timestamps agregados do processo; nunca registrar o token, o header `Authorization`, usuário, rota ou payload para esse diagnóstico. Contador zero em um único processo/deploy não prova ausência histórica e não autoriza remoção automática da compatibilidade.
-
-O frontend web não deve propagar Bearer legado em chamadas normais. Quando encontrar a chave histórica `token` no `localStorage`, deve fazer uma migração única e validada para o cookie HttpOnly pelo endpoint dedicado, remover o token local e seguir usando somente cookie. O backend pode manter aceitação temporária de Bearer para clientes legados enquanto a janela operacional ainda não justificar a retirada total.
-
-Encerramento e privacidade seguem um fluxo de desativação/arquivamento, não de
-deleção física indiscriminada:
-
-- negócio só pode ser arquivado pela proprietária quando não houver booking
-  ativo nem pendência de acesso pago, checkout ou operação financeira;
-- arquivar remove o negócio da descoberta, desativa seus vínculos operacionais,
-  cancela convites pendentes e preserva históricos necessários;
-- conta profissional não pode ser encerrada definitivamente enquanto possuir
-  booking ativo atribuído;
-- desativar conta de cliente não cancela reservas existentes: o `Client`
-  interno e os dados mínimos operacionais permanecem, com acesso HMAC específico
-  por booking para consulta e cancelamento enquanto a política permitir;
-- conta proprietária só pode ser encerrada definitivamente depois que o negócio
-  puder ser arquivado com segurança na mesma transação lógica;
-- `desativado_em`, `encerrado_definitivo_em` e `arquivado_em` distinguem
-  perda de acesso, encerramento da identidade operacional e encerramento do
-  negócio sem apagar evidências sujeitas a retenção.
-
-Detalhes: `docs/encerramento-privacidade.md`.
+Detalhes: `docs/session-security.md`, `docs/frontend-seguranca.md`,
+`docs/auditoria-rbac.md`, `docs/encerramento-privacidade.md` e
+`docs/dependency-security.md`.
 
 ## Engenharia e banco
 
 Antes de alterar algo:
 
-1. investigar a causa raiz;
-2. entender o fluxo completo;
-3. avaliar impacto em frontend, backend, banco, segurança, integrações e testes;
-4. preferir mudanças pequenas, modulares e reversíveis;
-5. preservar comportamentos que já funcionam;
-6. criar ou atualizar testes proporcionais ao risco;
-7. revisar o diff antes de considerar a alteração pronta.
+1. investigar a causa raiz e o fluxo completo;
+2. avaliar frontend, backend, banco, segurança, integrações e testes;
+3. preferir mudanças pequenas, modulares e reversíveis;
+4. preservar comportamento que já funciona;
+5. criar/atualizar testes proporcionais ao risco;
+6. revisar o diff e as validações antes de considerar a mudança pronta.
 
-SQL novo pertence a repositories, não a routes/controllers e, salvo legado em
-migração, não deve ser introduzido em services.
+SQL novo pertence a repositories; routes/controllers não acessam banco
+diretamente. Operações críticas que exigem atomicidade usam transação e efeitos
+externos não devem permanecer dentro de locks de banco sem necessidade.
 
-Configuração obrigatória do runtime é validada centralmente no startup. Uma
-integração habilitada não pode iniciar com credenciais parciais.
+Toda mudança de banco exige migration nova. Migration aplicada não é reescrita
+para corrigir o passado.
 
-E-mail, Google Measurement, GA4 Data API, Meta, custos de mídia, TikTok,
-Pinterest, Copilot e WhatsApp seguem contratos condicionais no validador
-central: flag ativa exige o conjunto completo de credenciais.
+Configuração obrigatória é validada no startup. Integração habilitada não pode
+iniciar com credenciais parciais, e workers só podem ser separados do processo
+web depois que o processo dedicado estiver implantado e saudável.
 
-Os workers podem continuar no processo web ou rodar em processo dedicado com
-`npm run worker`. O web só deve receber `BACKGROUND_WORKERS_ENABLED=false`
-depois que o processo dedicado estiver implantado e saudável.
+Diagnósticos administrativos expõem apenas métricas operacionais seguras, nunca
+credenciais ou payloads sensíveis.
 
-O diagnóstico administrativo `/admin/saude/operacional` expõe apenas métricas
-seguras de processo, execução dos workers e atraso das filas; nunca credenciais
-ou payloads de clientes.
-
-Toda mudança de banco exige migration nova. Migration já aplicada não é
-reescrita para corrigir o passado.
-
-Recuperação do PostgreSQL crítico tem meta de RPO ≤ 1 hora e RTO ≤ 4 horas.
-Enquanto não houver evidência de PITR/backup recorrente e de restore controlado
-medido, o AF não declara essas metas como comprovadas. Alterar backup, PITR,
-retenção ou infraestrutura de produção exige autorização explícita. O runbook e
-a condição de saída ficam em `docs/backup-recovery.md`.
-
-Operações críticas que alteram múltiplas tabelas devem usar transação quando a
-atomicidade fizer parte do contrato.
+O PostgreSQL crítico mantém meta de RPO ≤ 1 hora e RTO ≤ 4 horas, mas essas metas
+só podem ser declaradas comprovadas após backup/PITR e restore controlado medidos.
+Alterações em backup, retenção, PITR ou infraestrutura de produção exigem
+autorização explícita.
 
 Não introduzir tecnologia, camada ou reescrita ampla apenas por modernização.
-
-Cache `immutable` só pode ser aplicado quando a URL do asset muda junto com o conteúdo ou quando o arquivo é realmente imutável. Assets públicos de filename estável que podem ser substituídos entre deploys precisam revalidar no HTTP em vez de depender de limpeza manual de cache.
-
-Páginas públicas de aquisição incluídas no sitemap e tratadas como alvo de SEO devem entregar title, description, canonical e metadata social relevante no HTML inicial; metadata client-side continua sendo complemento para navegação SPA, não substituto para crawlers que não executam JavaScript.
+Detalhes arquiteturais, runtime, workers, cache, performance e recuperação ficam
+em `docs/backend-arquitetura.md`, `docs/arquitetura.md`,
+`docs/frontend-entrega-runtime.md`, `docs/performance-qa.md` e
+`docs/backup-recovery.md`.
 
 ## Testes, merge e deploy
 
