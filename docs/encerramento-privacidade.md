@@ -97,8 +97,10 @@ A credencial:
 - é HMAC-SHA256 derivada de booking, usuário e instante da desativação;
 - novas capabilities usam `BOOKING_CAPABILITY_SECRET`, separado da sessão;
 - durante a migração/rotação, a validação pode aceitar
-  `BOOKING_CAPABILITY_PREVIOUS_SECRET` e o `JWT_SECRET` legado sem voltar a
-  assinar novos links com essas chaves;
+  `BOOKING_CAPABILITY_PREVIOUS_SECRET`; para preservar links emitidos antes da
+  separação, essa variável deve receber explicitamente o valor anterior de
+  `JWT_SECRET` e ser removida quando a janela de compatibilidade aprovada
+  terminar;
 - não é aceita na query da API;
 - fica no fragmento `#token=` do link entregue ao navegador;
 - é repassada para consulta pelo header `X-Agenda-Access`;
