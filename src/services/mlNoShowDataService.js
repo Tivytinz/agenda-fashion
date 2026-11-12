@@ -35,6 +35,12 @@ function avaliarProntidao(dados, captura = null) {
   const coberturaCaptura = totalElegiveis > 0
     ? Math.min(1, totalCapturados / totalElegiveis)
     : 0;
+  const amostrasReagendadasLegadas = inteiro(
+    captura?.amostras_reagendadas_legadas
+  );
+  if (amostrasReagendadasLegadas > 0) {
+    motivos.push("amostras_reagendadas_legadas");
+  }
   if (!captura || totalElegiveis === 0 || coberturaCaptura < 0.8) {
     motivos.push("cobertura_captura_insuficiente");
   }
@@ -71,6 +77,7 @@ function avaliarProntidao(dados, captura = null) {
       total_agendamentos_elegiveis: totalElegiveis,
       total_agendamentos_capturados: totalCapturados,
       cobertura_captura: Number(coberturaCaptura.toFixed(4)),
+      amostras_reagendadas_legadas: amostrasReagendadasLegadas,
       amostras_rotuladas: amostrasRotuladas,
       faltas,
       realizados,
