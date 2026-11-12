@@ -85,10 +85,12 @@ guards de saída, concorrência e contexto de negócio pertencem a
 
 Mudanças preparadas por agentes devem permanecer em pull request draft até existir
 autorização explícita do usuário para integrar. Marcar a PR como pronta para revisão
-significa que essa autorização já foi dada e permite que o workflow habilite
-auto-merge por squash. Os gates obrigatórios de CI e as regras de proteção da
-branch continuam sendo condição de integração: autorização não substitui checks,
-e falha ou cancelamento não deve ser contornado por merge forçado.
+só representa essa autorização operacional quando a transição é realizada pelo
+proprietário do repositório; o workflow de auto-merge deve rejeitar
+`ready_for_review` de outros atores. Os gates obrigatórios de CI e as regras de
+proteção da branch continuam sendo condição de integração: autorização não
+substitui checks, e falha ou cancelamento não deve ser contornado por merge
+forçado.
 
 ## Domínio público canônico
 
