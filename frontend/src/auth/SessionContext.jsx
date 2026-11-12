@@ -123,6 +123,9 @@ export function SessionProvider({ children }) {
         clearSession();
         verifiedIdentityRef.current = null;
         setState(SIGNED_OUT_STATE);
+        // O backend rejeitou o legado e não encontrou cookie válido.
+        // Avisar outras abas e retomar a navegação pública nesta rota.
+        notifyAnalyticsViewReady({ broadcastLogout: true });
         return null;
       }
 
@@ -184,8 +187,9 @@ export function SessionProvider({ children }) {
         clearSession();
         verifiedIdentityRef.current = null;
         setState(SIGNED_OUT_STATE);
-        // 401/403 canônico comprova que a sessão anterior não autoriza mais.
-        notifyAnalyticsViewReady();
+        // 401/403 canônico comprova a expiração; outras abas precisam
+        // reabrir a medição anônima depois de invalidarem a identidade.
+        notifyAnalyticsViewReady({ broadcastLogout: true });
       } else {
         // Se este refresh silencioso tornou um refresh bloqueante anterior
         // obsoleto, a falha transitória também precisa liberar o loading.

@@ -56,10 +56,6 @@ export function saveSession(result) {
   // O primeiro cadastro anônimo preserva sua sessão de tentativa.
   // Reautenticação de uma conta existente inicia uma sessão de analytics nova.
   const wasAuthenticated = hasSession();
-  if (result?.usuario) {
-    if (wasAuthenticated) notifyAnalyticsIdentityBoundary();
-    else broadcastAuthChange(AUTH_REVISION_STORAGE_KEY);
-  }
   removeBrowserStorage("local", "token");
   clearStoredSessionMetadata();
 
@@ -69,6 +65,12 @@ export function saveSession(result) {
 
   invalidateSessionRequests();
   writeBrowserStorage("local", SESSION_ACTIVE_KEY, "1");
+
+  // A revisão entre abas só pode ser publicada depois do marcador local.
+  // No cadastro inicial, manter o fluxo analítico anônimo da tentativa;
+  // na reautenticação, separar a identidade antes de medir novos eventos.
+  if (wasAuthenticated) notifyAnalyticsIdentityBoundary();
+  else broadcastAuthChange(AUTH_REVISION_STORAGE_KEY);
 }
 
 export function clearSession({ notify = false } = {}) {

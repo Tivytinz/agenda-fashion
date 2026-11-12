@@ -2155,6 +2155,16 @@ coorte. Essas medidas não devem ser comparadas como equivalentes.
 - Revogação de consentimento entre abas remove UTMs e click IDs dos lotes
   locais pendentes. A fila `sessionStorage` não sobrevive ao fechamento da
   aba; a possibilidade de subcontagem deve constar das análises de marketing.
+- Encerramento canônico por 401/403 em `/minha-sessao` e migração de
+  credencial legada definitivamente inválida publicam também o aviso de
+  logout confirmado (`af_auth_logout_ready_v1`), além da fronteira de
+  identidade. Abas sem marcador de sessão podem assim retomar a medição
+  anônima na mesma rota, sem depender de uma navegação posterior.
+- Avisos de logout antigos não liberam a coleta enquanto houver marcador
+  local de sessão ativa. Falhas transitórias de rede não publicam confirmação
+  de logout. Em `saveSession`, o marcador local é persistido antes da revisão
+  `af_auth_revision_v1`, evitando que uma aba receba o aviso antes da
+  escrita da nova sessão.
 
 A criação de índice em `analytics_eventos.visualizacao_id` deve depender de
 `EXPLAIN (ANALYZE, BUFFERS)` com volume representativo; não criar migration

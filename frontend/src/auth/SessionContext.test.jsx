@@ -12,7 +12,8 @@ import {
   clearSession,
   ANALYTICS_IDENTITY_BOUNDARY_EVENT,
   ANALYTICS_VIEW_READY_EVENT,
-  AUTH_REVISION_STORAGE_KEY
+  AUTH_REVISION_STORAGE_KEY,
+  AUTH_LOGOUT_READY_STORAGE_KEY
 } from "./session";
 
 vi.mock("../api/client", () => ({
@@ -133,6 +134,47 @@ describe("sincronização da sessão", () => {
     }
   });
 
+  it("expiração canônica comunica a retomada anônima às outras abas", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    const unauthorized = Object.assign(new Error("Sessão expirada"), { status: 401 });
+    apiRequest.mockRejectedValueOnce(unauthorized);
+    const ready = vi.fn();
+    window.addEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Sincronizar" }));
+      await screen.findByText("Desconectada");
+      expect(ready).toHaveBeenCalledTimes(1);
+      const marker = localStorage.getItem(AUTH_LOGOUT_READY_STORAGE_KEY);
+      expect(marker).toBeTruthy();
+      // Equivale ao storage event recebido na outra aba já sem sessão.
+      fireEvent(window, new StorageEvent("storage", {
+        key: AUTH_LOGOUT_READY_STORAGE_KEY,
+        newValue: marker
+      }));
+      expect(ready).toHaveBeenCalledTimes(2);
+    } finally {
+      window.removeEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    }
+  });
+
+  it("aviso antigo de logout não libera analytics durante uma sessão ativa", async () => {
+    renderSession();
+    await screen.findByText("Ana");
+    const ready = vi.fn();
+    window.addEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    try {
+      fireEvent(window, new StorageEvent("storage", {
+        key: AUTH_LOGOUT_READY_STORAGE_KEY,
+        newValue: "logout-antigo"
+      }));
+      expect(ready).not.toHaveBeenCalled();
+      expect(screen.getByText("Ana")).not.toBeNull();
+    } finally {
+      window.removeEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    }
+  });
+
   it("logout com erro de rede permanece suspenso até login validado", async () => {
     renderSession();
     await screen.findByText("Ana");
@@ -151,6 +193,7 @@ describe("sincronização da sessão", () => {
       await waitFor(() => expect(apiRequest.mock.calls.some(([path]) => path === "/logout")).toBe(true));
       await act(async () => {});
       expect(ready).toHaveBeenCalledTimes(0);
+      expect(localStorage.getItem(AUTH_LOGOUT_READY_STORAGE_KEY)).toBeNull();
       fireEvent.click(screen.getByRole("button", { name: "Entrar como Bruna" }));
       await screen.findByText("Bruna");
       expect(ready).toHaveBeenCalledTimes(1);
@@ -566,6 +609,28 @@ describe("sincronização da sessão", () => {
       "/minha-sessao",
       expect.anything()
     );
+  });
+
+  it("migração legada rejeitada comunica o logout confirmado entre abas", async () => {
+    localStorage.removeItem("session_active");
+    localStorage.setItem("token", "jwt-expirado");
+    migrateLegacySession.mockResolvedValueOnce({
+      attempted: true, migrated: false, invalid: true
+    });
+    const ready = vi.fn();
+    window.addEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    try {
+      renderSession();
+      await waitFor(() => expect(ready).toHaveBeenCalledTimes(1));
+      expect(screen.getByText("Desconectada")).not.toBeNull();
+      expect(localStorage.getItem("token")).toBeNull();
+      expect(localStorage.getItem(AUTH_LOGOUT_READY_STORAGE_KEY)).toBeTruthy();
+      expect(apiRequest).not.toHaveBeenCalledWith(
+        "/minha-sessao", expect.anything()
+      );
+    } finally {
+      window.removeEventListener(ANALYTICS_VIEW_READY_EVENT, ready);
+    }
   });
 
   it("mantém a sessão utilizável enquanto uma sincronização silenciosa está pendente", async () => {
