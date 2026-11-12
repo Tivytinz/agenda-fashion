@@ -100,6 +100,26 @@ test("recorrência incompatível é removida sem ativar assinatura", async () =>
   expect(asaas.criarAssinaturaAsaas).not.toHaveBeenCalled();
 });
 
+test("lease de execução obsoleto não confirma recorrência recuperada", async () => {
+  pendente();
+  operacoes.bloquearContexto.mockResolvedValue({
+    assinatura: { ...reservada(), periodo_pago_valido: true },
+    operacao: { ...operacao(), execucao_versao: 2 }
+  });
+
+  await expect(
+    reconciliarReativacaoAbandonada(7)
+  ).resolves.toBeNull();
+
+  expect(operacoes.registrarRecorrencia).toHaveBeenCalledWith(
+    20, 1, "sub_nova"
+  );
+  expect(repository.registrarReativacao).not.toHaveBeenCalled();
+  expect(operacoes.concluir).not.toHaveBeenCalled();
+  expect(asaas.removerAssinaturaAsaas).not.toHaveBeenCalled();
+  expect(asaas.criarAssinaturaAsaas).not.toHaveBeenCalled();
+});
+
 test("erro ambíguo de consulta mantém a operação recuperável", async () => {
   pendente(); asaas.buscarAssinaturaPorReferencia.mockRejectedValue(new Error("timeout"));
   await expect(reconciliarReativacaoAbandonada(7)).resolves.toBeNull();
