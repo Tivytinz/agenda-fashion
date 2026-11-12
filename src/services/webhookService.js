@@ -61,6 +61,17 @@ const EVENTOS_SUSPENSAO =
     "PAYMENT_AWAITING_CHARGEBACK_REVERSAL"
   ]);
 
+const STATUS_PAGAMENTO_SUSPENSO =
+  new Set([
+    "OVERDUE",
+    "REFUNDED",
+    "RECEIVED_IN_CASH_UNDONE",
+    "CREDIT_CARD_CAPTURE_REFUSED",
+    "CHARGEBACK_REQUESTED",
+    "CHARGEBACK_DISPUTE",
+    "AWAITING_CHARGEBACK_REVERSAL"
+  ]);
+
 const EVENTOS_ASSINATURA =
   new Set([
     "SUBSCRIPTION_CREATED",
@@ -137,6 +148,13 @@ function acaoPagamento(
   )
     .trim()
     .toUpperCase();
+
+  if (
+    STATUS_PAGAMENTO_SUSPENSO
+      .has(status)
+  ) {
+    return "SUSPENDER";
+  }
 
   if (
     STATUS_PAGAMENTO_CONFIRMADO
