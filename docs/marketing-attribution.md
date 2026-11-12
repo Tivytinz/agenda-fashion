@@ -23,11 +23,11 @@ O Analytics V2 preserva esses valores como evidência declarada pelo próprio
 link, separada de UTM e click IDs de publicidade. A captura não depende do
 consentimento opcional para campanhas publicitárias, mas continua sujeita às
 regras gerais de privacidade e retenção de telemetria técnica first-party.
-O backend limita os tamanhos e não transforma esses campos em campanha oficial.
+O backend limita os tamanhos e não transforma esses campos em campanha oficial.\nEsses parâmetros são valores declarados na URL e não são prova de origem\nautenticada: podem ser alterados por qualquer visitante. Não devem carregar\nnomes, telefones, e-mails, identificadores pessoais ou dados sensíveis.
 
 Essa evidência não comprova que o compartilhamento causou a visita, o
 agendamento ou receita. Agendamento válido e monetização são confirmados
-pelos registros transacionais, nunca pela presença de `af_*`.
+pelos registros transacionais, nunca pela presença de `af_*`.\n\nA classificação canônica de canal continua baseada em UTMs, click IDs e\nreferrer. Uma sessão com somente `af_*` pode aparecer como `direct` na\nclassificação legada; relatórios futuros devem exibir a evidência AF em\ndimensão separada, sem alterar retroativamente canal, CAC ou ROAS.\nA ausência dessa dimensão nos painéis atuais não autoriza inferir que a\nvisita não veio de um link compartilhado.
 
 ## Regra de integridade da evidência
 
