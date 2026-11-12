@@ -222,6 +222,48 @@ describe(
       }
     );
 
+    test(
+      "evento PAYMENT_UPDATED com status de chargeback não reativa assinatura",
+      async () => {
+        webhookEventoRepository
+          .reservarPorId
+          .mockResolvedValue({
+            id: 14,
+            evento_id: "evt_updated_chargeback",
+            evento_criado_em:
+              "2026-09-13 20:09:00",
+            tipo_evento: "PAYMENT_UPDATED",
+            recurso_id: "pay_chargeback",
+            tentativas: 1,
+            lease_tentativa: 1,
+            payload: {
+              payment: {
+                id: "pay_chargeback",
+                status: "CHARGEBACK_REQUESTED"
+              }
+            }
+          });
+
+        sincronizarPagamentoPorWebhook
+          .mockResolvedValue(null);
+
+        const resultado =
+          await processarEventoWebhook(14);
+
+        expect(
+          ativarAssinaturaPorPagamento
+        ).not.toHaveBeenCalled();
+        expect(
+          suspenderAssinaturaPorPagamento
+        ).not.toHaveBeenCalled();
+        expect(
+          sincronizarPagamentoPorWebhook
+        ).toHaveBeenCalled();
+        expect(resultado.status)
+          .toBe("PROCESSED");
+      }
+    );
+
     test.each([
       "PAYMENT_REFUNDED",
       "PAYMENT_CHARGEBACK_REQUESTED",
