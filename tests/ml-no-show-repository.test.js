@@ -32,6 +32,9 @@ describe("repository de amostras de no-show", () => {
     expect(sql).toContain(
       "historico.status_atendimento_em < candidato.created_at"
     );
+    expect(sql).toContain("historico.status IN ('realizado', 'falta')");
+    expect(sql).toContain("historico.status_atendimento_em IS NOT NULL");
+    expect(sql).toContain("historico.id <> candidato.agendamento_id");
     expect(sql).toContain(
       "primeiro_reagendamento.previous_data"
     );
