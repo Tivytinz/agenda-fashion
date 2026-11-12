@@ -27,6 +27,11 @@ const registrador = require(
 const AppError = require(
   "../errors/AppError"
 );
+const {
+  obterBcryptRounds,
+} = require(
+  "../config/passwordHash"
+);
 
 function obterJwtSecret() {
   const segredo =
@@ -52,23 +57,6 @@ function obterExpiracaoToken() {
     ).trim();
 
   return expiracao || "7d";
-}
-
-function obterBcryptRounds() {
-  const rounds =
-    Number(
-      process.env.BCRYPT_ROUNDS
-    );
-
-  if (
-    Number.isInteger(rounds) &&
-    rounds >= 10 &&
-    rounds <= 14
-  ) {
-    return rounds;
-  }
-
-  return 10;
 }
 
 function normalizarTexto(
