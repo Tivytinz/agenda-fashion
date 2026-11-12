@@ -8,6 +8,12 @@ describe(
     test(
       "executa agregações somente leitura sobre o schema real",
       async () => {
+        const captura = await repository.obterCoberturaCaptura();
+        expect(captura).toEqual(expect.objectContaining({
+          total_elegiveis: expect.any(Number),
+          total_capturados: expect.any(Number),
+        }));
+        expect(captura.total_capturados).toBeLessThanOrEqual(captura.total_elegiveis);
         const resumo =
           await repository
             .obterResumoMaturidadeNegocios();
