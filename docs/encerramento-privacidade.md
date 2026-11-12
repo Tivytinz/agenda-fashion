@@ -69,11 +69,16 @@ Encerramento definitivo é lógico, não um `DELETE` físico da linha de
 `usuarios`, porque FKs, histórico, segurança, auditoria e obrigações de
 retenção podem exigir a referência original.
 
-A operação marca:
+A operação marca e minimiza imediatamente:
 
 - `usuarios.ativo = FALSE`;
+- `senha = NULL` e `google_sub = NULL`, inutilizando credenciais de login;
 - `desativado_em`;
 - `encerrado_definitivo_em`.
+
+Nome, e-mail, WhatsApp, bookings e demais referências históricas não são
+apagados nesse passo porque sua retenção precisa obedecer finalidade e prazo
+aprovados por categoria.
 
 Uma profissional não proprietária não pode encerrar definitivamente a conta
 enquanto possuir agendamento operacional atribuído.
