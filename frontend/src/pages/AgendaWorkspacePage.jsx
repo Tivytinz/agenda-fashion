@@ -639,6 +639,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                 if (["livre", "bloqueado"].includes(slot.status)) {
                   return (
                     <button
+                      aria-label={`${String(slot.hora).slice(0, 5)} ${statusLabel}`}
                       aria-busy={isBlockUpdating || undefined}
                       className={`slot-card slot-${slot.status}${isBlockUpdating ? " is-updating" : ""}`}
                       disabled={!canBlock}
