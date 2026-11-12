@@ -21,7 +21,7 @@ function accountForm(user) {
 
 // Etapa 1 já criada: edita a mesma conta sem repetir o cadastro.
 // Nenhuma credencial é copiada para sessionStorage ou para o rascunho do negócio.
-export function ProfessionalSignupReview({ user, planSlug = "", refreshSession }) {
+export function ProfessionalSignupReview({ user, planSlug = "", refreshSession, reauthenticate }) {
   const navigate = useNavigate();
   const nextStep = getPlanIntentPath("/criar-negocio", planSlug);
   const [form, setForm] = useState(() => accountForm(user));
@@ -94,8 +94,11 @@ export function ProfessionalSignupReview({ user, planSlug = "", refreshSession }
         });
       }
       if (controller.signal.aborted) return;
-      // Reconciliar os novos dados antes de abrir o formulário do negócio.
-      const current = await refreshSession({ silent: true });
+      // PUT /conta/senha invalida o token anterior. Renovar a sessão
+      // automaticamente pela autenticação canônica com a nova senha.
+      const current = passwordChanged
+        ? await reauthenticate({ email, senha: password.nova })
+        : await refreshSession({ silent: true });
       if (controller.signal.aborted) return;
       if (!current?.authenticated || String(current.usuario?.id) !== String(user.id)) {
         throw new Error("Os dados foram salvos, mas não foi possível atualizar sua sessão. Tente novamente.");

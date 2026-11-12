@@ -371,7 +371,8 @@ negócio. Depois de criar a conta, retornar à etapa 1 abre a edição inline do
 da MESMA identidade, sem reenviar o cadastro ou sair para `/conta`.
 Nome e WhatsApp usam `PUT /conta`; e-mail usa `PUT /conta/email`, com
 senha atual, unicidade e desativação da verificação do endereço anterior;
-a troca de senha usa `PUT /conta/senha`, também com senha atual.
+a troca de senha usa `PUT /conta/senha`, também com senha atual, e reautentica
+com a nova senha após a revogação das sessões antigas.
 Sem alterações, Continuar não faz chamadas de gravação. Ao salvar, a sessão
 é reconciliada antes de retornar à etapa 2. Credenciais nunca são retidas em
 rascunhos; apenas a saída real e confirmada descarta o rascunho do negócio.

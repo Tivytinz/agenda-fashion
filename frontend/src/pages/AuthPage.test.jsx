@@ -119,7 +119,7 @@ describe("retorno à etapa 1 após conta criada", () => {
     authenticatedSession = {
       authenticated: true, loading: false, temNegocio: false,
       usuario: { id: 7, nome: "Ana", email: "ana@example.test", whatsapp: "62999999999" },
-      refresh: refreshSession
+      refresh: refreshSession, login
     };
     render(<MemoryRouter initialEntries={["/cadastro?tipo=profissional&plano=autonoma"]}>
       <Routes>
@@ -203,7 +203,7 @@ describe("retorno à etapa 1 após conta criada", () => {
     authenticatedSession = {
       authenticated: true, loading: false, temNegocio: false,
       usuario: { id: 7, nome: "Ana", email: "ana@example.test", whatsapp: "62999999999" },
-      refresh: refreshSession
+      refresh: refreshSession, login
     };
     render(<MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
       <Routes>
@@ -217,7 +217,7 @@ describe("retorno à etapa 1 após conta criada", () => {
     await user.type(screen.getByLabelText("Nova senha"), "nova-senha-valida");
     await user.type(screen.getByLabelText("Confirmar nova senha"), "nova-senha-valida");
     apiRequest.mockResolvedValue({});
-    refreshSession.mockResolvedValue({
+    login.mockResolvedValue({
       authenticated: true, usuario: { id: 7 }
     });
     await user.click(screen.getByRole("button", { name: "Salvar e continuar" }));
@@ -225,6 +225,8 @@ describe("retorno à etapa 1 após conta criada", () => {
     expect(apiRequest).toHaveBeenCalledWith("/conta/senha", expect.objectContaining({
       method: "PUT", body: { senhaAtual: "antiga-senha", novaSenha: "nova-senha-valida" }
     }));
+    expect(login).toHaveBeenCalledWith({ email: "ana@example.test", senha: "nova-senha-valida" });
+    expect(refreshSession).not.toHaveBeenCalled();
   });
 
   it("bloqueia o envio de e-mail inválido sem chamada ao servidor", async () => {
