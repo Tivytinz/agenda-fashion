@@ -1,7 +1,8 @@
 import { postTelemetry } from "./transport";
-import { normalizePlanSlug } from "../auth/session";
+import { ANALYTICS_IDENTITY_BOUNDARY_EVENT, normalizePlanSlug } from "../auth/session";
 import {
   readBrowserStorage,
+  removeBrowserStorage,
   writeBrowserStorage
 } from "../utils/browserStorage";
 import {
@@ -35,6 +36,7 @@ const MARKETING_ACQUISITION_KEYS = [
 let currentView = null;
 let lifecycleBound = false;
 let outboxFlushPromise = null;
+let identityGeneration = 0;
 
 function uuid() {
   try {
@@ -378,39 +380,53 @@ async function postPayload(payload, { keepalive = false } = {}) {
 }
 
 async function flushOutbox({ keepalive = false } = {}) {
-  if (outboxFlushPromise) {
-    return outboxFlushPromise;
-  }
+  if (outboxFlushPromise) return outboxFlushPromise;
 
-  outboxFlushPromise = (async () => {
+  const generation = identityGeneration;
+  const work = (async () => {
     let processed = 0;
-
-    while (processed < OUTBOX_FLUSH_LIMIT) {
+    while (processed < OUTBOX_FLUSH_LIMIT && generation === identityGeneration) {
       const entry = readOutbox()[0];
       if (!entry) break;
-
       try {
         await postPayload(entry.payload, { keepalive });
+        // Um POST antigo pode terminar depois do logout: não drenar a fila nova.
+        if (generation !== identityGeneration) break;
         removeOutboxEntry(entry.id);
       } catch (error) {
+        if (generation !== identityGeneration) break;
         if (error?.retryable === false) {
           removeOutboxEntry(entry.id);
           processed += 1;
           continue;
         }
-
         break;
       }
-
       processed += 1;
     }
   })();
-
+  outboxFlushPromise = work;
   try {
-    await outboxFlushPromise;
+    await work;
   } finally {
-    outboxFlushPromise = null;
+    if (outboxFlushPromise === work) {
+      outboxFlushPromise = null;
+      if (identityGeneration !== generation && readOutbox().length) {
+        void flushOutbox();
+      }
+    }
   }
+}
+
+// A fronteira invalida lotes pendentes, fluxos e sessão sem apagar a identidade
+// pseudônima do navegador; previne atribuição cruzada entre contas.
+export function resetFirstPartyAnalyticsSession() {
+  identityGeneration += 1;
+  currentView = null;
+  removeBrowserStorage("session", SESSION_KEY);
+  removeBrowserStorage("session", ONBOARDING_FLOW_KEY);
+  removeBrowserStorage("session", BOOKING_FLOW_KEY);
+  writeOutbox([]);
 }
 
 async function send(items, { keepalive = false } = {}) {
@@ -509,6 +525,11 @@ function bindLifecycle() {
   window.addEventListener("online", () => {
     void flushOutbox();
   });
+
+  window.addEventListener(
+    ANALYTICS_IDENTITY_BOUNDARY_EVENT,
+    resetFirstPartyAnalyticsSession
+  );
 }
 
 function autoJourneyEvent(pageKey, search, state) {
@@ -734,5 +755,6 @@ export const firstPartyAnalyticsInternals = {
   uuidValido,
   readOutbox,
   flushOutbox,
+  resetFirstPartyAnalyticsSession,
   send
 };

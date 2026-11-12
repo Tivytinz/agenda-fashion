@@ -7,6 +7,14 @@ import {
 const SESSION_ACTIVE_KEY = "session_active";
 const SESSION_KEYS = ["token", SESSION_ACTIVE_KEY, "usuario", "negocio"];
 export const SESSION_CLEARED_EVENT = "agenda-fashion:session-cleared";
+export const ANALYTICS_IDENTITY_BOUNDARY_EVENT = "agenda-fashion:analytics-identity-boundary";
+
+// Somente um aviso de fronteira: não transporta ID, token ou dados pessoais.
+export function notifyAnalyticsIdentityBoundary() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(ANALYTICS_IDENTITY_BOUNDARY_EVENT));
+  }
+}
 
 let requestGeneration = 0;
 
@@ -30,6 +38,10 @@ export function completeLegacySessionMigration() {
 }
 
 export function saveSession(result) {
+  // O primeiro cadastro anônimo preserva sua sessão de tentativa.
+  // Reautenticação de uma conta existente inicia uma sessão de analytics nova.
+  const wasAuthenticated = hasSession();
+  if (result?.usuario && wasAuthenticated) notifyAnalyticsIdentityBoundary();
   removeBrowserStorage("local", "token");
   clearStoredSessionMetadata();
 
@@ -42,6 +54,7 @@ export function saveSession(result) {
 }
 
 export function clearSession({ notify = false } = {}) {
+  notifyAnalyticsIdentityBoundary();
   invalidateSessionRequests();
   SESSION_KEYS.forEach((key) => removeBrowserStorage("local", key));
 

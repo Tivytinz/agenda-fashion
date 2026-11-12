@@ -206,7 +206,7 @@ describe("jornada administrativa v2", () => {
     const linked = screen.getByRole("region", { name: "Vínculos confirmados com fatos do cadastro" });
     expect(within(linked).getByText("Contas novas vinculadas")).not.toBeNull();
     expect(within(linked).getByText("Com negócio próprio")).not.toBeNull();
-    expect(within(linked).getByText("Com agendamento válido")).not.toBeNull();
+    expect(within(linked).getByText("Com agendamento em qualquer negócio próprio")).not.toBeNull();
     expect(screen.getByText(/Uma sessão pode conter vários eventos/)).not.toBeNull();
     expect(screen.getByText(/Uma mesma sessão pode tentar os dois métodos/)).not.toBeNull();
 

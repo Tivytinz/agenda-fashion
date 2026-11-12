@@ -48,6 +48,9 @@ describe("resumo first-party do cadastro profissional", () => {
     expect(sql).not.toContain("u.created_at >= e.occurred_at");
     expect(sql).not.toContain("u.created_at <= s.ultima_atividade_em");
     expect(sql).toContain("un.papel = 'dono'");
+    expect(sql).toContain("JOIN agendamentos ag ON ag.negocio_id = b.negocio_id");
+    // Jornada considera qualquer negócio ativo da dona, não só o primeiro negócio.
+    expect(sql).not.toContain("ORDER BY un.created_at ASC, un.id ASC");
     expect(sql).toContain("ag.negocio_id = b.negocio_id");
     expect(sql).toContain("e.origem = 'frontend'");
     expect(sql).toContain("e.occurred_at >=");

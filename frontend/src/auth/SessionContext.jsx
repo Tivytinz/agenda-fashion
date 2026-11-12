@@ -21,6 +21,7 @@ import {
   hasSession,
   invalidateSessionRequests,
   saveSession,
+  notifyAnalyticsIdentityBoundary,
   SESSION_CLEARED_EVENT
 } from "./session";
 
@@ -45,6 +46,7 @@ export function SessionProvider({ children }) {
   const lastAppliedRefreshRef = useRef(0);
   const sessionSyncAbortRef = useRef(null);
   const pendingLogoutRef = useRef(null);
+  const verifiedIdentityRef = useRef(null);
   const transitionsRef = useRef(null);
   if (!transitionsRef.current) transitionsRef.current = createSessionTransitions();
   const [state, setState] = useState(() => {
@@ -89,6 +91,7 @@ export function SessionProvider({ children }) {
     );
 
     if (!hasSession()) {
+      verifiedIdentityRef.current = null;
       sessionGenerationRef.current += 1;
       lastAppliedRefreshRef.current = requestId;
       setState(SIGNED_OUT_STATE);
@@ -115,6 +118,7 @@ export function SessionProvider({ children }) {
         sessionGenerationRef.current += 1;
         lastAppliedRefreshRef.current = requestId;
         clearSession();
+        verifiedIdentityRef.current = null;
         setState(SIGNED_OUT_STATE);
         return null;
       }
@@ -152,6 +156,11 @@ export function SessionProvider({ children }) {
         administrador: result.administrador || null,
         ehAdministrador: Boolean(result.ehAdministrador)
       };
+      if (verifiedIdentityRef.current !== null &&
+          String(verifiedIdentityRef.current) !== String(result.usuario?.id)) {
+        notifyAnalyticsIdentityBoundary();
+      }
+      verifiedIdentityRef.current = result.usuario?.id ?? null;
       lastAppliedRefreshRef.current = requestId;
       setState(next);
 
@@ -168,6 +177,7 @@ export function SessionProvider({ children }) {
         sessionGenerationRef.current += 1;
         lastAppliedRefreshRef.current = requestId;
         clearSession();
+        verifiedIdentityRef.current = null;
         setState(SIGNED_OUT_STATE);
       } else {
         // Se este refresh silencioso tornou um refresh bloqueante anterior
@@ -195,11 +205,13 @@ export function SessionProvider({ children }) {
   useEffect(() => {
     function handleSessionCleared() {
       beginSessionTransition();
+      verifiedIdentityRef.current = null;
       setState(SIGNED_OUT_STATE);
     }
 
     function handleStorage(event) {
       if (["token", "session_active", "usuario", "negocio"].includes(event.key) && !hasSession()) {
+        notifyAnalyticsIdentityBoundary();
         handleSessionCleared();
       }
     }
@@ -222,6 +234,7 @@ export function SessionProvider({ children }) {
         const result = await apiRequest(path, { method: "POST", body });
         if (!transitions.isCurrent(intent)) throw supersededSessionTransition();
         saveSession(result);
+        verifiedIdentityRef.current = result.usuario?.id ?? null;
         const current = await refresh();
         if (!transitions.isCurrent(intent)) throw supersededSessionTransition();
         return { ...current, contaCriada: Boolean(result.contaCriada) };
@@ -314,6 +327,7 @@ export function SessionProvider({ children }) {
     transitions.begin();
     beginSessionTransition();
     clearSession();
+    verifiedIdentityRef.current = null;
     setState(SIGNED_OUT_STATE);
     if (pendingLogoutRef.current) return pendingLogoutRef.current;
 

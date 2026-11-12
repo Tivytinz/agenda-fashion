@@ -125,7 +125,7 @@ export function AdminJourneyV2Page() {
                 <section className="admin-command-summary-grid is-period-summary" aria-label="Vínculos confirmados com fatos do cadastro">
                   <MetricCard label="Contas novas vinculadas" hint="contas profissionais criadas após uma tentativa nessa mesma sessão, identificada posteriormente por login" value={formatNumber(signup.contas_novas_vinculadas)} />
                   <MetricCard label="Com negócio próprio" hint="contas vinculadas com negócio ativo e vínculo de dona confirmado no backend" value={formatNumber(signup.contas_com_negocio_vinculadas)} />
-                  <MetricCard label="Com agendamento válido" hint="contas vinculadas com agendamento não cancelado no negócio; não representa faturamento" value={formatNumber(signup.contas_com_agendamento_vinculadas)} />
+                  <MetricCard label="Com agendamento em qualquer negócio próprio" hint="contas com agendamento não cancelado em algum negócio ativo próprio; difere do primeiro negócio considerado pelo funil oficial e não representa receita" value={formatNumber(signup.contas_com_agendamento_vinculadas)} />
                 </section>
                 <p className="muted">
                   Reconciliação conservadora: exige tentativa observada, conta profissional criada depois da visita

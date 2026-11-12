@@ -2,8 +2,10 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  firstPartyAnalyticsInternals
+  firstPartyAnalyticsInternals,
+  startFirstPartyPageView
 } from "./firstPartyAnalytics";
+import { clearSession, saveSession } from "../auth/session";
 import {
   MARKETING_CONSENT,
   setMarketingConsent
@@ -14,12 +16,14 @@ const {
   clearFirstPartyMarketingAttribution,
   flushOutbox,
   readOutbox,
+  resetFirstPartyAnalyticsSession,
   route,
   send,
   uuidValido
 } = firstPartyAnalyticsInternals;
 
 afterEach(() => {
+  resetFirstPartyAnalyticsSession();
   window.localStorage.clear();
   window.sessionStorage.clear();
   window.history.replaceState({}, "", "/");
@@ -27,6 +31,65 @@ afterEach(() => {
 });
 
 describe("firstPartyAnalytics", () => {
+  it("logout separa identidades e descarta eventos pendentes sem trocar o visitante", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 503 })));
+    startFirstPartyPageView({ pathname: "/cadastro", search: "?tipo=profissional" });
+    const oldSession = JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).id;
+    const visitor = localStorage.getItem("af_analytics_visitor_v2");
+
+    await send([{ type: "event", eventUuid: "c6b83d90-09f0-4ad2-83e3-8a1f44e92641",
+      name: "professional_signup_submitted", occurredAt: new Date().toISOString(),
+      schemaVersion: 1, properties: { method: "email" } }]);
+    expect(readOutbox().length).toBeGreaterThan(0);
+
+    clearSession();
+    expect(readOutbox()).toHaveLength(0);
+    expect(sessionStorage.getItem("af_analytics_session_v2")).toBeNull();
+
+    startFirstPartyPageView({ pathname: "/" });
+    const newSession = JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).id;
+    expect(newSession).not.toBe(oldSession);
+    expect(localStorage.getItem("af_analytics_visitor_v2")).toBe(visitor);
+    expect(readOutbox().every(entry => entry.payload.sessionUuid === newSession)).toBe(true);
+  });
+
+  it("primeiro cadastro anônimo preserva a sessão; autenticação já existente a renova", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, status: 202 })));
+    startFirstPartyPageView({ pathname: "/cadastro", search: "?tipo=profissional" });
+    await flushOutbox();
+    const anonymousSession = JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).id;
+    saveSession({ usuario: { id: 11 } });
+    expect(JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).id).toBe(anonymousSession);
+
+    saveSession({ usuario: { id: 22 } });
+    expect(sessionStorage.getItem("af_analytics_session_v2")).toBeNull();
+    startFirstPartyPageView({ pathname: "/" });
+    expect(JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).id).not.toBe(anonymousSession);
+  });
+
+  it("não entrega lote enfileirado por A ao concluir uma requisição antiga após troca de conta", async () => {
+    let releaseFirst;
+    const fetchMock = vi.fn()
+      .mockImplementationOnce(() => new Promise(resolve => { releaseFirst = resolve; }))
+      .mockResolvedValue({ ok: true, status: 202 });
+    vi.stubGlobal("fetch", fetchMock);
+    startFirstPartyPageView({ pathname: "/" });
+    const firstSession = JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).id;
+    await vi.waitFor(() => expect(releaseFirst).toBeTypeOf("function"));
+
+    clearSession();
+    startFirstPartyPageView({ pathname: "/para-profissionais" });
+    const nextSession = JSON.parse(sessionStorage.getItem("af_analytics_session_v2")).id;
+    expect(nextSession).not.toBe(firstSession);
+
+    releaseFirst({ ok: true, status: 202 });
+    await vi.waitFor(() => expect(readOutbox()).toHaveLength(0));
+    const deliveredSessions = fetchMock.mock.calls.map(([, options]) =>
+      JSON.parse(options.body).sessionUuid
+    );
+    expect(deliveredSessions).toEqual([firstSession, nextSession]);
+  });
+
   it("distingue páginas de cadastro profissional e cliente sem persistir a query", () => {
     expect(route("/cadastro", "?tipo=profissional&utm_source=google"))
       .toEqual(["professional_register", "/cadastro"]);

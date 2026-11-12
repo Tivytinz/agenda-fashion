@@ -59,7 +59,7 @@ async function upsertSessao({
       $1::UUID,
       $2,
       $3,
-      CASE WHEN $3::BIGINT IS NULL THEN NULL ELSE $4::TIMESTAMPTZ END,
+      CASE WHEN $3::BIGINT IS NULL THEN NULL ELSE NOW() END,
       $4::TIMESTAMPTZ,
       $4::TIMESTAMPTZ,
       $5,

@@ -8,7 +8,9 @@ import {
 } from "vitest";
 import {
   clearStoredSessionMetadata,
-  saveSession
+  clearSession,
+  saveSession,
+  ANALYTICS_IDENTITY_BOUNDARY_EVENT
 } from "./session";
 
 afterEach(() => {
@@ -16,6 +18,23 @@ afterEach(() => {
 });
 
 describe("persistência mínima da sessão", () => {
+  it("emite fronteira sem dados pessoais no logout e só na reautenticação já ativa", () => {
+    const observed = [];
+    const handler = event => observed.push(event);
+    window.addEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, handler);
+    try {
+      saveSession({ usuario: { id: 1 } });
+      expect(observed).toHaveLength(0);
+      saveSession({ usuario: { id: 2 } });
+      expect(observed).toHaveLength(1);
+      clearSession();
+      expect(observed).toHaveLength(2);
+      expect(observed[0].detail).toBeUndefined();
+    } finally {
+      window.removeEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, handler);
+    }
+  });
+
   it("guarda apenas o marcador de sessão e remove metadados pessoais legados", () => {
     localStorage.setItem(
       "usuario",

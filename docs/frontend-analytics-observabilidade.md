@@ -2103,3 +2103,32 @@ Atualizar este documento quando mudar de forma durável:
 
 Não atualizar por simples mudança de copy de um evento se a arquitetura e a
 semântica permanecerem iguais.
+
+
+### Sessões first-party e identidade (11/11/2026)
+
+A fronteira de autenticação separa as sessões de analytics no logout, expiração,
+limpeza de sessão e reautenticação de uma conta já autenticada. A troca de
+identidade confirmada por `/minha-sessao` também separa sessões; uma saída
+observada em outra aba invalida os lotes pendentes na aba atual. `sessionUuid`,
+`flowUuid` e o outbox antigo são descartados na fronteira, sem remover o
+identificador pseudônimo do visitante do navegador. A primeira inscrição de
+uma pessoa anônima conserva a sessão para associar tentativa e conta criada.
+
+O objetivo é impedir que eventos locais pendentes de A sejam enviados na
+sessão de B. O navegador não consegue cancelar um POST já entregue ao servidor;
+a checagem de conflito de sessão autenticada no backend continua obrigatória.
+Descartar eventos na fronteira pode subestimar o tráfego, mas não gera
+conversão fictícia. O campo `analytics_sessoes.identificado_em` passa a
+registrar o instante do primeiro vínculo autenticado confirmado pelo
+PostgreSQL, não o relógio do dispositivo. Linhas históricas não são regravadas;
+não comparar esse campo entre versões sem considerar o corte de comportamento.
+
+Na Jornada, `contas_com_agendamento_vinculadas` significa agendamento não
+cancelado em **qualquer negócio ativo próprio** da conta vinculada. No funil
+canônico, primeiro agendamento usa o primeiro negócio selecionado para a
+coorte. Essas medidas não devem ser comparadas como equivalentes.
+
+A criação de índice em `analytics_eventos.visualizacao_id` deve depender de
+`EXPLAIN (ANALYZE, BUFFERS)` com volume representativo; não criar migration
+por hipótese de desempenho.

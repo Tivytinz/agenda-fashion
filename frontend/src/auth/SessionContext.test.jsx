@@ -8,7 +8,7 @@ import {
   migrateLegacySession
 } from "../api/client";
 import { SessionProvider, useSession } from "./SessionContext";
-import { clearSession } from "./session";
+import { clearSession, ANALYTICS_IDENTITY_BOUNDARY_EVENT } from "./session";
 
 vi.mock("../api/client", () => ({
   apiRequest: vi.fn(),
@@ -91,6 +91,42 @@ afterEach(() => {
 });
 
 describe("sincronização da sessão", () => {
+  it("troca de identidade confirmada por refresh emite nova fronteira analítica", async () => {
+    const boundaries = vi.fn();
+    window.addEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, boundaries);
+    try {
+      renderSession();
+      await screen.findByText("Ana");
+      apiRequest.mockResolvedValue({
+        usuario: { id: 2, nome: "Bruna" }, negocio: null, vinculos: []
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Sincronizar" }));
+      await screen.findByText("Bruna");
+      expect(boundaries).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, boundaries);
+    }
+  });
+
+  it("troca de vínculo comercial não altera a identidade da sessão de analytics", async () => {
+    const boundaries = vi.fn();
+    window.addEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, boundaries);
+    try {
+      apiRequest.mockResolvedValue({
+        usuario: { id: 1, nome: "Ana" },
+        vinculos: [{ id: 9, papel: "dono" }],
+        negocio: { id: 9, papel: "dono" },
+        temNegocio: true
+      });
+      renderSession();
+      await screen.findByText("Ana");
+      fireEvent.click(screen.getByRole("button", { name: "Adotar arquivamento" }));
+      expect(boundaries).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener(ANALYTICS_IDENTITY_BOUNDARY_EVENT, boundaries);
+    }
+  });
+
   it("falha de autenticação ultrapassada não substitui o resultado da intenção nova", async () => {
     const onAuthError = vi.fn();
     renderSession({ onAuthError });

@@ -56,8 +56,8 @@ async function registrarVisita(agent, metodo, { deslocamentoMs = 0 } = {}) {
   return { visitorUuid, sessionUuid };
 }
 
-async function identificarSessao(agent, tracking, usuarioId) {
-  const ocorrido = new Date().toISOString();
+async function identificarSessao(agent, tracking, usuarioId, { deslocamentoMs = 0 } = {}) {
+  const ocorrido = new Date(Date.now() + deslocamentoMs).toISOString();
   const resposta = await agent.post("/analytics/collect").send({
     visitorUuid: tracking.visitorUuid,
     sessionUuid: tracking.sessionUuid,
@@ -73,10 +73,15 @@ async function identificarSessao(agent, tracking, usuarioId) {
   });
   expect(resposta.status).toBe(202);
   const consulta = await db.query(
-    "SELECT usuario_id FROM analytics_sessoes WHERE session_uuid = $1::UUID",
+    "SELECT usuario_id, identificado_em, NOW() AS servidor_agora FROM analytics_sessoes WHERE session_uuid = $1::UUID",
     [tracking.sessionUuid]
   );
   expect(Number(consulta.rows[0]?.usuario_id)).toBe(usuarioId);
+  // Identificação é marcada pelo relógio do PostgreSQL, mesmo com celular adiantado/atrasado.
+  expect(Math.abs(
+    new Date(consulta.rows[0].identificado_em).getTime() -
+    new Date(consulta.rows[0].servidor_agora).getTime()
+  )).toBeLessThan(30000);
 }
 
 async function criarNegocioReal(agent, suffix, usuarioId) {
@@ -198,7 +203,7 @@ describe("Cadastro real vinculado ao analytics e ao primeiro negócio", () => {
     expect(contaPersistida.rows).toHaveLength(1);
     expect(Number(contaPersistida.rows[0].id)).toBe(id);
 
-    await identificarSessao(agent, tracking, id);
+    await identificarSessao(agent, tracking, id, { deslocamentoMs: 2 * 60 * 1000 });
     const negocioId = await criarNegocioReal(agent, suffix, id);
     const bookingId = await criarAgendamentoPersistido(negocioId, id, suffix);
 
@@ -236,7 +241,7 @@ describe("Cadastro real vinculado ao analytics e ao primeiro negócio", () => {
     expect(cadastro.body.contaCriada).toBe(true);
     const id = Number(cadastro.body.usuario.id);
     expect(cadastro.body.usuario.perfil_profissional_ativo).toBe(true);
-    await identificarSessao(agent, tracking, id);
+    await identificarSessao(agent, tracking, id, { deslocamentoMs: -2 * 60 * 1000 });
     await criarNegocioReal(agent, suffix, id);
 
     const loginRepetido = await agent.post("/auth/google").send({
