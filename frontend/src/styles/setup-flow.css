@@ -362,3 +362,9 @@
   margin-top: 14px;
   color: var(--muted);
 }
+
+.setup-flow-has-back .setup-topbar-actions .setup-back.is-disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  background: #fff;
+}

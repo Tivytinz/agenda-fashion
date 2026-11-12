@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { getPlanIntentPath } from "../auth/session";
 import { formatWhatsApp } from "../utils/format";
+import { clearBusinessCreationDraft } from "../features/business/draft";
 import { SetupFlowFrame, SetupTitle } from "./SetupFlowFrame";
 
 // A conta já foi criada. Reabrir o formulário de registro faria a pessoa
@@ -8,7 +9,7 @@ import { SetupFlowFrame, SetupTitle } from "./SetupFlowFrame";
 export function ProfessionalSignupReview({ user, planSlug = "" }) {
   const nextStep = getPlanIntentPath("/criar-negocio", planSlug);
   return (
-    <SetupFlowFrame step={1}>
+    <SetupFlowFrame onExit={clearBusinessCreationDraft} step={1}>
       <main className="auth-page">
         <section aria-labelledby="professional-review-title" className="auth-card auth-card-professional-register">
           <SetupTitle emoji="💖" id="professional-review-title">Sua conta</SetupTitle>

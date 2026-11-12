@@ -60,6 +60,7 @@ beforeEach(() => {
   register.mockReset();
   loginWithGoogle.mockReset();
   trackFirstPartyEvent.mockClear();
+  sessionStorage.clear();
 
   login.mockResolvedValue({
     authenticated: true,
@@ -128,6 +129,23 @@ describe("retorno à etapa 1 após conta criada", () => {
     await userEvent.setup().click(screen.getByRole("link", { name: "Continuar para o negócio" }));
     expect(screen.getByRole("heading", { name: "Etapa 2 do cadastro" })).not.toBeNull();
     expect(register).not.toHaveBeenCalled();
+  });
+
+  it("descarta o rascunho privado ao sair da etapa 1 concluída", async () => {
+    authenticatedSession = {
+      authenticated: true, loading: false, temNegocio: false,
+      usuario: { id: 7, nome: "Ana", email: "ana@example.test", whatsapp: "62999999999" }
+    };
+    sessionStorage.setItem("af_business_creation_draft_v1", "rascunho-somente-teste");
+    render(<MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+      <Routes>
+        <Route path="/cadastro" element={<AuthPage mode="register" />} />
+        <Route path="/" element={<h1>Início</h1>} />
+      </Routes>
+    </MemoryRouter>);
+    await userEvent.setup().click(screen.getByRole("link", { name: "Sair" }));
+    expect(screen.getByRole("heading", { name: "Início" })).not.toBeNull();
+    expect(sessionStorage.getItem("af_business_creation_draft_v1")).toBeNull();
   });
 
   it("não reabre cadastro quando a conta já tem negócio", async () => {

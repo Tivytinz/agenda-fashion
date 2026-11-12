@@ -141,7 +141,7 @@ export function BusinessPage({ create = false }) {
   );
 
   return (
-    <SetupFlowFrame backTo={firstStepPath} enabled={create} exitTo={selectedPlan ? "/planos" : "/"} step={2}>
+    <SetupFlowFrame backDisabled={mutationBusy} backTo={firstStepPath} enabled={create} exitTo={selectedPlan ? "/planos" : "/"} step={2}>
     <main className={create ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
       <UnsavedChangesGuard when={unsavedChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} preserveOnNavigateTo={create && !mutationBusy ? firstStepPath : undefined} />
       <header className="workspace-heading">
