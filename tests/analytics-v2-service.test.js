@@ -110,6 +110,9 @@ describe(
             "criativorosa",
           utmTerm:
             null,
+          afSource: null,
+          afMedium: null,
+          afContent: null,
           gclid:
             "gclid-123",
           gbraid:
@@ -129,6 +132,22 @@ describe(
         });
       }
     );
+
+    test("valida evidência AF sem promover link próprio a campanha paga", () => {
+      const evidencias = normalizarAquisicao({
+        afSource: " AGENDA_FASHION ",
+        afMedium: " WhatsApp ",
+        afContent: "negocio\\ncompartilhado",
+        utmSource: "",
+      });
+      expect(evidencias).toMatchObject({
+        afSource: "agenda_fashion",
+        afMedium: "whatsapp",
+        afContent: "negociocompartilhado",
+      });
+      expect(classificarCanal(evidencias, null).classificacao)
+        .not.toBe("oficial");
+    });
 
     test.each([
       [
