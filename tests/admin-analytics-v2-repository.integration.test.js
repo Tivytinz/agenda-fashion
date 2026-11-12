@@ -96,6 +96,13 @@ describe("Admin Analytics V2 repository - regressão de CTE", () => {
         [sessaoId, source]
       );
 
+      await db.query(
+        `INSERT INTO analytics_sessao_origens
+           (sessao_id, canal, classificacao, metodo_resolucao, capturado_em)
+         VALUES ($1, 'direct', 'sem_evidencia', 'direct', NOW())`,
+        [sessaoId]
+      );
+
       const resultado = await listarDivulgacaoAf("today");
       const linha = resultado.divulgacoes.find(
         (item) => item.af_source === source
@@ -104,7 +111,7 @@ describe("Admin Analytics V2 repository - regressão de CTE", () => {
         af_medium: "whatsapp",
         af_content: "negocio",
         sessoes: 1,
-        sessoes_classificadas_diretas: 0,
+        sessoes_classificadas_diretas: 1,
       }));
     } finally {
       await db.query("DELETE FROM analytics_visitantes WHERE id = $1", [visitanteId]);
