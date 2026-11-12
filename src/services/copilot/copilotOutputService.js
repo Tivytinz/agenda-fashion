@@ -54,19 +54,25 @@ function buildDeterministicShareOutput(contexto = {}) {
   const servico = normalizarTexto(contexto.servico_destaque?.nome, 120);
 
   if (servico) {
-    return {
+    const resultado = {
       titulo: `${servico} em destaque`,
       texto:
         `💅 ${servico} está em destaque no ${negocio}. ` +
         "Veja nossos serviços no Agenda Fashion e escolha o melhor horário para você.",
     };
+    const validado = sanitizeCopilotShareOutput(resultado);
+    if (validado) return validado;
   }
 
-  return {
+  const resultado = {
     titulo: `${negocio} no Agenda Fashion`,
     texto:
       `Conheça ${negocio} no Agenda Fashion. ` +
       "Veja os serviços disponíveis e escolha o melhor horário para você.",
+  };
+  return sanitizeCopilotShareOutput(resultado) || {
+    titulo: "Conheça o Agenda Fashion",
+    texto: "Conheça nossos serviços no Agenda Fashion e escolha o melhor horário para você.",
   };
 }
 
