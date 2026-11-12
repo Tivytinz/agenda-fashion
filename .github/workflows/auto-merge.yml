@@ -11,8 +11,8 @@ permissions:
 
 jobs:
   enable-auto-merge:
-    name: Enable auto-merge after explicit review readiness
-    if: github.event.pull_request.draft == false
+    name: Enable auto-merge after owner-authorized review readiness
+    if: github.event.pull_request.draft == false && github.actor == github.repository_owner
     runs-on: ubuntu-latest
     steps:
       - name: Enable squash auto-merge
