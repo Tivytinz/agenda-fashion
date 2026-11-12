@@ -266,6 +266,25 @@ describe("retorno à etapa 1 após conta criada", () => {
     expect(sessionStorage.getItem("af_business_creation_draft_v1")).toBeNull();
   });
 
+  it("permite revisar a conta já criada ao voltar de um negócio existente", async () => {
+    authenticatedSession = {
+      authenticated: true, loading: false, temNegocio: true,
+      usuario: { id: 7, nome: "Ana", email: "ana@example.test", whatsapp: "62999999999" },
+      negocio: { id: 11, papel: "dono" }, refresh: refreshSession, login
+    };
+    render(<MemoryRouter initialEntries={["/cadastro?tipo=profissional&onboarding=revisao-conta&servico_retorno=71"]}>
+      <Routes>
+        <Route path="/cadastro" element={<AuthPage mode="register" />} />
+        <Route path="/painel/negocio" element={<h1>Revisar negócio</h1>} />
+      </Routes>
+    </MemoryRouter>);
+    expect(screen.getByRole("heading", { name: "Sua conta" })).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Continuar para o negócio" })).not.toBeNull();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Continuar para o negócio" }));
+    expect(screen.getByRole("heading", { name: "Revisar negócio" })).not.toBeNull();
+    expect(register).not.toHaveBeenCalled();
+  });
+
   it("não reabre cadastro quando a conta já tem negócio", async () => {
     authenticatedSession = {
       authenticated: true, loading: false, temNegocio: true,

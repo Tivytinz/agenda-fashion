@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { Link, MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { clearStepDraft } from "../features/onboarding/stepDraft";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { ServicesPage, ServiceEditorPage } from "./ServicesPage";
@@ -24,6 +25,7 @@ function OnboardingDestination() {
       <output data-testid="onboarding-destination">
         {location.pathname}{location.search}
       </output>
+      {location.pathname === "/painel/negocio" && <Link to="/painel/servicos/novo?onboarding=servico">Retomar serviço</Link>}
     </>
   );
 }
@@ -69,6 +71,7 @@ function submit() {
 
 beforeEach(() => {
   apiRequest.mockReset();
+  clearStepDraft("onboarding:service:4:11:new");
   refreshSession.mockReset();
   refreshSession.mockResolvedValue({});
   HTMLDialogElement.prototype.showModal = function showModal() {
@@ -93,6 +96,37 @@ afterEach(() => {
 });
 
 describe("editor de serviços", () => {
+  it("volta ao negócio sem perder os dados e arquivos escolhidos do serviço", async () => {
+    renderEditor("/painel/servicos/novo?onboarding=servico");
+    fillService();
+    const cover = new File(["imagem"], "capa.jpg", { type: "image/jpeg" });
+    fireEvent.change(screen.getByLabelText("Escolher capa"), { target: { files: [cover] } });
+    const back = screen.getByRole("link", { name: "Voltar" });
+    expect(back.getAttribute("href")).toBe("/painel/negocio?onboarding=revisao-negocio");
+    fireEvent.click(back);
+    expect((await screen.findByTestId("onboarding-destination")).textContent)
+      .toBe("/painel/negocio?onboarding=revisao-negocio");
+    expect(apiRequest).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("link", { name: "Retomar serviço" }));
+    expect((await screen.findByRole("textbox", { name: "Nome do serviço" })).value)
+      .toBe("Manicure tradicional");
+    expect(screen.getByRole("button", { name: "Trocar imagem escolhida" })).not.toBeNull();
+    expect(screen.getByText("Mostre seus serviços com clareza para suas clientes escolherem e agendarem.")).not.toBeNull();
+  });
+
+  it("volta da revisão de serviço para o mesmo negócio, sem criar outro", async () => {
+    apiRequest.mockImplementation((path) => {
+      if (path === "/servicos") return Promise.resolve({
+        servicos: [{ id: 71, nome: "Manicure", categoria: "unha", valor: 50, duracao_minutos: 60, ativo: true }]
+      });
+      if (path === "/servicos/71/fotos") return Promise.resolve([]);
+      throw new Error("Request inesperada: " + path);
+    });
+    renderEditor("/painel/servicos/71/editar?onboarding=revisao-servico&plano=autonoma");
+    expect(await screen.findByRole("heading", { name: "Editar serviço" })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Voltar" }).getAttribute("href"))
+      .toBe("/painel/negocio?onboarding=revisao-negocio&servico_retorno=71&plano=autonoma");
+  });
   it.each(["", "?onboarding=servico"])("oferece o mesmo formulário na entrada %s", (search) => {
     renderEditor(`/painel/servicos/novo${search}`);
     expect(screen.getByRole("heading", { name: "Novo serviço" })).not.toBeNull();
@@ -125,7 +159,7 @@ describe("editor de serviços", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("algumas fotos não foram enviadas");
     expect(screen.queryByTestId("onboarding-destination")).toBeNull();
     submit();
-    expect((await screen.findByTestId("onboarding-destination")).textContent).toBe("/painel/horarios?plano=autonoma");
+    expect((await screen.findByTestId("onboarding-destination")).textContent).toBe("/painel/horarios?servico_retorno=71&plano=autonoma");
     expect(uploads).toBe(3);
     expect(apiRequest.mock.calls.filter(([, options]) => options?.method === "PUT")).toHaveLength(0);
     expect(apiRequest.mock.calls.filter(([path, options]) => path === "/servicos" && options?.method === "POST")).toHaveLength(1);
@@ -154,7 +188,7 @@ describe("editor de serviços", () => {
     submit();
 
     expect((await screen.findByTestId("onboarding-destination")).textContent)
-      .toBe("/painel/horarios?plano=autonoma");
+      .toBe("/painel/horarios?servico_retorno=58&plano=autonoma");
     expect(refreshSession).toHaveBeenCalledWith({ silent: true });
   });
 
@@ -169,7 +203,7 @@ describe("editor de serviços", () => {
     submit();
 
     expect((await screen.findByTestId("onboarding-destination")).textContent)
-      .toBe("/painel/horarios");
+      .toBe("/painel/horarios?servico_retorno=59");
     expect(refreshSession).toHaveBeenCalledWith({ silent: true });
   });
 
@@ -394,7 +428,7 @@ describe("editor de serviços", () => {
     submit();
 
     expect((await screen.findByTestId("onboarding-destination")).textContent)
-      .toBe("/painel/horarios");
+      .toBe("/painel/horarios?servico_retorno=56");
   });
 });
 

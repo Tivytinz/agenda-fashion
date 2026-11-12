@@ -478,7 +478,13 @@ inalterados e revalida a publicação no backend antes de seguir para Horários.
 
 O cadastro profissional usa um fluxo focado: Conta → Negócio → Serviço → Horários.
 As quatro etapas usam a mesma identidade, um progresso compacto e uma ação de
-salvamento principal. `SetupFlowFrame` apresenta sempre o mesmo botão rosa de
+salvamento principal. O retorno Serviço → Negócio abre a edição da mesma entidade;
+Horários → Serviço abre a edição do serviço confirmado pelo backend, identificado
+na URL somente para navegação (a autorização permanece no servidor). A revisão
+do negócio pode voltar à etapa de conta existente sem criar uma segunda conta.
+Rascunhos em trânsito ficam apenas na memória da guia, por até 30 minutos, e
+só são restaurados quando a base da entidade não mudou. Arquivos locais
+selecionados sobrevivem à navegação na mesma guia, não a recargas da página. `SetupFlowFrame` apresenta sempre o mesmo botão rosa de
 Sair (independentemente de existir Voltar). A navegação Conta ↔ Negócio não
 passa pela página Minha conta: edita-se a mesma conta e o rascunho do negócio
 é recuperado na mesma guia, sem repetir criação no backend. Menus de descoberta

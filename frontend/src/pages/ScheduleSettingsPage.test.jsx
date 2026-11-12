@@ -165,6 +165,16 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("configuração de horários", () => {
+  it("oferece retorno ao serviço confirmado, dica e emojis sem alterar os campos", async () => {
+    mockFirstConfiguration();
+    renderPage("/painel/horarios?servico_retorno=71&plano=autonoma");
+    expect(await screen.findByRole("heading", { name: "Horários de atendimento" })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Voltar" }).getAttribute("href"))
+      .toBe("/painel/servicos/71/editar?onboarding=revisao-servico&plano=autonoma");
+    expect(screen.getByText("Seus horários organizados ajudam suas clientes a escolher quando agendar.")).not.toBeNull();
+    expect(screen.getByRole("combobox", { name: "Intervalo entre clientes" })).not.toBeNull();
+    expect(screen.getByLabelText("Início do atendimento de Segunda")).not.toBeNull();
+  });
   it("abre dias, pausas e regras juntos sem uma confirmação intermediária", async () => {
     mockFirstConfiguration();
     renderPage();
