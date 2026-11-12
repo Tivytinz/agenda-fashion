@@ -94,8 +94,11 @@ específico ao booking.
 
 A credencial:
 
-- é HMAC-SHA256 derivada de booking, usuário, instante da desativação e
-  `JWT_SECRET`;
+- é HMAC-SHA256 derivada de booking, usuário e instante da desativação;
+- novas capabilities usam `BOOKING_CAPABILITY_SECRET`, separado da sessão;
+- durante a migração/rotação, a validação pode aceitar
+  `BOOKING_CAPABILITY_PREVIOUS_SECRET` e o `JWT_SECRET` legado sem voltar a
+  assinar novos links com essas chaves;
 - não é aceita na query da API;
 - fica no fragmento `#token=` do link entregue ao navegador;
 - é repassada para consulta pelo header `X-Agenda-Access`;
@@ -110,6 +113,29 @@ transacional.
 Consulta e cancelamento por capability, inclusive os caminhos de visitante,
 enviam `Cache-Control: no-store` tanto no sucesso quanto no erro. Informar
 `?token=` sem a credencial no transporte autorizado não concede acesso.
+
+## Retenção depois do encerramento
+
+Encerramento definitivo é um estado operacional terminal, não uma promessa de
+apagamento imediato de todas as linhas relacionadas. O backend deve preservar
+somente dados com finalidade documentada de histórico, segurança, auditoria,
+defesa de direitos ou obrigação aplicável.
+
+A implementação atual ainda não possui um prazo geral aprovado para anonimizar
+PII de contas encerradas. Por isso:
+
+- o produto não deve afirmar que nome, e-mail ou WhatsApp são apagados
+  imediatamente pelo `DELETE /conta`;
+- nenhum job automático de anonimização deve adotar prazo arbitrário;
+- antes de automatizar a etapa final, é necessário aprovar uma matriz de
+  retenção por categoria de dado e provar que bookings, pagamentos, auditoria e
+  obrigações de defesa permanecem íntegros;
+- quando a política for aprovada, a execução deve ser idempotente, auditável e
+  coberta por testes antes de rodar em produção.
+
+A política pública deve continuar dizendo que dados são eliminados ou
+anonimizados quando possível e após deixarem de ser necessários; esse texto não
+substitui a definição operacional dos prazos.
 
 ## Rotas
 
