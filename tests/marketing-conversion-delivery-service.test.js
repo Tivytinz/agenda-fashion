@@ -428,6 +428,43 @@ test(
 );
 
 test(
+  "Google não envia purchase sem pagamento confirmado e mantém retry",
+  async () => {
+    deliveryRepository
+      .reservarProximo
+      .mockResolvedValueOnce({
+        id: 32,
+        provedor: "google",
+        payload,
+        lease_tentativa: 5
+      });
+
+    marketingConversaoRepository
+      .buscarPagamentoConfirmado
+      .mockResolvedValueOnce(null);
+
+    await service.processarFilaConversoes(1);
+
+    expect(
+      deliveryRepository.marcarFalha
+    ).toHaveBeenCalledWith(
+      32,
+      5,
+      "Pagamento confirmado não encontrado para entregar a conversão."
+    );
+    expect(
+      deliveryRepository.marcarIgnorado
+    ).not.toHaveBeenCalled();
+    expect(
+      deliveryRepository.marcarEnviado
+    ).not.toHaveBeenCalled();
+    expect(
+      googleMeasurementService.enviarEventoMeasurementProtocol
+    ).not.toHaveBeenCalled();
+  }
+);
+
+test(
   "identificador inválido vira falha terminal em vez de conversão ignorada",
   async () => {
     deliveryRepository
