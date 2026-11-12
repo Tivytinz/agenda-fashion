@@ -367,10 +367,16 @@ for alterado. Não reescrever links personalizados sem ação explícita da dona
 
 Na etapa 2, o botão Voltar retorna a `/cadastro?tipo=profissional`
 (etapa 1), preservando a intenção de plano e o rascunho da criação do
-negócio. Como a conta profissional já foi criada, a etapa 1 exibe revisão
-da sessão autenticada, sem repetir o POST de cadastro; a edição de dados
-segue para `/conta` e pode retornar à etapa 1. A saída real do onboarding
-continua protegida contra perda de alterações pendentes.
+negócio. Depois de criar a conta, retornar à etapa 1 abre a edição inline dos dados
+da MESMA identidade, sem reenviar o cadastro ou sair para `/conta`.
+Nome e WhatsApp usam `PUT /conta`; e-mail usa `PUT /conta/email`, com
+senha atual, unicidade e desativação da verificação do endereço anterior;
+a troca de senha usa `PUT /conta/senha`, também com senha atual.
+Sem alterações, Continuar não faz chamadas de gravação. Ao salvar, a sessão
+é reconciliada antes de retornar à etapa 2. Credenciais nunca são retidas em
+rascunhos; apenas a saída real e confirmada descarta o rascunho do negócio.
+E-mail de conta sem senha disponível exige fluxo de reautenticação próprio
+antes de ser alterado; não contornar a proteção no frontend.
 
 Rascunhos ainda não enviados podem sobreviver a uma recarga por até 30 minutos
 em `sessionStorage`, vinculados à conta e somente à guia. Nunca usar `localStorage`

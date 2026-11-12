@@ -6,7 +6,6 @@ import { BackLink } from "../components/BackLink";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatWhatsApp } from "../utils/format";
-import { getPlanIntentPath } from "../auth/session";
 
 function onlyDigits(value) {
   return String(value || "").replace(/\D/g, "");
@@ -358,11 +357,7 @@ export function AccountPage() {
   if (!user && !error) return <main className={pageClassName}><LoadingState>Carregando sua conta...</LoadingState></main>;
   if (!user && error) return <main className={pageClassName}><ErrorState message={error} onRetry={load} /></main>;
 
-  const reviewingOnboarding = location.state?.fromProfessionalSignupReview === true &&
-    !session.temNegocio;
-  const backPath = reviewingOnboarding
-    ? getPlanIntentPath("/cadastro?tipo=profissional", location.state?.planSlug)
-    : clientContext
+  const backPath = clientContext
     ? "/"
     : session.ehAdministrador
       ? "/admin/trafego-pago"
@@ -371,9 +366,7 @@ export function AccountPage() {
           ? "/painel"
           : "/profissional/agenda"
         : "/";
-  const backLabel = reviewingOnboarding
-    ? "Voltar à etapa 1 do cadastro"
-    : clientContext
+  const backLabel = clientContext
     ? "Voltar à descoberta"
     : session.ehAdministrador
       ? "Voltar à administração"

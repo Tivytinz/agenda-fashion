@@ -209,7 +209,7 @@ export function AuthPage({ mode = "login" }) {
     // de cadastro nem um redirecionamento automático para a etapa 2.
     if (isRegister && professionalIntent && !session.temNegocio &&
         !session.temReservasProfissionaisRestritas && session.usuario) {
-      return <ProfessionalSignupReview user={session.usuario} planSlug={authIntent.planSlug} />;
+      return <ProfessionalSignupReview user={session.usuario} planSlug={authIntent.planSlug} refreshSession={session.refresh} />;
     }
     return <Navigate replace to={destination} />;
   }

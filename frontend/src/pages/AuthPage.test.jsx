@@ -23,6 +23,7 @@ import {
 import { safeReturnPath, WHATSAPP_PATTERN } from "./AuthPage";
 import { trackFirstPartyEvent } from "../analytics/firstPartyAnalytics";
 import { ApiError } from "../api/errors";
+import { apiRequest } from "../api/client";
 
 vi.mock("../analytics/firstPartyAnalytics", async (importOriginal) => ({
   ...(await importOriginal()),
@@ -32,6 +33,9 @@ vi.mock("../analytics/firstPartyAnalytics", async (importOriginal) => ({
 const login = vi.fn();
 const register = vi.fn();
 const loginWithGoogle = vi.fn();
+const refreshSession = vi.fn();
+
+vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 let sessionLoading = false;
 let authenticatedSession = null;
 
@@ -60,6 +64,8 @@ beforeEach(() => {
   register.mockReset();
   loginWithGoogle.mockReset();
   trackFirstPartyEvent.mockClear();
+  apiRequest.mockReset();
+  refreshSession.mockReset();
   sessionStorage.clear();
 
   login.mockResolvedValue({
@@ -109,10 +115,11 @@ describe("retorno após autenticação", () => {
 });
 
 describe("retorno à etapa 1 após conta criada", () => {
-  it("exibe a conta existente em vez de registrar novamente e continua com o plano", async () => {
+  it("edita todos os campos de cadastro na própria etapa, sem criar nova conta", async () => {
     authenticatedSession = {
       authenticated: true, loading: false, temNegocio: false,
-      usuario: { id: 7, nome: "Ana", email: "ana@example.test", whatsapp: "62999999999" }
+      usuario: { id: 7, nome: "Ana", email: "ana@example.test", whatsapp: "62999999999" },
+      refresh: refreshSession
     };
     render(<MemoryRouter initialEntries={["/cadastro?tipo=profissional&plano=autonoma"]}>
       <Routes>
@@ -122,13 +129,118 @@ describe("retorno à etapa 1 após conta criada", () => {
     </MemoryRouter>);
     expect(screen.getByLabelText("Etapa 1 de 4: Conta")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Sua conta" })).not.toBeNull();
-    expect(screen.getByText("ana@example.test")).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Criar conta" })).toBeNull();
+    expect(screen.getByLabelText("E-mail").value).toBe("ana@example.test");
+    expect(screen.getByLabelText("E-mail").readOnly).toBe(false);
+    expect(screen.getByLabelText("Nome completo").value).toBe("Ana");
+    expect(screen.getByLabelText("WhatsApp com DDD").value).toBe("(62) 99999-9999");
+    expect(screen.queryByRole("link", { name: "Editar meus dados" })).toBeNull();
     expect(register).not.toHaveBeenCalled();
-    expect(screen.getByRole("link", { name: "Editar meus dados" }).getAttribute("href")).toBe("/conta");
-    await userEvent.setup().click(screen.getByRole("link", { name: "Continuar para o negócio" }));
-    expect(screen.getByRole("heading", { name: "Etapa 2 do cadastro" })).not.toBeNull();
+    const user = userEvent.setup();
+    await user.clear(screen.getByLabelText("Nome completo"));
+    await user.type(screen.getByLabelText("Nome completo"), "Ana Silva");
+    await user.clear(screen.getByLabelText("E-mail"));
+    await user.type(screen.getByLabelText("E-mail"), "nova@example.test");
+    await user.clear(screen.getByLabelText("WhatsApp com DDD"));
+    await user.type(screen.getByLabelText("WhatsApp com DDD"), "11987654321");
+    expect(screen.getByLabelText("Senha atual")).not.toBeNull();
+    await user.type(screen.getByLabelText("Senha atual"), "senha-atual");
+    apiRequest.mockResolvedValue({});
+    refreshSession.mockResolvedValue({
+      authenticated: true, usuario: { id: 7, nome: "Ana Silva", email: "nova@example.test", whatsapp: "11987654321" }
+    });
+    await user.click(screen.getByRole("button", { name: "Salvar e continuar" }));
+    expect(await screen.findByRole("heading", { name: "Etapa 2 do cadastro" })).not.toBeNull();
+    expect(apiRequest).toHaveBeenCalledWith("/conta/email", expect.objectContaining({
+      method: "PUT", body: { email: "nova@example.test", senhaAtual: "senha-atual" }
+    }));
+    expect(apiRequest).toHaveBeenCalledWith("/conta", expect.objectContaining({
+      method: "PUT", body: { nome: "Ana Silva", whatsapp: "11987654321" }
+    }));
+    expect(refreshSession).toHaveBeenCalledWith({ silent: true });
     expect(register).not.toHaveBeenCalled();
+  });
+
+
+  it("segue sem salvamento desnecessário quando nada foi modificado", async () => {
+    authenticatedSession = {
+      authenticated: true, loading: false, temNegocio: false,
+      usuario: { id: 7, nome: "Ana", email: "ana@example.test", whatsapp: "62999999999" },
+      refresh: refreshSession
+    };
+    render(<MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+      <Routes>
+        <Route path="/cadastro" element={<AuthPage mode="register" />} />
+        <Route path="/criar-negocio" element={<h1>Etapa 2 do cadastro</h1>} />
+      </Routes>
+    </MemoryRouter>);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Continuar para o negócio" }));
+    expect(await screen.findByRole("heading", { name: "Etapa 2 do cadastro" })).not.toBeNull();
+    expect(apiRequest).not.toHaveBeenCalled();
+  });
+
+  it("mantém os dados digitados na etapa 1 quando o backend rejeita a alteração", async () => {
+    authenticatedSession = {
+      authenticated: true, loading: false, temNegocio: false,
+      usuario: { id: 7, nome: "Ana", email: "ana@example.test", whatsapp: "62999999999" },
+      refresh: refreshSession
+    };
+    render(<MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+      <Routes><Route path="/cadastro" element={<AuthPage mode="register" />} /></Routes>
+    </MemoryRouter>);
+    const user = userEvent.setup();
+    await user.clear(screen.getByLabelText("E-mail"));
+    await user.type(screen.getByLabelText("E-mail"), "novo@example.test");
+    await user.type(screen.getByLabelText("Senha atual"), "senha-errada");
+    apiRequest.mockRejectedValueOnce(new Error("Senha atual incorreta."));
+    await user.click(screen.getByRole("button", { name: "Salvar e continuar" }));
+    expect(await screen.findByRole("alert")).not.toBeNull();
+    expect(screen.getByLabelText("E-mail").value).toBe("novo@example.test");
+    expect(screen.getByRole("heading", { name: "Sua conta" })).not.toBeNull();
+    expect(refreshSession).not.toHaveBeenCalled();
+  });
+
+  it("permite trocar senha sem sair da primeira etapa", async () => {
+    authenticatedSession = {
+      authenticated: true, loading: false, temNegocio: false,
+      usuario: { id: 7, nome: "Ana", email: "ana@example.test", whatsapp: "62999999999" },
+      refresh: refreshSession
+    };
+    render(<MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+      <Routes>
+        <Route path="/cadastro" element={<AuthPage mode="register" />} />
+        <Route path="/criar-negocio" element={<h1>Etapa 2 do cadastro</h1>} />
+      </Routes>
+    </MemoryRouter>);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "🔒 Alterar senha" }));
+    await user.type(screen.getByLabelText("Senha atual"), "antiga-senha");
+    await user.type(screen.getByLabelText("Nova senha"), "nova-senha-valida");
+    await user.type(screen.getByLabelText("Confirmar nova senha"), "nova-senha-valida");
+    apiRequest.mockResolvedValue({});
+    refreshSession.mockResolvedValue({
+      authenticated: true, usuario: { id: 7 }
+    });
+    await user.click(screen.getByRole("button", { name: "Salvar e continuar" }));
+    expect(await screen.findByRole("heading", { name: "Etapa 2 do cadastro" })).not.toBeNull();
+    expect(apiRequest).toHaveBeenCalledWith("/conta/senha", expect.objectContaining({
+      method: "PUT", body: { senhaAtual: "antiga-senha", novaSenha: "nova-senha-valida" }
+    }));
+  });
+
+  it("bloqueia o envio de e-mail inválido sem chamada ao servidor", async () => {
+    authenticatedSession = {
+      authenticated: true, loading: false, temNegocio: false,
+      usuario: { id: 7, nome: "Ana", email: "ana@example.test", whatsapp: "62999999999" },
+      refresh: refreshSession
+    };
+    render(<MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+      <Routes><Route path="/cadastro" element={<AuthPage mode="register" />} /></Routes>
+    </MemoryRouter>);
+    const user = userEvent.setup();
+    await user.clear(screen.getByLabelText("E-mail"));
+    await user.type(screen.getByLabelText("E-mail"), "invalido");
+    expect(screen.getByRole("button", { name: "Salvar e continuar" }).disabled).toBe(true);
+    expect(apiRequest).not.toHaveBeenCalled();
   });
 
   it("descarta o rascunho privado ao sair da etapa 1 concluída", async () => {

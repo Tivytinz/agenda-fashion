@@ -321,50 +321,29 @@
   .setup-flow-has-back .setup-topbar-actions :is(.setup-back, .setup-exit-button) { transition: none; }
 }
 
-/* Revisão segura da etapa 1 para contas profissionais já autenticadas. */
-.setup-flow .professional-signup-review {
-  display: grid;
-  gap: 14px;
-  margin: 24px 0;
+
+/* Edição inline na etapa 1: os campos usam o mesmo visual de cadastro. */
+.setup-flow .professional-signup-edit .stack-form { margin-top: 20px; }
+.setup-flow .professional-signup-edit .signup-edit-password-toggle {
+  display: inline-flex; align-items: center; justify-content: flex-start;
+  gap: 8px; min-height: 44px; padding: 9px 12px; border: 1px solid #e8afcc;
+  border-radius: 12px; background: #fff; color: #aa316d; font-weight: 700;
+  cursor: pointer;
 }
-.setup-flow .professional-signup-review > div {
-  min-width: 0;
-  padding: 12px 14px;
-  border: 1px solid #f2d4e2;
-  border-radius: 12px;
-  background: #fffafd;
+.setup-flow .professional-signup-edit .signup-edit-password-toggle:hover { background: #fff1f8; }
+.setup-flow .professional-signup-edit .signup-edit-password-toggle:focus-visible {
+  outline: 2px solid var(--pink-600); outline-offset: 2px;
 }
-.setup-flow .professional-signup-review dt {
-  margin-bottom: 5px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #a93970;
+.setup-flow .professional-signup-edit .professional-signup-password-fields {
+  display: grid; gap: 12px; padding: 12px;
+  border: 1px solid #efd3e1; border-radius: 12px; background: #fffafd;
 }
-.setup-flow .professional-signup-review dd {
-  margin: 0;
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 600;
-  overflow-wrap: anywhere;
+.setup-flow .professional-signup-edit .professional-signup-password-fields label {
+  display: grid; gap: 6px;
 }
-.setup-flow .professional-signup-review-actions {
-  display: grid;
-  gap: 10px;
-}
-.setup-flow .professional-signup-review-actions a {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-}
-.setup-flow .professional-signup-review-note {
-  display: block;
-  margin-top: 14px;
+.setup-flow .professional-signup-edit .professional-signup-password-fields small {
   color: var(--muted);
 }
-
-.setup-flow-has-back .setup-topbar-actions .setup-back.is-disabled {
-  opacity: .55;
-  cursor: not-allowed;
-  background: #fff;
+.setup-flow .professional-signup-edit .professional-signup-review-note {
+  display: block; margin-top: 12px; line-height: 1.4; color: var(--muted);
 }
