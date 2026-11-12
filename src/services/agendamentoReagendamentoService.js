@@ -500,6 +500,7 @@ async function reagendarOperacional({
               agendamento,
             ignorarAntecedencia:
               true,
+            executor: client,
           });
 
       if (!disponivel) {
