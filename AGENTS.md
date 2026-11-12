@@ -319,8 +319,8 @@ Regras duráveis:
 - a proprietária administra os serviços habilitados de cada integrante da equipe;
 - novos serviços são habilitados automaticamente apenas para a proprietária que os
   criou; novas profissionais entram sem serviços até configuração explícita;
-- o backfill da migration 081 materializa os pares legados para preservar o
-  comportamento já existente antes da introdução da elegibilidade explícita;
+- vínculos legados preservam o comportamento anterior por compatibilidade
+  explícita, sem dispensar a matriz canônica nas novas operações;
 - criação e reagendamento serializam a validação de elegibilidade com a edição da
   matriz para impedir corrida entre desabilitação e confirmação da reserva.
 - dias, faixas e novos bloqueios manuais pertencem ao vínculo
