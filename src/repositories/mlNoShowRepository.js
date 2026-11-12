@@ -191,7 +191,15 @@ async function obterCoberturaCaptura() {
   const resultado = await db.query(`
     SELECT
       COUNT(*)::INT AS total_elegiveis,
-      COUNT(amostra.agendamento_id)::INT AS total_capturados
+      COUNT(amostra.agendamento_id)::INT AS total_capturados,
+      (
+        SELECT COUNT(*)::INT
+        FROM ml_agendamento_no_show_amostras historica
+        WHERE EXISTS (
+          SELECT 1 FROM agendamento_reagendamentos reagendamento_historico
+          WHERE reagendamento_historico.agendamento_id = historica.agendamento_id
+        )
+      ) AS amostras_reagendadas_legadas
     FROM agendamentos agendamento
     INNER JOIN negocios negocio ON negocio.id = agendamento.negocio_id
     LEFT JOIN ml_agendamento_no_show_amostras amostra
@@ -211,6 +219,7 @@ async function obterCoberturaCaptura() {
   return resultado.rows[0] || {
     total_elegiveis: 0,
     total_capturados: 0,
+    amostras_reagendadas_legadas: 0,
   };
 }
 
