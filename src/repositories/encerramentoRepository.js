@@ -395,6 +395,8 @@ async function encerrarUsuarioDefinitivamente(
       UPDATE usuarios
       SET
         ativo = FALSE,
+        senha = NULL,
+        google_sub = NULL,
         desativado_em = COALESCE(desativado_em, NOW()),
         encerrado_definitivo_em = NOW(),
         updated_at = NOW()
