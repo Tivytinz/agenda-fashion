@@ -222,30 +222,38 @@ describe(
       }
     );
 
-    test(
-      "evento PAYMENT_UPDATED com status de chargeback não reativa assinatura",
-      async () => {
+    test.each([
+      "CHARGEBACK_REQUESTED",
+      "REFUNDED",
+      "OVERDUE"
+    ])(
+      "PAYMENT_UPDATED com status %s suspende sem reativar",
+      async (status) => {
         webhookEventoRepository
           .reservarPorId
           .mockResolvedValue({
             id: 14,
-            evento_id: "evt_updated_chargeback",
+            evento_id: `evt_updated_${status}`,
             evento_criado_em:
               "2026-09-13 20:09:00",
             tipo_evento: "PAYMENT_UPDATED",
-            recurso_id: "pay_chargeback",
+            recurso_id: "pay_reverso",
             tentativas: 1,
             lease_tentativa: 1,
             payload: {
               payment: {
-                id: "pay_chargeback",
-                status: "CHARGEBACK_REQUESTED"
+                id: "pay_reverso",
+                status
               }
             }
           });
 
-        sincronizarPagamentoPorWebhook
-          .mockResolvedValue(null);
+        suspenderAssinaturaPorPagamento
+          .mockResolvedValue({
+            id: 23,
+            negocio_id: 8,
+            status: "INACTIVE"
+          });
 
         const resultado =
           await processarEventoWebhook(14);
@@ -254,11 +262,18 @@ describe(
           ativarAssinaturaPorPagamento
         ).not.toHaveBeenCalled();
         expect(
-          suspenderAssinaturaPorPagamento
+          sincronizarPagamentoPorWebhook
         ).not.toHaveBeenCalled();
         expect(
-          sincronizarPagamentoPorWebhook
-        ).toHaveBeenCalled();
+          suspenderAssinaturaPorPagamento
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: "pay_reverso",
+            status,
+            webhookEventoCriadoEm:
+              "2026-09-13 20:09:00"
+          })
+        );
         expect(resultado.status)
           .toBe("PROCESSED");
       }
