@@ -165,9 +165,10 @@ Falha de migration deve impedir a nova versão de subir. O healthcheck `/health/
 
 Mudança que ativa `BOOKING_CAPABILITY_SECRET` em produção exige configurar um
 segredo dedicado, diferente de `JWT_SECRET`, antes do merge que torna a
-validação obrigatória. O fallback legado existe apenas para validar links já
-emitidos; novas capabilities não devem continuar compartilhando a chave de
-sessão.
+validação obrigatória. Para preservar links emitidos anteriormente, configurar
+também `BOOKING_CAPABILITY_PREVIOUS_SECRET` com o segredo que os assinou
+(atualmente o valor anterior de `JWT_SECRET`). Esse fallback é explícito e
+temporário; novas capabilities nunca devem ser assinadas com a chave de sessão.
 
 ## Escala horizontal
 
