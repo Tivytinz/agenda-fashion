@@ -54,7 +54,7 @@ describe("copilotOutputService", () => {
   ])("não reproduz alegações proibidas: %s", (_cenario, contexto) => {
     const saida = buildDeterministicShareOutput(contexto);
     expect(sanitizeCopilotShareOutput(saida)).toEqual(saida);
-    expect(saida.texto).not.toMatch(/example\\.com|62999999999|R\\$ 99/i);
+    expect(saida.texto).not.toMatch(/example\.com|62999999999|R\$ 99/i);
   });
 
   test("saída determinística permanece sem alegações proibidas", () => {
