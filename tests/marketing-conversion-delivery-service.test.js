@@ -391,6 +391,43 @@ test(
 );
 
 test(
+  "pagamento confirmado ausente mantém retry sem enviar conversão",
+  async () => {
+    deliveryRepository
+      .reservarProximo
+      .mockResolvedValueOnce({
+        id: 31,
+        provedor: "meta",
+        payload,
+        lease_tentativa: 4
+      });
+
+    marketingConversaoRepository
+      .buscarPagamentoConfirmado
+      .mockResolvedValueOnce(null);
+
+    await service.processarFilaConversoes(1);
+
+    expect(
+      deliveryRepository.marcarFalha
+    ).toHaveBeenCalledWith(
+      31,
+      4,
+      "Pagamento confirmado não encontrado para entregar a conversão."
+    );
+    expect(
+      deliveryRepository.marcarIgnorado
+    ).not.toHaveBeenCalled();
+    expect(
+      deliveryRepository.marcarEnviado
+    ).not.toHaveBeenCalled();
+    expect(
+      metaAdsService.enviarEvento
+    ).not.toHaveBeenCalled();
+  }
+);
+
+test(
   "identificador inválido vira falha terminal em vez de conversão ignorada",
   async () => {
     deliveryRepository
