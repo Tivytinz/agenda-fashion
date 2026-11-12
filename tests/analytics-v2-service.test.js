@@ -137,7 +137,7 @@ describe(
       const evidencias = normalizarAquisicao({
         afSource: " AGENDA_FASHION ",
         afMedium: " WhatsApp ",
-        afContent: "negocio\\ncompartilhado",
+        afContent: "negocio\ncompartilhado",
         utmSource: "",
       });
       expect(evidencias).toMatchObject({
