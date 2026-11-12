@@ -37,158 +37,49 @@ O AF deve gerar valor para os dois lados do marketplace:
 
 ## Princípios de produto e experiência
 
-**Simplicidade é o mais alto nível de sofisticação.** O AF deve reduzir esforço
-e tornar a próxima ação clara, preservando informações essenciais, controle,
-acessibilidade, segurança e confiabilidade dos agendamentos.
+A direção canônica está em `docs/principios-produto.md`. O `AGENTS.md` mantém
+somente os princípios que precisam orientar qualquer decisão transversal:
 
-Emojis nativos fazem parte da identidade visual do AF. Usar caracteres Unicode
-renderizados pelo sistema da pessoa: Apple, Google, Samsung ou Microsoft podem
-apresentar desenhos diferentes. Não substituir emojis por imagens, SVGs,
-sprites, fontes baixadas ou conjuntos próprios para padronizar sua aparência.
-A consistência está no significado e no uso, não no desenho entre sistemas.
-Exceções autorizadas: sobrancelhas e cílios usam ícones próprios, pois não têm
-um emoji Unicode específico. Preservar o asset de sobrancelhas e usar o de cílios
-nas categorias e nos fallbacks sem foto de serviços, negócios e perfil.
-O componente compartilhado `CategoryEmoji` mantém a mesma representação. Essas exceções não autorizam padronizar os demais
-emojis nem transformar o olho genérico em um emoji nativo de cílios.
-Emojis decorativos devem usar `aria-hidden="true"`, acompanhar texto claro e
-manter tamanho e alinhamento legíveis. A logomarca oficial continua sendo um
-asset da marca; controles técnicos sem equivalente adequado não precisam
-receber emojis forçados.
+1. **Simplicidade é o mais alto nível de sofisticação:** reduzir esforço e
+   escolhas inúteis sem remover informação, controle, acessibilidade ou
+   segurança.
+2. **Clareza em cada passo:** deixar evidente contexto, estado, consequência e
+   próxima ação.
+3. **Elegância com propósito:** preservar a identidade rosa, branca e grafite,
+   acolhedora e ligada à beleza, sem decoração que prejudique a tarefa.
+4. **Confiança antes de conveniência:** agenda, preço, disponibilidade, sessão e
+   permissões refletem estado persistido e validação real.
+5. **Funcionar na rotina real:** mobile e Safari/WebKit são prioritários, com
+   acessibilidade, responsividade e recuperação de erro.
+6. **Entregar valor antes de pedir mais:** o Grátis precisa permitir experiência
+   real de valor; upgrade aparece por necessidade contextual e escolha explícita.
+7. **Automatizar com controle:** automação e IA poupam trabalho sem retirar
+   consentimento, autonomia ou autoridade das regras determinísticas/backend.
+8. **Evoluir por problemas e resultados reais:** funcionalidades precisam resolver
+   um problema identificável e ser avaliadas por evidência proporcional.
+9. **O limite é o sucesso:** a ambição do AF é medida pelo sucesso real de
+   clientes, profissionais e negócios, não por volume de features.
+10. **Fortalecer mulheres empreendedoras e impulsionar seus negócios:** orientar
+    crescimento com autonomia, respeito e sem promessas de faturamento.
+11. **Manter cada negócio nos trilhos do crescimento:** indicar uma próxima ação
+    útil por vez, conectando organização, divulgação, primeiro agendamento,
+    recorrência, retenção e monetização.
 
-A direção durável de produto está em `docs/principios-produto.md`. Consultar
-esses princípios ao propor funcionalidades, fluxos, comunicação e mudanças
-visuais, junto dos contratos canônicos e critérios de aceitação aplicáveis.
+Emojis nativos fazem parte da identidade visual. Não padronizar sua aparência
+com imagens, fontes ou sprites; sobrancelhas e cílios permanecem as exceções com
+ícones próprios por não possuírem emoji Unicode específico. A logomarca oficial
+continua sendo asset da marca. Detalhes de representação e acessibilidade ficam
+em `docs/principios-produto.md` e `docs/ativacao-profissional-ux.md`.
 
-O AF deve fortalecer mulheres empreendedoras e impulsionar seus negócios,
-mantendo uma experiência inclusiva. Deve ajudar cada negócio a manter
-organização, constância e direção, com orientação prática para a próxima ação
-útil, baseada no estágio e nos dados reais, preservando a autonomia de quem
-empreende. Essa direção orienta a evolução do produto; não comprova uma
-funcionalidade implementada nem garante crescimento ou faturamento.
+Orientações do produto devem usar dados reais: reservas não canceladas não viram
+atendimentos ou receita por inferência; amostra insuficiente não autoriza
+oportunidade analítica inventada; despublicação manual não pode ser tratada como
+cadastro incompleto nem revertida automaticamente.
 
-Após a ativação, ausência estrutural de disponibilidade agendável prioriza
-revisão de horários antes de divulgação, sem alterar publicação ou reabrir a
-ativação. Amostra insuficiente mantém orientação básica de rotina sem
-inventar oportunidades analíticas. Reservas não canceladas não são
-apresentadas como atendimentos realizados ou receita.
-
-A orientação do painel reconhece a ocultação manual por sinal derivado no
-backend e oferece gestão da publicação, sem chamar a escolha da dona de
-cadastro incompleto ou republicar automaticamente. Erros de consentimento
-operacional de WhatsApp são exibidos no próprio card e permitem nova tentativa.
-
-O diagnóstico estrutural da disponibilidade distingue ausência de profissional
-ativa habilitada, ausência de horários e duração incompatível com as faixas e
-pausas. A orientação canônica encaminha para equipe ou horários conforme a
-causa, sem alterar publicação. Convites de divulgação no painel respeitam a
-mesma elegibilidade operacional da fila de WhatsApp. Depois do primeiro
-agendamento válido, a agenda de hoje antecede orientação, upgrade e
-consentimentos; a primeira jornada continua priorizando sua missão de ativação.
-
-Quando apenas outra profissional está habilitada, a orientação de horários
-passa pela equipe e pelo contexto explícito da profissional, sem abrir a agenda
-pessoal da dona como solução. No editor de serviços da equipe, cada leitura
-pertence à pessoa e à abertura atual da janela; fechar, trocar ou sair invalida
-respostas antigas, inclusive erros e conclusão de carregamento. O salvamento
-mantém esse contexto e permite nova tentativa após falha sem perder a seleção.
-
-No negócio, nos serviços e nos horários, confirmar `Sair sem salvar` invalida a
-geração das operações pendentes antes de liberar a navegação, inclusive enquanto
-Suspense mantém a tela antiga montada. Respostas descartadas não podem adotar negócio, atualizar
-sessão, redirecionar ou alterar o editor. Continuar editando e Escape preservam
-a operação; a invalidação local não desfaz persistência já confirmada no backend.
-No serviço, o descarte também impede iniciar os próximos uploads do lote. Em
-Horários, cancela consultas de ativação e impede que uma resposta descartada
-consulte ou restaure a próxima missão.
-A mudança de pathname ou query aceita pelo roteador também invalida essas
-operações, mesmo sem rascunho e sem diálogo de descarte. Tentativas bloqueadas,
-Continuar editando, Escape e mudanças apenas de state/hash não invalidam a
-operação. Se concluir o salvamento liberar uma saída já solicitada, a continuação
-antiga não pode iniciar uploads, refresh ou outra navegação.
-
-A criação de serviço usa `Idempotency-Key` por tentativa no editor. Desde a
-migration 121, a identificação, o hash dos dados normalizados e o vínculo com o
-serviço são persistidos atomicamente em `servico_criacao_tentativas`, com escopo
-de negócio e conta dona. Repetição autorizada recupera o serviço atual antes de
-validar nova capacidade; não infere identidade pelo nome, desfaz edição posterior
-ou republica perfil ocultado. Uma tentativa concluída cujo serviço foi removido
-não cria outro cadastro. Clientes legados sem header continuam compatíveis;
-unicidade do nome de serviço ativo retorna conflito acionável, sem erro 500.
-Enquanto o resultado da criação for incerto, o editor preserva a mesma chave e
-os mesmos dados e oferece verificação antes de liberar outra edição.
-A referência técnica da tentativa, com escopo de conta e negócio, fica no
-fragmento navegável, sem dados do formulário nem dependência de storage.
-Depois de reload, uma consulta autorizada recupera o serviço atual; ausência
-mantém a mesma chave para proteger contra POST ainda em trânsito. Referência
-não autoriza acesso. Criação com chave exige `negocio_id` explícito. Conta,
-negócio e vínculo são revalidados e bloqueados na transação da escrita. Na criação
-ativa, a ordem é conta → trava de capacidade → negócio/vínculo, compatível com
-edição e reativação, que também adquirem capacidade antes de escrever no negócio.
-Repetir a aquisição já protegida não muda essa ordem. O lock da
-conta é `FOR NO KEY UPDATE`, compatível com as FKs e com o arquivamento.
-O retorno autenticado preserva pathname, query e fragmento, permitindo recuperar
-a tentativa após expiração da sessão; a conta e o negócio continuam revalidados.
-
-No catálogo, remoção ou alteração de visibilidade com resultado incerto exige
-nova leitura antes de outra escrita. Atualizar serviços executa somente GET,
-inclusive após falha de leitura; isso não reenvia a remoção. Na conta, os campos
-e as gravações são protegidos pela mesma operação em andamento, preservando
-rascunhos e descartando respostas após saída. Atualização auxiliar da sessão não
-transforma um salvamento confirmado em falha. Arquivamento confirmado retira o
-negócio do contexto local e preserva outros vínculos e a conta autenticada;
-sincronização da sessão é auxiliar, sem repetir o encerramento.
-O encerramento exige o ID do negócio carregado na tela e valida a propriedade
-persistida. Repetição do mesmo alvo arquivado pela dona retorna o estado terminal
-sem alterar outro negócio criado depois; pedido sem alvo falha antes da escrita.
-Resposta principal incerta protege as demais edições e oferece verificação
-somente desse alvo.
-As escritas de perfil, publicação e foto também exigem o negócio carregado na
-tela, por `X-AF-Negocio` (o perfil aceita seu ID explícito por compatibilidade).
-O backend valida o alvo e revalida a dona ativa na transação; uma aba antiga não
-pode escrever no novo negócio da conta. Conflito de contexto protege o rascunho
-e oferece atualização por GET antes de outra escrita.
-
-A criação do negócio usa `Idempotency-Key` por conta. A migration 123 confirma
-negócio, vínculo, agenda padrão e recibo na mesma transação. A referência técnica
-`cadastro-negocio` no fragmento permite recuperar por GET após perda da resposta,
-reload ou autenticação, sem dados do formulário. `Verificar negócio` consulta
-somente a tentativa; ausência mantém a chave contra POST tardio. Divergência de
-dados exige leitura, e tentativa de negócio arquivado/removido não adota o
-sucessor nem cria outro. O resultado atual confirma a sessão local e continua
-no primeiro serviço com a intenção de plano preservada.
-
-Gravação de perfil não escreve `foto_url` nem `foto_public_id`. Trocar foto do
-negócio confere a persistência quando a confirmação do COMMIT se perde, e só
-limpa assets comprovadamente sem referência. Falha de leitura preserva a imagem.
-
-O upload atual da galeria usa `Idempotency-Key` por arquivo. A migration 122
-persiste recibo e foto no mesmo commit, com escopo de conta, negócio e serviço
-e hash do arquivo. Resultado incerto oferece `Verificar fotos`, somente por GET,
-sem repetir os dados do serviço ou reenviar arquivos. Ausência mantém a mesma
-chave; foto removida não é recriada. HTTP com o provedor fica fora das transações.
-Finalizações concorrentes confirmam uma foto e limpam o asset excedente. Falha
-ao confirmar COMMIT exige leitura antes da limpeza, preservando a imagem quando
-essa conferência estiver indisponível.
-
-Salvar um serviço existente não repete PUT dos dados quando eles continuam
-iguais ao baseline normalizado, inclusive após recuperar todas as fotos,
-preservando pausa ou edição de outra aba. Upload direto da capa finaliza com revalidação transacional na mesma ordem
-de locks da mídia; arquivamento durante o HTTP impede a escrita. Confirmação de
-COMMIT perdida exige leitura canônica e limpeza somente de asset sem referência
-em capa ou galeria. Falha de leitura preserva a imagem. Na interface, resultado
-incerto exige conferir a capa por GET antes de outro envio explícito.
-
-A restauração do cadastro de serviço cancela a leitura pendente quando pathname
-ou query muda e libera nova consulta, preservando referência e intenção atual
-de plano. A resposta descartada não navega nem atualiza a sessão.
-
-Escolha de capa e remoção da galeria validam dona e alvo dentro da transação,
-com locks na ordem conta → serviço → negócio/vínculo → foto. O serviço precede
-o negócio como na edição/ativação; HTTP de limpeza continua após o commit.
-Resultado incerto dessas ações protege a mídia e oferece `Verificar fotos`,
-somente GET de serviço e galeria. A reconciliação preserva os demais rascunhos;
-falha de leitura mantém a proteção e sair cancela a consulta.
+Detalhes operacionais de formulários, idempotência, mídia, recuperação por GET,
+guards de saída, concorrência e contexto de negócio pertencem a
+`docs/frontend-formularios-estado-api.md`, `docs/contexto-negocio.md`,
+`docs/ativacao-profissional-ux.md` e `docs/frontend-seguranca.md`.
 
 ## Integração contínua e merge
 
@@ -276,8 +167,8 @@ Não tratar como equivalentes:
 
 A identidade principal fica em `usuarios`. Papéis de negócio pertencem a
 `usuarios_negocios.papel`, atualmente `dono` e `profissional`. Administração
-global usa `usuarios_administradores`, com papel único `admin`. A migration 115
-converte o antigo superadmin sem reativar permissões e preserva o ledger histórico.
+global usa `usuarios_administradores`, com papel único `admin`. Papéis legados
+não devem ser reintroduzidos nem usados para conceder permissões.
 A matriz por ação fica em `docs/admin-permissoes-matriz.md`.
 
 Uma mesma conta pode atuar em mais de um contexto. O frontend muda navegação e
@@ -338,237 +229,60 @@ mede primeira reserva válida; não confirma comparecimento nem receita.
 
 ## Onboarding, publicação e disponibilidade
 
-Todo novo negócio deve ser criado com os dados estruturais exigidos pelo backend
-para o fluxo atual. Descrição, fotos e complemento permanecem opcionais quando o
-contrato vigente assim definir.
+A entrada pública para profissionais deve permanecer visível e preservar a
+intenção profissional entre descoberta, cadastro e login. Conta autenticada sem
+negócio reutiliza a mesma identidade na criação; vínculos ativos levam ao
+workspace autorizado, priorizando o contexto de dona quando a mesma conta também
+for profissional. Retornos internos protegidos e a exceção RN50 mantêm
+precedência.
 
-A entrada pública para profissionais deve permanecer visível e preservar a intenção
-profissional entre descoberta, cadastro e login. Conta autenticada sem negócio
-reutiliza a mesma identidade na criação; vínculos ativos levam ao workspace
-autorizado, priorizando o contexto de dona quando a mesma conta também for
-profissional. Retornos internos protegidos e a exceção RN50 mantêm precedência.
-Detalhes da jornada pertencem a `docs/ativacao-profissional-ux.md`.
+A primeira jornada profissional é focada em **Conta → Negócio → Serviço →
+Horários**. Negócio, serviço e disponibilidade usam os mesmos contratos das
+telas operacionais; onboarding não cria versões paralelas das entidades. A
+resposta canônica de cada escrita permite seguir para a próxima etapa sem exigir
+uma segunda gravação. Resultado incerto exige reconciliação por leitura, não
+reenvio cego da mutação.
 
 A publicação é automática quando o negócio atende aos requisitos estruturais e
-possui ao menos um serviço ativo, desde que a proprietária não tenha
-despublicado o perfil manualmente.
+possui ao menos um serviço ativo, salvo despublicação manual persistida. Apenas
+ação explícita da dona pode limpar essa intenção, sempre sujeita à elegibilidade
+validada no backend. **Configurar ou personalizar horários não é gate de
+publicação.**
 
-A despublicação manual é uma intenção persistida em
-`negocios.despublicado_manual_em`. Enquanto esse marcador estiver preenchido,
-salvar o perfil, criar/editar/reativar serviços ou qualquer outra sincronização
-automática de elegibilidade não pode republicar o negócio. Somente uma ação
-explícita da proprietária para publicar novamente limpa o marcador; essa ação
-continua sujeita à elegibilidade validada no backend.
+O AF inicializa uma disponibilidade padrão editável para a dona. Todos os dias
+fechados também constituem configuração válida: o perfil pode continuar
+publicado, mas não gera slots. A política de antecedência de cancelamento pertence
+ao negócio e novas reservas congelam a regra aplicável no momento da confirmação.
+Detalhes de horários sugeridos, compatibilidade legada e snapshots ficam em
+`docs/ativacao-profissional-ux.md` e `docs/snapshots-historicos-agendamento.md`.
 
-**Configurar, confirmar ou personalizar horários não é gate de publicação.**
-A publicação deve ser decidida pelo backend antes da tela de horários aparecer
-na primeira jornada.
+A profissional ativa edita a própria disponibilidade; a dona pode editar a
+disponibilidade de profissionais ativas do mesmo negócio. Seletores de contexto
+escolhem qual vínculo o usuário pretende operar, mas nunca concedem permissão: o
+backend revalida conta, papel, negócio e alvo em cada operação.
 
-Ao criar o negócio, o backend inicializa uma disponibilidade padrão para a dona
-inicial:
+A agenda operacional usa a disponibilidade persistida e o fuso IANA do negócio.
+Reservas existentes continuam visíveis e tratáveis conforme o lifecycle mesmo
+quando a profissional foi inativada, sem criar novos slots nem reativar o
+vínculo. Intervalos que atravessam dia ou grade permanecem ocupados por toda a
+duração congelada da reserva.
 
-- segunda a sexta: 08:00–18:00, com pausa 12:00–13:00;
-- sábado: 08:00–13:00;
-- domingo: fechado;
-- antecedência inicial de cancelamento: 2 horas.
+Depois do primeiro salvamento explícito de horários, a missão principal é
+**conquistar o primeiro agendamento válido**. Se não houver disponibilidade
+estrutural agendável, a orientação prioriza corrigir horários/equipe antes de
+divulgar; havendo disponibilidade, o AF apresenta compartilhamento do perfil.
+Essa condição orienta divulgação, não publicação. Após o primeiro agendamento
+válido, a rotina do dia tem precedência sobre orientação, upgrade e
+consentimentos.
 
-A antecedência de cancelamento é uma **política do negócio**, persistida em
-`negocios.antecedencia_cancelamento`, com faixa válida de 0 a 168 horas e
-fallback de 2 horas. Somente a proprietária pode alterá-la; profissionais podem
-editar a própria disponibilidade, mas não essa política. A interface da
-proprietária aceita qualquer hora inteira entre 0 e 168; campo vazio é inválido,
-e `0` significa zero horas apenas quando informado explicitamente. O campo
-homônimo em `agenda_configuracoes` permanece apenas por compatibilidade de
-rollout e não deve ser usado como fonte de verdade para novas reservas. Enquanto
-esse campo legado existir para rollback, o runtime novo o espelha
-transacionalmente e a migration de compatibilidade também intercepta escritas de
-versões antigas: escrita da dona atualiza a política canônica e escrita de
-profissional é normalizada para a política do negócio. Para evitar deadlock no
-rollout misto, a ordem de lock é `agenda da dona → negócio → demais agendas`;
-a escrita legada de profissional apenas lê a política canônica e normaliza seu
-espelho, sem bloquear o negócio. Cada booking congela
-`antecedencia_cancelamento_horas` no momento da confirmação, e alterações
-posteriores da política do negócio não reescrevem snapshots existentes.
+Uma intenção de plano pago pode acompanhar a jornada, mas não provoca checkout
+automático ao concluir Horários. Upgrade e pagamento continuam decisões
+explícitas e contextuais.
 
-Na criação inicial, o sucesso de `/criar-negocio` sempre continua em
-`/painel/servicos/novo?onboarding=servico`. Um `state.from` herdado de uma
-tentativa anterior de abrir o workspace não pode pular o primeiro serviço. Como
-o POST já persiste o negócio e o vínculo de dona de forma atômica, sua resposta
-canônica deve atualizar imediatamente o contexto local necessário para liberar
-essa rota; a reconciliação posterior de `/minha-sessao` é auxiliar e não pode
-manter a interface em Criar negócio nem induzir um segundo POST quando houver
-lentidão ou falha transitória.
-
-Depois que o primeiro serviço é salvo e o backend confirma a publicação, a
-interface apresenta `Horários` como quarta etapa, contando a criação da conta. O objetivo é mostrar que o AF é uma agenda editável sem transformar a
-disponibilidade em requisito de publicação. A atualização de `/minha-sessao`
-após esse salvamento é uma sincronização auxiliar e não pode bloquear a transição
-`Serviço → Horários` por lentidão ou falha transitória. Respostas assíncronas de
-sessão também não podem restaurar uma sessão encerrada, sobrescrever uma nova
-autenticação nem substituir um estado mais recente quando refreshes concorrentes
-terminarem fora de ordem. Assim que um refresh mais novo for iniciado na mesma
-geração da sessão, qualquer sucesso ou erro do refresh anterior se torna obsoleto
-e não pode alterar o `SessionContext`. Em `/minha-sessao`, inclusive o tratamento de
-`401/403` pertence ao `SessionContext`, que conhece a geração da requisição;
-o cliente HTTP não deve limpar globalmente uma sessão mais nova por causa de uma
-resposta obsoleta. A sincronização canônica de sessão deve ser cancelável até
-o fim de `/minha-sessao`, porque uma resposta HTTP obsoleta também pode alterar o
-cookie HttpOnly no backend. A migração do Bearer legado para cookie segue a mesma
-regra: não pode alterar o storage antes de a geração atual confirmar o resultado
-e toda sincronização pendente deve ser abortada antes de login, cadastro, logout
-ou outra transição que assuma uma nova geração da sessão. O cookie HttpOnly
-válido é a autoridade quando coexistir com um Bearer legado: o frontend deve
-validá-lo antes de tentar a migração e o backend de migração nunca pode
-sobrescrever um cookie de sessão válido já presente. Se o endpoint de migração encontrar
-um cookie válido que surgiu concorrentemente, deve preservar esse cookie e responder de
-forma compatível com bundles anteriores; o frontend atual revalida a sessão
-canônica antes de concluir a migração local. A consulta canônica rejeita o cookie
-inválido sem apagá-lo na resposta 401. O endpoint dedicado de migração revalida o
-cookie e só substitui o inválido pelo Bearer legado já autenticado; cookies
-válidos continuam preservados.
-
-O primeiro serviço, novos serviços e a edição usam o mesmo formulário e layout.
-Descrição e fotos são opcionais e ficam disponíveis em todas as entradas. O marcador
-de onboarding controla apenas a continuação após salvar, sem criar outro formulário.
-Falhas no envio de mídia preservam o serviço salvo; a retomada não regrava dados
-inalterados e revalida a publicação no backend antes de seguir para Horários.
-
-O cadastro profissional usa um fluxo focado: Conta → Negócio → Serviço → Horários.
-As quatro etapas usam a mesma identidade, um progresso compacto e uma ação de
-salvamento principal. Menus de descoberta e de gestão ficam fora dessa experiência;
-a navegação operacional reaparece ao abrir o painel. Esse foco é apenas de
-interface e não substitui autenticação, autorização ou os contratos de persistência.
-Descrição, fotos e campos opcionais continuam visíveis junto do formulário, sem
-acordeões. Na primeira configuração da dona, a semana sugerida abre diretamente
-para edição com dias, pausas e regras visíveis. `Salvar horários e continuar`
-persiste pelo mesmo contrato canônico; não existe uma confirmação intermediária
-antes do editor. A divulgação apresenta o link e as ações de compartilhar, copiar
-e abrir o painel somente após a confirmação canônica de disponibilidade.
-
-A profissional ativa pode editar a própria disponibilidade. A proprietária pode
-editar a disponibilidade semanal de qualquer profissional ativa do negócio a
-partir da equipe, usando o contexto explícito
-`/painel/horarios?profissional=<id>`; o backend valida que o alvo pertence ao
-mesmo negócio. Esse contexto de equipe não altera a política global de
-cancelamento e não reabre o onboarding da dona. Uma disponibilidade com todos os
-dias fechados é válida: mantém negócio e serviços visíveis quando publicados,
-mas não gera slots para novas reservas.
-
-A agenda operacional deve usar a mesma configuração contextual persistida em
-`agenda_configuracoes` e `agenda_horarios` para o par
-`profissional_id + negocio_id`; não pode reconstruir a grade com um horário
-fixo independente do que foi salvo. `Minha agenda` e `Agenda geral` usam o
-fuso IANA do negócio para decidir o dia local e marcar slots passados. Bookings
-de outro negócio, quando exibidos apenas como ocupação redigida, devem ser
-convertidos pelo instante canônico `inicio_previsto_em` para o fuso do contexto
-consultado.
-
-A Agenda Geral da dona mantém hoje como início padrão no fuso do negócio e
-permite navegar por semanas ou escolher uma data. `GET /agenda-geral` aceita
-`data_inicio=AAAA-MM-DD`, valida a data real e limita cada consulta a sete dias.
-Reservas passadas ainda abertas permanecem gerenciáveis pelo estado persistido.
-Reservas não canceladas de integrantes inativas também aparecem no período
-consultado, sem gerar horários livres ou permitir que essas pessoas sejam
-destino de reagendamento. A dona resolve os compromissos existentes pelo mesmo
-lifecycle; isso não reativa o vínculo nem amplia o acesso da profissional.
-Mudar o período ou sair invalida as leituras antigas. A interface serializa
-escritas e exige nova leitura após resultado incerto ou falha de atualização;
-repetir uma leitura não pode reenviar a alteração. O POST de bloqueios aceita
-`bloqueado` booleano como estado desejado idempotente, preservando o toggle
-legado somente quando o campo é omitido.
-A grade operacional ocupa todo o intervalo de reservas ativas, inclusive início
-fora da grade e passagem para outro dia, usando o instante e a duração congelados
-no fuso consultado. Pontos intermediários usam `ocupado`, sem duplicar ações ou
-expor dados de outro negócio; o fim do intervalo é exclusivo. Serviço desativado
-não impede reagendar a reserva existente com a responsável atual ativa;
-transferências continuam exigindo responsável ativa habilitada.
-Uma reserva ativa que atravessa a meia-noite também aparece nos dias seguintes
-como continuação, com data e hora originais preservadas para as ações. Isso vale
-para integrantes inativas, sem criar grade livre para elas. A seleção por período
-considera a sobreposição do intervalo, com fim exclusivo.
-
-A modelagem atual continua permitindo no máximo um vínculo ativo com papel
-`profissional` por conta, embora a mesma identidade possa simultaneamente ser
-dona do próprio negócio e profissional em outro. Por isso, endpoints de agenda
-compartilhados entre os workspaces devem receber o seletor de papel
-`X-AF-Contexto: dono|profissional` e sempre validar no backend o vínculo
-persistido correspondente; o header escolhe o contexto, mas nunca concede
-permissão.
-
-Não existe ação `Pular por agora` nessa etapa: a dona revisa os horários e salva
-a disponibilidade pelo editor. Se o salvamento dos horários falhar, a interface
-não deve avançar.
-
-Depois do primeiro salvamento explícito da agenda, a jornada converge para a
-missão de **divulgar o perfil**
-e conquistar o primeiro agendamento. A revalidação dessa missão usa uma leitura
-leve e canônica de ativação no backend, sem depender das consultas de métricas,
-rankings ou retenção do dashboard completo. `GET /dashboard-dono/ativacao`
-também fornece o contexto mínimo do negócio (id, nome e slug) necessário para a
-missão de divulgação; a tela de horários não deve depender de
-`GET /configuracoes` para montar o link público. Essa conclusão usa
-`/painel/horarios?onboarding=divulgacao` como marcador navegável para preservar
-a missão em refresh/reabertura, sem depender apenas de estado transitório do
-React. Ao restaurar esse marcador, a interface deve confirmar a próxima ação
-canônica no backend. A mesma consulta canônica deve ocorrer imediatamente após
-o primeiro salvamento explícito da agenda e na restauração do marcador. O estado
-canônico continua `CONQUISTAR_PRIMEIRO_AGENDAMENTO` mesmo quando todos os dias
-estão fechados, mas o CTA operacional muda: sem
-`possui_disponibilidade_agendavel`, a interface mantém o editor de horários e
-orienta a ativar disponibilidade antes de divulgar; com disponibilidade
-agendável, apresenta o compartilhamento. Esse diagnóstico é estrutural: exige
-profissional ativa, serviço ativo explicitamente habilitado e pelo menos um
-segmento semanal em que a duração inteira desse serviço caiba, considerando a
-pausa configurada. Ocupações e bloqueios pontuais não transformam a publicação
-em gate e continuam sendo filtrados no cálculo público de slots. Para não
-divulgar um perfil cuja antecedência mínima empurre toda a agenda para fora da
-janela pesquisada, a consulta pública amplia o horizonte quando necessário:
-parte de 7 dias e, para antecedências maiores, cobre a antecedência configurada
-mais uma semana recorrente, limitada pelos 720h aceitos pelo produto (máximo de
-37 dias). A UI continua exibindo somente datas que realmente possuem slots. Isso não
-transforma agenda em gate de
-publicação nem em novo estado de ativação. Se o negócio já estiver `ATIVADO` ou tiver
-regredido para serviço/publicação, a interface volta ao painel para apresentar a
-missão correta. URLs antigas não podem ressuscitar a missão concluída. Uma intenção válida de plano
-pago pode ser preservada durante `Negócio → Serviço → Horários`, mas não deve
-redirecionar automaticamente ao
-checkout nessa conclusão nem competir com a ativação. Upgrade e checkout
-permanecem ações explícitas/contextuais posteriores.
-
-`agenda_configuracoes.configurado_em` é um marcador técnico legado de que a
-disponibilidade foi inicializada. Desde a migration 065 ele recebe valor já na
-inicialização automática e **não representa confirmação ou salvamento manual**.
-Para distinguir personalização explícita, usar `origem_horarios`,
-`primeira_personalizacao_em` e `ultima_personalizacao_em`. O diagnóstico
-`agenda_configurada` deve ser calculado no mesmo `negocio_id` e somente para
-`origem_horarios = 'personalizado'`; inicialização automática `padrao_af` não
-conta como confirmação. Nenhum desses campos deve ser usado para bloquear
-publicação.
-
-`agenda_configuracoes.origem_horarios` continua separando a origem da
-disponibilidade. O runtime atual cria a configuração com `padrao_af` e, no
-salvamento explícito da agenda, marca a origem como `personalizado` junto dos
-timestamps de personalização.
-
-`negocios.publicacao_exige_agenda` permanece apenas por compatibilidade com
-dados/migrations legados; o runtime atual não deve reintroduzir esse gate.
-
-Depois da passagem pela agenda, a missão principal é conquistar o primeiro
-agendamento. Quando existe disponibilidade agendável, o CTA operacional é
-divulgar o perfil; sem disponibilidade, a mesma missão orienta primeiro a
-configurar horários. Os lembretes de divulgação por WhatsApp devem respeitar os
-mesmos sinais canônicos: negócio publicado, serviço ativo, disponibilidade
-agendável e ausência de primeiro agendamento válido. `configurado_em` não pode
-ser usado como substituto dessa elegibilidade, e uma mensagem pendente deve ser
-revalidada antes do envio. Uma intenção de plano pago não substitui essa missão
-nem provoca checkout automático. Compartilhamento deve reutilizar os links
-públicos rastreáveis existentes do AF.
-
-A disponibilidade continua crítica para gerar slots corretos e pode ser
-acompanhada como diagnóstico operacional separado.
-
-Detalhes: `docs/ativacao-profissional-ux.md` e
-`docs/ativacao-proxima-acao.md`.
+Detalhes canônicos: `docs/ativacao-profissional-ux.md`,
+`docs/ativacao-proxima-acao.md`, `docs/contexto-negocio.md`,
+`docs/frontend-formularios-estado-api.md` e
+`docs/confiabilidade-compromissos-agenda.md`.
 
 ## Ciclo operacional do agendamento
 
@@ -651,315 +365,64 @@ pressão por upgrade.
 | Salão | R$ 30,00 | Ilimitados | 9 | Ilimitados |
 
 O slug interno do plano gratuito permanece `inicial` por compatibilidade.
-Limites de plano, preço e elegibilidade são regras do backend.
+Preço, capacidade, entitlement e elegibilidade são regras do backend; valores ou
+limites enviados pelo frontend nunca são autoridade.
 
-Convites de equipe preservam a intenção da profissional mesmo quando o negócio
-não possui capacidade no plano: o convite pode ser aceito com vínculo
-`profissional` inativo e `motivo_inatividade = 'aguardando_vaga_plano'`.
-Esse estado não consome limite, não concede workspace, não recebe agendamentos
-e não participa da matriz profissional-serviço. Quando houver capacidade, a
-dona escolhe explicitamente quem ativar; a ativação revalida plano, contexto
-ativo e eventual vínculo profissional ativo em outro negócio dentro do backend.
+Convites podem preservar a intenção de uma profissional sem capacidade
+disponível, mantendo vínculo inativo até ativação explícita. Downgrade não apaga
+proprietária, vínculos, configurações ou reservas; quando necessário, reduz
+capacidade ativa de forma determinística e reversível. Inativação manual também
+preserva histórico e libera capacidade. A própria dona não é inativada por essa
+regra. Detalhes pertencem a `docs/convites-profissionais.md` e
+`docs/planos.md`.
 
-Downgrade de plano nunca remove a proprietária, vínculos ou reservas existentes.
-Quando o novo limite de profissionais fica abaixo da equipe ativa, o backend
-inativa automaticamente apenas profissionais não proprietárias excedentes,
-começando pelas ativações mais recentes. Esses vínculos usam
-`motivo_inatividade = 'excedente_limite_plano'`; `ativado_em` registra a
-ativação mais recente para manter a ordem de downgrade determinística.
+RN50 mantém para profissional inativa apenas o acesso restrito às próprias
+reservas existentes e às transições terminais permitidas. Não concede novas
+reservas, agenda, serviços, equipe ou assinatura. Cancelamento e reagendamento
+permanecem sob controle da dona enquanto o vínculo estiver inativo. A
+autorização é revalidada no backend em cada consulta/escrita.
 
-A dona pode inativar manualmente uma profissional por
-`POST /profissionais/:id/inativar`, preservando o vínculo, sua criação, serviços,
-configuração e reservas. O motivo é `inativado_pela_dona`; a própria dona não
-pode ser inativada. Essa pausa libera capacidade e impede novas reservas.
-Reativação é uma decisão explícita da dona, sujeita a plano e vínculo ativo em
-outro negócio; aceitar convite antigo não contorna a pausa. A tela da equipe
-serializa alterações, descarta leituras antigas e preserva o estado confirmado
-pela resposta da escrita quando a atualização falha; a recuperação faz só GET.
-Novo convite para vínculo inativo por pausa manual ou downgrade é recusado com
-orientação para `Ativar profissional`, preservando a decisão da dona e os guards
-do aceite de convites anteriores. Transições reais de inativação/reativação
-registram eventos de backend na mesma transação: ator humano efetivo ou `SYSTEM`
-no downgrade, sem repetir fatos em pedidos idempotentes nem inventar histórico.
-Ativação e inativação bloqueiam primeiro a conta da dona, depois capacidade e
-vínculos. O lock da conta é `FOR NO KEY UPDATE`: impede mudança concorrente de
-estado da conta e continua compatível com `KEY SHARE` das FKs de ator/convite.
-Conta, vínculo de dona e negócio são revalidados dentro da transação.
+Upgrade na área da dona é contextual, não publicidade permanente. O backend
+resolve o próximo plano e suas capacidades; uma recomendação não pode esconder
+contraction financeira nem transformar clique, checkout iniciado ou cobrança
+criada em receita. Comparação de planos permanece escolha explícita.
 
-RN50 preserva acesso restrito às próprias reservas existentes de um vínculo
-profissional inativo. A profissional pode consultar essas reservas e registrar
-somente `realizado` ou `falta`, respeitando as regras temporais, os estados
-terminais e a idempotência do lifecycle. Cancelamento e reagendamento ficam com
-a dona enquanto o vínculo estiver inativo. A exceção não libera início de
-atendimento, novas reservas, horários, bloqueios, serviços, equipe ou assinatura.
-Conta desativada, negócio arquivado e vínculo removido não recebem essa exceção;
-um vínculo recriado não recupera reservas anteriores à sua criação. A sessão
-expõe `temReservasProfissionaisRestritas` sem adicionar vínculos inativos a
-`vinculos` ou alterar `temNegocio`. A entrada é `/reservas-existentes`, separada
-do workspace ativo, e cada consulta/escrita revalida a autorização no backend.
-Detalhes e matriz: `docs/ciclo-atendimento.md`.
+Planos pagos usam checkout PIX. Só a dona ativa de negócio ativo e publicado pode
+iniciar contratação paga. O valor cobrado precisa corresponder ao snapshot
+contratado; divergência externa não libera entitlement. Um negócio não pode
+acumular cobranças PIX pendentes concorrentes por troca de plano.
 
-As oportunidades de upgrade dentro da área da dona são **contextuais**, não
-publicidade permanente. O backend de assinatura resolve de forma canônica o
-próximo tier pela ordem `inicial → autonoma → studio → salao` e entrega ao
-frontend o plano de destino e suas capacidades. Quando o negócio ainda usa o
-Grátis efetivo, mas já possui uma intenção paga persistida e sem assinatura
-ativa, essa escolha explícita tem precedência sobre a progressão automática. Serviços no limite, profissionais
-aguardando vaga e agenda a partir de 90% da capacidade podem oferecer esse
-próximo plano; a tela de Plano e assinatura também pode apresentá-lo como
-continuação natural do catálogo.
+Retorno do navegador, criação de cobrança ou programação de recorrência não
+confirmam pagamento. Acesso pago depende de confirmação financeira autenticada e
+idempotente. Cancelar renovação preserva o período já quitado; ao fim do acesso,
+o negócio retorna ao plano gratuito sem apagar seus dados.
 
-A recomendação contextual não pode criar uma contraction financeira disfarçada
-de upgrade. Quando uma assinatura paga ativa preserva em `assinaturas.valor`
-um valor contratado superior ao preço atual do próximo tier, o backend marca a
-oferta contextual como indisponível. A comparação manual de planos continua
-possível, mas o produto não promove automaticamente essa troca. Impressões e
-seleções de upgrade devem registrar a origem do gatilho para medir
-`oportunidade exibida → seleção → checkout → pagamento` sem tratar clique
-como receita.
+Checkout, renovação, cancelamento, estorno e reconciliação são sagas idempotentes.
+Efeitos mutáveis no Asaas permanecem fora de transações PostgreSQL; estado
+incerto fica durável e reconciliável; respostas antigas não alteram geração
+financeira nova; e programação de cobrança nunca substitui evidência de
+pagamento.
 
-Planos pagos usam checkout por PIX. O valor de cada cobrança é confrontado
-com o snapshot contratado em `assinaturas.valor`, inclusive na primeira
-ativação por webhook. Retentativas com assinatura pendente vinculada preservam
-esse valor contratado mesmo quando o preço de catálogo muda. A autorização de
-checkout é revalidada na transação que cria a assinatura, com lock da conta
-antes do lock do negócio. Valor divergente não libera entitlement. A cobrança externa divergente
-fica vinculada à tentativa de checkout (`CONCILIACAO_NECESSARIA`) com ID
-externo e valores observáveis; quando seguro, o valor real também fica
-registrado no pagamento local. Qualquer nova chave para o mesmo negócio fica
-bloqueada até a conciliação financeira, sem liberar entitlement ou gerar PIX
-duplicado. Uma chave reconciliada permanece terminal; um novo checkout requer
-nova chave. Detalhes em `docs/checkout-idempotente.md`. PIX recorrente exige pagamento
-de cada cobrança, não é débito automático. O backend só permite iniciar checkout pago
-para a proprietária ativa de um negócio ativo e já publicado; esconder ou
-redirecionar o botão no frontend não substitui essa validação. A disponibilidade
-manual não é um gate financeiro: a primeira jornada pode ordenar Horários antes
-do checkout, mas o backend de billing usa a publicação persistida como condição
-de elegibilidade.
+Métricas financeiras precisam distinguir caixa recebido, MRR contratado,
+churn, reativação, LTV bruto, economia de gateway, margem de contribuição e
+retorno sobre CAC. Cada métrica só existe quando seu contrato, cutover, cobertura
+e maturidade estiverem documentados; ausência de custo, reversão ou fonte não
+pode virar zero por conveniência. Billing continua autoridade de entitlement e
+leituras econômicas não o reescrevem.
 
-Retorno do navegador não confirma pagamento. A ativação do plano depende da
-confirmação financeira autenticada e idempotente do Asaas. Estados externos do
-provedor são preservados para auditoria, enquanto a experiência do produto
-normaliza situações relevantes como `FALHA_DE_PAGAMENTO` e
-`CHECKOUT_EXPIRADO`. Checkout inicial expirado não libera benefício pago e
-falha de renovação pode retornar temporariamente o negócio ao plano gratuito sem
-apagar dados.
-
-Dentro de `FALHA_DE_PAGAMENTO`, a conta distingue cobrança atrasada/recuperável
-de estorno ou disputa. Quando uma cobrança recorrente do Asaas fornece
-`invoiceUrl`, o AF pode persistir e oferecer essa fatura à proprietária somente
-após validar HTTPS e domínio oficial `asaas.com`; abrir a fatura não confirma
-pagamento. A reativação continua dependendo de webhook financeiro válido.
-
-Na UX da conta, a ação de recuperação deve ser apresentada como
-**Regularizar pagamento**, sem transformar o nome do provedor em protagonista da
-interface. Quando a regularização abrir uma página hospedada externamente, a UI
-deve informar de forma neutra que a proprietária será direcionada para um
-ambiente seguro de pagamento.
-
-Cancelar a renovação não encerra imediatamente o período já quitado. Enquanto a
-assinatura cancelada ainda estiver `ativo = TRUE`, a data deve ser apresentada
-como **acesso até**, nunca como próxima cobrança. No fim do período, o plano
-retorna ao gratuito e os dados do negócio permanecem preservados. O fim do
-período pago não depende de nova navegação da proprietária: os background
-workers reconciliam cancelamentos vencidos usando a mesma operação transacional
-do entitlement e registram `ACESSO_PAGO_ENCERRADO` de forma idempotente.
-
-A retenção financeira usa **negócio** como unidade paga. Desde a Wave 24, o AF
-mantém um marco explícito de cutover para churn e não infere histórico anterior.
-Um episódio pago começa na baseline do cutover, na conversão inicial ou em uma
-reativação; renovação e mudança de plano mantêm o episódio aberto. A saída
-terminal é `ACESSO_PAGO_ENCERRADO`. Cobrança atrasada continua recuperável e
-só é materializada como saída por
-`INADIMPLENCIA_NAO_RECUPERADA` depois da janela padrão de 14 dias; essa janela
-não concede acesso pago adicional, porque o entitlement já é suspenso no atraso.
-**Gross logo churn v1** usa negócios da base paga inicial que tiveram saída
-terminal no recorte. Reativação permanece separada e não reduz retroativamente
-o churn bruto.
-
-Desde a Wave 25, MRR também possui cutover explícito e ledger monetário
-append-only. O valor histórico nasce de `assinaturas.valor`, nunca do preço
-atual de `planos.valor`. Eventos elegíveis persistem
-`valor_mensal_anterior`, `valor_mensal_novo` e
-`periodicidade_snapshot`. O MRR v1 suporta apenas recorrência mensal; ciclos
-futuros diferentes não podem ser normalizados silenciosamente. New MRR,
-Reactivation MRR, Expansion MRR, Contraction MRR e Churned MRR são movimentos
-distintos. Atraso ou reversão sem saída terminal preserva o MRR e o expõe como
-valor em risco. **NRR v1** usa apenas negócios presentes na base inicial; New
-MRR fica fora da coorte. **GRR v1** ignora expansion e uma saída terminal zera a
-retenção bruta daquele negócio no recorte, mesmo se houver reativação posterior.
-MRR é valor recorrente contratado e não caixa recebido.
-
-Desde a Wave 26, o AF também possui **LTV bruto observado v1** com cutover
-explícito. A unidade é o negócio e a coorte nasce somente na primeira
-`CONVERSAO_INICIAL` canônica cujo pagamento ocorreu no ou depois do cutover.
-O lifetime soma `pagamentos.valor` com `data_pagamento` dentro de D30, D60 e
-D90; apenas negócios maduros entram no denominador de cada janela. Churn não
-remove o negócio da coorte e reativação não cria nova aquisição. MRR não é usado
-como proxy de receita observada. Estorno, refund e disputa são exibidos como
-exposição separada; o AF não declara LTV líquido enquanto o valor econômico
-exato de reversões parciais não estiver persistido. LTV projetado e LTV de margem
-continuam fora da definição oficial.
-
-Desde a Wave 27, o AF mantém um snapshot imutável de **aquisição financeira por
-negócio** após a primeira conversão paga canônica. O snapshot congela a primeira
-conta dona, first-touch persistido, campanha oficial resolvida, método de
-resolução, primeiro pagamento e plano de entrada. Transferência futura de
-propriedade, mudança de plano, nova assinatura ou reativação não criam uma nova
-aquisição nem reescrevem a campanha histórica.
-
-Conversões financeiras server-side para Google/Meta seguem a mesma identidade
-canônica de aquisição: somente a primeira `CONVERSAO_INICIAL` do negócio pode
-originar `purchase`/ `Subscribe`. Renovação, mudança de plano e reativação não
-são novas aquisições e não podem substituir a entrega original. A outbox persiste
-o `assinatura_evento_id` como lineage imutável por provedor e separa códigos
-estruturados de resultado de mensagens técnicas.
-
-O webhook financeiro enfileira conversões exclusivamente por
-`marketingConversionDeliveryService`. Os serviços de Google e Meta oferecem o
-transporte usado pelo worker, mas não expõem atalhos de assinatura que enviem
-`purchase`/`Subscribe` diretamente, fora da outbox persistente.
-
-`pagamentos.data_pagamento` continua sendo a **data financeira** informada pelo
-provedor. Para precisão temporal de integrações, o AF usa
-`pagamentos.confirmacao_observada_em`, um `TIMESTAMPTZ` que registra o primeiro
-instante em que o AF observou via webhook um estado confirmado/recebido. Esse
-campo pode ser nulo em histórico sem evidência suficiente e não deve receber
-backfill inventado; quando existe webhook processado, a migration pode reconstruir
-somente a observação factual a partir de `webhook_eventos.recebido_em`.
-`assinatura_eventos.ocorrido_em` e a outbox usam esse instante observado quando
-disponível, com fallback histórico explícito.
-
-A identidade usada em retries é a identidade canônica da aquisição quando o
-snapshot já existe, com fallback para a primeira conta dona histórica do negócio;
-o consentimento continua sendo revalidado no momento da entrega, de modo que
-revogação posterior impede envio sem reatribuir a compra a uma nova proprietária.
-`sem_consentimento` é regra de privacidade; integração desabilitada e divergência
-financeira são falhas operacionais observáveis e não devem ser classificadas como
-inelegibilidade legítima. Falhas `INTEGRACAO_DESABILITADA` podem ser rearmadas
-automaticamente somente quando o runtime volta a comprovar que a integração
-server-side daquele provedor está habilitada e a conversão possui no máximo
-72 horas. Essa janela comum é conservadora e impede que o replay automático
-reescreva temporalmente conversões antigas; casos mais antigos permanecem
-terminais e visíveis para investigação. O replay preserva o mesmo
-`assinatura_evento_id`, pagamento e payload imutáveis. A reconciliação
-administrativa deve selecionar a primeira `CONVERSAO_INICIAL` global do negócio
-antes de aplicar qualquer filtro de período.
-
-A leitura de **CAC de mídia observado v1** reutiliza o custo diário canônico por
-campanha já protegido pela migration 037: existe uma única fonte efetiva por
-campanha/dia e a fonte gravada por último substitui a anterior. A Wave 27 não
-cria outra precedência entre fontes. O custo também preserva
-`objetivo_snapshot`, de modo que uma mudança posterior do objetivo da campanha
-não reclassifica silenciosamente o histórico. Negócio pago maduro sem custo no
-próprio dia de aquisição bloqueia a comparação daquela janela. Retorno bruto D30/D60/D90
-compara receita bruta observada com investimento da mesma coorte madura. A
-maturidade usa
-`diasMaturacaoMonetizacao + janelaLtv`. Essa leitura não representa CAC
-econômico, margem ou payback econômico e não altera automaticamente a régua de
-escala/pausa de mídia.
-
-Desde a Wave 28, o AF mantém uma camada separada de **economia líquida de
-gateway** por pagamento. Billing continua autoridade de entitlement; uma falha
-na reconciliação econômica nunca reverte assinatura ou plano. O worker consulta
-o estado atual do Asaas fora da transação crítica, preserva o `netValue`
-observado, `creditDate` e refunds idempotentes, e revalida
-`asaas_ultimo_evento_em`/`asaas_ultimo_evento_id` antes de persistir para não
-gravar uma resposta externa obsoleta. Ausência de `netValue` não significa
-taxa zero. Somente refund `DONE` reduz a receita líquida observada; refund
-pendente, chargeback em disputa e outras reversões não reconciliadas permanecem
-indisponíveis/expostas até resolução. **Receita líquida de gateway** é
-`netValue - refunds DONE`; ela pode ficar negativa e não é lucro nem margem de
-contribuição. LTV líquido de gateway D30/D60/D90 reutiliza as coortes da Wave 26
-e retorno líquido de gateway reutiliza aquisição/custo da Wave 27. Margem,
-CAC total e payback econômico continuam fora da definição oficial.
-
-Desde a Wave 29, o AF possui a infraestrutura de **custos variáveis de
-contribuição observados** separada de billing e de aquisição de mídia. A
-migration 100 cria um cutover próprio, um registro de fontes, um ledger
-append-only/idempotente por fonte+chave externa e um watermark contínuo de
-cobertura por fonte. Nenhuma fonte é cadastrada por suposição na migration:
-enquanto não existir ao menos uma fonte obrigatória ativa com cobertura completa
-da janela, margem de contribuição permanece indisponível e ausência de
-lançamento não significa custo zero. Débitos aumentam custo e créditos corrigem
-ou devolvem custo sem apagar o fato anterior. A taxa do gateway e refunds já
-tratados na Wave 28 não podem ser descontados novamente, e mídia paga permanece
-no domínio de CAC/aquisição. LTV de contribuição reutiliza a primeira conversão
-paga canônica e as janelas D30/D60/D90 da Wave 26, exige economia do gateway
-reconciliada e cobertura integral de todas as fontes obrigatórias na mesma
-janela. Negócio maduro incompleto bloqueia a leitura da janela em vez de ser
-removido do denominador. Sem fonte obrigatória real, margem e LTV de contribuição
-permanecem indisponíveis; ausência de fonte nunca é custo zero. Lucro, CAC total
-e payback econômico continuam fora da definição oficial.
-
-Desde a Wave 30, o AF possui **retorno de contribuição sobre CAC de mídia
-observado** por campanha, restrito a aquisições oficiais posteriores ao cutover
-`retorno_contribuicao_v1_inicio`. A leitura herda os cutovers de economia
-líquida e contribuição, preserva maturidade D30/D60/D90 e exige custo de mídia
-canônico, gateway reconciliado e cobertura integral das fontes obrigatórias na
-mesma janela. Negócio maduro incompleto bloqueia a janela em vez de ser removido
-da base. A primeira recuperação é somente a primeira janela D30/D60/D90 com
-retorno de contribuição >= 1; não há interpolação de dias. A métrica continua
-sendo CAC de mídia, não CAC total, e não representa lucro ou payback econômico
-definitivo. Sem fonte real obrigatória de custo variável, a leitura permanece
-indisponível.
-
-Desde a Wave 31, fontes factuais de custo de contribuição podem ser operadas por
-um fluxo administrativo próprio. A migration 102 cria o cutover
-`fontes_contribuicao_v1_inicio` e uma trilha
-`contribuicao_operacoes_admin` append-only. Nenhuma fonte é criada por seed:
-cadastro, débito, crédito e cobertura dependem de ação explícita. Escritas são
-restritas a admin no backend e registram ator + motivo. Correções
-administrativas de custo usam crédito referenciado, nunca UPDATE/DELETE do
-ledger; o crédito não pode superar o saldo do débito original. Cobertura mantém
-início imutável e watermark não regressivo. Admin comum pode consultar o painel,
-mas não escrever. Ausência de fonte ou cobertura continua significando dado
-econômico indisponível, não custo zero.
-
-
-Desde a Wave 32, o AF possui infraestrutura **provider-agnostic de sincronização
-automática de custos factuais**. A migration 103 cria o cutover
-`sync_contribuicao_v1_inicio`, integrações por fonte e histórico operacional
-de execuções. O registry de produção nasce vazio: nenhum provedor é presumido.
-Integração só pode ser criada para fonte ativa e adaptador implementado no
-backend; não existe URL arbitrária nem credencial em banco. O worker fica
-desligado sem flag explícita, usa advisory lock por integração e só avança
-cursor/cobertura na mesma transação que persiste todo o lote reconciliado.
-Créditos automáticos referenciam o débito pela chave externa e não podem exceder
-o saldo. Falha não avança cursor nem cobertura e não altera billing/entitlement.
-
-Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
-upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
-pagamento não deve criar cobranças concorrentes. A tela de assinatura deve
-separar explicitamente a assinatura/plano atualmente em uso de qualquer upgrade
-pendente.
-
-Renovação, cancelamento, checkout e reconciliação financeira são sagas
-idempotentes. Efeitos mutáveis no Asaas permanecem fora de transações PostgreSQL;
-estado incerto precisa ficar durável e reconciliável; respostas antigas não podem
-alterar uma geração financeira mais nova; e acesso pago deriva de evidência
-financeira confirmada, sem confundir programação de cobrança com pagamento.
-Detalhes de estados, leases, migrations, datas civis e compensações pertencem a
-`docs/asaas-ativacao-recorrencia.md`, `docs/checkout-idempotente.md` e
-`docs/webhook-processing.md`.
-
-Mais detalhes: `docs/planos.md`, `docs/checkout-idempotente.md` e documentos de
-webhook financeiro.
+Fontes e detalhes canônicos: `docs/planos.md`,
+`docs/checkout-idempotente.md`, `docs/asaas-ativacao-recorrencia.md`,
+`docs/webhook-processing.md`, `docs/prontidao-financeira-recorrencia.md` e
+os documentos históricos de Waves 19–32 indexados em `docs/README.md`.
 
 ## Arquitetura atual
 
 - Runtime: Node.js 22.
-- Backend: Express 5, JavaScript CommonJS.
-- Banco: PostgreSQL via `pg`.
+- Backend: Express 5 em JavaScript CommonJS, organizado em routes → controllers
+  → services → repositories → PostgreSQL.
 - Frontend: React 19, React Router 7, Vite 7 e CSS.
-- Backend em camadas: routes → controllers → services → repositories →
-  PostgreSQL.
-- O teste de fronteiras arquiteturais impede acesso direto ao banco em routes e
-  controllers e mantém apenas a exceção de infraestrutura do readiness para
-  SQL direto em services.
-- O domínio financeiro separa registro, conta, webhooks e processamento de
-  pagamentos; persistência de assinaturas fica em repositories.
-- Autenticação: JWT em cookie `HttpOnly`, bcrypt e Google Identity.
+- Autenticação: JWT em cookie `HttpOnly`, bcrypt e Google Identity; Bearer no
+  navegador existe somente como compatibilidade de migração legada.
 - Imagens: Busboy, validação de conteúdo e Cloudinary.
 - Pagamentos: Asaas.
 - Notificações: WhatsApp Cloud API oficial da Meta.
@@ -967,263 +430,116 @@ webhook financeiro.
 - Marketing: GA4, Google Ads, Meta Ads/CAPI, TikTok Ads e Pinterest Ads conforme
   integrações documentadas.
 - Testes: Jest/Supertest/PostgreSQL, Vitest/Testing Library e Playwright.
-- CI/CD: GitHub Actions e Railway.
-- Deploy: migrations antes da aplicação e healthcheck em `/health/ready`.
+- CI/CD: GitHub Actions e Railway; migrations precedem a aplicação e produção usa
+  readiness em `/health/ready`.
 
-O cliente HTTP mantém timeout e cancelamento até concluir a leitura do corpo.
-`api/requestLifecycle.js` concentra esse ciclo para chamadas normais e migração
-legada. A migração inteira compartilha um prazo de 20 segundos, sem reiniciá-lo
-nas consultas encadeadas. Falha transitória no bootstrap libera o carregamento
-e oferece nova tentativa no acesso, preservando a credencial legada; apenas a
-confirmação da geração atual pode removê-la. Usuário já validado permanece em
-memória em falhas transitórias de sincronização auxiliar.
-Respostas canceladas não podem causar efeitos locais nem sucesso vazio. Um 401
-só limpa a sessão local quando a geração da chamada ainda é atual na aba;
-transições de sessão e autenticações confirmadas invalidam a geração anterior.
-Essa geração não substitui autorização no servidor nem sincroniza identidade
-entre abas. `auth` e `optionalAuth` rejeitam credenciais inválidas sem enviar
-exclusão de cookies: respostas antigas não podem apagar o cookie de outro login.
-Logout e redefinição de senha mantêm sua limpeza explícita; validação de conta,
-revogação e troca de senha continuam obrigatórias no backend.
+SQL novo pertence a repositories; routes/controllers não acessam banco
+diretamente. Validação crítica, autorização, preços, capacidade, contexto de
+negócio e regras financeiras permanecem no backend.
 
-Na mesma aba, login/cadastro/Google/logout compartilham uma fila de escritas de
-sessão e uma intenção atual. Sair invalida autenticações anteriores e limpa a
-interface imediatamente; se uma autenticação já foi enviada, o logout aguarda
-sua resposta para revogar o cookie resultante. Só a intenção atual pode salvar
-metadados, sincronizar ou concluir a autenticação. O acesso aguarda o bootstrap
-da sessão e bloqueia envios simultâneos por senha/Google. A fila não coordena
-abas nem substitui a autorização no servidor.
-Sucesso HTTP com corpo esperado ilegível ou JSON inválido gera 502
-`INVALID_RESPONSE`, sem confirmar formulários. Respostas 204/205/HEAD aceitam
-corpo ausente; erros HTTP preservam o status original.
+O frontend é uma única aplicação com contextos público, cliente, dona,
+profissional e admin separados por rota, sessão, shell e autorização. Diferença
+visual ou seleção de contexto nunca altera permissões persistidas.
 
-Os coletores de analytics compartilham transporte por cookie HttpOnly, sem
-reaproveitar Bearer legado. Consentimento, keepalive e outbox continuam sob
-controle dos coletores. Normalização/validação de formulário pertence a
-`frontend/src/features/*/form.js`; validação de segurança e domínio permanece
-obrigatória no backend. Tokens e botões globais pertencem a `tokens.css` e
-`controls.css`; refinamentos de página e shells mantêm escopo próprio.
-Os hooks `features/{business,services,schedule}/use*Editor.js` coordenam os
-formulários, suas escritas e recuperação; as páginas compõem a apresentação e
-conectam os guards à invalidação do hook. Consulta e concorrência do endereço
-pertencem a `business/useBusinessAddress.js`; reconciliação de mídia somente por
-GET a `services/mediaRecovery.js`; interpretação da resposta canônica de ativação
-a `schedule/activation.js`. Locks e gerações de gravação continuam no editor,
-sem delegar autorização ou publicação a esses módulos. As cinco seções de analytics
-administrativo têm módulos de rota próprios, com suporte compartilhado em
-`features/admin-analytics/`. O barrel legado serve apenas para compatibilidade.
-Alterações isoladas nos estilos globais também disparam o Performance QA.
+Operações assíncronas antigas não podem sobrescrever sessão, formulário, mídia ou
+contexto mais recente. Timeout/cancelamento cobrem a leitura completa da
+resposta; 401 antigo não apaga autenticação nova; resultado de escrita incerto é
+reconciliado por leitura quando o domínio exigir. A sessão principal usa cookie
+HttpOnly e analytics não reutiliza Bearer legado.
 
-O frontend é uma única aplicação React. As rotas privadas de negócio continuam
-entrando pela resolução contextual de `WorkspaceLayout`: vínculos de dona são
-delegados para `OwnerShell` com design system `--owner-*`, enquanto vínculos de
-profissional são delegados para `ProfessionalShell` com design system
-`--professional-*`. Os dois shells carregam CSS por contexto e compartilham
-apenas primitives neutras quando isso reduz duplicação. `/admin/*` usa
-`AdminLayout` + `AdminShell` próprios.
-
-O bootstrap usa `createBrowserRouter`/`RouterProvider`, mantendo as rotas de
-`App.jsx`. Criação/edição do negócio, editor de serviços e horários protegem
-alterações não salvas com um blocker de navegação e diálogo explícito; o
-baseline só é liberado após a confirmação da API.
-Os campos desses formulários ficam desabilitados durante o salvamento; no editor
-de serviços, o bloqueio inclui a seleção de fotos durante os uploads. Dados
-essenciais do serviço e galeria possuem leituras e novas tentativas independentes.
-Trocar a pessoa ou o papel da agenda reinicia o editor e cancela leituras antigas;
-nenhum horário anterior pode ser salvo enquanto o novo contexto carrega.
-O lookup de CEP preserva edições manuais feitas durante a consulta. Uploads
-parcialmente concluídos mantêm a capa e as fotos já salvas visíveis no editor.
-Novos lotes de fotos acumulam arquivos pendentes. Salvamento, escolha de capa e
-remoção de fotos são coordenados para não ocorrerem simultaneamente no editor.
-A escolha de capa aguarda a API e preserva a seleção anterior em caso de falha.
-Sair ou trocar de serviço invalida respostas antigas, redirecionamentos e o
-envio dos arquivos restantes de uma operação encerrada na interface.
-Em Meu negócio, salvamento, foto, publicação e encerramento são mutuamente
-exclusivos. Ao sair da criação ou edição, respostas antigas não atualizam a
-interface nem a sessão e não redirecionam a dona. A leitura inicial é cancelada
-ao sair; uma escrita já enviada pode concluir no backend.
-Em Horários, a restauração da divulgação preserva o editor durante alterações
-não salvas e salvamento. Editar ou salvar invalida leituras antigas de ativação;
-somente a consulta atual pode atualizar o link público e a missão. Desfazer o
-rascunho revalida a missão sem exigir um PUT.
-
-Detalhes técnicos: `docs/arquitetura.md`, `docs/frontend-estilos.md` e
-`docs/ux-contextos-visuais.md`.
+Detalhes de nomes de módulos, ownership de CSS, cliente HTTP, hooks, shells,
+telemetria e fronteiras internas pertencem a `docs/arquitetura.md`,
+`docs/backend-arquitetura.md`, `docs/frontend-arquitetura.md`,
+`docs/frontend-formularios-estado-api.md`, `docs/frontend-seguranca.md` e
+`docs/session-security.md`.
 
 ## Frontend e UX
 
 Priorizar clareza da tarefa e experiência mobile, especialmente Safari/WebKit.
 
 A identidade visual do AF é rosa, branca e grafite, acolhedora e ligada ao
-universo de beleza. A marca deve permanecer reconhecível, mas cada contexto pode
-ter densidade e composição próprias.
+universo de beleza. A marca deve permanecer reconhecível, mas contextos público,
+cliente, dona, profissional e admin podem ter densidade e composição próprias.
+Essas diferenças nunca substituem autorização do backend.
 
-O Admin funciona como um centro de comando operacional com design system próprio.
-Seu shell usa uma navegação textual única para as páginas administrativas,
-agrupadas em Início, Crescimento e Plataforma. Marketing, Investimento e
-eficiência, Integrações, Saúde do SaaS e WhatsApp têm destinos próprios no
-sidebar; Auditoria está disponível para admin. No celular, a mesma lista
-é aberta por um botão Menu, sem barra inferior fixa.
-O contexto administrativo usa superfícies claras, texto de alto contraste e
-cor de destaque com moderação. Cores de estado só representam estados reais.
-Sua cobertura possui baseline independente em
-`docs/admin-requisitos-matriz.md`; o percentual do Admin não deve ser inferido
-a partir da baseline funcional geral `67/67`. Requisitos administrativos de
-segurança, dinheiro, permissão ou integridade só contam como cobertos com
-evidência verificável no backend e testes proporcionais ao risco.
+O Admin é um centro de comando de leitura, diagnóstico e operações
+explicitamente autorizadas. Requisitos de segurança, dinheiro, permissão ou
+integridade só contam como cobertos com evidência verificável no backend e
+testes proporcionais ao risco. Não declarar RNF/performance conforme sem medição
+representativa real. Histórico de Waves administrativas permanece como evidência
+em `docs/admin-*.md`, não como regra duplicada nesta memória.
 
-Desde a Admin Wave 1, RF40 possui cobertura operacional v1 para consulta e
-diagnóstico de **usuários, negócios e agendamentos**. `/admin/usuarios`,
-`/admin/negocios` e `/admin/agendamentos` usam busca/filtros/paginação
-server-side; negócios distinguem publicado, despublicado, rascunho, inativo e
-arquivado; agendamentos usam os estados canônicos `agendado`, `confirmado`,
-`realizado`, `falta` e `cancelado`. A operação continua priorizando leitura
-e diagnóstico. Mutações genéricas ou de alto impacto não são autorizadas por
-RF40; exigem contrato específico, autorização proporcional e auditoria. RF41
-permanece uma frente própria de auditoria administrativa transversal.
-A implementação da Admin Wave 2 fica em `docs/admin-wave-2-rf41-auditoria.md`:
-operações administrativas sensíveis registram uma tentativa antes da escrita,
-um resultado HTTP quando disponível e expõem pendências para investigação.
-Não inferir histórico anterior nem tratar um HTTP 2xx como sucesso de um job
-externo. A reconciliação das tentativas sem resultado foi implementada na Wave 3.
-A matriz Admin mantém `ADM-043` pendente: RNF02 exige medição de p95 com carga
-representativa antes de declarar desempenho conforme.
-A Admin Wave 3 documentada em `docs/admin-wave-3-rf41-reconciliacao.md` implementa
-revisão humana append-only de tentativas sem resultado HTTP. A revisão usa
-avaliação estruturada e evidência referenciada por hash, sem fabricar HTTP ou
-promover `ADM-043` antes de validação e medição administrativa representativa.
-As Waves 4–6 consolidam a exigência de medir RF41/RNF02 com requisições reais
-e volume observado em produção. O perfil agregado da Wave 6 executa apenas
-transação de leitura. A carga sintética e os benchmarks que geravam requisições
-ou escritas para a auditoria foram removidos. A observação do proxy em
-24–25/09/2026 não encontrou chamadas a `/admin/auditoria`; sem p95 real e
-sem contagem do ledger de produção, ADM-043 continua Não coberto (41/43).
-Ver `docs/admin-wave-6-rf41-qa-operacional.md`.
-O contexto da dona possui workspace de gestão próprio. O contexto profissional
-possui shell de rotina própria, com navegação curta focada em agenda, horários e
-conta. Dentro do workspace profissional, Conta e Convites usam rotas explícitas
-`/profissional/*` para preservar o vínculo profissional mesmo em identidades que
-também são donas. Convites permanecem ação secundária, fora da navegação diária;
-a rota genérica `/convites` continua válida para aceite inicial sem vínculo. A
-troca profissional → dona, quando os dois papéis existem, deve ser explícita.
-Essas diferenças visuais não alteram os contratos de autorização do backend.
+A dona possui workspace de gestão; a profissional possui rotina curta focada em
+agenda, horários e conta. Quando a mesma identidade possui mais de um contexto,
+a troca é explícita e preserva o vínculo escolhido.
 
-Ao alterar uma interface, considerar:
+Toda tela deve tratar, quando aplicável:
 
-- carregamento;
-- estado vazio;
-- erro;
-- sucesso;
-- sessão expirada;
-- permissões;
-- responsividade;
-- contraste e foco;
-- conteúdo coberto por elementos `fixed`/`sticky`;
-- comportamento em WebKit.
+- carregamento, vazio, erro e sucesso;
+- sessão expirada e permissões;
+- responsividade, teclado virtual e conteúdo sob `fixed`/`sticky`;
+- contraste, foco, áreas de toque e navegação por teclado;
+- cancelamento/obsolescência de respostas assíncronas;
+- comportamento em Safari/WebKit.
 
-Quando houver apenas um profissional elegível em um fluxo de agendamento, não
-exigir uma escolha sem utilidade.
+Quando houver apenas uma profissional elegível no booking, não exigir escolha
+sem utilidade. A confirmação ainda deve deixar claro quem realizará o serviço.
 
-Os arquivos oficiais de marca ficam em `frontend/src/assets/brand/`; evitar
-substitutos improvisados.
+Usar os assets oficiais da marca; não introduzir substitutos improvisados.
+Detalhes de shells, componentes, estilos, jornadas e baseline administrativa
+ficam em `docs/ux-contextos-visuais.md`, `docs/frontend-arquitetura.md`,
+`docs/frontend-qa-prontidao.md`, `docs/frontend-estilos.md` e
+`docs/admin-console.md`.
 
 ## Analytics, aquisição e growth
 
-Avaliar crescimento pelo funil completo, não apenas por CTR, CPC, CPM, cliques
-ou cadastros brutos.
+Avaliar crescimento pelo funil completo. CTR, CPC, CPM, cliques e cadastro são
+sinais intermediários; sucesso precisa ser conectado, conforme o objetivo, a
+ativação, primeiro agendamento válido, recorrência, retenção, assinatura e
+receita.
 
-Métricas prioritárias incluem:
+Diferenciar profissional, negócio e cliente final e preservar origem por Google
+Ads, Meta Ads, TikTok Ads, Pinterest Ads, orgânico e demais canais apenas quando
+a evidência suportar essa classificação.
 
-- custo por profissional ativado;
-- taxa de ativação até primeiro agendamento;
-- custo por assinante quando houver base financeira confiável;
-- conversão para pago;
-- recorrência e retenção;
-- receita e LTV quando houver definição e dados suficientes.
+Parâmetros de campanha e click IDs dependem do consentimento aplicável. Sem
+consentimento, telemetria técnica first-party pode continuar apenas dentro do
+contrato permitido. Revogação interrompe nova atribuição opcional e remove o que
+o navegador não deve mais conservar.
 
-Diferenciar Google Ads, Meta Ads, TikTok Ads, Pinterest Ads, orgânico e outras
-origens conforme a evidência disponível.
+Atribuição incompleta não é corrigida por suposição. Evidência bruta, UTM,
+click IDs e vínculos externos permanecem auditáveis; tráfego sem prova suficiente
+continua incompleto/sem evidência.
 
-UTMs e click IDs de campanha só podem ser capturados/persistidos quando a pessoa tiver concedido a preferência de medição de marketing. Sem essa autorização, o Analytics V2 pode manter telemetria first-party estritamente técnica da navegação, como landing path e host externo de referência, mas não deve carregar parâmetros de campanha. Ao negar ou revogar a preferência, a atribuição opcional persistida no navegador — legado e V2 — deve ser removida e deixar de acompanhar novos eventos.
+Fatos críticos de booking e monetização vêm do backend a partir do estado
+persistido. Telemetria do frontend é diagnóstica e não pode ser somada a fatos
+transacionais como se fosse outra fonte independente. Pipelines legados e novos
+só podem ser aposentados depois de reconciliação observada.
 
-Atribuição incompleta não deve ser corrigida por suposição. UTM, click IDs,
-vínculos externos e evidência bruta são preservados para auditoria. Tráfego sem
-evidência suficiente permanece classificado como incompleto/sem evidência em
-vez de ser promovido artificialmente para campanha oficial ou orgânico.
+Conversão, checkout, cobrança criada, pagamento confirmado, assinatura ativa,
+renovação, reversão e receita são fatos distintos. Métricas como CAC, ROAS, MRR,
+GRR/NRR, LTV, margem e retorno só podem ser usadas quando cobertura, maturidade,
+cutover e definição forem suficientes.
 
-CAC, ROAS e decisões de orçamento dependem de cobertura, custo, maturidade e
-amostra adequados. Ausência de assinatura, isoladamente, não prova que aquisição
-freemium falhou.
+A identidade de cliente para recorrência usa identidade persistida; telefone não
+deve fundir visitantes silenciosamente. A identidade de aquisição financeira do
+negócio não pode ser reescrita por renovação, troca de plano, reativação ou
+mudança posterior de proprietária.
 
-Conversão do perfil deve usar visitas externas ao negócio como denominador e
-agendamentos reais não cancelados como resultado. Eventos de navegador são
-telemetria diagnóstica e não substituem a tabela `agendamentos`.
+Conversões server-side para mídia devem ser idempotentes e derivar do fato
+financeiro canônico. Consentimento é revalidado na entrega e falhas operacionais
+não devem ser mascaradas como inelegibilidade legítima.
 
-Eventos críticos do ciclo de booking (`booking_created`,
-`booking_rescheduled`, `booking_cancelled`, `booking_completed` e
-`booking_no_show`) são fatos de domínio emitidos pelo backend a partir do
-estado persistido e gravados em `analytics_eventos` com
-`origem='backend'`. Eles usam `event_uuid` como `event_id` externo,
-`occurred_at`, IDs de profissional/negócio/Client/agendamento/serviço
-aplicáveis e atores humanos padronizados. Essas gravações participam da mesma
-transação lógica da mutação do booking para evitar evento sem estado ou estado
-crítico sem evento. Telemetria homônima do frontend permanece diagnóstica e não
-deve ser somada a esses fatos transacionais.
+Integrações administrativas de custos continuam somente leitura no escopo atual
+documentado; criar, editar, pausar ou excluir campanhas exige nova decisão de
+produto e segurança.
 
-Durante a migração de Analytics, `eventos_produto` e o Analytics V2 first-party
-podem coexistir. Eventos equivalentes devem ser reconciliados em uma janela
-comparável, nunca somados como se fossem fontes independentes de verdade. A
-retirada do pipeline legado exige estabilidade observada, investigação de
-divergências e revisão de todas as dependências restantes.
-As leituras operacionais de Marketing do Admin usam o Analytics V2; acesso a
-`eventos_produto` fica restrito à reconciliação temporária enquanto o cutover
-ainda estiver em observação.
-
-Métricas de clientes únicos, recorrência e origem do cliente usam
-`agendamentos.client_id` como identidade. `cliente_id` legado e telefone não
-devem ser usados para fundir visitantes sem evidência de identidade persistida.
-
-Na monetização, distinguir intenção de checkout, pagamento confirmado, assinatura
-efetivamente ativa, reembolso/reversão e receita. Enquanto o schema financeiro
-não persistir valor e data econômica exatos de estornos parciais e chargebacks,
-o Admin não deve chamar uma subtração aproximada de "receita líquida". Expor
-separadamente receita atualmente válida e o valor integral das cobranças
-afetadas por reversão/disputa.
-
-Na leitura financeira do Admin, o primeiro pagamento cronológico de um negócio
-pago representa conversão inicial; pagamentos válidos posteriores da mesma
-assinatura representam renovação; o primeiro pagamento de uma assinatura paga
-posterior do mesmo negócio representa mudança de plano. Mudança de plano não
-deve ser chamada automaticamente de expansão porque pode ser upgrade, downgrade
-ou troca lateral. A coorte de renovação usa cobranças posteriores à primeira da
-mesma assinatura cujo vencimento já ocorreu. Atraso recuperável, cancelamento da
-próxima renovação e encerramento do acesso pago são fatos distintos. Cobrança
-recuperada exige pagamento atualmente válido e evidência processada de atraso
-anterior. Essas leituras são descritivas e não definem churn, LTV ou payback
-oficiais sem contrato e maturidade adicionais.
-
-Transições pagas novas devem ser registradas também em `assinatura_eventos`,
-como fatos append-only do domínio. A tabela distingue conversão inicial,
-renovação confirmada, reativação paga, mudança de plano, atraso recuperável,
-recuperação, reversão financeira, cancelamento da renovação e encerramento do
-acesso pago. Cada efeito usa chave idempotente estável e participa da mesma
-transação local da mudança que representa. `webhook_eventos` continua sendo a
-fila/auditoria do provedor; `assinatura_eventos` representa o significado de
-produto do AF. Não fazer backfill especulativo quando o histórico antigo não
-provar a transição.
-
-Conversões de assinatura para provedores de mídia devem usar identidade canônica
-por assinatura. Webhooks repetidos ou pagamentos posteriores da mesma assinatura
-não podem duplicar uma aquisição já enviada; quando ainda não houve envio, um
-pagamento posterior que se torne o primeiro válido após
-invalidação do anterior precisa poder gerar uma nova entrega.
-
-As integrações administrativas de custos são somente leitura no escopo atual
-documentado e não devem criar, editar, pausar ou excluir campanhas sem uma nova
-decisão de produto e segurança.
-
-Detalhes ficam em `docs/marketing-attribution.md`, `docs/marketing-sync-ga4.md`,
-`docs/analytics-pipeline-reconciliation.md` e demais documentos de marketing.
+Detalhes canônicos: `docs/marketing-attribution.md`,
+`docs/analytics-pipeline-reconciliation.md`,
+`docs/inteligencia-crescimento.md`,
+`docs/custo-qualidade-aquisicao-profissional.md`,
+`docs/prontidao-financeira-recorrencia.md` e documentos específicos de cada
+plataforma.
 
 ## Conteúdo e comunicação
 
