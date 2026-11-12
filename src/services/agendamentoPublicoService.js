@@ -573,6 +573,7 @@ async function criarAgendamento({
                 horarioNormalizado,
 
               fusoHorario,
+              executor: client,
             });
 
         if (!disponivel) {
