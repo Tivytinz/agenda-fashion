@@ -49,6 +49,16 @@ describe("repository de amostras de no-show", () => {
     );
   });
 
+  test("cobertura exclui reagendamentos sem snapshot original", async () => {
+    mockQuery.mockResolvedValue({ rows: [{ total_elegiveis: 10, total_capturados: 8 }] });
+    await expect(repository.obterCoberturaCaptura()).resolves.toEqual({ total_elegiveis: 10, total_capturados: 8 });
+    const [sql] = mockQuery.mock.calls[0];
+    expect(sql).toContain("NOT EXISTS");
+    expect(sql).toContain("agendamento_reagendamentos");
+    expect(sql).toContain("agendamento.inicio_previsto_em IS NOT NULL");
+    expect(sql).toContain("amostra.agendamento_id = agendamento.id");
+  });
+
   test("rotula somente realizado ou falta com timestamp explícito", async () => {
     mockQuery.mockResolvedValue({ rowCount: 3 });
 
