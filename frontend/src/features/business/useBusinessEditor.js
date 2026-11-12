@@ -15,6 +15,7 @@ import { formatWhatsApp } from "../../utils/format";
 import { businessCreationReferenceHash, readBusinessCreationReference } from "../../utils/businessCreationReference";
 import { buildPublicLink, copyPublicLink } from "../../utils/publicLinks";
 import { onboardingServicePath, safeServiceId } from "../onboarding/navigation";
+import { saveStepDraft, readStepDraft, clearStepDraft } from "../onboarding/stepDraft";
 
 const SERVICE_PUBLICATION_PENDING =
   "pelo menos um serviço ativo";
@@ -31,6 +32,8 @@ export function useBusinessEditor({ create = false }) {
   const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
   const onboardingRevision = !create && searchParams.get("onboarding") === "revisao-negocio";
   const returnServiceId = safeServiceId(searchParams.get("servico_retorno"));
+  const revisionDraftKey = onboardingRevision && usuarioId
+    ? `onboarding:business:${usuarioId}:${Number(session.negocio?.id) || 0}` : null;
   const [form, setForm] = useState(() => create
     ? normalizeBusinessForm(readBusinessCreationDraft(usuarioId) || EMPTY)
     : EMPTY);
@@ -76,6 +79,14 @@ export function useBusinessEditor({ create = false }) {
   const whatsappError = validateWhatsApp(form.whatsapp);
   const timeZoneOptions = timeZonesForState(form.estado);
   const mapSuggestion = buildBusinessMapSearchUrl(form);
+
+  function preserveRevisionOnBack() {
+    if (!revisionDraftKey || mutationBusy || loading) return;
+    saveStepDraft(revisionDraftKey, {
+      baseline: serializeBusinessForm(savedForm),
+      form: { ...form, areas: [...form.areas] }
+    });
+  }
 
   function focusFormField(field) {
     formRef.current?.querySelector(`[name="${field}"]`)?.focus();
@@ -309,7 +320,9 @@ export function useBusinessEditor({ create = false }) {
         if (!active) return;
         const business = result.negocio || result.configuracoes || {};
         const normalized = normalizeBusinessForm(business);
-        setForm(normalized);
+        const draft = revisionDraftKey && readStepDraft(revisionDraftKey);
+        const sameBaseline = draft?.baseline === serializeBusinessForm(normalized);
+        setForm(sameBaseline ? draft.form : normalized);
         setSavedForm(normalized);
         setContextInvalid(false);
         setError("");
@@ -362,6 +375,7 @@ export function useBusinessEditor({ create = false }) {
     event.preventDefault();
     if (operationRef.current || cepLookup.status === "loading") return;
     if (onboardingRevision && !unsavedChanges) {
+      clearStepDraft(revisionDraftKey);
       navigate(onboardingServicePath(selectedPlan, returnServiceId));
       return;
     }
@@ -476,6 +490,7 @@ export function useBusinessEditor({ create = false }) {
       session.refresh({ silent: true }).catch(() => {});
 
       if (onboardingRevision) {
+        clearStepDraft(revisionDraftKey);
         navigate(onboardingServicePath(selectedPlan, returnServiceId), { replace: true });
         return;
       }
@@ -701,6 +716,7 @@ export function useBusinessEditor({ create = false }) {
     selectedPlan,
     onboardingRevision,
     returnServiceId,
+    preserveRevisionOnBack,
     form,
     savedForm,
     loading,

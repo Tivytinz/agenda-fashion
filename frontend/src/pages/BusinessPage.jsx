@@ -24,6 +24,7 @@ export function BusinessPage({ create = false }) {
     selectedPlan,
     onboardingRevision,
     returnServiceId,
+    preserveRevisionOnBack,
     form,
     savedForm,
     loading,
@@ -147,9 +148,9 @@ export function BusinessPage({ create = false }) {
   );
 
   return (
-    <SetupFlowFrame backDisabled={mutationBusy} backTo={firstStepPath} enabled={isOnboarding} exitTo={selectedPlan ? "/planos" : "/"} step={2}>
+    <SetupFlowFrame backDisabled={mutationBusy} backTo={firstStepPath} onBack={preserveRevisionOnBack} enabled={isOnboarding} exitTo={selectedPlan ? "/planos" : "/"} step={2}>
     <main className={isOnboarding ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
-      <UnsavedChangesGuard when={unsavedChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} preserveOnNavigateTo={create && !mutationBusy ? firstStepPath : undefined} />
+      <UnsavedChangesGuard when={unsavedChanges} onDiscard={discardPendingOperations} onLeave={discardPendingOperations} preserveOnNavigateTo={isOnboarding && !mutationBusy ? firstStepPath : undefined} />
       <header className="workspace-heading">
         <div>
           {!isOnboarding && <p className="eyebrow">Presença pública</p>}
