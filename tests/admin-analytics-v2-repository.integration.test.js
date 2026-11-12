@@ -103,6 +103,19 @@ describe("Admin Analytics V2 repository - regressão de CTE", () => {
         [sessaoId]
       );
 
+      const outraSessao = await db.query(
+        `INSERT INTO analytics_sessoes
+           (session_uuid, visitante_id, iniciada_em, ultima_atividade_em)
+         VALUES ($1::UUID, $2, NOW(), NOW()) RETURNING id`,
+        [randomUUID(), visitanteId]
+      );
+      await db.query(
+        `INSERT INTO marketing_sessao_evidencias
+           (sessao_id, af_source, af_medium, af_content, capturado_em)
+         VALUES ($1, $2, 'whatsapp', 'negocio', NOW())`,
+        [outraSessao.rows[0].id, source]
+      );
+
       const resultado = await listarDivulgacaoAf("today");
       const linha = resultado.divulgacoes.find(
         (item) => item.af_source === source
@@ -110,7 +123,7 @@ describe("Admin Analytics V2 repository - regressão de CTE", () => {
       expect(linha).toEqual(expect.objectContaining({
         af_medium: "whatsapp",
         af_content: "negocio",
-        sessoes: 1,
+        sessoes: 2,
         sessoes_classificadas_diretas: 1,
       }));
     } finally {
