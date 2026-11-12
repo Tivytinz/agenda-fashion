@@ -139,9 +139,10 @@ async function listarAgendamentosOcupados(
   dataInicio,
   dataFim,
   agendamentoIgnorarId = null,
-  fusoHorario = "America/Sao_Paulo"
+  fusoHorario = "America/Sao_Paulo",
+  executor = db
 ) {
-  const result = await db.query(
+  const result = await executor.query(
     `
       SELECT
         a.id,
@@ -211,9 +212,10 @@ async function listarBloqueios(
   profissionalId,
   negocioId,
   dataInicio,
-  dataFim
+  dataFim,
+  executor = db
 ) {
-  const result = await db.query(
+  const result = await executor.query(
     `
       SELECT
         negocio_id,
